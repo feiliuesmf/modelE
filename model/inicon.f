@@ -21,9 +21,9 @@ c
 c
       integer totlj(jdm,kdm-1),totl(kdm-1),iz,jz,ni
       character text*24,preambl(5)*79
-      real kappaf,cold,temavg,vol,sst,spval,sigocn
+      real cold,temavg,vol,sst,spval,sigocn,sigstar
       real*4 real4(idm,jdm)
-      external kappaf,sigocn
+      external sigocn,sigstar
       data spval/-99.99/
       character title*80
 
@@ -121,9 +121,11 @@ css      tracer(i,j,k)=0.                 ! moved to hycom.f temperarily
       th3d(i,j,k+kk)=th3d(i,j,k)
       temp(i,j,k+kk)=temp(i,j,k)
       saln(i,j,k+kk)=saln(i,j,k)
-      if (wgtkap(i,j).le.0) print *,' wrong kap ',i,j
-      thstar(i,j,k)=th3d(i,j,k)
-     . +kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),th3d(i,j,k),wgtkap(i,j))
+      if (kappa) then
+        thstar(i,j,k)=sigstar(temp(i,j,k),saln(i,j,k),p(i,j,k))
+      else
+        thstar(i,j,k)=th3d(i,j,k)
+      end if
 c
       if (itest.gt.0.and.jtest.gt.0) then
         if (i.eq.itest.and.j.eq.jtest)
@@ -210,8 +212,11 @@ c
       do 21 l=1,isp(j)
       do 21 i=ifp(j,l),ilp(j,l)
       p(i,j,k+1)=p(i,j,k)+dp(i,j,k)
-      thstar(i,j,k)=th3d(i,j,k)
-     . +kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),th3d(i,j,k),wgtkap(i,j))
+      if (kappa) then
+        thstar(i,j,k)=sigstar(temp(i,j,k),saln(i,j,k),p(i,j,k))
+      else
+        thstar(i,j,k)=th3d(i,j,k)
+      end if
  21   continue
 c
       end if                                !  nstep0 > 0  or  = 0

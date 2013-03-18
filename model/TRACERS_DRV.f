@@ -6749,6 +6749,11 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE RADPAR, only : xnow
 #endif
       use OldTracer_mod, only: trli0
+#ifdef TRACERS_AMP
+      use TRACER_COM, only:n_M_OCC_OC  
+#else
+      use TRACER_COM, only:n_OCII 
+#endif
 #endif /* TRACERS_ON */
 
       IMPLICIT NONE
@@ -7844,9 +7849,8 @@ C**** Note this routine must always exist (but can be a dummy routine)
       data last_month/-1/
       INTEGER J_0, J_1, I_0, I_1
 #ifdef TRACERS_TOMAS
-      real*8 number  !for TOMAS debug only
       integer km, najl_num,naij_num,k
-      real*8 :: scalesize(nbins+nbins)
+      real*8 :: scalesize(nbins+nbins) !temporal emission mass fraction
 #endif
       type (Tracer_type), pointer :: tracer
 C****
@@ -8220,17 +8224,35 @@ C**** at the start of any day
       SUBROUTINE set_tracer_2Dsource
 !@sum tracer_source calculates non-interactive sources for tracers
 !@auth Jean Lerner/Gavin Schmidt
-      USE RESOLUTION, only : pmtop,psf
-      USE RESOLUTION, only : im,jm
-      use model_com, only: modelEclock
       USE MODEL_COM, only: itime,dtsrc,nday
+      use TracerSurfaceSource_mod, only: TracerSurfaceSource
+      use TracerBundle_mod, only: getTracer
+      use model_com, only: modelEclock
+      use RESOLUTION, only: im
       USE DOMAIN_DECOMP_ATM, only : GRID, GLOBALSUM,AM_I_ROOT
      *   ,globalmax, getDomainBounds
+      use Tracer_mod, only: Tracer_type
+      USE FLUXES, only: fland,flice,focean,atmsrf
+      USE SEAICE_COM, only : si_atm
+      USE GHY_COM, only : fearth
+      USE CONSTANT, only: tf,bygrav,mair,pi,teeny
+      USE LAKES_COM, only : flake
+      use OldTracer_mod, only: vol2mass
+      use OldTracer_mod, only: trname
+      use OldTracer_mod, only: itime_tr0
+      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR, 
+     &                             HOURS_PER_DAY, INT_MONTHS_PER_YEAR
+      USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
+      USE TRACER_COM, only: ntm
+      USE FLUXES, only: trsource
+      use TRACER_COM, only: tracers
+      use TRACER_COM, only: num_regions
+      use TRACER_COM, only: reg_E, ef_FACT
+      USE RESOLUTION, only : pmtop,psf
       USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,lat2d
       USE QUSDEF
-      USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
-      use OldTracer_mod, only: itime_tr0, trname, vol2mass
-      USE TRACER_COM, only: ntm, sfc_src, alter_sources
+      USE TRACER_COM, only: sfc_src
+      USE TRACER_COM, only: alter_sources
       use TRACER_COM, only: n_isoprene, n_SO2, no_emis_over_ice
       use TRACER_COM, only: trm, ntsurfsrc, rnsrc, reg_N, reg_W, reg_S
       use TRACER_COM, only: tracers, num_regions, reg_E, ef_FACT
@@ -8239,12 +8261,6 @@ C**** at the start of any day
       use TRACER_COM, only: n_ANUM, IDTECIL, IDTOCIL, IDTECOB, IDTOCOB
       use TRACER_COM, only: nbins, n_ASO4, xk, IDTSO4
 #endif
-      USE FLUXES, only: trsource,fland,flice,focean,atmsrf
-      USE SEAICE_COM, only : si_atm
-      USE GHY_COM, only : fearth
-      USE CONSTANT, only: tf,bygrav,mair,pi,teeny
-      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR, 
-     &                             HOURS_PER_DAY, INT_MONTHS_PER_YEAR
 #if (defined INTERACTIVE_WETLANDS_CH4) && (defined TRACERS_SPECIAL_Shindell)
       USE TRACER_SOURCES, only: ns_wet,add_wet_src
 #endif
@@ -8275,13 +8291,9 @@ C**** at the start of any day
       USE AERO_SETUP, only : RECIP_PART_MASS
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPe
 #endif
-      use Tracer_mod, only: Tracer_type
-      use TracerSurfaceSource_mod, only: TracerSurfaceSource
-      use TracerBundle_mod, only: getTracer
 #ifdef TRACERS_TOMAS
-      USE TOMAS_AEROSOL, only : scalesizeSO4,scalesizeCARBO30
+      USE TOMAS_EMIS, only : scalesizeSO4,scalesizeCARBO30
 #endif
-      USE LAKES_COM, only : flake
       implicit none
       integer :: i,j,ns,ns_isop,l,ky,n,nsect,kreg
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
@@ -9060,8 +9072,9 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE CONSTANT, only : pi
       USE TRDIAG_COM, only : itcon_TOMAS,itcon_subcoag 
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_TOMAS
-      USE TOMAS_AEROSOL, only : TRM_EMIS,scalesizeCARBO100,
-     &     scalesizeCARBO30, scalesizeSO4,xk,icomp,idiag
+      USE TOMAS_AEROSOL, only : TRM_EMIS,xk,icomp,idiag
+      USE TOMAS_EMIS, only : scalesizeCARBO100,
+     &     scalesizeCARBO30, scalesizeSO4
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry,sOx_acc,sNOx_acc,
@@ -10535,14 +10548,12 @@ C**** Local parameters and variables and arguments:
 C
 #ifdef TRACERS_TOMAS
       integer k,i,j,l
-      real*8 scavr                !below-cloud scavenging coefficient (per mm rain)
+!@var scavr/stratsav : below-cloud scavenging coefficient (per mm rain)
+      real*8 scavr                
       real stratscav
-!      external stratscav
-      real*8 dpaero,mtot  !aerosol diameter(m) 
-      real*8, parameter :: Neps=1.d-20 ! small number of particles (#/box) 
+!@var dpaero : aerosol diameter [m]
+      real*8 dpaero,mtot  
       real,dimension(nbins) ::  getdp,density
-      logical no_wash
-
 #endif
 c      thlaw(:)=0.
 
@@ -10845,17 +10856,16 @@ c DMM is number density of air in molecules/cm3
 
 #ifdef TRACERS_TOMAS
 
-C     **************************************************
-C     *  initbounds                                    *
-C     **************************************************
+!    **************************************************
+!@sum  initbounds                                    
+!    **************************************************
+!@+    This subroutine initializes the array, xk, which describes the
+!@+    boundaries between the aerosol size bins.  xk is in terms of dry
+!@+    single-particle mass (kg).  The aerosol microphysics algorithm
+!@+    used here assumes mass doubling such that each xk is twice the
+!@+    previous.
 
-C     WRITTEN BY Peter Adams, November 1999
-
-C     This subroutine initializes the array, xk, which describes the
-C     boundaries between the aerosol size bins.  xk is in terms of dry
-C     single-particle mass (kg).  The aerosol microphysics algorithm
-C     used here assumes mass doubling such that each xk is twice the
-C     previous.
+!@auth Peter Adams, November 1999 (Modified by Yunha Lee)
 
       SUBROUTINE initbounds()
 
@@ -10869,7 +10879,8 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       IMPLICIT NONE
 
       integer k
-      real*8 Mo     !lower mass bound for first size bin (kg)
+!@var Mo : lower mass bound for first size bin (kg)
+      real*8 Mo     
 
 C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
@@ -10901,21 +10912,20 @@ C-----CODE--------------------------------------------------------------
       END
 
 
-C     **************************************************
-C     *  momentfix                                     *
-C     **************************************************
+!    **************************************************
+!@sum   momentfix                                     
+!    **************************************************
+!@+    This routine changes the first and second order moments of a
+!@+    given tracer's distribution such that they match the shape of
+!@+    another specified tracer.  Since the zeroth order moment is
+!@+    unchanged, the routine conserves mass.
 
-C     WRITTEN BY Peter Adams
-
-C     This routine changes the first and second order moments of a
-C     given tracer's distribution such that they match the shape of
-C     another specified tracer.  Since the zeroth order moment is
-C     unchanged, the routine conserves mass.
+!@auth Peter Adams
 
 C-----INPUTS------------------------------------------------------------
 
-c     pn - the number of the tracer that will serve as the pattern
-c     fn - the number of the tracer whose moments will be fixed 
+!@var     pn - the number of the tracer that will serve as the pattern
+!@var     fn - the number of the tracer whose moments will be fixed 
 
 C-----OUTPUTS-----------------------------------------------------------
 
@@ -10964,38 +10974,38 @@ C****
       
 
 
-C     **************************************************
-C     *  stratscav                                     *
-C     **************************************************
+!    **************************************************
+!@sum  stratscav                                     
+!@    **************************************************
+!@+    This function is basically a lookup table to get the below-cloud 
+!@+    scavenging rate (per mm of rainfall) as a function of particle
+!@+    diameter.  The data are taken from Dana, M. T., and
+!@+    J. M. Hales, Statistical Aspects of the Washout of Polydisperse
+!@+    Aerosols, Atmos. Environ., 10, 45-50, 1976.  I am using the
+!@+    monodisperse aerosol curve from Figure 2 which assumes a
+!@+    lognormal distribution of rain drops with Rg=0.02 cm and a
+!@+    sigma of 1.86, values typical of a frontal rain spectrum
+!@+    (stratiform clouds).
 
-C     WRITTEN BY Peter Adams, January 2001
-
-C     This function is basically a lookup table to get the below-cloud 
-C     scavenging rate (per mm of rainfall) as a function of particle
-C     diameter.  The data are taken from Dana, M. T., and
-C     J. M. Hales, Statistical Aspects of the Washout of Polydisperse
-C     Aerosols, Atmos. Environ., 10, 45-50, 1976.  I am using the
-C     monodisperse aerosol curve from Figure 2 which assumes a
-C     lognormal distribution of rain drops with Rg=0.02 cm and a
-C     sigma of 1.86, values typical of a frontal rain spectrum
-C     (stratiform clouds).
+!@auth  Peter Adams, January 2001
 
       real FUNCTION stratscav(dp)
 
       IMPLICIT NONE
 
-C     INCLUDE FILES...
-
 C-----ARGUMENT DECLARATIONS------------------------------------------
-
-      real*8 dp   !particle diameter (m)
+!@var dp : particle diameter [m]
+      real*8 dp  
 
 C-----VARIABLE DECLARATIONS------------------------------------------
-
-      integer numpts  !number of points in lookup table
-      real dpdat      !particle diameter in lookup table (m)
-      real scdat      !scavenging rate in lookup table (mm-1)
-      integer n1, n2  !indices of nearest data points
+!@param numpts : number of points in lookup table
+!@var dpdat : particle diameter in lookup table [m]
+!@var scdat : scavenging rate in lookup table [mm-1]
+!@var n1/n2 : indices of nearest data points
+      integer numpts  
+      real dpdat      
+      real scdat      
+      integer n1, n2 
 
 C-----VARIABLE COMMENTS----------------------------------------------
 

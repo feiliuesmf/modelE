@@ -329,9 +329,11 @@ c -----------------------------------------------------------------
 !@sum Puts AMP Aerosols in 1 dimension CALLED in RADIA
 !@auth Susanne Bauer
 
-      USE AMP_AEROSOL, only: DIAM, Reff_LEV, NUMB_LEV, RindexAMP,NUMB_SS,
-     +                       dry_Vf_LEV,MIX_OC,MIX_SU,MIX_AQ,AMP_dens, AMP_RAD_KEY
-      USE TRACER_COM,  only: TRM, ntmAMPi,ntmAMPe, AMP_AERO_MAP,AMP_NUMB_MAP,AMP_MODES_MAP
+      USE AMP_AEROSOL, only: DIAM,Reff_LEV, NUMB_LEV, RindexAMP,NUMB_SS,
+     +  dry_Vf_LEV,MIX_OC,MIX_SU,MIX_AQ,AMP_dens, AMP_RAD_KEY
+      USE AmpTracersMetadata_mod,  only: AMP_AERO_MAP, AMP_NUMB_MAP,
+     +  AMP_MODES_MAP
+      USE TRACER_COM,  only: TRM, ntmAMPi,ntmAMPe
       USE AERO_CONFIG, only: NMODES
       USE AERO_SETUP,  only: SIG0, CONV_DPAM_TO_DGN   !(nmodes * npoints) lognormal parameters for each mode
       USE GEOM,        only: BYDXYP ! inverse area of gridbox [m-2]

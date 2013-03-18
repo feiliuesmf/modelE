@@ -39,12 +39,12 @@ submitJob()
   local testLog=$3
   local mpi=$4
 
-  local deck=E4TcadF40
+  local deck=E4TcadiF40
 
   MAKELOG=make.log.${compiler}
   FAILLOG=${testLog}.FAILED
   if [ "$mpi" == "NO" ]; then
-    pfunitSuffix=".serial"
+    pfunitSuffix="-serial"
     FAILLOG=${testLog}${pfunitSuffix}.FAILED
   fi
 
@@ -80,24 +80,17 @@ EOF
 
   cat << EOF >> $jobScript
 
-export PFUNIT=/discover/nobackup/modele/libs/pFUnit.${compiler}${pfunitSuffix}
+export PFUNIT=/discover/nobackup/ccruz/Baselibs/pFUnit/${compiler}${pfunitSuffix}
 export MODELERC=$REGSCRATCH/${compiler}/modelErc.${compiler}
 
 cd $REGSCRATCH
 rm -rf ${deck}.${compiler}
-clean=YES
-if [ ! -d "${deck}.${compiler}" ]; then
-  git clone $MODELROOT ${deck}.${compiler} > /dev/null 2>&1
-  clean=NO
-fi
+git clone $MODELROOT ${deck}.${compiler} > /dev/null 2>&1
 
 cd $REGSCRATCH/${deck}.${compiler}/decks
 make rundeck RUN=$deck RUNSRC=$deck >> make.log.${compiler} 2>&1
 wait
-if [ "\$clean" == "YES" ]; then
-  make clean >> make.log.${compiler} 2>&1
-  wait
-fi
+
 EOF
 
   if [ "$compiler" == "intel" ]; then

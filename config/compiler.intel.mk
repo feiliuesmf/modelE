@@ -19,35 +19,28 @@ EXTENDED_SOURCE = -extend_source
 
 # flags needed for particular releases
 
-ifeq ($(IFORT_RELEASE),13.0)
-FFLAGS += -assume protect_parens -fp-model strict -warn nousage
-F90FLAGS += -assume protect_parens -fp-model strict -warn nousage
-endif
+# default flags for latest releases (work for 12.*, 13.*):
+FFLAGS_RELEASE = -assume protect_parens -fp-model strict -warn nousage
 
-ifeq ($(IFORT_RELEASE),12.1)
-FFLAGS += -assume protect_parens -fp-model strict -warn nousage
-F90FLAGS += -assume protect_parens -fp-model strict -warn nousage
-endif
-
-ifeq ($(IFORT_RELEASE),12.0)
-FFLAGS += -assume protect_parens -fp-model strict -warn nousage
-F90FLAGS += -assume protect_parens -fp-model strict -warn nousage
-endif
-
+# if some releases require different flags enter them here
 ifeq ($(IFORT_RELEASE),11.1)
-FFLAGS += -assume protect_parens -fp-model strict -fp-speculationoff
-F90FLAGS += -assume protect_parens -fp-model strict -fp-speculationoff
+FFLAGS_RELEASE = -assume protect_parens -fp-model strict -fp-speculationoff
 endif
 
 ifeq ($(IFORT_RELEASE),11.0)
-FFLAGS += -assume protect_parens -fp-model strict -fp-speculationoff
-F90FLAGS += -assume protect_parens -fp-model strict -fp-speculationoff
+FFLAGS_RELEASE = -assume protect_parens -fp-model strict -fp-speculationoff
 endif
 
 ifeq ($(IFORT_RELEASE),10.1)
-FFLAGS += -assume protect_parens -fp-model strict -diag-disable vec  -fp-speculationoff
-F90FLAGS += -assume protect_parens -fp-model strict -diag-disable vec  -fp-speculationoff
+FFLAGS_RELEASE = -assume protect_parens -fp-model strict -diag-disable vec  -fp-speculationoff
 endif
+
+ifeq ($(IFORT_RELEASE),9.1)
+FFLAGS_RELEASE =
+endif
+
+FFLAGS += $(FFLAGS_RELEASE)
+F90FLAGS += $(FFLAGS_RELEASE)
 
 ifeq ($(COMPILE_WITH_TRAPS),YES)
 FFLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback

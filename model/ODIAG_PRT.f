@@ -1749,7 +1749,7 @@ c
      &     ,ijl_mfub,ijl_mfvb,ijl_mfwb
      &     ,oij=>oij_loc,ij_sf,olnst,ln_mflx
 #ifdef OCN_GISSMIX
-     &     ,ijl_ri,ijl_rrho,ijl_otke,ijl_kvs
+     &     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
 #endif
 #ifdef OCN_Mesoscales
      &     ,ijl_ueddy,ijl_veddy,ijl_n2
@@ -1829,8 +1829,11 @@ cnotyet        oijl_out(i,j,l,ijl_mfwb) = oijl(i,j,l,ijl_mfwb)
         oijl_out(i,j,l,ijl_sflx+2) = oijl(i,j,l,ijl_sflx+2)
 #ifdef OCN_GISSMIX
         oijl_out(i,j,l,ijl_kvs) = oijl(i,j,l,ijl_kvs)*dxypo(j)
+        oijl_out(i,j,l,ijl_kvc) = oijl(i,j,l,ijl_kvc)*dxypo(j)
         oijl_out(i,j,l,ijl_ri) = oijl(i,j,l,ijl_ri)*dxypo(j)
         oijl_out(i,j,l,ijl_rrho) = oijl(i,j,l,ijl_rrho)*dxypo(j)
+        oijl_out(i,j,l,ijl_bv2) = oijl(i,j,l,ijl_bv2)*dxypo(j)
+        oijl_out(i,j,l,ijl_buoy) = oijl(i,j,l,ijl_buoy)*dxypo(j)
         oijl_out(i,j,l,ijl_otke) = oijl(i,j,l,ijl_otke)*dxypo(j)
 #endif
       enddo

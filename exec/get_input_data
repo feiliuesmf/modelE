@@ -6,13 +6,16 @@ use Getopt::Long;         #module to process command line options
 GetOptions("w", "t=s") || die "problem in GetOptions";
 
 if ( $#ARGV < 0 ) { 
-    print "Usage: $0 [-w] RunID [data_dir]\n"; 
+    print "Usage: $0 [-w] [-t ndays] RunID [data_dir]\n"; 
     print "  Creates a directory 'data_dir' (or 'RunID_data' by default)\n";
     print "  and copies there all input files required to run RunID.\n";
     print "  Intended to be used when taking the model off-site.\n";
     print "  Options:\n";
-    print "  -w  instead of using local repository try to download\n";
+    print "  -w\n";
+    print "      instead of using local repository try to download\n";
     print "      necessary files from central storage (using wget).\n";
+    print "  -t ndays\n";
+    print "      if present the files older than ndays will be skipped\n";
     exit; 
 }
 
@@ -74,7 +77,7 @@ $failed_downloads = "";
 foreach $str (@a) {
     #print "$str\n";
     ($tag,$filename) = split / *= */, $str;
-    if ( ! -f "$data_dir/$filename" ) {
+    if ( ! -e "$data_dir/$filename" ) {
 	create_path( "$data_dir/$filename" );
 	if ( $opt_w ) {
 	    my $file_dir = `dirname $data_dir/$filename`;
@@ -84,13 +87,23 @@ foreach $str (@a) {
 	    $rcode = $? >> 8;
 	    if ( $rcode != 0 ) { $failed_downloads .= $filename."\n"; }
 	} else {
-	    if ( -M "$GCMSEARCHPATH/$filename" < $max_age ) {
-		print "Copying:     $filename\n";
-		copy( "$GCMSEARCHPATH/$filename", "$data_dir/$filename") or
-		    die "Can't copy $GCMSEARCHPATH/$filename\n";
-	    } else {
-		print "Too old:     $filename\n";
+	    my $dir = "";
+	    my $success = 0;
+	    foreach $dir (split /:/, $GCMSEARCHPATH) {
+		my $full_filename = "$dir/$filename";
+		if ( -e $full_filename ) {
+		    if ( -M $full_filename > $max_age ) {
+			print "Too old:     $full_filename\n";
+			next; 
+		    }
+		    print "Copying:     $full_filename\n";
+		    copy( $full_filename, "$data_dir/$filename") or
+			die "Can't copy $full_filename\n";
+		    $success = 1;
+		    last;
+		}
 	    }
+	    if ( ! $success ) {print "Not found:     $filename\n";} 
 	}
     } else {
 	print "Already present:     $filename\n";

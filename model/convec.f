@@ -5,7 +5,6 @@ c --- hycom version 0.9.1 -- cyclic and noncyclic b.c. combined
 c
 c --- convective adjustment. either -th3d- and -thstar- can be used as
 c --- indicators of static instability. switch between the two by
-c --- activating/deactivating lines containing -kappaf-
 c
       USE HYCOM_DIM
       USE HYCOM_SCALARS
@@ -20,8 +19,8 @@ c
      .     trac(kdm,ntrcr),pres(kdm+1),
      .     totem,tosal,tndcyt,tndcys		!  col.integrals (diag.use only)
       logical vrbos
-      real sigocn,kappaf
-      external sigocn,kappaf
+      real sigocn
+      external sigocn
 c
 c --- ---------------------
 c --- convective adjustment
@@ -102,9 +101,6 @@ c
       ssal(k)=saln(i,j,kn)
       dens(k)=th3d(i,j,kn)
       star(k)=dens(k)
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ccc     .   +kappaf(ttem(k),ssal(k),pres(k))
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (dotrcr) trac(k,:)=tracer(i,j,k,:)
       delp(k)=dp(i,j,kn)
  12   pres(k+1)=pres(k)+delp(k)
@@ -136,9 +132,6 @@ c
       ssal(kbase)=sal
       dens(kbase)=thet
       star(kbase)=thet
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ccc     .   +kappaf(tem,sal,pres(kbase))
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (dotrcr) then
         trc(:)=(q1*trac(kbase,:)+q2*trac(k,:))/(q1+q2)
         trac(kbase,:)=trc(:)
@@ -156,9 +149,6 @@ c
       ssal(kp)=sal
       dens(kp)=thet
       star(kp)=thet
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ccc     .   +kappaf(tem,sal,pres(kp))
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (dotrcr) trac(kp,:)=trc(:)
  7    continue
  4    continue

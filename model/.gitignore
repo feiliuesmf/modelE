@@ -4,7 +4,9 @@
 *.smod
 *~
 .depend
-.depend_tmp.old
+.depend_cpp
+.depend_f
+.depend_f.old
 /#notes#
 /.#notes
 /.current_options

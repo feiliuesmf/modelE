@@ -563,11 +563,14 @@ c want kg seasalt/m2/s, for now in 2 size bins
 #ifdef TRACERS_AEROSOLS_OCEAN
      &                          ,OC_SS_enrich_fact
 #endif  /* TRACERS_AEROSOLS_OCEAN */
+#ifdef TRACERS_TOMAS
+      USE TOMAS_EMIS, only : scalesizeSalt
+#endif
       !USE FLUXES, only: gtemp !Jaegle
       use Dictionary_mod, only: sync_param
       implicit none
       REAL*8 erate,swind_cap
-      integer jread
+      integer jread,nb
       integer, INTENT(IN)::itype,ibin,i,j
       REAL*8, INTENT(IN)::swind
       REAL*8, INTENT(OUT)::ss
@@ -633,61 +636,7 @@ c if after Feb 28 skip the leapyear day
       if (OFFLINE_DMS_SS.ne.1.and.OFFLINE_SS.ne.1) then
         if (itype.eq.1) then
           erate=1.373d0*swind**3.41d0 !Gong
-#ifdef TOMAS_12_10NM
-          if (ibin.eq.1) then 
-            ss=tune_ss1*erate*3.7028916e-23 ! wrong 2.6656153e-21 !Gong
-          elseif (ibin.eq.2)then
-            ss=tune_ss1*erate*5.7123891e-22 ! wrong 5.8887602e-20 !Gong
-          elseif (ibin.eq.3)then
-            ss=tune_ss1*erate*1.1839277e-20 !wrong 1.2690423e-18 !Gong
-          elseif (ibin.eq.4)then
-            ss=tune_ss1*erate*2.8514155e-19 !wrong 1.5477057e-17 !Gong
-          elseif (ibin.eq.5)then
-            ss=tune_ss1*erate*4.5906335e-18 !wrong 9.6921813e-17 !Gong
-          elseif (ibin.eq.6)then
-            ss=tune_ss1*erate*4.388824e-17 ! wrong 3.1987962e-16 !Gong
-          elseif (ibin.eq.7)then
-            ss=tune_ss1*erate*1.8982601e-16 !wrong 5.8656553e-16 !Gong
-          elseif (ibin.eq.8)then
-            ss=tune_ss1*erate*4.6295965e-16 ! wrong 9.8777984e-16 !Gong
-          elseif (ibin.eq.9)then
-            ss=tune_ss1*erate*7.409149e-16 !wrong 2.3027083e-15 !Gong
-          elseif (ibin.eq.10)then
-            ss=tune_ss1*erate*1.4321188e-15 ! wrong 9.1869805e-15 !Gong
-          elseif (ibin.eq.11)then
-            ss=tune_ss1*erate*3.6773131e-14 ! wrong 7.5069310e-14 !Gong
-          elseif (ibin.eq.12)then
-            ss=tune_ss1*erate*7.6566702e-14 ! wrong1.1860428e-13 !Gong
-          endif
-#endif
-#ifdef TOMAS_12_3NM
-          if (ibin.le.3)  ss=0.0  ! zeor below 10nm for now 
-          if (ibin.eq.4) then 
-            ss=tune_ss1*erate*3.7028916e-23 ! wrong 2.6656153e-21 !Gong
-          elseif (ibin.eq.5)then
-            ss=tune_ss1*erate*5.7123891e-22 ! wrong 5.8887602e-20 !Gong
-          elseif (ibin.eq.6)then
-            ss=tune_ss1*erate*1.1839277e-20 !wrong 1.2690423e-18 !Gong
-          elseif (ibin.eq.7)then
-            ss=tune_ss1*erate*2.8514155e-19 !wrong 1.5477057e-17 !Gong
-          elseif (ibin.eq.8)then
-            ss=tune_ss1*erate*4.5906335e-18 !wrong 9.6921813e-17 !Gong
-          elseif (ibin.eq.9)then
-            ss=tune_ss1*erate*4.388824e-17 ! wrong 3.1987962e-16 !Gong
-          elseif (ibin.eq.10)then
-            ss=tune_ss1*erate*1.8982601e-16 !wrong 5.8656553e-16 !Gong
-          elseif (ibin.eq.11)then
-            ss=tune_ss1*erate*4.6295965e-16 ! wrong 9.8777984e-16 !Gong
-          elseif (ibin.eq.12)then
-            ss=tune_ss1*erate*7.409149e-16 !wrong 2.3027083e-15 !Gong
-          elseif (ibin.eq.13)then
-            ss=tune_ss1*erate*1.4321188e-15 ! wrong 9.1869805e-15 !Gong
-          elseif (ibin.eq.14)then
-            ss=tune_ss1*erate*3.6773131e-14 ! wrong 7.5069310e-14 !Gong
-          elseif (ibin.eq.15)then
-            ss=tune_ss1*erate*7.6566702e-14 ! wrong1.1860428e-13 !Gong
-          endif
-#endif
+          ss=tune_ss1*erate*scalesizeSalt(ibin)
 !#ifdef TRACERS_AEROSOLS_OCEAN
 !            if (trim(tr).eq.'OCocean') then
 !              ss=ss*OC_SS_enrich_fact(i,j)

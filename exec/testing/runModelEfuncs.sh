@@ -45,34 +45,35 @@ OPTIONS
 
      -b | --baseline : create modelE baseline (default: NO) 
      -c | --clean    : run "make clean" (default: YES) 
-     -d | --deck     : rundeck template name (default: nonProduction_E_AR5_C12)
+     -d | --deckname : use a different name for rundeck (default: same as template name)
      -f | --fflags   : use debug FFLAGS to compile (default: YES)
      -m | --modelErc : specified location of .modelErc (default: $HOME/.modelErc)
                        OR MODELERC environment variable
-     -n | --deckname : use a different name for rundeck (default: SAME)
      -o | --compile  : compile only (default: NO)
      -r | --runtype  : runtype is 1HR or 1DY or ALL (default: ALL)
+     -l | --log      : view build/model output (default: NO)
+     -t | --template : rundeck template name (default: nonProduction_E_AR5_C12)
      -x | --check    : check run results against baseline repository (default: NO)
                        If yes, MODELEBASE environement variable must be set
      -v | --verbose  : verbose (default: YES)
 
      Additionally, on DISCOVER:
 
-     -e | --modEnv   : module environment (default: intel13)
-                             intel13  : comp/intel-13.0.0.079 
-                                        mpi/impi-3.2.2.006
-                             gcc47    : other/comp/gcc-4.7-20120331
-					other/mpi/mvapich2-1.8a2/gcc-4.7-20120331
+     -e | --modEnv   : module environment (default: intel)
+                             intel : comp/intel-13.0.0.079 
+                                     mpi/impi-3.2.2.006
+                             gcc   : other/comp/gcc-4.7-20120331
+				     other/mpi/mvapich2-1.8a2/gcc-4.7-20120331
 EXAMPLE
 
      This screen:
         runModelE.sh -h 
      Create baseline (with MODELEBASE set):
         runModelE.sh
-     Do not check agains baseline (just runs within MODELEGIT)
+     Do not check against baseline (just runs within MODELEGIT)
         runModelE.sh -x NO
-     Use gcc47 modules, E4TcadF40 rundeck (with shortname=cad) and the specified modelErc file
-        runModelE.sh --modEnv=gcc47 -d E4TcadF40 -n cad --modelErc=$HOME/.modelErc.G47
+     Use gcc modules, E4TcadF40 rundeck (with shortname=cad) and the specified modelErc file
+        runModelE.sh --modEnv=gcc -t E4TcadF40 -d cad --modelErc=$HOME/.modelErc.G47
 
 AUTHOR
 
@@ -92,10 +93,13 @@ defaults()
    rcFile=$HOME/.modelErc
 
 # Rundeck name
-   rundeck="nonProduction_E_AR5_C12"
+   template="nonProduction_E_AR5_C12"
 
-# module environment in .modelErc - default is to use Intel 13
-   moduleSet="intel13"
+# Default rundeck name is the same as the template name
+   deckname="nonProduction_E_AR5_C12"
+
+# module environment in .modelErc - default is to use Intel v13.x
+   moduleSet="intel"
    # used in .modelErc:
    COMPILER=intel
    MPIDISTR=intel
@@ -113,14 +117,14 @@ defaults()
 # Compile only
    compile="NO"
 
-# If not "TEMPLATE" then use deckname specified in command line
-   deckname="TEMPLATE"
-
 # Run type ALL=1hr+1dy+regression
    runtype="ALL"
 
 # Print out run information
    verbose="YES"
+
+# Print out run information
+   viewlog="NO"
 
 # Check rundeck changes against those in MODELEBASE repository
    check="NO"
@@ -153,7 +157,7 @@ initEnvironment()
    diagMessage "Host: $(hostname)"
    diagMessage "-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_"
    diagMessage " "
-   diagMessage " *** Setup $rundeck testing environment ***"
+   diagMessage " *** Setup $template testing environment ***"
 
 # Checkpoint initial path
    startDirectory=`pwd`
@@ -178,9 +182,9 @@ initEnvironment()
       EXTRA_FFLAGS=""
    fi
 
-# Set template and rundeck names
-   template=$rundeck
-   if [ "$deckname" != "TEMPLATE" ]; then
+# For convenience define a glocal variable named rundeck
+   rundeck=$template
+   if [ "$deckname" != "$template" ]; then
       rundeck=$deckname
    fi
 
@@ -190,11 +194,13 @@ initEnvironment()
 # If we are doing baseline run then ...
    if [ "$baseline" == "YES" ]; then
       check="NO"
-      clean="YES"
+#      clean="YES"
    fi
 
 # exclude PFUNIT
    unset PFUNIT
+
+   export MODELERC=$rcFile
 
    printInfo
 }
@@ -314,20 +320,21 @@ setModules()
 
     source /usr/share/modules/init/bash
     module purge
-    # NOTE: DEFAULT is intel13
-    if [ "$moduleSet" == "intel13" ]; then
+    # NOTE: DEFAULT is intel
+    if [ "$moduleSet" == "intel" ]; then
        module load comp/intel-13.0.0.079 mpi/impi-3.2.2.006
        PNETCDFHOME=/usr/local/other/pnetcdf/intel12.0.1.107_impi3.2.2.006
        NETCDFHOME=/usr/local/other/netcdf/3.6.2_intel-12.0.1.107
        ESMFHOME=/usr/local/other/esmf400rp1/intel12_impi32
        EXTRA_FFLAGS="-O0 -g -traceback"
-    elif [ "$moduleSet" == "gcc47" ]; then
-       module load other/comp/gcc-4.7-20120331 other/mpi/mvapich2-1.8a2/gcc-4.7-20120331
-       PNETCDFHOME=/usr/local/other/esmf400rp1/gcc4.7_mvapich2-1.8
-       NETCDFHOME=/usr/local/other/pnetcdf/gcc4.6_mvapich2-1.6
+    elif [ "$moduleSet" == "gcc" ]; then
+       module load other/comp/gcc-4.7.1 other/mpi/mvapich2-1.9a2/gcc-4.7.1
+       PNETCDFHOME=/usr/local/other/pnetcdf/gcc-4.7.1_mvapich2-1.9a2
+       NETCDFHOME=/usr/local/other/netcdf/3.6.2_gcc4.6
        ESMFHOME=/usr/local/other/esmf400rp1/gcc4.7_mvapich2-1.8
        COMPILER=gfortran
        MPIDISTR=mvapich2
+       MPIDIR=/usr/local/other/mvapich2/1.9a2/gcc-4.7.1
        EXTRA_FFLAGS="-O0 -g -fbacktrace"
     else
       finalize 1 " --- Module set $moduleSet is not available."
@@ -342,7 +349,23 @@ setNPES()
 {
 # In this function we determine, based on the rundeck, how many
 # cpus to use. 
-    npes=( ${NPES} )
+   if [ "$npes" == "" ]; then
+     if [[ "$template" =~ cadC12  || "$template" =~ AR5_C12 ]]; then
+       useNPES=( 2 )
+     elif [[ "$template" =~ EM20 || "$template" =~ E1oM20 ]]; then
+       useNPES=( 4 )
+     elif [[ "$template" =~ cadiF40 || "$template" =~ arobio  ]]; then
+       useNPES=( 8 )
+     elif [[ "$template" =~ E4C90 ]]; then
+       useNPES=( 24 )
+     elif [[ "$template" =~ tomas || "$template" =~ campiF40 || "$template" =~ ampF40 ]]; then
+       useNPES=( 44 )
+     else 
+       useNPES=( 12 )
+     fi
+   else
+      useNPES=$npes
+   fi
 }
 
 # -------------------------------------------------------------------
@@ -372,8 +395,10 @@ buildAndRunCodeBase()
 
    if [ "$baseline" == "YES" ]; then
 
-      val=${npes[0]}
-      make vclean 1>> $makeLog 2>&1 
+      val=${useNPES[0]}
+#      if [ "$clean" == "YES" ]; then   
+#         make vclean 1>> $makeLog 2>&1 
+#      fi
 
       rmFile "${rundeck}.${codebase}.exe"
       wait
@@ -399,7 +424,7 @@ buildAndRunCodeBase()
       if [[ "$codebase" != "base" ]]; then
          cnt=0
          buildOption=YES
-         for val in "${npes[@]}"; do
+         for val in "${useNPES[@]}"; do
    	    if [ $cnt -gt 0 ]; then
                buildOption="NO"
      	    fi 
@@ -444,9 +469,9 @@ buildSerial()
    echo " ====== START SERIAL BUILD ====== " >> $makeLog
    diagMessage " ------ make -j gcm RUN=$deck"
    if [ "$EXTRA_FFLAGS" == "" ]; then   
-      make -j gcm RUN=$deck MODELERC=$rcFile 1>> $makeLog 2>&1
+      make -j gcm RUN=$deck 1>> $makeLog 2>&1
    else
-      make -j gcm RUN=$deck MODELERC=$rcFile EXTRA_FFLAGS="$EXTRA_FFLAGS" 1>> $makeLog 2>&1
+      make -j gcm RUN=$deck EXTRA_FFLAGS="$EXTRA_FFLAGS" 1>> $makeLog 2>&1
    fi
    wait
    exitIfNofile "$deck.exe" "COMPILATION failed" 
@@ -467,14 +492,21 @@ buildMpi()
 # make rundeck
       makeRundeck "$deck"
 
-      make --quiet vclean 1>> $makeLog 2>&1
+      if [ "$clean" == "YES" ]; then   
+	 make --quiet vclean 1>> $makeLog 2>&1
+      fi
+
 # make gcm
       echo " ====== START MPI BUILD ====== " >> $makeLog
       diagMessage " ------ make -j gcm RUN=$deck MPI=YES" 
       if [ "$EXTRA_FFLAGS" == "" ]; then   
-         make -j gcm RUN=$deck MODELERC=$rcFile MPI=YES 1>> $makeLog 2>&1
+         if [ "$viewlog" == "YES" ]; then   
+           xterm -e make -j gcm RUN=$deck MPI=YES | tee $makeLog
+         else
+           make -j gcm RUN=$deck MPI=YES 1>> $makeLog 2>&1
+         fi
       else
-         make -j gcm RUN=$deck MODELERC=$rcFile MPI=YES EXTRA_FFLAGS="$EXTRA_FFLAGS" 1>> $makeLog 2>&1
+         make -j gcm RUN=$deck MPI=YES EXTRA_FFLAGS="$EXTRA_FFLAGS" 1>> $makeLog 2>&1
       fi
 
    else
@@ -496,9 +528,13 @@ buildMpi()
          echo " ====== START MPI BUILD ====== " >> $makeLog
          diagMessage " ------ make -j gcm RUN=$deck MPI=YES" 
          if [ "$EXTRA_FFLAGS" == "" ]; then   
-            make -j gcm RUN=$deck MODELERC=$rcFile MPI=YES 1>> $makeLog 2>&1
+            if [ "$viewlog" == "YES" ]; then   
+	      xterm -e make -j gcm RUN=$deck MPI=YES | tee $makeLog
+            else
+              make -j gcm RUN=$deck MPI=YES 1>> $makeLog 2>&1
+            fi
          else
-            make -j gcm RUN=$deck MODELERC=$rcFile MPI=YES EXTRA_FFLAGS="$EXTRA_FFLAGS" 1>> $makeLog 2>&1
+            make -j gcm RUN=$deck MPI=YES EXTRA_FFLAGS="$EXTRA_FFLAGS" 1>> $makeLog 2>&1
          fi
 
       fi # end if buildOpt
@@ -531,12 +567,17 @@ runModel()
 
    if [ $ncpu -eq 0 ]; then
       diagMessage " --- Run $deck (serial mode)"
-      make -j setup RUN=$deck MODELERC=$rcFile 1>> $makeLog 2>&1
-      MODELERC=$rcFile ../exec/runE $deck -np 1 -cold-restart 1>> $makeLog 2>&1
+      make -j setup RUN=$deck 1>> $makeLog 2>&1
+      ../exec/runE $deck -np 1 -cold-restart 1>> $makeLog 2>&1
    else
-       diagMessage " --- Run $deck (MPI mode,  NPES=$ncpu)"
-       make -j setup RUN=$deck MODELERC=$rcFile MPI=YES 1>> $makeLog 2>&1
-       MODELERC=$rcFile ../exec/runE $deck -np $ncpu -cold-restart 1>> $makeLog 2>&1
+      diagMessage " --- Run $deck (MPI mode,  NPES=$ncpu)"
+      if [ "$viewlog" == "YES" ]; then   
+        xterm -e make -j setup RUN=$deck MPI=YES | tee $makeLog
+        xterm -e ../exec/runE $deck -np $ncpu -cold-restart | tee $makeLog
+      else
+        make -j setup RUN=$deck MPI=YES 1>> $makeLog 2>&1
+        ../exec/runE $deck -np $ncpu -cold-restart 1>> $makeLog 2>&1
+      fi
    fi
    checkRun "$deck"
 }
@@ -646,7 +687,6 @@ compareRuns()
    local base=$gitBaseRepository/decks/$rundeck.base
    local dev=$workPath/$rundeck.dev
    local baseDay=$gitBaseRepository/decks/$rundeck.base.reg
-   local dev=$workPath/$rundeck.dev
    local devDay=$workPath/$rundeck.dev.reg
    local devMpi=$workPath/$rundeck.dev
    local devMpiDay=$workPath/$rundeck.dev.reg
@@ -661,7 +701,7 @@ compareRuns()
       echo " *** Results ***"
       echo " ------------------------------------------"
       cnt=0
-      for n in "${npes[@]}"; do
+      for n in "${useNPES[@]}"; do
          id[${#id[*]}]="NPES${n}"
          if [[ "$runtype" == "1HR"  || "$runtype" == "ALL" ]]; then
            exitIfNofile "$base/$rundeck.base.1hr.$id"
@@ -679,7 +719,7 @@ compareRuns()
       done
 
       echo " --- DIFF results: Has model changed?"   
-      for n in "${npes[@]}"; do
+      for n in "${useNPES[@]}"; do
          id[${#id[*]}]="NPES${n}"
          if [[ "$runtype" == "1HR"  || "$runtype" == "ALL" ]]; then
            rc=`$diffReport $base/$rundeck.base.1hr.$id  $dev/$rundeck.dev.1hr.$id > .sz`
@@ -718,6 +758,7 @@ saveState()
    local id="NPES${n}"
 
    diagMessage " ------ save state for $deck : id=$id ($saveReg)"
+
 # Save checkpoints
    if [ "$saveReg" == "RESTART" ]; then
       # Note this is done in the $deck directory
@@ -737,6 +778,13 @@ finalize()
 {
    local exitCode=$1
    local exitMessage=$2
+
+   local base=$gitBaseRepository/decks/$rundeck.base
+   local dev=$workPath/$rundeck.dev
+
+   rm -f $base/fort.1.nc $base/fort.2.nc
+   rm -f $dev/fort.1.nc $dev/fort.2.nc
+
    if [ $exitCode -eq 1 ]; then
       diagMessage " @@@ $rundeck run: FAILURE @@@"   
       diagMessage "$exitMessage"
@@ -821,7 +869,9 @@ printInfo()
    diagMessage "    compile only                  = $compile"
    if [[ "$compile" == "NO" ]]; then
       diagMessage "    run type                      = $runtype"
-      diagMessage "    check against base repository = $check"
+      if [[ "$baseline" == "NO" ]]; then
+         diagMessage "    check against base repository = $check"
+      fi
    fi
    if [[ "$pbsType" =~ BATCH ]]; then
       diagMessage "    moduleEnv                     = $moduleSet"
@@ -829,6 +879,7 @@ printInfo()
    if [ "$fflags" == "YES" ]; then
       diagMessage "    fortran flags                 = $EXTRA_FFLAGS"
    fi
+   diagMessage "    NPES                          = $useNPES"
 }
 
 # -------------------------------------------------------------------
@@ -860,11 +911,11 @@ parseOptions()
            let i=i+1
 	   moduleSet=${names[$i]}
 	   
-       elif [[ "${names[$i]}" =~ --deck ]]; then 
-	   rundeck=`echo ${names[$i]} | sed 's/[-a-zA-Z0-9]*=//'`
-       elif [[ "${names[$i]}" =~ -d ]]; then 
+       elif [[ "${names[$i]}" =~ --template ]]; then 
+	   template=`echo ${names[$i]} | sed 's/[-a-zA-Z0-9]*=//'`
+       elif [[ "${names[$i]}" =~ -t ]]; then 
            let i=i+1
-	   rundeck=${names[$i]}
+	   template=${names[$i]}
 	   
        elif [[ "${names[$i]}" =~ --modelErc ]]; then 
 	   rcFile=`echo ${names[$i]} | sed 's/[-a-zA-Z0-9]*=//'`
@@ -883,6 +934,12 @@ parseOptions()
        elif [[ "${names[$i]}" =~ -v ]]; then 
            let i=i+1
 	   verbose=${names[$i]}
+	   
+       elif [[ "${names[$i]}" =~ --npes ]]; then 
+	   npes=`echo ${names[$i]} | sed 's/[-a-zA-Z0-9]*=//'`
+       elif [[ "${names[$i]}" =~ -n ]]; then 
+           let i=i+1
+	   npes=${names[$i]}
 	   
        elif [[ "${names[$i]}" =~ --clean ]]; then 
 	   clean=`echo ${names[$i]} | sed 's/[-a-zA-Z0-9]*=//'`
@@ -916,9 +973,15 @@ parseOptions()
 
        elif [[ "${names[$i]}" =~ --deckname ]]; then 
    	   deckname=`echo ${names[$i]} | sed 's/[-a-zA-Z0-9]*=//'`
-       elif [[ "${names[$i]}" =~ -n ]]; then 
+       elif [[ "${names[$i]}" =~ -d ]]; then 
            let i=i+1
 	   deckname=${names[$i]}
+
+       elif [[ "${names[$i]}" =~ --log ]]; then 
+   	   viewlog=`echo ${names[$i]} | sed 's/[-a-zA-Z0-9]*=//'`
+       elif [[ "${names[$i]}" =~ -l ]]; then 
+           let i=i+1
+	   viewlog=${names[$i]}
 
        else
            echo " ### Unknown argument ${names[$i]}"; exit 1
@@ -1005,3 +1068,8 @@ function catch_sig()
     echo "$0 terminated abnormally..."
     cleanexit $exit_status
 } 
+
+# TO DO:
+# rm lock file
+# show log files in additional xterm
+

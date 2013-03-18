@@ -1,5 +1,12 @@
 #include "rundeck_opts.h"
 
+!@sum  TOMAS_DRV: TwO-Moment Aerosol Sectional (TOMAS) microphysics driver 
+!@+     aerosol microphysics (nucleation,coagulation, condensation) and 
+!@+     SO4 formation from (clouds) aqueous chemistry. 
+!@auth Peter Adams/Jeff Pierce/Yunha Lee (implemented into ModelE by Yunha Lee)
+!@ver  1.0
+!@calls various subroutines under TOMAS_DRV.f and TOMAS_microphysics.f 
+
       MODULE TOMAS_AEROSOL
 
 C-----INCLUDE FILES--------------------------------------------------
@@ -7,11 +14,17 @@ C-----INCLUDE FILES--------------------------------------------------
       USE TRACER_COM, only : ntm,nbins, xk
       IMPLICIT NONE 
 
-C-----VARIABLE DECLARATIONS------------------------------------------
+C-----INCLUDE FILES--------------------------------------------------
+!@param ibins : number of size bins used in TOMAS (equal to nbins defined in TRACER_COM) 
+!@param icomp : number of size-resolved chemical species (SO4,SS,ECOB,ECIL,OCOB,OCIL,DUST,NH4,AER-WATER
+!@param idiag : number of aerosol diagnostic species (NH4 and AER-WATER) 
       integer,parameter :: ibins=nbins
       integer,parameter :: icomp=9
-      integer,parameter :: idiag=2 ! number of diagnostic aerosol species
-
+      integer,parameter :: idiag=2
+!@param ncomp : number of size-resolved chemical species that actually used in GCM 
+!@+    NH4 is not size-resolved out of TOMAS algorithm, which makes ncomp differs from icomp
+      integer,parameter ::  ncomp=8
+!@param srtso4,srtna, etc : index number for icomp 
       integer srtso4, srtna, srth2o, srtecob, srtecil, srtocob,
      &	      srtocil, srtnh4, srtdust
       parameter (srtso4=1,
@@ -24,154 +37,85 @@ C-----VARIABLE DECLARATIONS------------------------------------------
      &           srtnh4=8,
      &           srth2o=9)
 
-C Nk and Mk contain the number and mass size distributions of the
-C aerosol.  Units are #/grid cell or kg/grid cell, respectively.
-C Gc are gas phase concentrations (kg/grid cell) of species
-C corresponding to the aerosol species (e.g. H2SO4 for sulfate).
-C Nkd and Mkd store values of Nk and Mk for diagnostic purposes.
+!@var Nk and Mk contain the number and mass size distributions of the
+!@+   aerosol.  Units are #/grid cell or kg/grid cell, respectively.
+!@+   Nkd and Mkd store values of Nk and Mk for diagnostic purposes.
+!@var Gc are gas phase concentrations (kg/grid cell) of species
+!@+   corresponding to the aerosol species (e.g. H2SO4 for sulfate).
 
       real*8 Nk(ibins), Mk(ibins,icomp), Gc(icomp-1)
       real*8 Nkd(ibins), Mkd(ibins,icomp), Gcd(icomp-1) 
 
 C The following variables describe the grid cell in which the
 C microphysics is operating.
-
-      real*8 boxvol     !volume of grid cell (cm3)
-      real*8 boxmass    !volume of grid cell (kg)
-      real*8 temp       !temperature (K) of grid cell
-      real*8 pres       !air pressure (Pa) of grid cell
-      real*8 rh         !relative humidity (0-1)
+!@var boxvol : volume of grid cell (cm3)
+!@var boxmass : air mass of grid cell (kg)
+!@var temp : temperature (K) of grid cell
+!@var pres : air pressure (Pa) of grid cell 
+!@var rh : relative humidity (0-1)
+      real*8 boxvol    
+      real*8 boxmass    
+      real*8 temp      
+      real*8 pres       
+      real*8 rh        
 
 C Physical properties of aerosol components
-
+!@param molwt : molecular weight of chemical species (icomp) 
       real molwt(icomp)
       data molwt/96., 58.45, 200., 200., 200., 200., 100.,18.,18./
 
-C Flag for which nucleation parameterizations to use
-      integer bin_nuc, tern_nuc, ion_nuc, actv_nuc   !flags for binary and ternary nuc
-      parameter(bin_nuc=1, tern_nuc=0, ion_nuc=0, actv_nuc=1) ! 1 = on
+!@param bin_nuc/tern_nuc/ion_nuc/actv_nuc : Flag for which nucleation parameterizations to use (1=on)
+      integer bin_nuc, tern_nuc, ion_nuc, actv_nuc   
+      parameter(bin_nuc=1, tern_nuc=0, ion_nuc=0, actv_nuc=1) 
 
-C soa_amp is the mass growth amplification factor (determined by the amount of
-C soa that needs to be condensed
+!@var soa_amp : mass growth amplification factor (determined by the 
+!@+             amount of soa that needs to be condensed
       real*8 soa_amp
 
-C tau_soa is the 1st order timescale in which SOA condenses (days)
+!@param tau_soa : 1st order timescale in which SOA condenses (0.5 days)
       real*8 tau_soa
       parameter(tau_soa=0.5d0)
 
-C SOArate is the rate of SOA condensing (kg/s)
+!@var SOArate is the rate of SOA condensing (kg/s)
 !      real*8, ALLOCATABLE, DIMENSION(:,:)  :: SOA_chem !SOA formation [kg]
       real*8  SOArate
-
-      real*8 surf_area ! aerosol surface area [micon^2 cm^-3]
-      real*8 ionrate ! ion pair formation rate [ion pairs cm^-3 s^-1]
-
+!@var surf_area : aerosol surface area [micon^2 cm^-3]
+      real*8 surf_area 
+!@var ionrate : ion pair formation rate [ion pairs cm^-3 s^-1]
+      real*8 ionrate 
+!@var binact10/binact02 : lookup table of activated size bin at supersatuaration of 1.0% and 0.2%
       integer, dimension(101,101,101) :: binact10,binact02
+!@var fraction10/fraction02 : lookup table of chemical composition fraction in the activated size bin at supersatuaration of 1.0% and 0.2%
       real*8,dimension(101,101,101) :: fraction10,fraction02
-      integer, parameter :: ptype=7 ! number of microphysics process 
+!@param ptype : number of aerosol microphysics process 
+      integer, parameter :: ptype=7 
+!@var AEROD : saving aerosol microphyiscs dianogstics
       real*8, ALLOCATABLE,dimension(:,:,:,:,:) :: AEROD
-      real*8, ALLOCATABLE,DIMENSION(:,:,:) :: AQSO4oxid_mc,AQSO4oxid_ls  !1 for Convective and 2 for large-scale
-      real*8, ALLOCATABLE,DIMENSION(:,:,:)  ::  h2so4_chem  !h2so4 formation rate from so2+oh [kg of H2SO4/sec
-      real*8, ALLOCATABLE,DIMENSION(:,:,:,:,:) :: N_subgridcg !number changed by subgrid coagulation
-      real*8, ALLOCATABLE,DIMENSION(:,:,:,:,:,:)  :: M_subgridcg !mass changed by subgrid coagulation
-      real*8, ALLOCATABLE,DIMENSION(:,:,:,:)  :: trm_emis !trm before emission and uses for subgrid coagulation
-!      real*8, ALLOCATABLE,DIMENSION(:,:,:,:)  :: tomas_emis !trm before interactive emission and uses for subgrid coagulation
-      integer ncomp
-      parameter(ncomp=8)
+!@var AQSO4oxid_mc/AQSO4oxid_ls : aqueous h2so4 formation for convective and large-scale clouds 
+      real*8, ALLOCATABLE,DIMENSION(:,:,:) :: AQSO4oxid_mc,AQSO4oxid_ls 
+!@var h2so4_chem : h2so4 formation rate from so2+oh [kg of H2SO4/sec]
+      real*8, ALLOCATABLE,DIMENSION(:,:,:)  ::  h2so4_chem  
+!@var N_subgridcg : aerosol number emission rate changed by subgrid coagulation 
+      real*8, ALLOCATABLE,DIMENSION(:,:,:,:,:) :: N_subgridcg 
+!@var M_subgridcg : aerosol mass emission rate changed by subgrid coagulation
+      real*8, ALLOCATABLE,DIMENSION(:,:,:,:,:,:)  :: M_subgridcg 
+!@var trm_emis : TRM before emission and used in subgridcoagualtion process 
+      real*8, ALLOCATABLE,DIMENSION(:,:,:,:)  :: trm_emis
 
-! Mie lookup tables
+!@var TOMAS_QEXT/TOMAS_QSCA/TOMAS_QABS/TOMAS_GSCA : size-dependant radiative properties 
+!@+      lookup tables based on Mie theory
       REAL*8, DIMENSION(124,101,91)      :: TOMAS_QEXT, TOMAS_QSCA,
      &     TOMAS_QABS,TOMAS_GSCA !,TOMAS_QBACK 
 
-      ! FALSE : one Radiation call
-      ! TRUE  : nmodes Radiation calls
-      INTEGER                            :: TOMAS_DIAG_FC = 2 !debug 
-! 2=external mixing (=icomp-2) radiation calls  |
-! 1=internal mixing (but AECOB is externally mixed) (ANUM_01) radiation call
-! TOMAS_DIAG_FC=2 is only available now.  
-#if (defined TOMAS_12_10NM) 
-      real*8, parameter :: scalesizeSO4(ibins)=(/
-     &     4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02,
-     &     4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01,
-     &     1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/)
+!@param TOMAS_DIAG_FC : Flag used in aerosol radiation calculation
+!@+  2=external mixing (=icomp-2) radiation calls  |
+!@+  1=internal mixing (but AECOB is externally mixed) (ANUM_01) radiation call
+!@+  TOMAS_DIAG_FC=2 is only available now.
 
-      real*8, parameter :: scalesizeCARBO30(ibins)=(/
-     &     1.1291E-03,4.9302E-03,1.2714E-02,3.6431E-02,
-     &     1.0846E-01,2.1994E-01,2.7402E-01,2.0750E-01,
-     &     9.5304E-02,2.6504E-02,1.2925E-02,1.6069E-05/) ! use for fossil fuel (bimodal)
-      real*8, parameter :: scalesizeCARBO100(ibins)=(/!0.0,0.0,0.0,
-     &     1.9827E-06,3.9249E-05,5.0202E-04,4.1538E-03,
-     &     2.2253E-02,7.7269E-02,1.7402E-01,2.5432E-01,
-     &     2.4126E-01,1.4856E-01,7.6641E-02,9.8120E-04/) ! use for biomass burning
-#elif (defined TOMAS_12_3NM) 
-      real*8, parameter :: scalesizeSO4(ibins)=(/0.,0.,0.,
-     &     4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02,
-     &     4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01,
-     &     1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/)
+      INTEGER                            :: TOMAS_DIAG_FC = 2 
+  
 
-      real*8, parameter :: scalesizeCARBO30(ibins)=(/0.,0.,0.,
-     &     1.1291E-03,4.9302E-03,1.2714E-02,3.6431E-02,
-     &     1.0846E-01,2.1994E-01,2.7402E-01,2.0750E-01,
-     &     9.5304E-02,2.6504E-02,1.2925E-02,1.6069E-05/) ! use for fossil fuel (bimodal)
-      real*8, parameter :: scalesizeCARBO100(ibins)=(/0.,0.,0.,
-     &     1.9827E-06,3.9249E-05,5.0202E-04,4.1538E-03,
-     &     2.2253E-02,7.7269E-02,1.7402E-01,2.5432E-01,
-     &     2.4126E-01,1.4856E-01,7.6641E-02,9.8120E-04/) ! use for biomass burning
-#endif
-
-#if (defined TOMAS_15_10NM)
-      real*8, parameter :: scalesizeSO4(ibins)=(/
-     &     4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02,
-     &     4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01,
-     &     1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/)
-
-      real*8, parameter :: scalesizeCARBO30(ibins)=(/
-     &     3.8100E-03,2.0700E-02,7.2900E-02,1.6750E-01,
-     &     2.5000E-01,2.4500E-01,1.5510E-01,6.4200E-02,1.7320E-02,
-     &     3.0320E-03,3.7079E-04,2.3265E-07/) ! use for fossil fuel
-
-      real*8, parameter :: scalesizeCARBO100(ibins)=(/
-     &     1.9827E-06,3.9249E-05,5.0202E-04,4.1538E-03,
-     &     2.2253E-02,7.7269E-02,1.7402E-01,2.5432E-01,2.4126E-01,
-     &     1.4856E-01,7.6641E-02,9.8120E-04/) ! use for biomass burning
-#elif (defined TOMAS_15_3NM)
-      real*8, parameter :: scalesizeSO4(ibins)=(/
-     &     0.,0.,0.,
-     &     4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02,
-     &     4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01,
-     &     1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/)
-
-      real*8, parameter :: scalesizeCARBO30(ibins)=(/
-     &     0.,0.,0.,
-     &     3.8100E-03,2.0700E-02,7.2900E-02,1.6750E-01,
-     &     2.5000E-01,2.4500E-01,1.5510E-01,6.4200E-02,1.7320E-02,
-     &     3.0320E-03,3.7079E-04,2.3265E-07/) ! use for fossil fuel
-
-      real*8, parameter :: scalesizeCARBO100(ibins)=(/
-     &     0.,0.,0.,
-     &     1.9827E-06,3.9249E-05,5.0202E-04,4.1538E-03,
-     &     2.2253E-02,7.7269E-02,1.7402E-01,2.5432E-01,2.4126E-01,
-     &     1.4856E-01,7.6641E-02,9.8120E-04/) ! use for biomass burning
-#endif
-
-!#if (defined TOMAS_30_10NM)
-
-!#elif (defined TOMAS_30_3NM)
-           
-!#endif
       END MODULE TOMAS_AEROSOL
-
-
-C     **************************************************
-C     *  aerophys                                      *
-C     **************************************************
-
-C     WRITTEN BY Peter Adams, August 2000
-
-C     This subroutine does aerosol microphysics (nucleation,
-C     coagulation, condensation).  Gas-phase chemistry, aqueous
-C     chemistry, dry and wet deposition are handled elsewhere in
-C     the GCM.
 
 
       SUBROUTINE TOMAS_DRV 
@@ -216,13 +160,19 @@ C-----VARIABLE DECLARATIONS------------------------------------------
       
       real*8 Nkout(NBINS), Mkout(NBINS,icomp)
       real*8 Gcout(icomp-1)
-      real*8 tot_aam  ! total aerosol ammonia per grid cell across all bins
-      real*8 Gcavg ! average h2so4 concentration during timstep
+!@var tot_aam : total aerosol ammonia per grid cell across all bins
+      real*8 tot_aam  
+!@var Gcavg : average h2so4 concentration during timstep
+      real*8 Gcavg 
              
-      real*8 H2SO4rate_o, SOAmass ! H2SO4rate for the specific gridcell, SOA mass to be condensed
+!@var H2SO4rate_o : H2SO4rate for the specific gridcell
+!@var SOAmass : SOA mass in a gridcell
+      real*8 H2SO4rate_o, SOAmass 
       integer num_iter
-      real*8 fn                 ! nucleation rate of clusters cm-3 s-1
-      real*8 fn1                ! formation rate of particles to first size bin cm-3 s-1
+!@var fn : nucleation rate of clusters cm-3 s-1
+      real*8 fn                 
+!@var fn1: formation rate of particles to first size bin cm-3 s-1
+      real*8 fn1               
       real*8 tot_n_1, tot_n_1a, tot_n_2, tot_n_i ! used for nitrogen mass checks
       real*8 tot_s_1, tot_s_1a,tot_s_1b, tot_s_2 ! used for sulfur mass checks
       real*8 Nknuc(ibins), Mknuc(ibins, icomp)
@@ -292,7 +242,7 @@ C     Swap T0M into Nk, Mk, Gc arrays
                tot_n_i = TRM(i,j,l,n_NH3)*14.d0/17.d0 + 
      &              TRM(i,j,l,n_NH4)*14.d0/18.d0
 
-               call NH3_GISStoTOMAS(TRM(i,j,l,n_NH3), !YHL - This might not be needed. 
+               call NH3_GISStoTOMAS(TRM(i,j,l,n_NH3), 
      &              TRM(i,j,l,n_NH4),Gc,Mk)
               
                                 ! nitrogen and sulfur mass checks
@@ -617,17 +567,13 @@ c$$$            enddo
       return
       end subroutine nanstop
 
-C     **************************************************
-C     *  drydep_getdp                                  *
-C     **************************************************
 
-C     WRITTEN BY Yunha Lee
-
-C     This function calculates the average diameter of aerosol
-C     particles in a given GCM grid cell and size bin.
+!@sum  dep_getdp:  calculates the average diameter of aerosol
+!@+     particles in a given GCM grid cell and size bin.
+!@auth  Yunha Lee
+!@ver   1.0
 
       subroutine dep_getdp(i,j,l,getdp,size_density)                                            
-C-----INCLUDE FILES-----------------------------------------------------
       USE TRACER_COM, only : nbins,IDTSO4,IDTNA,IDTECIL,
      &     IDTECOB,IDTOCIL,IDTOCOB,IDTDUST,IDTH2O,
      &     IDTNUMD,ntm,xk,trm
@@ -765,12 +711,21 @@ C     Swap GCM variables into aerosol algorithm variables
       RETURN
       END subroutine dep_getdp
 
+
+!@sum  readfraction: read fraction lookup table for wet deposition
+!@auth Peter Adams
+!@ver  1.0
       subroutine readfraction(infile,fraction2)
       
-      IMPLICIT NONE
-C-----VARIABLE DECLARATIONS---------------------------------------------
+      implicit none
       
-      character*17 infile
+#ifdef TOMAS_12_10NM
+	character*17 infile
+#endif
+#ifdef TOMAS_12_3NM
+	character*21 infile
+#endif
+
       integer innum, ii, jj, kk
       
       real*8,intent(out),dimension(101,101,101):: fraction2
@@ -789,14 +744,23 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       close(innum)
       return 
       end subroutine readfraction
-			 
+
+
+!     @sum  readbinact: read binact lookup table for wet deposition
+!@auth Peter Adams
+!@ver  1.0
       subroutine readbinact(infile,binact)
-C-----INCLUDE FILES-----------------------------------------------------
-      USE TOMAS_AEROSOL, ONLY : ibins      
-      IMPLICIT NONE
-C-----VARIABLE DECLARATIONS---------------------------------------------
       
-      character*15 infile
+      USE TOMAS_AEROSOL, ONLY : ibins
+      
+      implicit none
+      
+#ifdef TOMAS_12_10NM
+	character*15 infile
+#endif
+#ifdef TOMAS_12_3NM
+	character*19 infile
+#endif
       integer innum, ii, jj, kk
       integer,intent(out),dimension(101,101,101):: binact
       parameter (innum=590)
@@ -814,6 +778,10 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       return
       end subroutine readbinact
       
+
+!     @sum  getfraction: compute composition fraction for wet deposition
+!@auth Peter Adams/Yunha Lee 
+!@ver  1.0
       subroutine getfraction(tr_conv,tm,fract)
       USE TOMAS_AEROSOL, ONLY : binact02,binact10,
      &     fraction02,fraction10 
@@ -822,7 +790,6 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
      &     IDTECOB
 
       IMPLICIT NONE
-C-----VARIABLE DECLARATIONS---------------------------------------------
       
       real mecil, mocil, mocob, mso4, mnacl,mdust, mtot
       real xocil, xso4, xnacl
@@ -853,7 +820,6 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
      &         ,mocil,mdust
           call stop_model('wrong getfraction',255)
         endif
-        
         if (tr_conv)then        !convective clouds
           getbinact=binact10(iso4,inacl,iocil)
           
@@ -866,6 +832,7 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
           
           if (getbinact.gt.k) then
             fract(k)=0.         !not activated
+
           else if (getbinact.eq.k) then           
             fract(k)=fraction10(iso4,inacl,iocil) !partly activated
           else
@@ -897,21 +864,17 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       return
       end subroutine getfraction
       
-C     **************************************************
-C     *  aqoxid                                        *
-C     **************************************************
-
-C     WRITTEN BY Peter Adams, June 2000
-
-C     This routine takes an amount of SO4 produced via in-cloud
-C     oxidation and condenses it onto an existing aerosol size
-C     distribution.  It assumes that only particles larger than the
-C     critical activation diameter activate and that all of these have
-C     grown to roughly the same size.  Therefore, the mass of SO4 
-C     produced by oxidation is partitioned to the various size bins
-C     according to the number of particles in that size bin.  
-C     Values of tau are calculated for each size bin accordingly and
-C     the cond subroutine is called to update Nk and Mk.
+!@sum  aqoxid: takes an amount of SO4 produced via in-cloud
+!@+   oxidation and condenses it onto an existing aerosol size
+!@+   distribution.  It assumes that only particles larger than the
+!@+   critical activation diameter activate and that all of these have
+!@+   grown to roughly the same size.  Therefore, the mass of SO4 
+!@+   produced by oxidation is partitioned to the various size bins
+!@+   according to the number of particles in that size bin.  
+!@+   Values of tau are calculated for each size bin accordingly and
+!@+   the cond subroutine is called to update Nk and Mk.
+!@auth Peter Adams and Yunha Lee 
+!@ver  1.0
 
 C-----INPUTS------------------------------------------------------------
 
@@ -1048,105 +1011,66 @@ C Calculate tau for each size bin
       RETURN
       END SUBROUTINE aqoxid
 
-
-C     **************************************************
-C     *  aerodens                                      *
-C     **************************************************
-
-C     WRITTEN BY Peter Adams, May 1999
-C     November, 2001 - extended to include NaCl and bug fixed
-C                      the bug was that species densities (dan, ds0,
-C                      etc...) are supposed to be calculated based on
-C                      *total* solute concentration, not each species
-C                      contribution as it had been.
+!@sum  aerodens : this function calculates the aerosol density (kg/m3)  
+!@auth Peter Adams
 Ckpc  Jan.,2002 - extended to include carbonaceous aerosols
-
-C     This function calculates the density (kg/m3) of a sulfate-
-C     nitrate-ammonium-nacl-water mixture that is assumed to be internally
-C     mixed.  
-
-C-----INPUTS------------------------------------------------------------
-
-C     mso4, mno3, mnh4, mh2o, mnacl - These are the masses of each aerosol
-C     component.  Since the density is an intensive property,
-C     these may be input in a variety of units (ug/m3, mass/cell, etc.).
-
-C-----OUTPUTS-----------------------------------------------------------
+!@ver  1.0
 
       real FUNCTION aerodens(mso4,mno3,mnh4,mnacl,mecil,
      & mecob,mocil,mocob,mdust,mh2o)
 
+      USE OldTracer_mod, only : trpdens
+      USE TRACER_COM, only : IDTECOB,IDTOCOB,IDTDUST,N_AECOB
       IMPLICIT NONE
-
-C-----ARGUMENT DECLARATIONS---------------------------------------------
+!@var mso4, mno3, mnh4, mh2o, mnacl - These are the masses of each aerosol
+!@+   component.  Since the density is an intensive property,
+!@+   these may be input in a variety of units (ug/m3, mass/cell, etc.).
 
       real mso4, mno3, mnh4, mnacl, mecil,mecob,mocil,mocob,mdust,mh2o
-
-C-----VARIABLE DECLARATIONS---------------------------------------------
-
-      real inodens, idensity, dec,doc,ddust
-!      external inodens
-
-C     In the lines above, "an" refers to ammonium nitrate, "s0" to 
-C     sulfuric acid, "s1" to ammonium bisulfate, and "s2" to ammonium sulfate.
-C     "nacl" or "ss" is sea salt.
-
-C-----ADJUSTABLE PARAMETERS---------------------------------------------
-     	parameter(dec=2200., doc=1400., ddust=2650.)
-C-----CODE--------------------------------------------------------------=
+      real inodens, idensity !, dec,doc,ddust
+!     external inodens
+!!      parameter(dec=2200., doc=1400., ddust=2650.)
 
       idensity=inodens(mso4, mno3,mnh4, mnacl, mh2o)
 
       aerodens=(idensity*(mso4+mno3+mnh4+mnacl+mh2o) !mno3 taken out! 
-     &  +dec*(mecil+mecob)+doc*(mocil+mocob)+ddust*mdust)
+!!     &  +dec*(mecil+mecob)+doc*(mocil+mocob)
+!!     &     +ddust*mdust)
+     &  +trpdens(idtecob)*(mecil+mecob)+trpdens(idtocob)*(mocil+mocob)
+     &     +trpdens(idtdust)*mdust)
      &  /(mso4+mno3+mnh4+mnacl+mh2o+mecil+mecob+mocil+mdust+mocob)
+
       RETURN
       END FUNCTION aerodens
 
 
+!@sum  inodens :this function calculates the density (kg/m3) of a sulfate-
+!@+   nitrate-ammonium-nacl-water mixture that is assumed to be internally
+!@+   mixed.  
 
-C     **************************************************
-C     *  inodens                                      *
-C     **************************************************
-
-C     WRITTEN BY Peter Adams, May 1999
-C     November, 2001 - extended to include NaCl and bug fixed
-C                      the bug was that species densities (dan, ds0,
-C                      etc...) are supposed to be calculated based on
-C                      *total* solute concentration, not each species
-C                      contribution as it had been.
-
-C     This function calculates the density (kg/m3) of a sulfate-
-C     nitrate-ammonium-nacl-water mixture that is assumed to be internally
-C     mixed.  
-
+!@auth Peter Adams, May 1999
+!@+   November, 2001 - extended to include NaCl and bug fixed
+!@+                    the bug was that species densities (dan, ds0,
+!@+                    etc...) are supposed to be calculated based on
+!@+                    *total* solute concentration, not each species
+!@+                    contribution as it had been.
 C-----Literature cited--------------------------------------------------
-C     I. N. Tang and H. R. Munkelwitz, Water activities, densities, and
-C       refractive indices of aqueous sulfates and sodium nitrate droplets
-C       of atmospheric importance, JGR, 99, 18,801-18,808, 1994
-C     Ignatius N. Tang, Chemical and size effects of hygroscopic aerosols
-C       on light scattering coefficients, JGR, 101, 19,245-19,250, 1996
-C     Ignatius N. Tang, Thermodynamic and optical properties of mixed-salt
-C       aerosols of atmospheric importance, JGR, 102, 1883-1893, 1997
+!@+   I. N. Tang and H. R. Munkelwitz, Water activities, densities, and
+!@+     refractive indices of aqueous sulfates and sodium nitrate droplets
+!@+     of atmospheric importance, JGR, 99, 18,801-18,808, 1994
+!@+   Ignatius N. Tang, Chemical and size effects of hygroscopic aerosols
+!@+     on light scattering coefficients, JGR, 101, 19,245-19,250, 1996
+!@+   Ignatius N. Tang, Thermodynamic and optical properties of mixed-salt
+!@+     aerosols of atmospheric importance, JGR, 102, 1883-1893, 1997
 
-C-----INPUTS------------------------------------------------------------
-
-C     mso4, mno3, mnh4, mh2o, mnacl - These are the masses of each aerosol
-C     component.  Since the density is an intensive property,
-C     these may be input in a variety of units (ug/m3, mass/cell, etc.).
-
-C-----OUTPUTS-----------------------------------------------------------
+!@var   mso4, mno3, mnh4, mh2o, mnacl - These are the masses of each aerosol
+!@+   component.  Since the density is an intensive property,
+!@+   these may be input in a variety of units (ug/m3, mass/cell, etc.).
 
       real FUNCTION inodens(mso4, mno3, mnh4, mnacl, mh2o)
 
       IMPLICIT NONE
-
-C-----ARGUMENT DECLARATIONS---------------------------------------------
-
       real mso4, mno3, mnh4, mnacl, mh2o
-
-C-----VARIABLE DECLARATIONS---------------------------------------------
-
       real so4temp, no3temp, nh4temp, nacltemp, h2otemp  !store initial values
       real mwso4, mwno3, mwnh4, mwnacl, mwh2o            !molecular weights
       real ntot, mtot, drytot                      !total number of moles, mass
@@ -1168,12 +1092,10 @@ C     In the lines above, "an" refers to ammonium nitrate, "s0" to
 C     sulfuric acid, "s1" to ammonium bisulfate, and "s2" to ammonium sulfate.
 C     "nacl" or "ss" is sea salt.
 
-C-----ADJUSTABLE PARAMETERS---------------------------------------------
       parameter(mwso4=96., mwno3=62., mwnh4=18., mwh2o=18., 
      &          mwnacl=58.45)
       parameter(mwan=mwnh4+mwno3, mws0=mwso4+2., mws1=mwso4+1.+mwnh4,
      &          mws2=2*mwnh4+mwso4)
-C-----CODE--------------------------------------------------------------
 
 C Save initial component masses to restore later 
 !      mno3=0.d0
@@ -1308,30 +1230,26 @@ C Return the density
       END FUNCTION inodens
 
 
+!@sum ezwatereqm : uses the current RH to calculate how much water is 
+!@+   in equilibrium with the aerosol.  Aerosol water concentrations 
+!@+   are assumed to be in equilibrium at all times and the array of 
+!@+   concentrations is updated accordingly.
 
-
-C     **************************************************
-C     *  ezwatereqm                                    *
-C     **************************************************
-
-C     WRITTEN BY Peter Adams, March 2000
-
-C     This routine uses the current RH to calculate how much water is 
-C     in equilibrium with the aerosol.  Aerosol water concentrations 
-C     are assumed to be in equilibrium at all times and the array of 
-C     concentrations is updated accordingly.
-
-C-----INPUTS------------------------------------------------------------
-
-C-----OUTPUTS-----------------------------------------------------------
+!@+   This version of the routine works for sulfate, sea salt, organic
+!@+   particles.  They are assumed to be externally mixed and their
+!@+   associated water is added up to get total aerosol water.
+!@+   wr is the ratio of wet mass to dry mass of a particle.  Instead
+!@+   of calling a thermodynamic equilibrium code, this routine uses a
+!@+   simple curve fits to estimate wr based on the current humidity.
+!@+   The curve fit is based on ISORROPIA results for ammonium bisulfate
+!@+   at 273 K and sea salt at 273 K.
+!@auth Peter Adams, March 2000
 
       SUBROUTINE ezwatereqm(Mke)
 
       USE TOMAS_AEROSOL
-
       IMPLICIT NONE
 
-C-----VARIABLE DECLARATIONS---------------------------------------------
       integer k
       real*8 Mke(ibins,icomp)
       real*8 so4mass, naclmass, ocilmass
@@ -1339,19 +1257,6 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       real*8 rhe
       real*8 waterso4, waternacl, waterocil
 
-C     VARIABLE COMMENTS...
-
-C     This version of the routine works for sulfate and sea salt
-C     particles.  They are assumed to be externally mixed and their
-C     associated water is added up to get total aerosol water.
-C     wr is the ratio of wet mass to dry mass of a particle.  Instead
-C     of calling a thermodynamic equilibrium code, this routine uses a
-C     simple curve fits to estimate wr based on the current humidity.
-C     The curve fit is based on ISORROPIA results for ammonium bisulfate
-C     at 273 K and sea salt at 273 K.
-
-
-C-----CODE--------------------------------------------------------------
 
       rhe=100.d0*rh
       if (rhe .gt. 99.d0) rhe=99.d0
@@ -1359,7 +1264,7 @@ C-----CODE--------------------------------------------------------------
 
       do k=1,ibins
 
-         so4mass=Mke(k,srtso4)*1.1875  !1.2 converts kg so4 to kg nh4hso4
+         so4mass=Mke(k,srtso4)*1.1875  !converts kg so4 to kg nh4hso4
          naclmass=Mke(k,srtna)      !already as kg nacl - no conv necessary
          ocilmass=MKe(k,srtocil)    !already as kg ocil
 
@@ -1376,26 +1281,16 @@ C-----CODE--------------------------------------------------------------
       END SUBROUTINE ezwatereqm
 
 
-C     **************************************************
-C     *  eznh3eqm                                      *
-C     **************************************************
+!@sum eznh3eqm :  puts ammonia to the particle phase until 
+!@+   there is 2 moles of ammonium per mole of sulfate and the remainder
+!@+   of ammonia is left in the gas phase.
 
-C     WRITTEN BY Jeff Pierce, April 2007
-
-C     This subroutine puts ammonia to the particle phase until 
-C     there is 2 moles of ammonium per mole of sulfate and the remainder
-C     of ammonia is left in the gas phase.
-
-C-----INPUTS------------------------------------------------------------
-
-C-----OUTPUTS-----------------------------------------------------------
+!@auth Jeff Pierce, April 2007
 
       SUBROUTINE eznh3eqm(Gce,Mke)
 
       USE TOMAS_AEROSOL
       IMPLICIT NONE
-
-C-----VARIABLE DECLARATIONS---------------------------------------------
 
       integer k
       real*8 tot_nh3  !total kmoles of ammonia
@@ -1404,9 +1299,6 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       real*8 Gce(icomp)
       real*8 Mke(ibins,icomp)
 
-C-----ADJUSTABLE PARAMETERS---------------------------------------------
-
-C-----CODE--------------------------------------------------------------
 
       ! get the total number of kmol nh3
       tot_nh3 = Gce(srtnh4)/17.d0
@@ -1438,35 +1330,23 @@ C-----CODE--------------------------------------------------------------
       END 
 
 
+!@sum waterso4 : uses the current RH to calculate how much water is 
+!@+   in equilibrium with the sulfate.  Aerosol water concentrations 
+!@+   are assumed to be in equilibrium at all times and the array of 
+!@+   concentrations is updated accordingly.
 
-C     **************************************************
-C     *  waterso4                                      *
-C     **************************************************
+!@+   waterso4 is the ratio of wet mass to dry mass of a particle.  Instead
+!@+   of calling a thermodynamic equilibrium code, this routine uses a
+!@+   simple curve fit to estimate wr based on the current humidity.
+!@+   The curve fit is based on ISORROPIA results for ammonium bisulfate
+!@+   at 273 K.
 
-C     Adaptation of ezwatereqm used in size-resolved sulfate only sim
-C     November, 2001
-C     ezwatereqm WRITTEN BY Peter Adams, March 2000
-
-C     This function uses the current RH to calculate how much water is 
-C     in equilibrium with the sulfate.  Aerosol water concentrations 
-C     are assumed to be in equilibrium at all times and the array of 
-C     concentrations is updated accordingly.
+!@auth Peter Adams, March 2000
 
       real*8 FUNCTION waterso4(rhe)
-
       IMPLICIT NONE
 
-C-----VARIABLE DECLARATIONS---------------------------------------------
       real*8 rhe   !relative humidity (0-100 scale)
-
-
-C     VARIABLE COMMENTS...
-
-C     waterso4 is the ratio of wet mass to dry mass of a particle.  Instead
-C     of calling a thermodynamic equilibrium code, this routine uses a
-C     simple curve fit to estimate wr based on the current humidity.
-C     The curve fit is based on ISORROPIA results for ammonium bisulfate
-C     at 273 K.
 
 C-----CODE--------------------------------------------------------------
 
@@ -1507,33 +1387,25 @@ C-----CODE--------------------------------------------------------------
       END  FUNCTION waterso4
 
 
-C     **************************************************
-C     *  waternacl                                     *
-C     **************************************************
 
-C     WRITTEN BY Peter Adams, November 2001
 
-C     This function uses the current RH to calculate how much water is 
-C     in equilibrium with the seasalt.  Aerosol water concentrations 
-C     are assumed to be in equilibrium at all times and the array of 
-C     concentrations is updated accordingly.
+!@sum waternacl: This function uses the current RH to calculate how much water is 
+!@+   in equilibrium with the seasalt.  Aerosol water concentrations 
+!@+   are assumed to be in equilibrium at all times and the array of 
+!@+   concentrations is updated accordingly.
+
+!@+   waternacl is the ratio of wet mass to dry mass of a particle.  Instead
+!@+   of calling a thermodynamic equilibrium code, this routine uses a
+!@+   simple curve fit to estimate waternacl based on the current humidity.
+!@+   The curve fit is based on ISORROPIA results for sodium sulfate
+!@+   at 273 K.
+
+!@auth Peter Adams, November 2001
 
       real*8 FUNCTION waternacl(rhe)
-
       IMPLICIT NONE
 
-C-----VARIABLE DECLARATIONS---------------------------------------------
       real*8 rhe   !relative humidity (0-100 scale)
-
-C     VARIABLE COMMENTS...
-
-C     waternacl is the ratio of wet mass to dry mass of a particle.  Instead
-C     of calling a thermodynamic equilibrium code, this routine uses a
-C     simple curve fit to estimate waternacl based on the current humidity.
-C     The curve fit is based on ISORROPIA results for sodium sulfate
-C     at 273 K.
-
-C-----CODE--------------------------------------------------------------
 
       if (rhe .gt. 99.) rhe=99.
       if (rhe .lt. 1.) rhe=1.
@@ -1571,36 +1443,27 @@ C-----CODE--------------------------------------------------------------
       END  FUNCTION waternacl
 
 
-C     **************************************************
-C     *  waterocil                                     *
-C     **************************************************
+!@sum waterocil: This function uses the current RH to calculate how much water is 
+!@+   in equilibrium with the hydrophillic OA.  Aerosol water concentrations 
+!@+   are assumed to be in equilibrium at all times and the array of 
+!@+   concentrations is updated accordingly.
 
-C     MODIFIED BY YUNHA LEE, AUG, 2006
+!@+   waterocil is the ratio of wet mass to dry mass of a particle.  Instead
+!@+   of calling a thermodynamic equilibrium code, this routine uses a
+!@+   simple curve fit to estimate waterocil based on the current humidity.
+!@+   The curve fit is based on observations of Dick et al. JGR D1 1471-1479
 
-C     This function uses the current RH to calculate how much water is 
-C     in equilibrium with the hydrophillic OA.  Aerosol water concentrations 
-C     are assumed to be in equilibrium at all times and the array of 
-C     concentrations is updated accordingly.
+!@auth YUNHA LEE, AUG 2006
 
       real*8 FUNCTION waterocil(rhe)
 
       IMPLICIT NONE
 
-C-----VARIABLE DECLARATIONS---------------------------------------------
       real*8 rhe   !relative humidity (0-100 scale)
       real*8 a, b, c, d, e, f, prefactor, activcoef
       parameter(a=1.0034, b=0.1614, c=1.1693,d=-3.1,
      & e=6.0)
 
-C     VARIABLE COMMENTS...
-
-C     waterocil is the ratio of wet mass to dry mass of a particle.  Instead
-C     of calling a thermodynamic equilibrium code, this routine uses a
-C     simple curve fit to estimate waterocil based on the current humidity.
-C     The curve fit is based on observations of Dick et al. JGR D1 1471-1479
-
-C-----CODE--------------------------------------------------------------
-      
       if (rhe .gt. 99.) rhe=99.
       if (rhe .lt. 1.) rhe=1.
 
@@ -1625,32 +1488,12 @@ cyhl Dick et al 2000 figure 5.(High organic,density=1400g/cm3)
       END  FUNCTION waterocil
 
 
-C     **************************************************
-C     *  GCM_ezwatereqm                                    *
-C     **************************************************
-
-C     WRITTEN BY Peter Adams, March 2000
-C     MODIFIED BY Yunha Lee, March 2011 - to use this in GCM subroutine 
-
-
-C     This routine uses the current RH to calculate how much water is 
-C     in equilibrium with the aerosol.  Aerosol water concentrations 
-C     are assumed to be in equilibrium at all times and the array of 
-C     concentrations is updated accordingly.
-
-C     This version of the routine works for sulfate and sea salt
-C     particles.  They are assumed to be externally mixed and their
-C     associated water is added up to get total aerosol water.
-C     wr is the ratio of wet mass to dry mass of a particle.  Instead
-C     of calling a thermodynamic equilibrium code, this routine uses a
-C     simple curve fits to estimate wr based on the current humidity.
-C     The curve fit is based on ISORROPIA results for ammonium bisulfate
-C     at 273 K and sea salt at 273 K.
-
+!@sum aeroupdate: update the aerosol water concentrations 
+!@+      , fix size distributions, and check negative tracers
+!@auth Peter Adams/YUNHA LEE
 
       SUBROUTINE aeroupdate
 
-C-----INCLUDE FILES-----------------------------------------------------
       USE DOMAIN_DECOMP_ATM, only : GRID, write_parallel,
      &     am_i_root, getDomainBounds
       USE TOMAS_AEROSOL 
@@ -1679,8 +1522,6 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       real*8 rhe
       real*8 waterso4, waternacl, waterocil
 
-
-C-----CODE-----------------------------------------------------------    
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -1691,73 +1532,63 @@ C****
 
 C     Loop over all grid cells
       DO L=1,LM                            
-         DO J=J_0,J_1                          
-            DO I=I_0,IMAXJ(J)
+      DO J=J_0,J_1                          
+      DO I=I_0,IMAXJ(J)
 
-               temp = pk(l,i,j)*t(i,j,l) !should be in [K]
-               rh = MIN(1.,q(i,j,l)/QSAT(temp,lhe,pmid(l,i,j))) ! rH [0-100%]
+        temp = pk(l,i,j)*t(i,j,l) !should be in [K]
+        rh = MIN(1.,q(i,j,l)/QSAT(temp,lhe,pmid(l,i,j))) ! rH [0-100%]
 C     Swap GCM variables into aerosol algorithm variables
-               do n=1,NBINS
-                  Nk(n)=trm(i,j,l,IDTNUMD-1+n)
-                  Mk(n,srtso4)=trm(i,j,l,IDTSO4-1+n)
-                  Mk(n,srtna )=trm(i,j,l,IDTNA -1+n)
-                  Mk(n,srtnh4)=0.1875*Mk(n,srtso4) ! artificial for now.. 0.0!t0m(i,j,l,IDTNH4-1+n)
-                  MK(n,srtecob)=trm(i,j,l,IDTECOB -1+n)
-                  MK(n,srtecil)=trm(i,j,l,IDTECIL -1+n)
-                  MK(n,srtocob)=trm(i,j,l,IDTOCOB -1+n)
-                  MK(n,srtocil)=trm(i,j,l,IDTOCIL -1+n) 
-                  MK(n,srtdust)=trm(i,j,l,IDTDUST -1+n) 
-                  Mk(n,srth2o)= trm(i,j,l,IDTH2O-1+n) !I don't think this is necessary!
-               enddo
+        do n=1,NBINS
+          Nk(n)=trm(i,j,l,IDTNUMD-1+n)
+          Mk(n,srtso4)=trm(i,j,l,IDTSO4-1+n)
+          Mk(n,srtna )=trm(i,j,l,IDTNA -1+n)
+          Mk(n,srtnh4)=0.1875*Mk(n,srtso4) ! artificial for now.. 0.0!t0m(i,j,l,IDTNH4-1+n)
+          MK(n,srtecob)=trm(i,j,l,IDTECOB -1+n)
+          MK(n,srtecil)=trm(i,j,l,IDTECIL -1+n)
+          MK(n,srtocob)=trm(i,j,l,IDTOCOB -1+n)
+          MK(n,srtocil)=trm(i,j,l,IDTOCIL -1+n) 
+          MK(n,srtdust)=trm(i,j,l,IDTDUST -1+n) 
+          Mk(n,srth2o)= trm(i,j,l,IDTH2O-1+n) !I don't think this is necessary!
+        enddo
 
-C ****************
-C Aerosol dynamics
-C ****************
-
-      !Do water eqm at appropriate times
-
-      call storenm()
-! I won't update Nk and Mk changes to aerodiag for now. 
-      call mnfix(Nk,Mk) 
-      mpnum=7
-      call aerodiag(mpnum,i,j,l)
-
-      call ezwatereqm(Mk)
-
-C ***********************
-C End of aerosol dynamics
-C ***********************
-
-C Swap Nk, Mk, and Gc arrays back to T0M
-      do n=1,NBINS
-         tracnum=IDTNUMD-1+n
-         if (Nk(n) .ge. TRM(i,j,l,tracnum)) then
+!     Do water eqm at appropriate times
+        
+        call storenm()
+        call mnfix(Nk,Mk) 
+        mpnum=7
+        call aerodiag(mpnum,i,j,l)
+        call ezwatereqm(Mk)
+        
+C     Swap Nk, Mk, and Gc arrays back to T0M
+        do n=1,NBINS
+          tracnum=IDTNUMD-1+n
+          if (Nk(n) .ge. TRM(i,j,l,tracnum)) then
             TRM(i,j,l,tracnum)=Nk(n)
-         else
+          else
             frac=Nk(n)/TRM(i,j,l,tracnum)
             call scalemom(i,j,l,tracnum,frac)
-         endif
-         do jc=1,icomp-idiag
+          endif
+          do jc=1,icomp-idiag
             tracnum=IDTSO4-1+n+ibins*(jc-1)
             if (Mk(n,jc) .ge. TRM(i,j,l,tracnum)) then
-               TRM(i,j,l,tracnum)=Mk(n,jc)
+              TRM(i,j,l,tracnum)=Mk(n,jc)
             else
-               frac=Mk(n,jc)/TRM(i,j,l,tracnum)
-               call scalemom(i,j,l,tracnum,frac)
+              frac=Mk(n,jc)/TRM(i,j,l,tracnum)
+              call scalemom(i,j,l,tracnum,frac)
             endif
-         enddo
-         tracnum=IDTH2O-1+n
-         if (Mk(n,srth2o) .ge. TRM(i,j,l,tracnum)) then
+          enddo
+          tracnum=IDTH2O-1+n
+          if (Mk(n,srth2o) .ge. TRM(i,j,l,tracnum)) then
             TRM(i,j,l,tracnum)=Mk(n,srth2o)
-         else
+          else
             frac=Mk(n,srth2o)/TRM(i,j,l,tracnum)
             call scalemom(i,j,l,tracnum,frac)
-         endif    
-      enddo
-
-C Check for negative tracer problems
-      do n=1,ntm_TOMAS
-         if (TRM(i,j,l,IDTSO4+n-1) .lt. 0.0) then
+          endif    
+        enddo
+        
+C     Check for negative tracer problems
+        do n=1,ntm_TOMAS
+          if (TRM(i,j,l,IDTSO4+n-1) .lt. 0.0) then
             if (abs(TRM(i,j,l,IDTSO4+n-1)) .gt. 1.e-10) then
                !serious problem - report error
                write(*,*) 'ERROR: Tracer ',trname(IDTSO4+n-1),
@@ -1768,48 +1599,29 @@ C Check for negative tracer problems
 !               !numerical problem - set to zero
 !               TRM(i,j,l,IDTSO4+n-1)=0.0!1.d-42 !5??
             endif
-         endif
+          endif
+        enddo
+        
       enddo
-
-            enddo
-         enddo
+      enddo
       enddo
       
       RETURN
       END SUBROUTINE aeroupdate
 
 
-C     **************************************************
-C     *  scalemom                                      *
-C     **************************************************
-
-C     WRITTEN BY Peter Adams, September 2000
-
-C     When a tracer concentration decreases, call this routine to
-C     decrease T0M and all higher order moments in proportion.
-
-C-----INPUTS------------------------------------------------------------
-
-C-----OUTPUTS-----------------------------------------------------------
+!@sum scalemom: When a tracer concentration decreases, call this routine to
+!@+   decrease T0M and all higher order moments in proportion.
+!@auth Peter Adams, September 2000
 
       SUBROUTINE scalemom(i,j,l,tn,f)
 
       USE QUSDEF, only : nmom
       USE TRACER_COM, only : trm, trmom
 
-C-----ARGUMENT DECLARATIONS---------------------------------------------
-
       integer i,j,l       !grid box
       integer tn          !tracer id number
       real*8 f  !factor (0-1) by which to decrease all moments
-
-C-----VARIABLE DECLARATIONS---------------------------------------------
-
-C     VARIABLE COMMENTS...
-
-C-----ADJUSTABLE PARAMETERS---------------------------------------------
-
-C-----CODE--------------------------------------------------------------
 
       TRM(i,j,l,tn) = TRM(i,j,l,tn)*f
 
@@ -1821,32 +1633,15 @@ C-----CODE--------------------------------------------------------------
       END SUBROUTINE scalemom
 
 
-C     **************************************************
-C     *  storenm                                       *
-C     **************************************************
-
-C     WRITTEN BY Peter Adams, June 2000
-
-C     Stores values of Nk and Mk into Nkd and Mkd for diagnostic
-C     purposes.  Also do gas phase concentrations.
-
-C-----INPUTS------------------------------------------------------------
-
-C-----OUTPUTS-----------------------------------------------------------
+!@sum storenm: Stores values of Nk and Mk into Nkd and Mkd for diagnostic
+!@+   purposes.  Also do gas phase concentrations.
+!@auth Peter Adams, June 2000
 
       SUBROUTINE storenm()
 
       USE TOMAS_AEROSOL
-
       IMPLICIT NONE
-
       integer j,k
-
-C     VARIABLE COMMENTS...   
-
-C-----ADJUSTABLE PARAMETERS---------------------------------------------
-
-C-----CODE--------------------------------------------------------------
 
       do j=1,icomp-1
          Gcd(j)=Gc(j)
@@ -1862,94 +1657,71 @@ C-----CODE--------------------------------------------------------------
       END SUBROUTINE storenm
 
 
-C     **************************************************
-C     *  aerodiag                                      *
-C     **************************************************
-
-C     WRITTEN BY Peter Adams, June 2000
-
-C     Accumulates diagnostics on aerosol microphysical processes.
-
-C-----INPUTS------------------------------------------------------------
-
-C-----OUTPUTS-----------------------------------------------------------
+!@sum aerodiag : accumulates diagnostics on aerosol microphysical processes.
+!@auth Peter Adams/Yunha Lee
 
       SUBROUTINE aerodiag(pt,i,j,l)
 
       USE TOMAS_AEROSOL
       USE TRACER_COM, only : IDTSO4,IDTNUMD,n_H2SO4
-      IMPLICIT NONE
 
-C-----VARIABLE DECLARATIONS---------------------------------------------
-
+      implicit none 
       integer pt, i, j, l, jc, n
       integer k,kk,tracnum
 
-C-----CODE--------------------------------------------------------------
-
       if(pt.eq.4.or.pt.eq.5.or.pt.eq.7)then ! Aqoxid_mc,Aqoxid_ls,Aeroupdate
-
-C Bulk species
+C     Bulk species
         AEROD(i,j,l,n_H2SO4,pt)=
-     &     (Gc(srtso4)-Gcd(srtso4))
-
-         do n=1,ibins       
-                       
+     &       (Gc(srtso4)-Gcd(srtso4))
+        
+        do n=1,ibins       
+          
 !     Aerosol number
-            tracnum=IDTNUMD-1+n
-            AEROD(i,j,l,tracnum,pt)= 
-     &           (Nk(n)-Nkd(n))
+          tracnum=IDTNUMD-1+n
+          AEROD(i,j,l,tracnum,pt)= 
+     &         (Nk(n)-Nkd(n))
 !     Aerosol mass
-            do jc=1,icomp-idiag
-               tracnum=IDTSO4-1+n+ibins*(jc-1)
-               AEROD(i,j,l,tracnum,pt)= 
-     &              (Mk(n,jc)-Mkd(n,jc))
-               
-            enddo   
-         enddo
-         
+          do jc=1,icomp-idiag
+            tracnum=IDTSO4-1+n+ibins*(jc-1)
+            AEROD(i,j,l,tracnum,pt)= 
+     &           (Mk(n,jc)-Mkd(n,jc))
+            
+          enddo   
+        enddo
+        
       else
-
+        
 C Bulk species
         AEROD(i,j,l,n_H2SO4,pt)=AEROD(i,j,l,n_H2SO4,pt)
-     &     +(Gc(srtso4)-Gcd(srtso4))
-
-         do n=1,ibins  
+     &       +(Gc(srtso4)-Gcd(srtso4))
+        
+        do n=1,ibins  
 !     Aerosol number
-            tracnum=IDTNUMD-1+n
-            
+          tracnum=IDTNUMD-1+n
+          
+          AEROD(i,j,l,tracnum,pt)= 
+     &         AEROD(i,j,l,tracnum,pt) 
+     &         +(Nk(n)-Nkd(n))  
+          
+!     Aerosol mass
+          do jc=1,icomp-idiag
+            tracnum=IDTSO4-1+n+ibins*(jc-1)
             AEROD(i,j,l,tracnum,pt)= 
      &           AEROD(i,j,l,tracnum,pt) 
-     &           +(Nk(n)-Nkd(n))  
+     &           + (Mk(n,jc)-Mkd(n,jc))
             
-!     Aerosol mass
-            do jc=1,icomp-idiag
-               tracnum=IDTSO4-1+n+ibins*(jc-1)
-               AEROD(i,j,l,tracnum,pt)= 
-     &           AEROD(i,j,l,tracnum,pt) 
-     &              + (Mk(n,jc)-Mkd(n,jc))
-               
-            enddo 
-         enddo
-      endif     
- 
+          enddo 
+        enddo
+      endif      
       RETURN
       END SUBROUTINE aerodiag
 
-
-C     **************************************************
-C     *  subgridcoag_drv                                   *
-C     **************************************************
-
-C     Written by Yunha Lee, July 2011 
-C     In order to accommodate 3-D emission in GISS ModelE, the original 
-C     subgridcoag subroutine, written by Jeff Pierce, is modified into two. 
-C 
-C     No moments updated here because aerosol emission are positive! 
+!@sum subgridcoag_drv: subgrid coagulation for 3D emissions  
+!@+   No moments updated here because aerosol emission are positive! 
+!@auth Jeff Pierce/Yunha Lee, July 2011 
 
       SUBROUTINE subgridcoag_drv(dtstep)
 
-C-----INCLUDE FILES--------------------------------------------------
 
       USE DOMAIN_DECOMP_ATM, ONLY : GRID,getDomainBounds,write_parallel
       USE TOMAS_AEROSOL
@@ -1973,7 +1745,6 @@ C-----INCLUDE FILES--------------------------------------------------
  
       IMPLICIT NONE
 
-C-----PASSED VARIABLE DECLARATIONS-----------------------------------
       integer :: J_1, J_0, I_1, I_0
       INTEGER :: L,I,J
 
@@ -1987,7 +1758,6 @@ C-----PASSED VARIABLE DECLARATIONS-----------------------------------
       real*8 ndistfinal(nbins),tot_ndistinit(nbins) !the number of particles being added to the gridbox after subgrid coag
       real*8 maddfinal(nbins) !the mass that should be added to each bin due to coagulation (kg)
 
-C-----CODE-----------------------------------------------------------
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
@@ -2028,48 +1798,39 @@ c$$$      ENDIF
       ndistinit(:)=0.
         
       DO NS=1,3
-!        print*,'subcoag 3d',ns,dtstep,nbins,idtso4
 
-        do k=1,nbins
-          if(ns.lt.3) 
-     &         ndistinit(k)=tr3Dsource(i,j,l,ns,IDTNUMD+K-1)*dtstep
-          if(ns.eq.3) 
-     &         ndistinit(k)=tr3Dsource(i,j,l,ns+1,IDTNUMD+K-1)*dtstep 
-        enddo
-        
-c$$$        IF(I.EQ.25.AND.J.EQ.62)THEN
-c$$$          
-c$$$          do k=1, nbins
-c$$$          write(1044,*)'middle',l,ns,ndist0(k),mdist0(k,srtecob),
-c$$$     $         ndist(k),mdist(k,srtecob),ndist2(k),mdist2(k,srtecob)   
-c$$$          enddo
-c$$$        ENDIF
-c$$$
-        if(sum(ndistinit(1:nbins)).gt.0.)then
+         do k=1,nbins
+            if(ns.lt.3) 
+     &           ndistinit(k)=tr3Dsource(i,j,l,ns,IDTNUMD+K-1)*dtstep
+            if(ns.eq.3) 
+     &           ndistinit(k)=tr3Dsource(i,j,l,ns+1,IDTNUMD+K-1)*dtstep 
+          enddo
+
+          if(sum(ndistinit(1:nbins)).gt.0.)then
 !     only when there is emission! 
-          call subgridcoag(ndistinit,ndist0,mdist0,boxvol,
-     &         tscale,ndistfinal,maddfinal) ! account for subgrid coagulation
-          
-          do k=1,nbins
-            ndist(k)=ndist(k)+ndistfinal(k)
+            call subgridcoag(ndistinit,ndist0,mdist0,boxvol,
+     &           tscale,ndistfinal,maddfinal) ! account for subgrid coagulation
             
-            IF(NS.EQ.1)THEN
-                                !SO4
-              mdist(k,srtso4)=
-     &             ndistfinal(k)*(sqrt(xk(k)*xk(k+1)))+
-     &             maddfinal(k)
+            do k=1,nbins
+              ndist(k)=ndist(k)+ndistfinal(k)
               
-            ELSEIF(NS.EQ.2)THEN
-                                !EC
-              mdist(k,srtecil)=
-     &             ndistfinal(k)*0.2*(sqrt(xk(k)*xk(k+1)))+
-     &             maddfinal(k)*0.2
-              mdist(k,srtecob)=
-     &             ndistfinal(k)*0.8*(sqrt(xk(k)*xk(k+1)))+
-     &             maddfinal(k)*0.8   
-              
-            ELSEIF(NS.EQ.3)THEN
-                                !OC
+              IF(NS.EQ.1)THEN
+!SO4
+                mdist(k,srtso4)=
+     &               ndistfinal(k)*(sqrt(xk(k)*xk(k+1)))+
+     &               maddfinal(k)
+                
+              ELSEIF(NS.EQ.2)THEN
+!EC
+                mdist(k,srtecil)=
+     &               ndistfinal(k)*0.2*(sqrt(xk(k)*xk(k+1)))+
+     &               maddfinal(k)*0.2
+                mdist(k,srtecob)=
+     &               ndistfinal(k)*0.8*(sqrt(xk(k)*xk(k+1)))+
+     &               maddfinal(k)*0.8   
+                
+              ELSEIF(NS.EQ.3)THEN
+!OC
                 mdist(k,srtocil)=
      &               ndistfinal(k)*0.5*(sqrt(xk(k)*xk(k+1)))+
      &               maddfinal(k)*0.5
@@ -2080,7 +1841,7 @@ c$$$
             enddo               !k
           endif
         enddo                   !ns
-
+        
 !     fix the inconsistancies in the distribution
         do k=1,nbins
           ndist2(k)=ndist(k)+ndist0(k)
@@ -2114,19 +1875,12 @@ c$$$      ENDIF
           N_subgridcg(i,j,l,k,2)=(ndist2(k)- !this is emission after subgrid
      &         trm(i,j,l,tracnum)) 
 
-
-!          if(ndist2(k)/trm(i,j,l,tracnum).GT.1000.)THEN
-!            PRINT*,'too large subcoag',i,j,l,k,ndist2(k),ndist(k),
-!     $           ndist0(k)
-!          endif
-
           if(l.eq.1)then
             N_subgridcg(i,j,l,k,2)=N_subgridcg(i,j,l,k,2)+ 
      &           N_subgridcg(i,j,l,k,1) !from 2-d emission subgrid coagulation
           endif
           
-          trm(i,j,l,tracnum)=ndist2(k)
-          
+          trm(i,j,l,tracnum)=ndist2(k)          
           taijs(i,j,ijts_subcoag(tracnum)) 
      &         =taijs(i,j,ijts_subcoag(tracnum))
      &         +N_subgridcg(i,j,l,k,2) ! /adt
@@ -2135,12 +1889,10 @@ c$$$      ENDIF
      &         call inc_diagtcb(i,j,N_subgridcg(i,j,l,k,2) ,
      &         itcon_subcoag(tracnum),tracnum)
           
-          do c=1,icomp-idiag
-            
+          do c=1,icomp-idiag            
             tracnum=IDTSO4-1+k+nbins*(c-1) 
             M_subgridcg(i,j,l,k,c,2)=mdist2(k,c)- !trm + emission after subgrid 
      &           trm(i,j,l,tracnum) !trm + emission before subgrid (which is computed in apply_tracer3d)
-
 
           if(l.eq.1)then
             M_subgridcg(i,j,l,k,c,2)=M_subgridcg(i,j,l,k,c,2)+
@@ -2148,7 +1900,6 @@ c$$$      ENDIF
           endif
 
             trm(i,j,l,tracnum)=mdist2(k,c)
-            
             taijs(i,j,ijts_subcoag(tracnum)) 
      &           =taijs(i,j,ijts_subcoag(tracnum))
      &           +M_subgridcg(i,j,l,k,c,2) ! /adt
@@ -2156,8 +1907,7 @@ c$$$      ENDIF
             if (itcon_subcoag(tracnum).gt.0) 
      &           call inc_diagtcb(i,j,M_subgridcg(i,j,l,k,c,2),
      &           itcon_subcoag(tracnum),tracnum)
-            
-            
+                       
           enddo
         enddo
 
@@ -2180,15 +1930,10 @@ c$$$      ENDIF
        return
        end subroutine subgridcoag_drv
     
-C     **************************************************
-C     *  subgridcoag_drv                                   *
-C     **************************************************
 
-C     Written by Yunha Lee, July 2011 
-C     In order to accommodate 2-D and 3-D emission in GISS ModelE, the original 
-C     subgridcoag subroutine, written by Jeff Pierce, is modified into two. 
-C 
-C     No moments updated here because aerosol emission are positive! 
+!@sum subgridcoag_drv_2D: subgrid coagulation for 2D emissions  
+!@+   No moments updated here because aerosol emission are positive! 
+!@auth Jeff Pierce/Yunha Lee, July 2011 
 
       SUBROUTINE subgridcoag_drv_2D(dtstep)
 
@@ -2218,7 +1963,6 @@ C-----INCLUDE FILES--------------------------------------------------
 C-----VARIABLE DECLARATIONS-----------------------------------
 
       integer :: J_1, J_0, I_1, I_0,L,I,J
-
       REAL*8, INTENT(IN) :: dtstep
       INTEGER n,ns,c,k,tot_src,tracnum
       INTEGER tomas_ntsurf !same as ntsurfsrc
@@ -2230,28 +1974,23 @@ C-----VARIABLE DECLARATIONS-----------------------------------
       real*8 maddfinal(nbins) !the mass that should be added to each bin due to coagulation (kg)
       real*8 trflux_tom ! temporal variable
 
-C-----CODE-----------------------------------------------------------
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
-
-
       l=1 !2-D emission is at 1st layer
 
       DO J=J_0,J_1
         DO I=I_0,imaxj(j)
           
 !     subgrid timescale and met conditions
- 
         tscale=5.*3600.
         temp = pk(l,i,j)*t(i,j,l) !should be in [K]
         pres= pmid(l,i,j)*100.  ! pmid in [hPa]
         boxvol=am(l,i,j)*axyp(i,j)/mair*1000.d0
      &       *gasc*temp/pres*1e6 !cm3
         
-!     Amount of tracer before emission is applied. 
-        
+!     Amount of tracer before emission is applied.         
         do k=1,nbins
           ndist0(k)=TRM(I,J,L,IDTNUMD+k-1)
           do c=1,icomp-idiag
@@ -2276,13 +2015,12 @@ C-----CODE-----------------------------------------------------------
           do k=1,nbins
             
             ndistinit(k)=trsource(i,j,NS,IDTNUMD+K-1)*dtstep
-            
+          
             tot_ndistinit(k)=tot_ndistinit(k)+ndistinit(k) !sum of number emission for SO4, EC, and OC
           enddo
           
-          if(sum(ndistinit(1:nbins)).gt.0.)then
-!     only when there is emission! 
-            
+!     only when there is emission!   
+          if(sum(ndistinit(1:nbins)).gt.0.)then        
             call subgridcoag(ndistinit,ndist0,mdist0,boxvol,
      &           tscale,ndistfinal,maddfinal) ! account for subgrid coagulation
             
@@ -2314,27 +2052,14 @@ C-----CODE-----------------------------------------------------------
      &             maddfinal(k)*0.5 
 
             enddo
-
-          endif !positive emission
-          
+          endif !positive emission         
         enddo !ntsurfsrc    
-        
-c$$$!     fix the inconsistancies in the distribution
-c$$$        do k=1,nbins
-c$$$          ndist2(k)=ndist(k)+ndist0(k)
-c$$$          do c=1,icomp-idiag
-c$$$            mdist2(k,c)=mdist(k,c)+mdist0(k,c)
-c$$$          enddo
-c$$$        enddo
         
         if(sum(ndist(1:nbins)).gt.0.) call mnfix(ndist,mdist)
         
-!     DIAGNOSTICS! 
-      
-        do k=1,nbins  
-          
-          tracnum=IDTNUMD-1+k  
-          
+!     DIAGNOSTICS!       
+        do k=1,nbins            
+          tracnum=IDTNUMD-1+k           
           N_subgridcg(i,j,l,k,1)=N_subgridcg(i,j,l,k,1)+ndist(k)- ! emission after subgrid
      &         tot_ndistinit(k) ! emission before subgrid
           
@@ -2344,20 +2069,15 @@ c$$$        enddo
 
           atmsrf%trflux_prescr(tracnum,i,j)= ndist(k)/dtstep*byaxyp(i,j) ! kg/s to kg/m2/s
           
-          do c=1,icomp-idiag
-            
+          do c=1,icomp-idiag            
             tracnum=IDTSO4-1+k+nbins*(c-1)
             
-            if(c.eq.2.or.c.eq.7)then
-                                !no subgrid coagulation
+            if(c.eq.2.or.c.eq.7)then !no subgrid coagulation
               M_subgridcg(i,j,l,k,c,1) =0.
-
-            else
-              
+            else              
               if(c.eq.1) tomas_ntsurf=ntsurfsrc(n_SO2)
               if(c.eq.3.or.c.eq.4) tomas_ntsurf=ntsurfsrc(IDTECOB) !ecob
-              if(c.eq.5.or.c.eq.6)  tomas_ntsurf=ntsurfsrc(IDTOCOB) !ecob
-              
+              if(c.eq.5.or.c.eq.6)  tomas_ntsurf=ntsurfsrc(IDTOCOB) !ecob              
               M_subgridcg(i,j,l,k,c,1)=M_subgridcg(i,j,l,k,c,1)
      &             + mdist(k,c)-
      &             atmsrf%trflux_prescr(tracnum,i,j)/byaxyp(i,j)*dtstep
@@ -2389,29 +2109,21 @@ c$$$        enddo
       end subroutine subgridcoag_drv_2D
      
 
+!@sum subgridcoag: determine how much of each size of freshly emitted aerosol will 
+!@+   be scavenged by coagulation prior to being completely mixed in the gridbox and will
+!@+   give the new emissions size distribution along with where the mass of coagulated
+!@+   particles should be added.
 
-C     **************************************************
-C     *  subgridcoag                                   *
-C     **************************************************
-C     WRITTEN BY Jeff Pierce, December, 2006
-
-C     This subroutine will determine how much of each size of freshly emitted aerosol will 
-C     be scavenged by coagulation prior to being completely mixed in the gridbox and will
-C     give the new emissions size distribution along with where the mass of coagulated
-C     particles should be added.
+!@auth Jeff Pierce, Dec 2006
 
       SUBROUTINE subgridcoag(ndistinit,ndist2,mdist2,boxvolume,
      & tscale,ndistfinal,maddfinal)
 
-C-----INCLUDE FILES--------------------------------------------------
       USE TRACER_COM, only : nbins,xk
-
       USE TOMAS_AEROSOL
       USE CONSTANT, ONLY : pi,gasc,mair
       IMPLICIT NONE
 
-C-----PASSED VARIABLE DECLARATIONS-----------------------------------
- 
       INTEGER n,k,c,kk
       real*8, intent(in) :: ndistinit(nbins) !the number of particles being added to the gridbox before subgrid coag
       real*8, intent(in) :: ndist2(nbins) !the number of particles in the box
@@ -2420,9 +2132,6 @@ C-----PASSED VARIABLE DECLARATIONS-----------------------------------
       real, intent(in) :: tscale ! the scale time for mixing (s)
       real*8, intent(out) :: ndistfinal(nbins) !the number of particles being added to the gridbox after subgrid coag
       real*8, intent(out) :: maddfinal(nbins) !the mass that should be added to each bin due to coagulation (kg)
-
-C-----VARIABLE DECLARATIONS------------------------------------------
-
       real*8 mp ! mass of the particle (kg)
       real density                !density (kg/m3) of particles
       real*8 diameter(nbins) ! diamter of the particle (m)
@@ -2430,23 +2139,13 @@ C-----VARIABLE DECLARATIONS------------------------------------------
       real*8 fracdiaml(nbins,nbins) ! fraction of coagulation that occurs with each bin larger
       real*8 kcoag(nbins) ! the coagulation rate for the particles in each bin (s^-1)
       real aerodens
-
       real mso4, mh2o, mno3, mnh4  !mass of each component (kg/grid box)
       real mecil,mecob,mocil,mocob
       real mdust,mnacl   
-
-!      external aerodens
-
-C-----VARIABLE COMMENTS----------------------------------------------
-
-C-----ADJUSTABLE PARAMETERS------------------------------------------
-
       real*8 v1,v2,v3  !for coag rate calculation
       parameter(v1=8.5708E-13,
      &          v2=-1.4174,
      &           v3=4.3047E-4)
-
-C-----CODE-----------------------------------------------------------
 
 C     get the wet diameter of particles in each size bin
       do k=1,nbins
@@ -2532,12 +2231,14 @@ C     determine the mass added to each bin coagulation
       return
       end SUBROUTINE subgridcoag
 
-      subroutine alloc_tracer_TOMAS_com(grid)
-!@SUM  To alllocate arrays whose sizes now need to be determined
-!@+    at run-time
+!@sum  alloc_tracer_TOMAS_com : alllocate arrays whose sizes need 
+!@+    to be determined at run-time
 !@auth Yunha Lee
+      subroutine alloc_tracer_TOMAS_com(grid)
+
       use domain_decomp_atm, only : dist_grid, getDomainBounds 
       use resolution, only     : lm
+
       use TOMAS_aerosol
 
       IMPLICIT NONE

@@ -418,7 +418,8 @@ use File::Basename;
 use Getopt::Long;
 @suffixes = qw( \.c \.C \.cc \.cxx \.cpp \.f \.F \.fcm \.FCM \.f90 \.F90 \.for);
 
-GetOptions("s", "e=s", "f=s", "I=s@", "m=s", "c", "p", "g", "h", "int", "o=s", "a=s")
+Getopt::Long::Configure("bundling");
+GetOptions("s", "e=s", "f=s", "I=s@", "m=s", "c", "p", "g", "h", "int", "o=s", "a=s", "D=s")
 		       || die "problem in GetOptions";
 
 # For compilers that don't invoke cpp for you

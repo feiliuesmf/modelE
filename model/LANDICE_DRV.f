@@ -502,7 +502,8 @@ c
       USE LANDICE, only: ace1li,ace2li,precli,snmin
       USE LANDICE_COM, only : snowli,tlandi
 #ifdef TRACERS_WATER
-     *     ,trsnowli,trlndi,ntm
+     *     ,trsnowli,trlndi
+      USE TRACER_COM, only : NTM
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE EXCHANGE_TYPES
@@ -643,7 +644,8 @@ C**** ACCUMULATE DIAGNOSTICS
       USE SEAICE, only : rhos
       USE LANDICE_COM, only : snowli,tlandi
 #ifdef TRACERS_WATER
-     *     ,ntm,trsnowli,trlndi
+     *     ,trsnowli,trlndi
+      USE TRACER_COM, only : NTM
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE TimerPackage_mod, only: startTimer => start
@@ -974,7 +976,8 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
       Use LANDICE_COM, Only: TLANDI,SNOWLI, MDWNIMP,EDWNIMP,
      *                       FSHGLM,FNHGLM
 #ifdef TRACERS_WATER
-     *     ,ntm,trsnowli,trlndi,trdwnimp
+     *     ,trsnowli,trlndi,trdwnimp
+      USE TRACER_COM, only : NTM
 #endif
       USE FLUXES, only : atmocn,flice,focean
       USE Dictionary_mod

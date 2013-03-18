@@ -1346,13 +1346,14 @@ C****
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,oijmm
      *     ,ij_hbl,ij_hblmax,ij_bo,ij_bosol,ij_ustar,ijl_kvm,ijl_kvg
      *     ,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
+     *     ,ij_mld,ij_mldmax
 #ifdef OCN_GISSMIX
-     *     ,ijl_ri,ijl_rrho,ijl_otke,ijl_kvs
+     *     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
 #endif
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
      &     ,uod1,vod1
 #ifdef OCN_GISSMIX
-      USE GISSMIX_COM, only : otke
+      USE GISSMIX_COM, only : otke,rhobot
 #endif
       USE OFLUXES, only : oRSI, oSOLARw,oSOLARi, oDMUA,oDMVA,oDMUI,oDMVI
       USE SW2OCEAN, only : fsr,lsrpd
@@ -1387,7 +1388,7 @@ C****
      *      BYMML0(LMO),MMLT(LMO),BYMMLT(LMO),
      *      AKVM(0:LMO+1),AKVG(0:LMO+1),AKVS(0:LMO+1),GHATM(LMO),
      *      GHATG(LMO),GHATS(LMO),FLG(LMO),FLS(LMO),TXY,
-     *      FLDUM(LMO),GHATDUM(LMO)
+     *      FLDUM(LMO),GHATDUM(LMO),AKVC(0:LMO+1),GHATC(LMO)
       INTEGER LMUV(IM+2)
 C**** CONV parameters: BETA controls degree of convection (default 0.5).
       REAL*8, PARAMETER :: BETA=5d-1, BYBETA=1d0/BETA
@@ -1405,7 +1406,7 @@ C**** KPP variables
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
      &     MA,KLEN,GSAVE3D,SSAVE3D
       REAL*8, DIMENSION(0:LMO,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     &     AKVG3D,AKVS3D,FLG3D,FLS3D
+     &     AKVG3D,AKVS3D,AKVC3D,FLG3D,FLS3D
       REAL*8, DIMENSION(LMO,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     DZ3D
 #ifdef TRACERS_OCEAN
@@ -1422,7 +1423,7 @@ C**** KPP variables
       REAL*8 CORIOL,UISTR,VISTR,U2rho,DELTAM,DELTAE,DELTASR,ANSTR
      *     ,ZSCALE,HBL,HBLP,Ustar,BYSHC,B0,Bosol,R,R2,DTBYDZ2,DM
      *     ,RHOM,RHO1,Bo,DELTAS
-      REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS,TEMGS
+      REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS,TEMGS,VOLGS
 #ifdef ENHANCED_DEEP_MIXING
 !@var kvextra an array prescribing background diffusivity as a function of depth
       REAL*8, DIMENSION(LMO) :: KVEXTRA
@@ -1443,11 +1444,13 @@ c     REAL*8 omfrac      !@var omfrac 1 - fraction of Bosol penetrated
       REAL*8 rib(lmo)    !
       REAL*8 wtnl(lmo)   !@var wtnl non-local term of wt
       REAL*8 wsnl(lmo)   !@var wsnl non-local term of ws
-      real*8 ga          !@var ga grav*alpha
-      real*8 gb          !@var gb grav*beta
-      real*8 buoynl(lmo) !@var buoynl non-local part of buoyancy flux (m^2/s^3)
+c     real*8 ga          !@var ga grav*alpha
+c     real*8 gb          !@var gb grav*beta
+c     real*8 buoynl(lmo) !@var buoynl non-local part of buoyancy flux (m^2/s^3)
       REAL*8 ri(0:lmo+1)   !@var ri Rchardson number
       REAL*8 rrho(0:lmo+1) !@var rrho salt to head density ratio
+      real*8 bv2(0:lmo+1)!@var bv2 Brunt Vaisala frequency squared (1/s**2)
+      real*8 buoy(0:lmo+1)!@var buoy buoyancy flux (m**2/s**3)
       REAL*8 e(lmo)      !@var e ocean turbulent kinetic energy (m/s)**2
       integer strait
 #endif
@@ -1458,6 +1461,8 @@ c     REAL*8 omfrac      !@var omfrac 1 - fraction of Bosol penetrated
       INTEGER NSIGT
       REAL*8 :: DFLUX,MINRAT ! for GHATT limits
 #endif
+      real*8 ptdd,ptdm,ptd(lmo),mld
+      integer kmld
 
       call getDomainBounds(grid, j_strt=j_0, j_stop=j_1,
      &                j_strt_skp=j_0s, j_stop_skp=j_1s,
@@ -1855,6 +1860,23 @@ C**** numerator of bulk richardson number on grid levels
            Ritop(L) = (zgrid(1)-zgrid(L)) * dbsfc(L)
          END IF
       END DO
+C**** find mld, the mixed layer depth 
+      ptdd=0.03d0       ! kg/m^3  pot.dens.diff criterion
+      mld=-zgrid(lmij)
+      kmld=lmij
+      do l=1,lmij
+        G(L)=G0ML(L)*BYMML(L)
+        S(L)=S0ML(L)*BYMML(L)
+        ptd(l) = 1d0/VOLGS(G(L),S(L))-1000d0
+        if (abs(ptd(l)-ptd(1)).gt.ptdd) then
+          ptdm=ptd(1)+sign(ptdd,ptd(l)-ptd(1))
+          mld=-zgrid(l-1)+(zgrid(l-1)-zgrid(l))*
+     &        (ptdm-ptd(l-1))/(ptd(l)-ptd(l-1)+1.d-30)
+          kmld=l ! kmld is the layer number immediately below the mld
+          exit
+        endif
+      end do
+c     write(61,*) i,j,kmld,mld
       talpha(1) =  ALPHAGSP(G(1),S(1),PO(1)) ! <0
       sbeta(1)  =   BETAGSP(G(1),S(1),PO(1))
 
@@ -1892,6 +1914,7 @@ C**** betaDS   = mean sbeta  * delta(salt)  at interfaces (kg/m3)
       CALL KPPMIX(LDD,ZE,zgrid,hwide,LMIJ,Shsq,dVsq,Ustar,Bo
      *     ,Bosol ,alphaDT,betaDS,dbloc,Ritop,Coriol,byhwide,
      *     AKVM,AKVS,AKVG,GHAT,HBL,KBL)
+      akvc=akvs
 #else
       call bldepth(ZE,zgrid,byhwide,LMIJ,dVsq,Ustar,Bo,Bosol
      *     ,dbloc,Ritop
@@ -1907,6 +1930,8 @@ c-c     ws0=-BYRHO(1)*(DELTAS-S(1)*DELTAM)
       uob=uo(i,j,lmij)
       vob=vo(i,j,lmij)
       u2b=(uob*uob + vob*vob)
+      !@var rhobot bottom density, a variable of MODULE GISSMIX_COM
+      rhobot(i,j)=rho(lmij) 
 
       strait=0   ! not in strait area (for most of the oceans)
       do l=1,lmij-1
@@ -1915,14 +1940,14 @@ c-c     ws0=-BYRHO(1)*(DELTAS-S(1)*DELTAM)
 
       call gissmix(
       ! in:
-     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,to,s,RHO,uob,vob,u2b
-     &   ,Coriol,ustar,bf,hbl,kbl,strait,i,j
-      ! inout:
-     &   ,e
+     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,rho,uob,vob,u2b
+     &   ,Coriol,hbl,strait,i,j
       ! out:
-     &   ,ri,rrho,akvm,akvg,akvs,buoynl)
+     &   ,ri,rrho,bv2,akvm,akvg,akvs,akvc,e)
+      buoy=0.
       do l=1,lmij-1
          otke(l,i,j)=e(l)
+         buoy(l)=-(akvg(l)-rrho(l)*akvs(l))/(1-rrho(l))*bv2(l)
       end do
 #endif
 
@@ -1934,6 +1959,7 @@ C****                            ghat (s/m^2) => (s m^4/kg^2)
 #ifdef ENHANCED_DEEP_MIXING
          akvg(l) = akvg(l) + kvextra(l)
          akvs(l) = akvs(l) + kvextra(l)
+         akvc(l) = akvc(l) + kvextra(l)
 #endif
          klen(i,j,l) = akvs(l)
          R = 5d-1*(RHO(L)+RHO(L+1))
@@ -1946,62 +1972,34 @@ C**** GHAT terms must be zero for consistency with OSOURC
          GHATG(L) = AKVG(L)*GHAT(L)*DELTAE*DXYPO(J)
          GHATS(L) = AKVS(L)*GHAT(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM)
      *        *DXYPO(J)
-c        buoynl=ga*wtnl-gb*wsnl
-c        wtnl=GHATG(L)/(-RHO(L)*SHCGS(G(L),S(L))*DXYPO(J))
-c        wtnl=AKVG(L)*GHAT(L)*DELTAE/(-RHO(L)*SHCGS(G(L),S(L)))
-c        wsnl=GHATS(L)/(-RHO(L)*DXYPO(J))
-c        wsnl= AKVS(L)*GHAT(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM)
-c    &        /(-RHO(L))
-c        buoynl=ga*AKVG(L)*GHAT(L)*DELTAE/(-RHO(L)*SHCGS(G(L),S(L)))
-c    &         -gb*AKVS(L)*GHAT(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM)
-c    &            /(-RHO(L))
-c        buoynl=-GHAT(L)/RHO(L)
-c    &         *( ga*AKVG(L)*DELTAE/SHCGS(G(L),S(L))
-c    &           -gb*AKVS(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM) )
 #else
-         ga=-talpha(l)/R*grav
-         gb= sbeta(l)/R*grav
-         ! wtnl=.5*buoynl(l)/ga
-         ! wsnl=-.5*buoynl(l)/gb
-         GHATG(L)=-R*SHCGS(G(L),S(L))*.5*buoynl(l)/ga*DXYPO(J)
-         GHATS(L)= R*.5*buoynl(l)/gb*DXYPO(J)
-c        GHAT(L)=-buoynl(l)*RHO(L)
-c    &      /( ga*AKVG(L)*DELTAE/SHCGS(G(L),S(L))
-c    &        -gb*AKVS(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM) + 1d-30)
-         ! GHATG(L)=-RHO(L)*SHCGS(G(L),S(L))*wtnl(L)*DXYPO(J)
-         ! GHATS(L)=-RHO(L)*wsnl(L)*DXYPO(J)
-         ! GHATG is nonlocal power due to heating in Watts into the gridbox, to get it
-         ! multiply the nonlocal temperature flux in K m/s, wtnl, by \rho C_p times cell area.
-         ! SHCGS is Specific Heat Capacity as a function of G and S (in SI *not* cgs units).
-         ! GHATS is nonlocal salt per unit time into the grid box, to get it
-         ! multiply the nonlocal salt mass fraction flux, wsnl, by \rho times cell area.
+         GHATG(L)=0.d0
+         GHATS(L)=0.d0
 #endif
-C**** GHAT terms must be zero for consistency with OSOURC
-! why is AKV[GS]*GHAT  IF(AKVG(L)*GHAT(L) .GT. 1D0) GHAT(L)=1D0/AKVG(L)
-! sometimes > 1?       IF(AKVS(L)*GHAT(L) .GT. 1D0) GHAT(L)=1D0/AKVS(L)
-         GHATG(L) = AKVG(L)*GHAT(L)*DELTAE*DXYPO(J)
-         GHATS(L) = AKVS(L)*GHAT(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM)
-     *        *DXYPO(J)
-
 #ifdef TRACERS_OCEAN
 #ifndef OCN_GISSMIX
          GHATT(L,:)= AKVS(L)*GHAT(L)*(DELTATR(:)-
      *        TRML(1,:)*DELTAM*BYMML(1))*DXYPO(J)
 #else
-         GHATT(L,:)=GHATS(L)*(DELTATR(:)-TRML(1,:)*DELTAM*BYMML(1))
-     &                      /(DELTAS-S0ML0(1)*BYMML(1)*DELTAM+1d-30)
+         GHATT(L,:)=0.
+c        GHATT(L,:)=GHATS(L)*(DELTATR(:)-TRML(1,:)*DELTAM*BYMML(1))
+c    &                      /(DELTAS-S0ML0(1)*BYMML(1)*DELTAM+1d-30)
 #endif
 #endif
          AKVM(L) = AKVM(L)*R2
          AKVG(L) = AKVG(L)*R2
          AKVS(L) = AKVS(L)*R2
+         AKVC(L) = AKVC(L)*R2
          AKVG3D(L,I,J) = AKVG(L)
          AKVS3D(L,I,J) = AKVS(L)
+         AKVC3D(L,I,J) = AKVC(L)
       END DO
       AKVG3D(0,I,J) = AKVG3D(1,I,J)
       AKVS3D(0,I,J) = AKVS3D(1,I,J)
+      AKVC3D(0,I,J) = AKVC3D(1,I,J)
       AKVG3D(LMIJ,I,J) = AKVG3D(LMIJ-1,I,J)
       AKVS3D(LMIJ,I,J) = AKVS3D(LMIJ-1,I,J)
+      AKVC3D(LMIJ,I,J) = AKVC3D(LMIJ-1,I,J)
 
 C**** For each field (U,G,S + TRACERS) call OVDIFF
 C**** Momentum
@@ -2055,7 +2053,7 @@ C**** Tracers are diffused after iteration and follow salinity
           endif
         endif
         ! diffuse
-        Call OVDIFFS (TRML(1,N),AKVS(1),GHATT(1,N),DTBYDZ,BYDZ2,
+        Call OVDIFFS (TRML(1,N),AKVC(1),GHATT(1,N),DTBYDZ,BYDZ2,
      *       DTS,LMIJ,TRML(1,N),FLT(1,N))
       END DO
 #endif
@@ -2082,8 +2080,11 @@ C**** Diagnostics for non-local transport and vertical diffusion
          OIJL(I,J,L,IJL_KVG) = OIJL(I,J,L,IJL_KVG) + AKVG(L)
 #ifdef OCN_GISSMIX
          OIJL(I,J,L,IJL_KVS) = OIJL(I,J,L,IJL_KVS) + AKVS(L)
+         OIJL(I,J,L,IJL_KVC) = OIJL(I,J,L,IJL_KVC) + AKVC(L)
          OIJL(I,J,L,ijl_ri) = OIJL(I,J,L,ijl_ri) + ri(L) ! Richardson number
          OIJL(I,J,L,ijl_rrho)= OIJL(I,J,L,ijl_rrho) + rrho(L) ! density ratio
+         OIJL(I,J,L,ijl_bv2)= OIJL(I,J,L,ijl_bv2) + bv2(L) ! B.Vaisala freq sq
+         OIJL(I,J,L,ijl_buoy)= OIJL(I,J,L,ijl_buoy) + buoy(L) ! buoyancy flux
          OIJL(I,J,L,ijl_otke)= OIJL(I,J,L,ijl_otke) + e(L) ! turbulent k.e.
 #endif
          OIJL(I,J,L,IJL_WGFL)= OIJL(I,J,L,IJL_WGFL) + FLG(L) ! heat flux
@@ -2106,11 +2107,13 @@ CCC         OL(L,L_SALT)= OL(L,L_SALT)+ S(L)
        END DO
 C**** Set diagnostics
        OIJ(I,J,IJ_HBL) = OIJ(I,J,IJ_HBL) + HBL ! boundary layer depth
+       OIJ(I,J,ij_mld) = OIJ(I,J,ij_mld) + mld ! mixed layer depth
        OIJ(I,J,IJ_BO) = OIJ(I,J,IJ_BO) + Bo ! surface buoyancy forcing
        OIJ(I,J,IJ_BOSOL) = OIJ(I,J,IJ_BOSOL) + Bosol ! solar buoy frcg
        OIJ(I,J,IJ_USTAR) = OIJ(I,J,IJ_USTAR) + Ustar ! turb fric speed
 
        OIJmm(I,J,IJ_HBLmax) = max(OIJmm(I,J,IJ_HBLmax), HBL)
+       OIJmm(I,J,ij_mldmax) = max(OIJmm(I,J,IJ_mldmax), mld)
 
        IF(KBL.gt.KPL(I,J)) KPL(I,J)=KBL ! save max. mixed layer depth
 C****
@@ -2284,7 +2287,7 @@ C**** Note that FL[GS] are upward fluxes.
 #ifdef TRACERS_OCEAN
             TZMO(I,J,L,:)=(TZMO(I,J,L,:)
      &           +3d0*(FLT3D(L-1,:,I,J)+FLT3D(L,:,I,J)))
-     &           /(1d0+DTBYDZ2*(AKVS3D(L-1,I,J)+AKVS3D(L,I,J)))
+     &           /(1d0+DTBYDZ2*(AKVC3D(L-1,I,J)+AKVC3D(L,I,J)))
 #endif
           END DO
         enddo
@@ -2425,9 +2428,9 @@ C****
         do n=1,ntm
           txml(1:lmij) = txmo(i,j,1:lmij,n)
           tyml(1:lmij) = tymo(i,j,1:lmij,n)
-          Call OVDIFFS ( TXML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
+          Call OVDIFFS ( TXML(1),AKVC(1),GHATDUM,DTBYDZ,BYDZ2,
      *         DTS,LMIJ, TXML(1),FLDUM)
-          Call OVDIFFS ( TYML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
+          Call OVDIFFS ( TYML(1),AKVC(1),GHATDUM,DTBYDZ,BYDZ2,
      *         DTS,LMIJ, TYML(1),FLDUM)
           txmo(i,j,1:lmij,n) = txml(1:lmij)
           tymo(i,j,1:lmij,n) = tyml(1:lmij)
@@ -2435,11 +2438,11 @@ C****
           txxml(1:lmij) = txxmo(i,j,1:lmij,n)
           tyyml(1:lmij) = tyymo(i,j,1:lmij,n)
           txyml(1:lmij) = txymo(i,j,1:lmij,n)
-          Call OVDIFFS (TXXML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
+          Call OVDIFFS (TXXML(1),AKVC(1),GHATDUM,DTBYDZ,BYDZ2,
      *         DTS,LMIJ,TXXML(1),FLDUM)
-          Call OVDIFFS (TYYML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
+          Call OVDIFFS (TYYML(1),AKVC(1),GHATDUM,DTBYDZ,BYDZ2,
      *         DTS,LMIJ,TYYML(1),FLDUM)
-          Call OVDIFFS (TXYML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
+          Call OVDIFFS (TXYML(1),AKVC(1),GHATDUM,DTBYDZ,BYDZ2,
      *         DTS,LMIJ,TXYML(1),FLDUM)
           txxmo(i,j,1:lmij,n) = txxml(1:lmij)
           tyymo(i,j,1:lmij,n) = tyyml(1:lmij)
@@ -2522,16 +2525,16 @@ C****
 #endif
       USE ODIAG, only : olnst,ln_kvm,ln_kvg,ln_wgfl,ln_wsfl
 #ifdef OCN_GISSMIX
-     &     ,ln_ri,ln_rrho,ln_otke
+     &     ,ln_ri,ln_rrho,ln_bv2,ln_otke,ln_buoy
       USE GISSMIX_COM, only : otke
 #endif
       IMPLICIT NONE
       REAL*8 MMLT,MML0
       REAL*8, DIMENSION(LMO,2) :: UL,G0ML,S0ML,GZML,SZML
       REAL*8, DIMENSION(LMO) :: MML,BYMML,DTBYDZ,BYDZ2,UL0,G0ML0,S0ML0
-      REAL*8, DIMENSION(0:LMO+1) :: AKVM,AKVG,AKVS
+      REAL*8, DIMENSION(0:LMO+1) :: AKVM,AKVG,AKVS,AKVC
 #ifdef OCN_GISSMIX
-     &     ,ri1,rrho
+     &     ,ri1,rrho,bv2,buoy
 #endif
       REAL*8, DIMENSION(LMO) :: G,S,TO,BYRHO,RHO,PO,GHAT,FLG,FLS
 #ifdef TRACERS_OCEAN
@@ -2551,7 +2554,7 @@ C**** CONV parameters: BETA controls degree of convection (default 0.5).
      *     alphaDT(LMO),betaDS(LMO)
       REAL*8, PARAMETER :: epsln=1d-20
       REAL*8, SAVE :: Bo,Bosol,bydts,ustar
-      REAL*8 U2rho,RI,Coriol,HBL,HBLP,RHOM,RHO1,R,R2,DTBYDZ2
+      REAL*8 U2rho,RI,Coriol,HBL,HBLP,RHOM,RHO1,R,R2,DTBYDZ2,mld
       REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS
       INTEGER, SAVE :: IFIRST = 1
       INTEGER I,L,N,LMIJ,IQ,ITER,NSIGG,NSIGS,KBL
@@ -2562,9 +2565,9 @@ C**** CONV parameters: BETA controls degree of convection (default 0.5).
       REAL*8 wtnl(lmo)   !@var wtnl non-local term of wt
       REAL*8 wsnl(lmo)   !@var wsnl non-local term of ws
       REAL*8 e(lmo)      !@var e ocean turbulent kinetic energy (m/s)**2
-      real*8 buoynl(lmo) !@var buoynl nonlocal part of buoy production
-      real*8 ga          !@var ga grav*alphaT
-      real*8 gb          !@var gb grav*alphaS
+c     real*8 buoynl(lmo) !@var buoynl nonlocal part of buoy production
+c     real*8 ga          !@var ga grav*alphaT
+c     real*8 gb          !@var gb grav*alphaS
 #endif
 
       IF (IFIRST.eq.1) THEN
@@ -2705,6 +2708,7 @@ C**** Get diffusivities for the whole column
       CALL KPPMIX(LDD,ZE,zgrid,hwide,LMIJ,Shsq,dVsq,Ustar,Bo
      *     ,Bosol ,alphaDT,betaDS,dbloc,Ritop,Coriol,byhwide,
      *     AKVM,AKVS,AKVG,GHAT,HBL,KBL)
+      akvc=akvs
 #else
       call bldepth(ZE,zgrid,byhwide,LMIJ,dVsq,Ustar,Bo,Bosol
      *     ,dbloc,Ritop
@@ -2720,14 +2724,14 @@ C**** Get diffusivities for the whole column
 
       call gissmix(
       ! in:
-     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,to,s,RHO,uob,vob,u2b
-     &   ,Coriol,ustar,bf,hbl,kbl,strait,0,0
-      ! inout:
-     &   ,e
+     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,rho,uob,vob,u2b
+     &   ,Coriol,hbl,strait,0,0
       ! out:
-     &   ,ri1,rrho,akvm,akvg,akvs,buoynl)
+     &   ,ri1,rrho,bv2,akvm,akvg,akvs,akvc,e)
+      buoy=0.
       do l=1,lmij-1
          otkest(l,n)=e(l)
+         buoy(l)=-(akvg(l)-rrho(l)*akvs(l))/(1-rrho(l))*bv2(l)
       end do
 #endif
 
@@ -2738,6 +2742,7 @@ C**** Correct units for diffusivities (m^2/s) => (kg^2/m^4 s)
          AKVM(L) = AKVM(L)*R2
          AKVG(L) = AKVG(L)*R2
          AKVS(L) = AKVS(L)*R2
+         AKVC(L) = AKVC(L)*R2
          GHAT(L) = 0.  ! no non-local transports since no surface fluxes
       END DO
 
@@ -2755,7 +2760,7 @@ C**** Salinity
 #ifdef TRACERS_OCEAN
 C**** Tracers are diffused after iteration (GHAT always zero)
       DO ITR = 1,NTM
-        CALL OVDIFFS(TRML(1,ITR,IQ),AKVS(1),GHAT,DTBYDZ,BYDZ2
+        CALL OVDIFFS(TRML(1,ITR,IQ),AKVC(1),GHAT,DTBYDZ,BYDZ2
      *       ,DTS,LMIJ,TRML(1,ITR,IQ),FLT(1,ITR))
       END DO
 #endif
@@ -2765,7 +2770,7 @@ C**** No surface fluxes
       GZML(1,IQ)=(GZML(1,IQ)+3d0*FLG(1))/(1d0+DTBYDZ2*AKVG(1))
       SZML(1,IQ)=(SZML(1,IQ)+3d0*FLS(1))/(1d0+DTBYDZ2*AKVS(1))
 #ifdef TRACERS_OCEAN
-      TZML(1,:,IQ)=(TZML(1,:,IQ)+3d0*FLT(1,:))/(1d0+DTBYDZ2*AKVS(1))
+      TZML(1,:,IQ)=(TZML(1,:,IQ)+3d0*FLT(1,:))/(1d0+DTBYDZ2*AKVC(1))
 #endif
       DO L=2,LMIJ-1
         DTBYDZ2 = 6d0*DTBYDZ(L)**2*BYDTS
@@ -2775,7 +2780,7 @@ C**** No surface fluxes
      *       /(1d0+DTBYDZ2*(AKVS(L-1)+AKVS(L)))
 #ifdef TRACERS_OCEAN
         TZML(L,:,IQ)=(TZML(L,:,IQ)+3d0*(FLT(L-1,:)+FLT(L,:)))
-     *       /(1d0+DTBYDZ2*(AKVS(L-1)+AKVS(L)))
+     *       /(1d0+DTBYDZ2*(AKVC(L-1)+AKVC(L)))
 #endif
       END DO
       DTBYDZ2 = 12d0*DTBYDZ(LMIJ)**2*BYDTS
@@ -2785,7 +2790,7 @@ C**** No surface fluxes
      *     /(1d0+DTBYDZ2*AKVS(LMIJ-1))
 #ifdef TRACERS_OCEAN
       TZML(LMIJ,:,IQ)=(TZML(LMIJ,:,IQ)+3d0*FLT(LMIJ-1,:))
-     *     /(1d0+DTBYDZ2*AKVS(LMIJ-1))
+     *     /(1d0+DTBYDZ2*AKVC(LMIJ-1))
 #endif
 C****
       DO L=1,LMIJ-1
@@ -2794,6 +2799,8 @@ C****
 #ifdef OCN_GISSMIX
         OLNST(L,N,ln_ri)  = OLNST(L,N,ln_ri)  + ri1(L)
         OLNST(L,N,ln_rrho)= OLNST(L,N,ln_rrho)+ rrho(L)
+        OLNST(L,N,ln_bv2) = OLNST(L,N,ln_bv2) + bv2(L)
+        OLNST(L,N,ln_buoy)= OLNST(L,N,ln_buoy)+ buoy(L)
         OLNST(L,N,ln_otke)= OLNST(L,N,ln_otke)+ e(L)
 #endif
 C       OLNST(L,N,LN_KVS) = OLNST(L,N,LN_KVS) + AKVS(L)

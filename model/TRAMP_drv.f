@@ -1,13 +1,7 @@
 #include "rundeck_opts.h"
-      ! empty module that enables ifort 13.0.1
-      !TODO: remove this
-      module foo
-      end module foo
-
       MODULE AMP_AEROSOL
 !@sum Driver for Aerosol Microphysics
 !@auth Susanne Bauer
-      USE TRACER_COM
       USE AERO_CONFIG, ONLY: NMODES
       USE AERO_PARAM,  ONLY: NEMIS_SPCS
       USE RESOLUTION,   ONLY: LM
@@ -73,7 +67,15 @@ C**************  Latitude-Dependant (allocatable) *******************
       END MODULE AMP_AEROSOL
 
       SUBROUTINE MATRIX_DRV
-      USE TRACER_COM
+      USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_NUMB_MAP,
+     *  AMP_AERO_MAP
+      USE TRACER_COM, only: n_H2SO4, n_M_ACC_SU, n_M_AKK_SU, n_M_BC1_BC,
+     *  n_M_DD1_DU, n_M_DD2_DU, n_M_OCC_OC, n_M_SSA_SS, n_M_SSC_SS,
+     *  n_NH3, nBiomass, nChemistry, ntmAMPe, nVolcanic, trm, ntmAMPi 
+#ifdef  TRACERS_SPECIAL_Shindell
+      USE TRACER_COM, only: n_HNO3
+#endif
+      use OldTracer_mod, only: trname
       USE TRDIAG_COM, only : taijs=>taijs_loc,taijls=>taijls_loc
      *     ,ijts_AMPp,ijlt_AMPm,ijlt_AMPext,ijts_AMPpdf
      *     ,itcon_AMP,itcon_AMPm
@@ -420,8 +422,11 @@ c -----------------------------------------------------------------
 !----------------------------------------------------------------------------------------------------------------------
 !     Routine to calculate the actual density per mode
 !----------------------------------------------------------------------------------------------------------------------
-      USE TRACER_COM
-      USE AMP_AEROSOL, only : AMP_dens
+      USE OldTracer_mod, only: trpdens
+      USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_trm_nm1,
+     *  AMP_trm_nm2
+      USE TRACER_COM, only: n_H2SO4, ntmAMPi, ntm, trm
+      USE AMP_AEROSOL, only : AMP_dens, AMP_TR_MM
       USE AERO_CONFIG, ONLY: NMODES
 
       IMPLICIT NONE
@@ -434,11 +439,14 @@ c -----------------------------------------------------------------
       enddo
  
       nAMP=n-ntmAMPi+1
-         if(AMP_MODES_MAP(nAMP).gt.0)
-     &   AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = 
-     &   sum(trpdens_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
+      if(AMP_MODES_MAP(nAMP).gt.0)
+     &  AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = 
+     &  sum(trpdens_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * 
+     &  trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
      & / (sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) + 1.0D-30)
-         if (AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)).le.0) AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = trpdens_local(AMP_MODES_MAP(nAMP))
+      if (AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)).le.0) 
+     &  AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = 
+     &  trpdens_local(AMP_MODES_MAP(nAMP))
 
       deallocate(trpdens_local)
 
@@ -450,9 +458,12 @@ c -----------------------------------------------------------------
 !----------------------------------------------------------------------------------------------------------------------
 !     Routine to calculate the actual molecular mass per mode
 !----------------------------------------------------------------------------------------------------------------------
-      USE TRACER_COM
-      USE AMP_AEROSOL, only : AMP_TR_MM
+      USE OldTracer_mod, only: tr_mm
+      USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_trm_nm1,
+     *  AMP_trm_nm2
+      USE TRACER_COM, only: n_H2SO4, ntmAMPi, ntm, trm
       USE AERO_CONFIG, ONLY: NMODES
+      USE AMP_AEROSOL, only : AMP_TR_MM
 
       IMPLICIT NONE
       Integer :: i,j,l,n,x,nAMP
@@ -464,11 +475,15 @@ c -----------------------------------------------------------------
       enddo
 
       nAMP=n-ntmAMPi+1
-         if(AMP_MODES_MAP(nAMP).gt.0.and.sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))).gt.0. )
-     &   AMP_TR_MM(i,j,l,AMP_MODES_MAP(nAMP)) = 
-     &   sum(tr_mm_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
+      if(AMP_MODES_MAP(nAMP) > 0 .and.
+     &  sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) > 0. )
+     &  AMP_TR_MM(i,j,l,AMP_MODES_MAP(nAMP)) = 
+     &  sum(tr_mm_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * 
+     &  trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
      & / sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)))
-         if (AMP_TR_MM(i,j,l,AMP_MODES_MAP(nAMP)).le.0) AMP_TR_MM(i,j,l,AMP_MODES_MAP(nAMP)) = tr_mm_local(AMP_MODES_MAP(nAMP))
+      if (AMP_TR_MM(i,j,l,AMP_MODES_MAP(nAMP)).le.0) 
+     &  AMP_TR_MM(i,j,l,AMP_MODES_MAP(nAMP)) = 
+     &  tr_mm_local(AMP_MODES_MAP(nAMP))
 
       deallocate(tr_mm_local)
 

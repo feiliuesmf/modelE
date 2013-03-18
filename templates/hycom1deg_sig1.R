@@ -1,4 +1,4 @@
-hycom1deg_sig1.R  standalone HYCOM run in model E framework      S. Sun 10/5/2012
+hycom1deg_sig1.R  standalone HYCOM run in model E framework      S. Sun 1/2/2013
 
 Resolution: 387x360, 26 layers
 Prescribed Atmosphere: CORE CNYF_2
@@ -9,6 +9,7 @@ Preprocessor Options
 #define HYCOM1deg                    ! 1deg 26 layer hycom (387x360x26)
 #define STANDALONE_HYCOM
 #define STANDALONE_OCEAN
+#define TRACERS_HYCOM_Ventilation
 End Preprocessor Options
 
 Object modules:
@@ -50,9 +51,9 @@ RUNOFF=CORE/H1/runoff.nc
 SSS=CORE/H1/srfsal.nc
 RSI=CORE/H1/SICE_387x360x365.1975-1984avg.HadISST1.1.nc
 
-temp_ini=temp387x360x26ann_hyb_sig1a.txt ! 3-d temperature as initial condition
-salt_ini=saln387x360x26ann_hyb_sig1a.txt ! 3-d salinity as initial condition
-pout_ini=pout387x360x26ann_hyb_sig1a.txt ! 3-d layer pressure as initial condition
+temp_ini=temp387x360x26ann_hyb_sig1g.txt ! 3-d temperature as initial condition
+salt_ini=saln387x360x26ann_hyb_sig1g.txt ! 3-d salinity as initial condition
+pout_ini=pout387x360x26ann_hyb_sig1g.txt ! 3-d layer pressure as initial condition
 latlonij=latlon387x360.4bin          ! lat & lon at 4 positions in each ocean grid box
 ibasin=ibasin387x360.txt             ! ocean basin mask
 cososino=cososino387x360.8bin        ! cos/sin of i,j axis angle on ocean grid
@@ -68,7 +69,8 @@ hycom1deg_sig1 (standalone 1-degree 26-layer hycom using sigma1)
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 
-KOCEAN=1            ! ocn is prognostic
+KOCEAN=1		! ocn is prognostic
+master_yr=1850
 
 sss_restore_dt=300. ! timescale (days) for relaxing surf salinity back to obs
 sss_restore_dtice=10. ! surf. sal. relax. timescale under sea ice
@@ -80,15 +82,19 @@ Ndisk=960
 KCOPY=2          ! saving acc + rsf
 Nssw=48          ! until diurnal diags are fixed, Nssw has to be even
 
-itest=-1	! default is -1
-jtest=-1	! default is -1
-iocnmx=2	! default is 2
-brntop=50.	! default is 50.
-brnbot=200.	! default is 200.
-diapyn=2.e-7	! default is 1.e-7
-diapyc=.2e-4	! default is .1e-4
-jerlv0=1	! default is 1
-thkdff=0.05	! default: 0.05m/s
+itest=-1         ! default is -1
+jtest=-1         ! default is -1
+iocnmx=2         ! default is 2
+brntop=0.	 ! default is 50.
+brnbot=200.      ! default is 200.
+diapyn=2.e-7     ! default is 1.e-7
+diapyc=.2e-4     ! default is .1e-4
+jerlv0=1         ! default is 1
+! only one of the three parameters below can be true(=1)
+bolus_biharm_constant=0	  ! bolus_biharm_constant=1 uses thkdff=0.05 or 0.10 m/s
+bolus_laplc_constant=1    ! bolus_laplc_constant=1  uses thkdff=0.01 or 0.02 m/s
+bolus_laplc_exponential=0 ! bolus_laplc_exponential=1 uses thkdff=0.03 m/s; thkdff_bkgd is hard-wired to 0.003m/s in cnuity.f
+thkdff=.01
 &&END_PARAMETERS
 
  &INPUTZ

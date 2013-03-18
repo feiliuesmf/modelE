@@ -1,8 +1,10 @@
 #!/usr/bin/perl
+# CommandEntry class
 package CommandEntry;
 use Env;
 use Switch;
 
+#  Constructor
 sub new 
 {
   my $proto = shift;
@@ -27,7 +29,7 @@ sub new
   {
     $self -> {$key} = $value;
   }
-
+  # Make self an object in CommandEntry class and return reference to it
   bless ($self, $class);
   return $self;
 }
@@ -108,21 +110,38 @@ sub runInBatch
   my $branch   = $self->{BRANCH};
   my $jobname  = $self->{RUNDECK};
 
-  switch ($jobname) 
-  {
-      case [ "nonProduction_E4TcadC12", "nonProduction_E_AR5_C12" ] 
-      { $walltime = "1:00:00\n" }
-      case [ "EM20", "E1oM20", "E4F40", "SCMSGPCONT" ] 
-      { $walltime = "1:00:00\n" }
-      case [ "E4C90L40", "E_AR5_CADI" ] 
-      { $walltime = "2:00:00\n" }
-      case [ "E4TcadF40", "E4TcadiF40", "E4arobio_g6c", "E4arobio_h4c" ] 
-      { $walltime = "3:00:00\n" }
-      else
-      { $walltime = "12:00:00\n"; $nodes=8}
-  }
+  my $onEC2 = $ENV{RUNONEC2};
 
-  print " runInBatch: COMPILER=$compiler, jobname=$jobname, BRANCH=$branch\n";
+  my $doMock = $ENV{MOCKMODELE};
+
+  if ($doMock == 1)
+  {
+    if    ($jobname =~ nonProduction) 
+    { $walltime = "00:10:00"; }
+    elsif ($jobname =~ M20) 
+    { $walltime = "00:15:00"; }
+    elsif ($jobname =~ obio || $jobname =~ cad || $jobname =~ amp) 
+    { $walltime = "00:20:00"; }
+    elsif ($jobname =~ tomas || $jobname =~ AR5_CAD) 
+    { $walltime = "00:25:00"; $nodes=2; }
+    else 
+    { $walltime = "00:05:00"; $nodes=1; }
+  }
+  else
+  {
+    if    ($jobname =~ nonProduction) 
+    { $walltime = "00:30:00"; }
+    elsif ($jobname =~ M20) 
+    { $walltime = "01:00:00"; }
+    elsif ($jobname =~ obio || $jobname =~ cad || $jobname =~ amp) 
+    { $walltime = "02:00:00"; }
+    elsif ($jobname =~ tomas || $jobname =~ AR5_CAD) 
+    { $walltime = "02:00:00"; $nodes=4; }
+    else 
+    { $walltime = "01:00:00"; $nodes=1; }
+  }
+  print " runInBatch: doMock=$doMock, onEC2=$onEC2, COMPILER=$compiler\n";
+  print " runInBatch: jobname=$jobname, walltime=$walltime, nodes=$nodes\n";
 
   my $script = <<EOF;
 #!/bin/bash
@@ -174,7 +193,7 @@ EOF
     elsif ($compiler eq "gfortran")  
     {
       $script .= <<EOF;
-module load other/comp/gcc-4.7-20120331 other/mpi/mvapich2-1.8a2/gcc-4.7-20120331
+module load other/comp/gcc-4.7.1 other/mpi/mvapich2-1.9a2/gcc-4.7.1
 EOF
     }  
     elsif ($compiler eq "nag")  
@@ -195,8 +214,14 @@ date
 env
 EOF
 
-  `echo '$script' > pbstmp; qsub -V pbstmp; rm pbstmp`;
-
+  if ($onEC2 == 1)
+  {
+    `echo '$script' > pbstmp; chmod +x pbstmp; ./pbstmp; rm pbstmp`;
+  }
+  else
+  {
+    `echo '$script' > pbstmp; qsub -V pbstmp; rm pbstmp`;
+  }
 }
 
 sub launch 
@@ -209,8 +234,9 @@ sub launch
   my $commandString   = "(" . $self -> {COMMAND} . ") 2>&1 >> $logFile; chmod 664 $logFile; /usr/bin/touch $semaphore;";
 
   my $mode = $self -> {QUEUE};
+  print " launch: queue=$mode\n";
 
-  #setModuleEnvironment($self->{COMPILER});
+  setModuleEnvironment($self->{COMPILER}, $self->{BRANCH});
   $ENV{MODELERC}=$self->{MODELRC};
   if ($self -> {QUEUE} eq LOCAL) 
   {
@@ -225,11 +251,13 @@ sub launch
 sub setModuleEnvironment 
 {
     my $compiler = shift;
+    my $branch = shift;
 
-    print " setModuleEnvironment: COMPILER=$compiler\n";
     require $ENV{MODELROOT}."/exec/testing/perlreq";
+    print " setModuleEnvironment: COMPILER=$compiler, branch=$branch\n";
 
-    if ($self->{BRANCH} =~ m/AR5/) 
+    module (purge);
+    if ($branch =~ m/AR5/) 
     {
       if ($compiler eq "intel") 
       {
@@ -253,7 +281,7 @@ sub setModuleEnvironment
       }
       elsif ($compiler eq "gfortran")
       {
-        module (load, "other/comp/gcc-4.7-20120331", "other/mpi/mvapich2-1.8a2/gcc-4.7-20120331");
+        module (load, "other/comp/gcc-4.7.1", "other/mpi/mvapich2-1.9a2/gcc-4.7.1");
       }
       elsif ($compiler eq "nag") 
       {

@@ -13,14 +13,14 @@
 
       SUBROUTINE DIAGJLT_prep
 ! comments to be added
-      use constant, only : teeny,grav
-      use resolution, only : lm
+      use OldTracer_mod, only:  ntm_power
+      use OldTracer_mod, only:  trname
+      use constant, only: teeny, grav
+      use resolution, only: lm
       USE MODEL_COM, only: idacc
-      use OldTracer_mod, only:  ntm_power, trname
-      USE TRACER_COM, only: ntm=>NTM
-     &     ,n_Water,n_CH4,n_O3
+      USE TRACER_COM, only: ntm, n_Water, n_CH4, n_O3
 #ifdef TRACERS_WATER
-      use OldTracer_mod, only:trw0,dowetdep
+      use OldTracer_mod, only:trw0, dowetdep
 #endif
 #ifdef TRACERS_SPECIAL_O18
       USE TRACER_COM, only: n_H2O18,n_HDO,n_H2O17
@@ -617,7 +617,8 @@ c
 ! comments to be added
       use resolution, only : im,jm
       use model_com, only: idacc
-      use OldTracer_mod, only: dodrydep, dowetdep, trname, trw0
+      use OldTracer_mod, only: dodrydep, dowetdep
+      use OldTracer_mod, only: trname, trw0
       use tracer_com, only: ntm, n_water
       use diag_com
       use mdiag_com, only : sname_strlen

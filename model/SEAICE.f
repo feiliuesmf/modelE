@@ -44,7 +44,7 @@ C**** snow/ice thermal diffusivity (Pringle et al, 2007)
       REAL*8, PARAMETER :: FLEADLK = 0.
 !@var FLEADMX maximum thickness for lead fraction (m)
       REAL*8, PARAMETER :: FLEADMX = 5.
-!@param BYRLS reciprical of snow density*lambda
+!@param BYRLS reciprocal of snow density*lambda
       REAL*8, PARAMETER :: BYRLS = 1./(RHOS*ALAMS)
 !@param MU coefficient of seawater freezing point w.r.t. salinity
       REAL*8, PARAMETER :: MU = 0.054d0   ! C/ppt
@@ -295,7 +295,7 @@ C**** relayer upper two layers
 #endif 
      *       )
 
-C**** reconsitute upper snow and ice layers
+C**** reconstitute upper snow and ice layers
         call set_snow_ice_layer(HSNOW,HICE,SICE,MICE,SNOWL,
 #ifdef TRACERS_WATER
      *       TRSNOW,TRICE,TRSIL, 
@@ -593,7 +593,7 @@ C**** relayer upper two layers
 #endif 
      *     )
 
-C**** reconsitute snow and ice layers
+C**** reconstitute snow and ice layers
       call set_snow_ice_layer(HSNOW,HICE,SICE,MICE,SNOWL,
 #ifdef TRACERS_WATER
      *     TRSNOW,TRICE,TRSIL, 
@@ -773,7 +773,14 @@ C**** Add new ice to ice variables
         MICE(1:2)=((1.-ROICE)*ACEFO*XSI(1:2)*ACE1I/(ACE1I+AC2OIM)+ROICE
      $       *MICE(1:2))/ROICEN
 
-C**** reconsitute snow and ice layers
+C**** relayer upper two layers
+        call relayer_12(HSNOW,HICE,SICE,MICE,SNOWL
+#ifdef TRACERS_WATER
+     *       ,TRSNOW,TRICE 
+#endif 
+     *       )
+
+C**** reconstitute snow and ice layers
         call set_snow_ice_layer(HSNOW,HICE,SICE,MICE,SNOWL,
 #ifdef TRACERS_WATER
      *       TRSNOW,TRICE,TRSIL, 
@@ -830,6 +837,7 @@ C****
       END IF
 C****
       END IF
+
 C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-3) => rsi=(1-OPNOCN))
       IF (ROICE.gt.0) THEN
       OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2)))    ! -BYZICX)
@@ -875,7 +883,14 @@ C**** Add new ice to ice variables
 #endif
         MICE(1:2)=(ROICE/ROICEN)*(FMSI4*FRI(1:2)+MICE(1:2))
 
-C**** reconsitute snow and ice layers
+C**** relayer upper two layers
+        call relayer_12(HSNOW,HICE,SICE,MICE,SNOWL
+#ifdef TRACERS_WATER
+     *       ,TRSNOW,TRICE 
+#endif 
+     *       )
+
+C**** reconstitute snow and ice layers
         call set_snow_ice_layer(HSNOW,HICE,SICE,MICE,SNOWL,
 #ifdef TRACERS_WATER
      *       TRSNOW,TRICE,TRSIL, 
@@ -1151,7 +1166,7 @@ C**** add fluxes in upper layers
 #endif
       END IF
 
-C**** reconsitute snow and ice layers
+C**** reconstitute snow and ice layers
       call set_snow_ice_layer(HSNOW,HICE,SICE,MICE,SNOWL,
 #ifdef TRACERS_WATER
      *     TRSNOW,TRICE,TRSIL, 
@@ -1698,7 +1713,7 @@ C**** relayer upper two layers
 #endif 
      *       )
 
-C**** reconsitute upper snow and ice layers
+C**** reconstitute upper snow and ice layers
         call set_snow_ice_layer(HSNOW,HICE,SICE,MICE,SNOWL,
 #ifdef TRACERS_WATER
      *       TRSNOW,TRICE,TRSIL, 

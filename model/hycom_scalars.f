@@ -48,7 +48,7 @@ c --- 'nhr   ' = coupling freq. in hours
 c
       dimension theta(kdm),salmin(kdm)
       real, public ::
-     &     theta,thbase,baclin,batrop,thkdff,veldff,temdff,viscos,
+     &     theta,thbase,baclin,batrop,veldff,temdff,viscos,
      .     vertmx,h1,slip,cbar,diagfq,wuv1,wuv2,wts1,wts2,
      &     acurcy, wbaro,thkmin,thkbot,botmin,ekman,sigjmp,salmin
 c
@@ -91,6 +91,7 @@ c --- thus, the pairs [(ipacn,jpac),(iatln,jatl)],[(ipacs,jpac),(iatls,jatl)]
 c --- refer to identical grid cells in physical space.
 c
       logical, public, parameter :: beropn=.true.  !true if bering strait open
+     .                             ,kappa =.false.  !true to include thermobaricity 
 #ifdef HYCOM2deg
       integer, public, parameter :: ipacn=67,ipacs=68,jpac= 95
       integer, public, parameter :: iatln= 2,iatls= 1,jatl=156
@@ -141,9 +142,18 @@ c    . 25.03,25.97,26.83,27.61,28.32,28.96,29.53,30.04,30.49,30.88,
 c    . 31.22,31.51,31.75,31.95,32.11,32.24,32.34,32.42,32.48,32.52,
 c    . 32.55,32.57,32.58,32.59,32.60,32.61/    ! sig1
 
-     . 25.01,25.96,26.83,27.62,28.33,28.97,29.54,30.05,30.50,30.89,
-     . 31.23,31.52,31.76,31.96,32.12,32.25,32.35,32.43,32.49,32.53,
-     . 32.56,32.58,32.59,32.60,32.61,32.62/    ! sig1
+c    . 25.01,25.96,26.83,27.62,28.33,28.97,29.54,30.05,30.50,30.89,
+c    . 31.23,31.52,31.76,31.96,32.12,32.25,32.35,32.43,32.49,32.53,
+c    . 32.56,32.58,32.59,32.60,32.61,32.62/    ! sig1
+
+c    . 24.38,26.00,27.38,28.54,29.50,30.28,30.90,31.38,31.74,32.00
+c    .,32.18,32.30,32.38,32.44,32.49,32.53,32.56,32.58,32.59,32.60
+ccc    .,32.61,32.62,32.63,32.64,32.65,32.66    ! sig1e
+c    .,32.61,32.62,32.64,32.68,32.76,32.84/     ! sig1e
+
+     . 24.35,26.07,27.50,28.67,29.61,30.35,30.92,31.35,31.67,31.90
+     .,32.06,32.17,32.25,32.31,32.36,32.40,32.43,32.46,32.49,32.52 
+     .,32.54,32.56,32.58,32.60,32.62,32.64/     ! sig1g
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c --- 'baclin' = baroclinic time step
@@ -165,7 +175,7 @@ c --- 'veldff' = diffusion velocity (m/s) for momentum dissipation
 c --- 'temdff' = diffusion velocity (m/s) for temp/salin. mixing
 c --- 'viscos' is nondimensional, used in deformation-dependent viscosity
 c --- 'vertmx' = scale velocity for vertical momentum mixing (m/s)
-      data thkdff/.05/,veldff/.1/,temdff/.02/,viscos/0.3/,vertmx/0./ ! hsig1_1b
+      data veldff/.1/,temdff/.02/,viscos/0.3/,vertmx/0./
 c
 c --- 'h1'     = depth interval used in lateral weighting of hor.pres.grad.
 c --- 'thkmin' = minimum mixed-layer thickness (m)
@@ -284,6 +294,15 @@ c --- 'diapyn' = diapycnal diffusivity times buoyancy freq. (m^2/s^2)
 c --- 'diapyc' = diapycnal diffusivity (m^2/s)
       real, public :: diapyn=2.e-7, diapyc=.2e-4 !overwritten by values in rundeck
 c
+c --- 'thkdff' = diffusion velocity (m/s) for thickness diffusion
+      real, public :: thkdff = 0.05             !overwritten by values in rundeck
+c
+c --- choices for bolus velocity (interface smoothing); overwritten by values in rundeck
+c --- 1 = true, 0 = false
+      integer, public :: bolus_biharm_constant=0
+      integer, public :: bolus_laplc_constant =1
+      integer, public :: bolus_laplc_exponential=0
+
 #if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
     || (defined TRACERS_ZEBRA)
       real*8, public :: diag_counter
