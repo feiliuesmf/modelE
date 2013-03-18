@@ -310,7 +310,7 @@ contains
         call accumulate(this%month2cache, monthB, 1.d0)
       endif
 
-      data(I_0:I_1,J_0:J_1) = data(I_0:I_1,J_0:J_1) + &
+      data(I_0:I_1,J_0:J_1) = &
            &   this%month1Cache(:,:)*frac +  this%month2Cache(:,:)*(1-frac)
 
       write(out_line,*) trim(this%tracerName),' ', trim(this%sourceName), &
