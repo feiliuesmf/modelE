@@ -1,5 +1,5 @@
 !@sum RES_CS48L20.F90   Resolution file, 48 Cube-Sphere Grid, 20 layers, top at .1 mb, no GWDRAG
-!@ver 2013/03/20
+!@ver 2013/03/21
 !@auth Original Development Team
 
       Module RESOLUTION
@@ -8,7 +8,6 @@
 !@var LM    = number of dynamical layers
 !@var LS1   = lowest layer of strtosphere
       Integer*4,Parameter :: IM=48,JM=48,LM=20, LS1=11
-      Integer*4 :: L$
 
 !@var MDRYA = dry atmospheric mass (kg/m^2) = 100*PSF/GRAV
 !@var MTOP  = mass above dynamical top (kg/m^2) = 100*PMTOP/GRAV
@@ -19,11 +18,12 @@
 !@var MFIX(L)  = fixed mass in each layer (kg/m^2) = 100*[PLBOT(L)-PLBOT(L+1)]/GRAV
 !@var MFRAC(L) = fraction of variable mass in each layer = DSIG(L)
       Real*8,Parameter :: MDRYA = 98400/9.80665d0, MTOP = 10/9.80665d0, MFIXs = 14990/9.80665d0, &
-         MFIX(LM) = (/ (0d0,L$=1,10),  &
-            4000/9.80665d0, 3000/9.80665d0, 2500/9.80665d0, 2000/9.80665d0, 1500/9.80665d0, &
-            1000/9.80665d0,  700/9.80665d0,  200/9.80665d0,   70/9.80665d0,   20/9.80665d0 /), &
+         MFIX(LM) = (/ 0d0,0d0,0d0,0d0,0d0, 0d0,0d0,0d0,0d0,0d0,  &
+                       4000/9.80665d0, 3000/9.80665d0, 2500/9.80665d0, 2000/9.80665d0, 1500/9.80665d0, &
+                      1000/9.80665d0,  700/9.80665d0,  200/9.80665d0,   70/9.80665d0,   20/9.80665d0 /), &
          MFRAC(LM) = (/ 20/834d0, 30/834d0, 50/834d0, 74/834d0,100/834d0, &
-                       160/834d0,160/834d0,105/834d0, 75/834d0, 60/834d0, (0d0,L$=11,20) /)
+                       160/834d0,160/834d0,105/834d0, 75/834d0, 60/834d0, & 
+                       0d0,0d0,0d0,0d0,0d0, 0d0,0d0,0d0,0d0,0d0 /)      
 
 !**** Vertival resolution
 !****                         ---MSURF=10034.0---    ---MSURF=5781.8----

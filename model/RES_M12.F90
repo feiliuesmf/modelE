@@ -1,5 +1,5 @@
 !@sum RES_M12.F90   Resolution file, 4x5 Lat-Lon Grid, 12 layers, top at 10 mb, non-strat model
-!@ver 2013/03/20
+!@ver 2013/03/21
 !@auth Original Development Team
 
       Module RESOLUTION
@@ -8,7 +8,6 @@
 !@var LM    = number of dynamical layers
 !@var LS1   = lowest layer of strtosphere
       Integer*4,Parameter :: IM=72,JM=46,LM=12, LS1=9
-      Integer*4 :: L$
 
 !@var MDRYA = dry atmospheric mass (kg/m^2) = 100*PSF/GRAV
 !@var MTOP  = mass above dynamical top (kg/m^2) = 100*PMTOP/GRAV
@@ -19,9 +18,10 @@
 !@var MFIX(L)  = fixed mass in each layer (kg/m^2) = 100*[PLBOT(L)-PLBOT(L+1)]/GRAV
 !@var MFRAC(L) = fraction of variable mass in each layer = DSIG(L)
       Real*8,Parameter :: MDRYA = 98400/9.80665d0, MTOP = 1000/9.80665d0, MFIXs = 14000/9.80665d0, &
-         MFIX(LM) = (/ (0d0,L$=1,8), 5000/9.80665d0, 4000/9.80665d0, 3000/9.80665d0, 2000/9.80665d0 /), &
+         MFIX(LM) = (/ 0d0,0d0,0d0,0d0,0d0, 0d0,0d0,0d0, &
+                       5000/9.80665d0, 4000/9.80665d0, 3000/9.80665d0, 2000/9.80665d0 /), &
          MFRAC(LM) = (/ 50/834d0, 80/834d0, 134/834d0, 170/834d0, 160/834d0, &
-                       105/834d0, 75/834d0,  60/834d0, (0d0,L$=9,12) /)
+                       105/834d0, 75/834d0,  60/834d0, 0d0,0d0,0d0,0d0 /)
 
 !**** Vertival resolution
 !****                         ---MSURF=10034.0---    ---MSURF=5781.8----

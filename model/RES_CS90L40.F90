@@ -1,5 +1,5 @@
 !@sum RES_CS90L40.F90   Resolution file, 90 Cube-Sphere Grid, 40 layers, top at .1 mb, GWDRAG used
-!@ver 2013/03/14
+!@ver 2013/03/21
 !@auth Original Development Team
 
       Module RESOLUTION
@@ -8,7 +8,6 @@
 !@var LM    = number of dynamical layers
 !@var LS1   = lowest layer of strtosphere
       Integer*4,Parameter :: IM=90,JM=90,LM=40, LS1=24
-      Integer*4 :: L$
 
 !@var MDRYA = dry atmospheric mass (kg/m^2) = 100*PSF/GRAV
 !@var MTOP  = mass above dynamical top (kg/m^2) = 100*PMTOP/GRAV
@@ -19,16 +18,18 @@
 !@var MFIX(L)  = fixed mass in each layer (kg/m^2) = 100*[PLBOT(L)-PLBOT(L+1)]/GRAV
 !@var MFRAC(L) = fraction of variable mass in each layer = DSIG(L)
       Real*8,Parameter :: MDRYA = 98400/9.80665d0, MTOP = 10/9.80665d0, MFIXs = 14990/9.80665d0, &
-         MFIX(LM) = (/ (0d0,L$=1,23),  &
-            2200/9.80665d0, 2000/9.80665d0, 1800/9.80665d0, 1700/9.80665d0, 1600/9.80665d0, &
-            1400/9.80665d0, 1200/9.80665d0, 1100/9.80665d0, 1000/9.80665d0,  438/9.80665d0, &
-             246/9.80665d0,  138/9.80665d0,   78/9.80665d0, 43.8d0/9.80665d0, 24.6d0/9.80665d0, &
-            13.8d0/9.80665d0, 7.8d0/9.80665d0 /), &
+         MFIX(LM) = (/ 0d0,0d0,0d0,0d0,0d0, 0d0,0d0,0d0,0d0,0d0, 0d0,0d0,0d0,0d0,0d0, 0d0,0d0,0d0,0d0,0d0,  &
+                       0d0,0d0,0d0, &
+                       2200/9.80665d0, 2000/9.80665d0, 1800/9.80665d0, 1700/9.80665d0, 1600/9.80665d0, &
+                       1400/9.80665d0, 1200/9.80665d0, 1100/9.80665d0, 1000/9.80665d0,  438/9.80665d0, &
+                        246/9.80665d0,  138/9.80665d0,   78/9.80665d0, 43.8d0/9.80665d0, 24.6d0/9.80665d0, &
+                     13.8d0/9.80665d0,7.8d0/9.80665d0 /), &
          MFRAC(LM) = (/ 20/834d0, 22/834d0, 25/834d0, 27/834d0, 30/834d0, &
                         35/834d0, 40/834d0, 45/834d0, 48/834d0, 50/834d0, &
                         51/834d0, 52/834d0, 50/834d0, 48/834d0, 45/834d0, &
                         42/834d0, 38/834d0, 34/834d0, 31/834d0, 28/834d0, &
-                        26/834d0, 24/834d0, 23/834d0, (0d0,L$=24,40) /)
+                        26/834d0, 24/834d0, 23/834d0, &   
+                        0d0,0d0, 0d0,0d0,0d0,0d0,0d0, 0d0,0d0,0d0,0d0,0d0, 0d0,0d0,0d0,0d0,0d0 /)
 
 !**** Vertival resolution
 !****                         ---MSURF=10034.0---    ---MSURF=5781.8----

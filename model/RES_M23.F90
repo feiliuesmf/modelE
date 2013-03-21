@@ -1,5 +1,5 @@
 !@sum RES_M23.F90   Resolution file, 4x5 Lat-Lon Grid, 23 layers, top at .20576514 Pa, no GWDRAG
-!@ver 2013/03/20
+!@ver 2013/03/21
 !@auth Original Development Team
 
       Module RESOLUTION
@@ -8,7 +8,6 @@
 !@var LM    = number of dynamical layers
 !@var LS1   = lowest layer of strtosphere
       Integer*4,Parameter :: IM=72,JM=46,LM=23, LS1=12
-      Integer*4 :: L$
 
 !@var MDRYA = dry atmospheric mass (kg/m^2) = 100*PSF/GRAV
 !@var MTOP  = mass above dynamical top (kg/m^2) = 100*PMTOP/GRAV
@@ -19,12 +18,13 @@
 !@var MFIX(L)  = fixed mass in each layer (kg/m^2) = 100*[PLBOT(L)-PLBOT(L+1)]/GRAV
 !@var MFRAC(L) = fraction of variable mass in each layer = DSIG(L)
       Real*8,Parameter :: MDRYA = 98400/9.80665d0, MTOP = .20576514d0/9.80665d0, MFIXs = 15000/9.80665d0-MTOP, &
-         MFIX(LM) = (/ (0d0,L$=1,11),  &
-            3300/9.80665d0, 3080/9.80665d0, 3000/9.80665d0, 2460/9.80665d0, 1380/9.80665d0, &
-             780/9.80665d0,  537/9.80665d0,  317/9.80665d0, 99.9004742d0/9.80665d0, &
-            31.59957612/9.80665d0, 11.37992166d0/9.80665d0, 2.91426288d0/9.80665d0 /), &
+         MFIX(LM) = (/ 0d0,0d0,0d0,0d0,0d0, 0d0,0d0,0d0,0d0,0d0, 0d0, &
+                       3300/9.80665d0, 3080/9.80665d0, 3000/9.80665d0, 2460/9.80665d0, 1380/9.80665d0, &
+                        780/9.80665d0,  537/9.80665d0,  317/9.80665d0, 99.9004742d0/9.80665d0, &
+                31.59957612/9.80665d0, 11.37992166d0/9.80665d0, 2.91426288d0/9.80665d0 /), &
          MFRAC(LM) = (/ 24/834d0, 31/834d0, 45/834d0, 65/834d0,109/834d0, 140/834d0, &
-                       145/834d0,111/834d0, 69/834d0, 53/834d0, 42/834d0, (0d0,L$=12,23) /)
+                       145/834d0,111/834d0, 69/834d0, 53/834d0, 42/834d0, &
+                       0d0,0d0,0d0,0d0, 0d0,0d0,0d0,0d0,0d0, 0d0,0d0,0d0 /)
 
 !**** Vertival resolution
 !****                         ---MSURF=10034.0---    ---MSURF=5781.8----
