@@ -30,7 +30,7 @@ End Preprocessor Options
 Object modules: (in order of decreasing priority)
      ! resolution-specific source codes
 RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
-RES_2Hx2_L32                        ! ocean horiz res 2x2.5deg, 32 vert layers
+ORES_2Hx2_L32                       ! ocean horiz res 2x2.5deg, 32 vert layers
 DIAG_RES_F                          ! diagnostics (resolution dependent)
 FFT144 OFFT144E                     ! utilities
 OSTRAITS_F_COM                      ! dynamic ocean modules
