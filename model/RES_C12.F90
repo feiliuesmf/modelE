@@ -61,7 +61,7 @@
 !**** ISTRAT = 2:          PMTOP <   1 mb
 !**** ISTRAT = 1:  1 mb <= PMTOP <  10 mb
 !**** ISTRAT = 0: 10 mb <= PMTOP
-      Integer*4,Parameter :: ISTRAT = 0
+      Integer*4,Parameter :: ISTRAT = 1
 
       EndModule RESOLUTION
 
