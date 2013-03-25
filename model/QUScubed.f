@@ -6,6 +6,7 @@
 !@+      AADVQ:  driver routine for tracer advection
 !@+    For now, AADVQ assumes transported quantities are non-negative.
 !@+    Code for the easier case without this constraint will be added.
+!@vers 2013/03/25
 !@auth M. Kelley
 
 #include "rundeck_opts.h"
@@ -30,9 +31,9 @@
 
       contains
 
-      subroutine do_edges_and_corners(ma,rm,rmom,mu,mv)
+      subroutine do_edges_and_corners(mma,rm,rmom,mu,mv)
       implicit none
-      real*8, dimension(isd:ied,jsd:jed) :: ma,rm
+      real*8, dimension(isd:ied,jsd:jed) :: mma,rm
       real*8, dimension(isd:ied+1,jsd:jed) :: mu
       real*8, dimension(isd:ied,jsd:jed+1) :: mv
       real*8, dimension(nmom,isd:ied,jsd:jed) :: rmom
@@ -59,25 +60,25 @@ c
         do j=max(2,jsd),min(jed,nyg-1)
           am=mu(iam,j)*xsigno
           if(am.ge.0.) then
-            call qusout(am,ma(i,j),rm(i,j),
+            call qusout(am,mma(i,j),rm(i,j),
      &           rmom(mx,i,j),rmom(mxx,i,j),xsigno)
-            call lusout(am,ma(i,j),rmom(my,i,j),rmom(mxy,i,j),xsigno)
-            call lusout(am,ma(i,j),rmom(mz,i,j),rmom(mzx,i,j),xsigno)
+            call lusout(am,mma(i,j),rmom(my,i,j),rmom(mxy,i,j),xsigno)
+            call lusout(am,mma(i,j),rmom(mz,i,j),rmom(mzx,i,j),xsigno)
             rmom((/myy,myz,mzz/),i,j) =
-     &           rmom((/myy,myz,mzz/),i,j)*(1.-am/ma(i,j))
+     &           rmom((/myy,myz,mzz/),i,j)*(1.-am/mma(i,j))
           else
             am = -am
-            call qusin(am,ma(i,j),rm(i,j),rmom(mx,i,j),rmom(mxx,i,j),
-     &        ma(iup,j),rm(iup,j),rmom(mx,iup,j),rmom(mxx,iup,j),xsigni)
-            call lusin(am,ma(i,j),rmom(my,i,j),rmom(mxy,i,j),
-     &           ma(iup,j),rmom(my,iup,j),rmom(mxy,iup,j),xsigni)
-            call lusin(am,ma(i,j),rmom(mz,i,j),rmom(mzx,i,j),
-     &           ma(iup,j),rmom(mz,iup,j),rmom(mzx,iup,j),xsigni)
-            call susin(am,rmom(myy,iup,j),ma(iup,j),rmom(myy,iup,j))
-            call susin(am,rmom(myz,iup,j),ma(iup,j),rmom(myz,iup,j))
-            call susin(am,rmom(mzz,iup,j),ma(iup,j),rmom(mzz,iup,j))
+            call qusin(am,mma(i,j),rm(i,j),rmom(mx,i,j),rmom(mxx,i,j),
+     &       mma(iup,j),rm(iup,j),rmom(mx,iup,j),rmom(mxx,iup,j),xsigni)
+            call lusin(am,mma(i,j),rmom(my,i,j),rmom(mxy,i,j),
+     &           mma(iup,j),rmom(my,iup,j),rmom(mxy,iup,j),xsigni)
+            call lusin(am,mma(i,j),rmom(mz,i,j),rmom(mzx,i,j),
+     &           mma(iup,j),rmom(mz,iup,j),rmom(mzx,iup,j),xsigni)
+            call susin(am,rmom(myy,iup,j),mma(iup,j),rmom(myy,iup,j))
+            call susin(am,rmom(myz,iup,j),mma(iup,j),rmom(myz,iup,j))
+            call susin(am,rmom(mzz,iup,j),mma(iup,j),rmom(mzz,iup,j))
           endif
-          ma(i,j) = ma(i,j) + mu(iam,j)*xsigni
+          mma(i,j) = mma(i,j) + mu(iam,j)*xsigni
         enddo
       enddo
 
@@ -99,25 +100,25 @@ c
         do i=max(2,isd),min(ied,nxg-1)
           bm=mv(i,jbm)*ysigno
           if(bm.ge.0.) then
-            call qusout(bm,ma(i,j),rm(i,j),
+            call qusout(bm,mma(i,j),rm(i,j),
      &           rmom(my,i,j),rmom(myy,i,j),ysigno)
-            call lusout(bm,ma(i,j),rmom(mx,i,j),rmom(mxy,i,j),ysigno)
-            call lusout(bm,ma(i,j),rmom(mz,i,j),rmom(myz,i,j),ysigno)
+            call lusout(bm,mma(i,j),rmom(mx,i,j),rmom(mxy,i,j),ysigno)
+            call lusout(bm,mma(i,j),rmom(mz,i,j),rmom(myz,i,j),ysigno)
             rmom((/mxx,mzx,mzz/),i,j) =
-     &           rmom((/mxx,mzx,mzz/),i,j)*(1.-bm/ma(i,j))
+     &           rmom((/mxx,mzx,mzz/),i,j)*(1.-bm/mma(i,j))
           else
             bm = -bm
-            call qusin(bm,ma(i,j),rm(i,j),rmom(my,i,j),rmom(myy,i,j),
-     &        ma(i,jup),rm(i,jup),rmom(my,i,jup),rmom(myy,i,jup),ysigni)
-            call lusin(bm,ma(i,j),rmom(mx,i,j),rmom(mxy,i,j),
-     &           ma(i,jup),rmom(mx,i,jup),rmom(mxy,i,jup),ysigni)
-            call lusin(bm,ma(i,j),rmom(mz,i,j),rmom(myz,i,j),
-     &           ma(i,jup),rmom(mz,i,jup),rmom(myz,i,jup),ysigni)
-            call susin(bm,rmom(mxx,i,jup),ma(i,jup),rmom(mxx,i,jup))
-            call susin(bm,rmom(mzx,i,jup),ma(i,jup),rmom(mzx,i,jup))
-            call susin(bm,rmom(mzz,i,jup),ma(i,jup),rmom(mzz,i,jup))
+            call qusin(bm,mma(i,j),rm(i,j),rmom(my,i,j),rmom(myy,i,j),
+     &       mma(i,jup),rm(i,jup),rmom(my,i,jup),rmom(myy,i,jup),ysigni)
+            call lusin(bm,mma(i,j),rmom(mx,i,j),rmom(mxy,i,j),
+     &           mma(i,jup),rmom(mx,i,jup),rmom(mxy,i,jup),ysigni)
+            call lusin(bm,mma(i,j),rmom(mz,i,j),rmom(myz,i,j),
+     &           mma(i,jup),rmom(mz,i,jup),rmom(myz,i,jup),ysigni)
+            call susin(bm,rmom(mxx,i,jup),mma(i,jup),rmom(mxx,i,jup))
+            call susin(bm,rmom(mzx,i,jup),mma(i,jup),rmom(mzx,i,jup))
+            call susin(bm,rmom(mzz,i,jup),mam(i,jup),rmom(mzz,i,jup))
           endif
-          ma(i,j) = ma(i,j) + mv(i,jbm)*ysigni
+          mma(i,j) = mma(i,j) + mv(i,jbm)*ysigni
         enddo
       enddo
 
@@ -152,69 +153,69 @@ c
           bm=mv(i,jbm)*ysigno
           rmom((/mxx,myy,mxy/),i,j) = 0d0
           if(am.ge.0. .and. bm.ge.0.) then ! flow exiting both x and y
-            call lusout_2sides(am,bm,ma(i,j),rm(i,j),
+            call lusout_2sides(am,bm,mma(i,j),rm(i,j),
      &           rmom(mx,i,j),rmom(my,i,j),xsigno,ysigno)
-            call lusout_2sides(am,bm,ma(i,j),rmom(mz,i,j),
+            call lusout_2sides(am,bm,mma(i,j),rmom(mz,i,j),
      &           rmom(mzx,i,j),rmom(myz,i,j),xsigno,ysigno)
-            rmom(mzz,i,j) = rmom(mzz,i,j)*(1.-(am+bm)/ma(i,j))
+            rmom(mzz,i,j) = rmom(mzz,i,j)*(1.-(am+bm)/mma(i,j))
           elseif(am.lt.0. .and. bm.lt.0.) then ! flow entering both x and y
             am = -am
             bm = -bm
             call lusin_2sides(am,bm
-     &           ,ma(i,j),rm(i,j),rmom(mx,i,j),rmom(my,i,j)
-     &           ,ma(iup,j),rm(iup,j),rmom(mx,iup,j),rmom(my,iup,j)
-     &           ,ma(i,jup),rm(i,jup),rmom(mx,i,jup),rmom(my,i,jup)
+     &           ,mma(i,j),rm(i,j),rmom(mx,i,j),rmom(my,i,j)
+     &           ,mma(iup,j),rm(iup,j),rmom(mx,iup,j),rmom(my,iup,j)
+     &           ,mma(i,jup),rm(i,jup),rmom(mx,i,jup),rmom(my,i,jup)
      &           ,xsigni,ysigni)
             call lusin_2sides(am,bm
-     &           ,ma(i,j),rmom(mz,i,j),rmom(mzx,i,j),rmom(myz,i,j)
-     &         ,ma(iup,j),rmom(mz,iup,j),rmom(mzx,iup,j),rmom(myz,iup,j)
-     &         ,ma(i,jup),rmom(mz,i,jup),rmom(mzx,i,jup),rmom(myz,i,jup)
+     &           ,mma(i,j),rmom(mz,i,j),rmom(mzx,i,j),rmom(myz,i,j)
+     &        ,mma(iup,j),rmom(mz,iup,j),rmom(mzx,iup,j),rmom(myz,iup,j)
+     &        ,mma(i,jup),rmom(mz,i,jup),rmom(mzx,i,jup),rmom(myz,i,jup)
      &           ,xsigni,ysigni)
             call susin_2sides(am,bm
-     &           ,ma(i,j),rmom(mzz,i,j)
-     &           ,ma(iup,j),rmom(mzz,iup,j)
-     &           ,ma(i,jup),rmom(mzz,i,jup)
+     &           ,mma(i,j),rmom(mzz,i,j)
+     &           ,mma(iup,j),rmom(mzz,iup,j)
+     &           ,mma(i,jup),rmom(mzz,i,jup)
      &           )
           elseif(am.le.0.) then ! flow exits in y, then enters in x
-            call lusout(bm,ma(i,j),rm(i,j),rmom(my,i,j),ysigno)
-            call lusout(bm,ma(i,j),rmom(mz,i,j),rmom(myz,i,j),ysigno)
+            call lusout(bm,mma(i,j),rm(i,j),rmom(my,i,j),ysigno)
+            call lusout(bm,mma(i,j),rmom(mz,i,j),rmom(myz,i,j),ysigno)
             rmom((/mx,mzx,mzz/),i,j) =
-     &           rmom((/mx,mzx,mzz/),i,j)*(1.-bm/ma(i,j))
-            mnewy = ma(i,j)-bm
+     &           rmom((/mx,mzx,mzz/),i,j)*(1.-bm/mma(i,j))
+            mnewy = mma(i,j)-bm
             am = -am
             call lusin(am,mnewy,rm(i,j),rmom(mx,i,j),
-     &           ma(iup,j),rm(iup,j),rmom(mx,iup,j),xsigni)
+     &           mma(iup,j),rm(iup,j),rmom(mx,iup,j),xsigni)
             call lusin(am,mnewy,rmom(mz,i,j),rmom(mzx,i,j),
-     &           ma(iup,j),rmom(mz,iup,j),rmom(mzx,iup,j),xsigni)
-            call susin(am,rmom(my,i,j),ma(iup,j),rmom(my,iup,j))
-            call susin(am,rmom(myz,i,j),ma(iup,j),rmom(myz,iup,j))
-            call susin(am,rmom(mzz,i,j),ma(iup,j),rmom(mzz,iup,j))
+     &           mma(iup,j),rmom(mz,iup,j),rmom(mzx,iup,j),xsigni)
+            call susin(am,rmom(my,i,j),mma(iup,j),rmom(my,iup,j))
+            call susin(am,rmom(myz,i,j),mma(iup,j),rmom(myz,iup,j))
+            call susin(am,rmom(mzz,i,j),mma(iup,j),rmom(mzz,iup,j))
           elseif(bm.le.0.) then ! flow exits in x, then enters in y
-            call lusout(am,ma(i,j),rm(i,j),rmom(mx,i,j),xsigno)
-            call lusout(am,ma(i,j),rmom(mz,i,j),rmom(mzx,i,j),xsigno)
+            call lusout(am,mma(i,j),rm(i,j),rmom(mx,i,j),xsigno)
+            call lusout(am,mma(i,j),rmom(mz,i,j),rmom(mzx,i,j),xsigno)
             rmom((/my,myz,mzz/),i,j) =
-     &           rmom((/my,myz,mzz/),i,j)*(1.-am/ma(i,j))
-            mnewx = ma(i,j)-am
+     &           rmom((/my,myz,mzz/),i,j)*(1.-am/mma(i,j))
+            mnewx = mma(i,j)-am
             bm = -bm
             call lusin(bm,mnewx,rm(i,j),rmom(my,i,j),
-     &           ma(i,jup),rm(i,jup),rmom(my,i,jup),ysigni)
+     &           mma(i,jup),rm(i,jup),rmom(my,i,jup),ysigni)
             call lusin(bm,mnewx,rmom(mz,i,j),rmom(myz,i,j),
-     &           ma(i,jup),rmom(mz,i,jup),rmom(myz,i,jup),ysigni)
-            call susin(bm,rmom(mx,i,j),ma(i,jup),rmom(mx,i,jup))
-            call susin(bm,rmom(mzx,i,j),ma(i,jup),rmom(mzx,i,jup))
-            call susin(bm,rmom(mzz,i,j),ma(i,jup),rmom(mzz,i,jup))
+     &           mma(i,jup),rmom(mz,i,jup),rmom(myz,i,jup),ysigni)
+            call susin(bm,rmom(mx,i,j),mma(i,jup),rmom(mx,i,jup))
+            call susin(bm,rmom(mzx,i,j),mma(i,jup),rmom(mzx,i,jup))
+            call susin(bm,rmom(mzz,i,j),mma(i,jup),rmom(mzz,i,jup))
           endif
-          ma(i,j) = ma(i,j) + mu(iam,j)*xsigni + mv(i,jbm)*ysigni
+          mma(i,j) = mma(i,j) + mu(iam,j)*xsigni + mv(i,jbm)*ysigni
         enddo
       enddo
 
       return
       end subroutine do_edges_and_corners
 
-      subroutine check_edges_and_corners(ma,rm,rmom,mu,mv)
+      subroutine check_edges_and_corners(mma,rm,rmom,mu,mv)
 c HALO ROWS NOT DONE HERE
       implicit none
-      real*8, dimension(isd:ied,jsd:jed) :: ma,rm
+      real*8, dimension(isd:ied,jsd:jed) :: mma,rm
       real*8, dimension(isd:ied+1,jsd:jed) :: mu ! check these bounds
       real*8, dimension(isd:ied,jsd:jed+1) :: mv ! check these bounds
       real*8, dimension(nmom,isd:ied,jsd:jed) :: rmom
@@ -235,7 +236,7 @@ c
         do j=max(2,js),min(je,nyg-1)
           am=mu(iam,j)*xsigno
           if(am.gt.0.) then
-            call check_qusout(am,ma(i,j),rm(i,j),
+            call check_qusout(am,mma(i,j),rm(i,j),
      &           rmom(mx,i,j),rmom(mxx,i,j),xsigno)
           endif
         enddo
@@ -256,7 +257,7 @@ c
         do i=max(2,is),min(ie,nxg-1)
           bm=mv(i,jbm)*ysigno
           if(bm.gt.0.) then
-            call check_qusout(bm,ma(i,j),rm(i,j),
+            call check_qusout(bm,mma(i,j),rm(i,j),
      &           rmom(my,i,j),rmom(myy,i,j),ysigno)
           endif
         enddo
@@ -286,13 +287,13 @@ c
           am=mu(iam,j)*xsigno
           bm=mv(i,jbm)*ysigno
           if(am.gt.0. .and. bm.gt.0.) then ! flow exiting both x and y
-            call check_lusout_2sides(am,bm,ma(i,j),rm(i,j),
+            call check_lusout_2sides(am,bm,mma(i,j),rm(i,j),
      &           rmom(mx,i,j),rmom(my,i,j),xsigno,ysigno)
           elseif(am.lt.0. .and. bm.lt.0.) then ! flow entering both x and y
           elseif(am.le.0.) then ! flow exits in y, then enters in x
-            call check_lusout(bm,ma(i,j),rm(i,j),rmom(my,i,j),ysigno)
+            call check_lusout(bm,mma(i,j),rm(i,j),rmom(my,i,j),ysigno)
           elseif(bm.le.0.) then ! flow exits in x, then enters in y
-            call check_lusout(am,ma(i,j),rm(i,j),rmom(mx,i,j),xsigno)
+            call check_lusout(am,mma(i,j),rm(i,j),rmom(mx,i,j),xsigno)
           endif
         enddo
       enddo
@@ -368,9 +369,9 @@ c
       return
       end subroutine swapxy
 
-      subroutine checkfobs_x(ma,mu,rm,rmom)
+      subroutine checkfobs_x(mma,mu,rm,rmom)
       implicit none
-      real*8, dimension(isd:ied,jsd:jed) :: ma,rm
+      real*8, dimension(isd:ied,jsd:jed) :: mma,rm
       real*8, dimension(nmom,isd:ied,jsd:jed) :: rmom
       real*8, dimension(isd:ied+1,jsd:jed) :: mu
       integer :: i,j
@@ -378,7 +379,7 @@ c
       do j=max(1,jsd),min(jed,nyg)
       do i=max(1,isd),min(ied,nxg)
         if(mu(i+1,j).gt.0. .and. mu(i,j).lt.0.) then
-          call checkfobs(mu(i,j),mu(i+1,j),ma(i,j),
+          call checkfobs(mu(i,j),mu(i+1,j),mma(i,j),
      &         rm(i,j),rmom(mx,i,j),rmom(mxx,i,j),
      &         changed_mom)
         endif
@@ -387,9 +388,9 @@ c
       return
       end subroutine checkfobs_x
 
-      subroutine checkfobs_y(ma,mv,rm,rmom)
+      subroutine checkfobs_y(mma,mv,rm,rmom)
       implicit none
-      real*8, dimension(isd:ied,jsd:jed) :: ma,rm
+      real*8, dimension(isd:ied,jsd:jed) :: mma,rm
       real*8, dimension(nmom,isd:ied,jsd:jed) :: rmom
       real*8, dimension(isd:ied,jsd:jed+1) :: mv
       integer :: i,j
@@ -397,7 +398,7 @@ c
       do j=max(1,jsd),min(jed,nyg)
       do i=is,ie
         if(mv(i,j+1).gt.0. .and. mv(i,j).lt.0.) then
-          call checkfobs(mv(i,j),mv(i,j+1),ma(i,j),
+          call checkfobs(mv(i,j),mv(i,j+1),mma(i,j),
      &         rm(i,j),rmom(my,i,j),rmom(myy,i,j),
      &         changed_mom)
         endif
@@ -406,9 +407,9 @@ c
       return
       end subroutine checkfobs_y
 
-      subroutine checkfobs_z(ma,mw,rm,rmom)
+      subroutine checkfobs_z(mma,mw,rm,rmom)
       implicit none
-      real*8, dimension(isd:ied,jsd:jed) :: ma,rm
+      real*8, dimension(isd:ied,jsd:jed) :: mma,rm
       real*8, dimension(nmom,isd:ied,jsd:jed) :: rmom
       real*8, dimension(isd:ied,jsd:jed,2) :: mw
       integer :: i,j
@@ -416,7 +417,7 @@ c
       do j=js,je
       do i=is,ie
         if(mw(i,j,2).gt.0. .and. mw(i,j,1).lt.0.) then
-          call checkfobs(mw(i,j,1),mw(i,j,2),ma(i,j),
+          call checkfobs(mw(i,j,1),mw(i,j,2),mma(i,j),
      &         rm(i,j),rmom(mz,i,j),rmom(mzz,i,j),
      &         changed_mom)
         endif
@@ -725,7 +726,7 @@ c--------------------------------------------------------------------
         fs0(i) = fn_pass
         fmoms(my,i) = fny_pass
         fmoms(myy,i) = fnyy_pass
-        
+
       enddo                     ! i
 
       do j=js,je
@@ -1090,7 +1091,7 @@ c update rxm as if upwind box had zero moments and r = fm/am
       fxtra = B*(1.-B)*RYM*YSIGN
       if(fxtra.lt.-b*rm) rym = -rym*b*rm/fxtra
       fxtra = +A*(1.-A)*RXM*XSIGN + B*(1.-B)*RYM*YSIGN
-      RM0 = RM*(1.-A-B) 
+      RM0 = RM*(1.-A-B)
       if(RM0 .lt. fxtra) then
         rxm = rxm*rm0/fxtra
         rym = rym*rm0/fxtra
@@ -1196,7 +1197,7 @@ c update rxm as if upwind box had zero moments and r = fm/am
       end subroutine init_qus
 
       subroutine qdynam
-      use atm_com, only : q,ps,mb,ma
+      use atm_com, only : q,ps,mb,mma
       use somtq_com, only : qmom
       use tracer_adv
       use domain_decomp_atm, only : grid,halo_update
@@ -1232,12 +1233,12 @@ c
       call aadvq (q,qmom, .true. ,'q       ')
 
 c
-c convert from mass to concentration units (using updated ma)
+c convert from mass to concentration units (using updated mma)
 c
       do l=1,lm
       do j=js,je
       do i=is,ie
-        byma = 1.d0/ma(i,j,l)
+        byma = 1.d0/mma(i,j,l)
         q(i,j,l)=q(i,j,l)*byma
         qmom(:,i,j,l)=qmom(:,i,j,l)*byma
       enddo
@@ -1248,7 +1249,7 @@ c
 
       subroutine aadvq0
       use tracer_adv
-      use atm_com, only : pua,pva,sda,mb,ma
+      use atm_com, only : pua,pva,sda,mb,mma
       use domain_decomp_atm, only : grid,halo_update,am_i_root
       use domain_decomp_1d, only : globalmax,globalsum
       implicit none
@@ -1334,13 +1335,13 @@ c
 C**** check whether horizontal fluxes reduce mass too much
           do l=1,lm
             if(nc.eq.1) then
-              ma(is:ie,js:je,l) = mb(is:ie,js:je,l)
+              mma(is:ie,js:je,l) = mb(is:ie,js:je,l)
             endif
             do j=js,je
             do i=is,ie
-              ma(i,j,l) = ma(i,j,l) +
+              mma(i,j,l) = mma(i,j,l) +
      &             byn*(mu(i,j,l)-mu(i+1,j,l)+mv(i,j,l)-mv(i,j+1,l))
-              if (ma(i,j,l).lt.mrat_limh*mb(i,j,l)) then
+              if (mma(i,j,l).lt.mrat_limh*mb(i,j,l)) then
                 nbad_loc = nbad_loc + 1
               endif
             enddo
@@ -1356,7 +1357,7 @@ c check courant numbers in the z direction
               do j=js,je
               do i=is,ie
                 mwbyn = mw(i,j,l)*byn
-                if((ma(i,j,l)-mwbyn)*(ma(i,j,l+1)+mwbyn).lt.0.) then
+                if((mma(i,j,l)-mwbyn)*(mma(i,j,l+1)+mwbyn).lt.0.) then
                   nbad_loc = nbad_loc + 1
                 endif
               enddo
@@ -1367,19 +1368,19 @@ c update mass from z fluxes
               if(l.eq.1) then   ! lowest layer
                 do j=js,je
                 do i=is,ie
-                  ma(i,j,l) = ma(i,j,l)-mw(i,j,l)*byn
+                  mma(i,j,l) = mma(i,j,l)-mw(i,j,l)*byn
                 enddo
                 enddo
               elseif(l.eq.lm) then ! topmost layer
                 do j=js,je
                 do i=is,ie
-                  ma(i,j,l) = ma(i,j,l)+mw(i,j,l-1)*byn
+                  mma(i,j,l) = mma(i,j,l)+mw(i,j,l-1)*byn
                 enddo
                 enddo
               else              ! interior layers
                 do j=js,je
                 do i=is,ie
-                  ma(i,j,l) = ma(i,j,l)+(mw(i,j,l-1)-mw(i,j,l))*byn
+                  mma(i,j,l) = mma(i,j,l)+(mw(i,j,l-1)-mw(i,j,l))*byn
                 enddo
                 enddo
               endif
@@ -1632,7 +1633,7 @@ c update w/s interior boundary airmasses to avoid halo updates
                   enddo
                 endif
               endif
-            
+
             enddo               ! nc loop
           enddo                 ! nbad.gt.0
 
@@ -1702,7 +1703,7 @@ c      if(am_i_root().and. ncyc.gt.1) write(6,*) 'AADVQ0: ncyc>1',ncyc
 
       SUBROUTINE AADVQ(RM,RMOM,qlimit,tname)
       use tracer_adv
-      use atm_com, only : ma,mb
+      use atm_com, only : mma,mb
       use domain_decomp_atm, only : grid,halo_update
       IMPLICIT NONE
       REAL*8, dimension(isd:ied,jsd:jed,lm) :: rm
@@ -1721,19 +1722,19 @@ C****
 C**** Load mass after advection from mass before advection
 C****
       DO L=1,LM
-         MA(:,:,L) = MB(:,:,L) ! fill in halo also
+         MMA(:,:,L) = MB(:,:,L) ! fill in halo also
       ENDDO
 
       do nc=1,ncyc
 
 c horizontal flux limits at edges
       do l=1,lm
-        call check_edges_and_corners(ma(isd,jsd,l),rm(isd,jsd,l),
+        call check_edges_and_corners(mma(isd,jsd,l),rm(isd,jsd,l),
      &       rmom(1,isd,jsd,l),mu(isd,jsd,l),mv(isd,jsd,l))
       enddo
 
 c 3D halo updates
-      if(nc.gt.1) call halo_update(grid,ma)
+      if(nc.gt.1) call halo_update(grid,mma)
       call halo_update(grid,rm)
       call halo_update(grid,rmom,jdim=3)
 
@@ -1753,15 +1754,15 @@ c 3D halo updates
         do ncxy=1,ncycxy(l) ! loop over horizontal cycles
 
           if(ncxy.gt.1) then    ! halo update this level if necessary
-            call check_edges_and_corners(ma(isd,jsd,l),rm(isd,jsd,l),
+            call check_edges_and_corners(mma(isd,jsd,l),rm(isd,jsd,l),
      &           rmom(1,isd,jsd,l),mu(isd,jsd,l),mv(isd,jsd,l))
-            call halo_update(grid, ma(:,:,l))
+            call halo_update(grid, mma(:,:,l))
             call halo_update(grid, rm(:,:,l))
             call halo_update(grid, rmom(:,:,:,l), jdim=3)
           endif
 
 c horz transport across the edges of faces
-          call do_edges_and_corners(ma(isd,jsd,l),rm(isd,jsd,l),
+          call do_edges_and_corners(mma(isd,jsd,l),rm(isd,jsd,l),
      &         rmom(1,isd,jsd,l),mu(isd,jsd,l),mv(isd,jsd,l))
 
 c horz transport in the interior of faces.
@@ -1779,7 +1780,7 @@ c mu,mv temporarily set to zero at edges.
             enddo
           endif
           CALL AADVQX(RM(isd,jsd,l),RMOM(1,isd,jsd,l),
-     &         MA(isd,jsd,l),mu(isd,jsd,l))
+     &         MMA(isd,jsd,l),mu(isd,jsd,l))
           if(is.eq.1) then
             do j=jsd,jed
               mu(is  ,j,l) = mu_west(j)
@@ -1804,7 +1805,7 @@ c mu,mv temporarily set to zero at edges.
             enddo
           endif
           CALL AADVQY(RM(isd,jsd,l),RMOM(1,isd,jsd,l),
-     &         MA(isd,jsd,l),mv(isd,jsd,l))
+     &         MMA(isd,jsd,l),mv(isd,jsd,l))
           if(js.eq.1) then
             do i=is,ie
               mv(i,js  ,l) = mv_south(i)
@@ -1822,12 +1823,12 @@ c mu,mv temporarily set to zero at edges.
 
 c vertical transport
         if(l.gt.1 .and. l.lt.lm) then
-          call checkfobs_z(ma(isd,jsd,l),mw(isd,jsd,l-1),
+          call checkfobs_z(mma(isd,jsd,l),mw(isd,jsd,l-1),
      &         rm(isd,jsd,l),rmom(1,isd,jsd,l))
         endif
         if(l.gt.1) then
           CALL AADVQZ(RM(isd,jsd,l-1),RMOM(1,isd,jsd,l-1),
-     &         MA(isd,jsd,l-1),mw(isd,jsd,l-1),
+     &         MMA(isd,jsd,l-1),mw(isd,jsd,l-1),
      &         mwdn,fdn,fmomdn,fdn0)
         endif
 

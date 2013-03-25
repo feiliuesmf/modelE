@@ -81,6 +81,7 @@ c     endif
 
       SUBROUTINE DYNAM
 !@sum  DYNAM Integrate dynamic terms
+!@vers 2013/03/25
 !@auth Original development team
       USE CONSTANT, only : by3,sha,mb2kg,rgas,bygrav
       USE RESOLUTION, only : ls1
@@ -107,7 +108,7 @@ c     endif
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     PA, PB, PC, FPEU, FPEV, AM1, AM2
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
-     &     UT,VT,TT,TZ,TZT,MA,
+     &     UT,VT,TT,TZ,TZT,MMA,  !  MMA (kg) used during advection
      &     UX,VX,PIJL
      &    ,UNRDRAG_x,UNRDRAG_y
 
@@ -235,8 +236,8 @@ CCC   TZT(:,:,:)= TZ(:,:,:)
          TT(:,:,L)  = T(:,:,L)
          TZT(:,:,L) = TZ(:,:,L)
       ENDDO
-      call calc_amp(pc,ma)
-      CALL AADVT (MA,T,TMOM, SD,PU,PV, DTLF,.FALSE.,FPEU,FPEV)
+      Call CALC_AMP (PC,MMA)
+      Call AADVT (MMA,T,TMOM, SD,PU,PV, DTLF,.False.,FPEU,FPEV)
 !     save z-moment of temperature in contiguous memory for later
 CCC   tz(:,:,:) = tmom(mz,:,:,:)
       DO L=1,LM
@@ -730,7 +731,7 @@ c**** Extract domain decomposition info
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       INTEGER :: n_exception, n_exception_all
 
-      call getDomainBounds(grid, 
+      call getDomainBounds(grid,
      &               J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE )
@@ -2722,17 +2723,17 @@ C****
       SUBROUTINE QDYNAM
 !@sum  QDYNAM is the driver to integrate dynamic terms by the method
 !@+          of pre-computing Courant limits using mean fluxes
-!@+    It replaces CALL AADVT (MA,Q,QMOM, SD,PU,PV, DTLF,.TRUE.,
+!@+    It replaces CALL AADVT (MMA,Q,QMOM, SD,PU,PV, DTLF,.TRUE.,
 !@auth J. Lerner
       use resolution, only : im,jm,lm
       USE ATM_COM, only : q
       USE SOMTQ_COM, only : qmom
       USE DIAG_COM, only: agc=>agc_loc,byim
       USE GCDIAG, only : jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh
-      USE ATM_COM, only: ps,mb,ma,sda
+      Use ATM_COM, Only: PS,MB,MMA,SDA
       USE TRACER_ADV, only:
      *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
-      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds 
+      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
       USE DOMAIN_DECOMP_1D, only : halo_update, south, north
       IMPLICIT NONE
       REAL*8 byncyc,byma
@@ -2768,12 +2769,12 @@ C**** ADVECT
         AGC(:,:,jl_zmfvtlh)  = AGC(:,:,jl_zmfvtlh)
      &    + scm(:,:)*sfcm(:,:)*byim*byncyc
 C****
-C**** convert from mass to concentration units (using updated MA)
+C**** convert from mass to concentration units (using updated MMA)
 C****
       DO L=1,LM
       DO J=J_0,J_1
       DO I=1,IM
-        BYMA = 1.D0/MA(I,J,L)
+        byMA = 1 / MMA(I,J,L)
         Q(I,J,L)=Q(I,J,L)*BYMA
         QMOM(:,I,J,L)=QMOM(:,I,J,L)*BYMA
       enddo; enddo; enddo
@@ -3055,12 +3056,12 @@ c Switch the sign convention back to "positive downward".
       hb(L) = P_edge(L) / rhoe(L) * bygrav
       end do
 
-      if (h_4sq <= 0.0) then 
-          !For efficiency, orogrphic variances over oceans were set to a negative value. 
+      if (h_4sq <= 0.0) then
+          !For efficiency, orogrphic variances over oceans were set to a negative value.
           drag_x(:) = 0.0_r8
           drag_y(:) = 0.0_r8
       else
-          call orographic_drag (ue, ve, rhoe, bvfe, h_4sq, Eke_by2 
+          call orographic_drag (ue, ve, rhoe, bvfe, h_4sq, Eke_by2
      *                           , drag_x, drag_y)
       end if
           UNRDRAG_x(I,J,1:LS1-1) = drag_x(1:LS1-1) * byPB2
