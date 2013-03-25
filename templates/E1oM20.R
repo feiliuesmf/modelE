@@ -26,7 +26,7 @@ End Preprocessor Options
 Object modules: (in order of decreasing priority)
        ! resolution-specific source codes
 RES_M20AT DIAG_RES_M       ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
-RES_5x4_L13                ! ocean horiz res 4x5deg, 13 vert layers
+ORES_5x4_L13                ! ocean horiz res 4x5deg, 13 vert layers
 FFT72                      ! Fast Fourier Transform
 
 IO_DRV                             ! new i/o
