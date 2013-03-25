@@ -1,6 +1,7 @@
 #include "rundeck_opts.h"
       MODULE ATM_COM
 !@sum  ATM_COM Main atmospheric variables
+!@vers 2013/03/25
 !@auth Original Development Team
       USE RESOLUTION, only : LM
 #ifdef USE_ESMF
@@ -110,8 +111,8 @@ C**** module should own dynam variables used by other routines
 
 !@var PUA,PVA,SDA,PS save PU,PV,SD,P for hourly tracer advection
 !@var MB Air mass array for tracers (before advection)
-!@var MA Air mass array for tracers (updated during advection)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PUA,PVA,SDA,MB,MA
+!@var MMA (kg) Air mass array for tracers (updated during advection)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PUA,PVA,SDA,MB,MMA
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PS
 
 !@var DKE change in KE due to dissipation (SURF/DC/MC) (m^2/s^2)
@@ -142,7 +143,7 @@ C**** module should own dynam variables used by other routines
       USE ATM_COM, ONLY : 
      &     PLIJ,PDSIG,AM,BYAM,PMID,PK,
      &     PEDN,PEK,SD_CLOUDS,GZ,PHI,
-     &     PUA,PVA,SDA,MB,MA,DKE,KEA,
+     &     PUA,PVA,SDA,MB,MMA,DKE,KEA,
      &     UALIJ,VALIJ,WSAVE,
      &     SQRTP,PTROPO,LTROPO,PS,PTOLD,
 #ifdef etc_subdd
@@ -264,7 +265,7 @@ C**** Check polar uniformity
      $                PVA(I_0H:I_1H,J_0H:J_1H,LM), 
      $                SDA(I_0H:I_1H,J_0H:J_1H,LM),  
      $                MB(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                MA(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                MMA(I_0H:I_1H,J_0H:J_1H,LM), 
      $                DKE(I_0H:I_1H,J_0H:J_1H,LM), 
      $                KEA(I_0H:I_1H,J_0H:J_1H,LM), 
      $                UALIJ(LM,I_0H:I_1H,J_0H:J_1H), 
