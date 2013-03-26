@@ -530,7 +530,7 @@ C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       use constant, only : by3
       use fluxes, only : pprec,pevap
       use tracers_dust, only : hbaij,ricntd
-      use clouds_com, only : ddml,fss
+      use clouds_com, only : ddml
       implicit none
       integer, intent(in) :: i,j  !@var i,j grid point
       integer, intent(in) :: itype  !@var itype surface type
@@ -546,7 +546,7 @@ c**** layer. It's only needed to constrain dust emission due to
 c**** downdrafts for soil type earth, but it's needed here to calculate
 c**** wspdf in PBL.f for the other soil types.
       IF (ddml(i,j) == 1) THEN
-        pbl_args%mcfrac=(1.D0-fss(1,i,j))*By3
+        pbl_args%mcfrac=By3
       ELSE
         pbl_args%mcfrac=0.D0
       END IF
