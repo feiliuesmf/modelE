@@ -181,8 +181,9 @@ C**** Calculate default vertical arrays (including rad. eq. layers)
       END SUBROUTINE ALLOC_DYNAMICS
 !#endif
 
-      SUBROUTINE CALC_VERT_AMP(P0,LMAX,PL,AM,PDSIG,PEDN,PMID)
+      SUBROUTINE CALC_VERT_AMP (P0,LMAX,PL,MA,PDSIG,PEDN,PMID)
 !@sum  CALC_VERT_AMPK calculates air mass and pressure vertical arrays
+!@vers 2013/03/26
 !@auth Jean Lerner/Gavin Schmidt
       USE CONSTANT, only : bygrav
       USE RESOLUTION, only : ls1,ptop,psfmpt,pmtop
@@ -193,10 +194,10 @@ C**** Calculate default vertical arrays (including rad. eq. layers)
 
       REAL*8, INTENT(IN) :: P0 !@var P0 surface pressure (-PTOP) (mb)
       INTEGER, INTENT(IN) :: LMAX !@var LMAX max level for calculation
-!@var AM mass at each level (kg/m2)
+!@var MA mass per unit area for each layer (kg/m^2)
 !@var PDSIG pressure interval at each level (mb)
 !@var PMID mid-point pressure (mb)
-      REAL*8, INTENT(OUT), DIMENSION(LMAX) :: AM,PDSIG,PMID,PL
+      REAL*8, INTENT(OUT), DIMENSION(LMAX) :: MA,PDSIG,PMID,PL
 !@var PEDN edge pressure (top of box) (mb)
       REAL*8, INTENT(OUT), DIMENSION(LMAX+1) :: PEDN
       INTEGER :: L  !@var L  loop variables
@@ -211,20 +212,20 @@ C**** Note Air mass is calculated in (kg/m^2)
         PDSIG(L)= P0*DSIG(L)
         PMID(L) = SIG(L)*P0+PTOP
         PEDN(L) = SIGE(L)*P0+PTOP
-        AM  (L) = PDSIG(L)*1d2*BYGRAV
+        MA  (L) = PDSIG(L)*1d2*BYGRAV
       END DO
       DO L=LS1,MIN(LMAX,LM)
         PL(L)   = PSFMPT
         PDSIG(L)= PSFMPT*DSIG(L)
         PMID(L) = SIG(L)*PSFMPT+PTOP
         PEDN(L) = SIGE(L)*PSFMPT+PTOP
-        AM  (L) = PDSIG(L)*1d2*BYGRAV
+        MA  (L) = PDSIG(L)*1d2*BYGRAV
       END DO
       IF (LMAX.ge.LM) PEDN(LM+1) = SIGE(LM+1)*PSFMPT+PTOP
-C**** Rad. equ. layers if necessary (only PEDN,AM,PMID)
+C**** Rad. equ. layers if necessary (only PEDN,MA,PMID)
       IF (LMAX.eq.LM+LM_REQ) THEN
         PMID(LM+1:LM+LM_REQ) = REQ_FAC_M(1:LM_REQ)*PMTOP
-          AM(LM+1:LM+LM_REQ) = REQ_FAC_D(1:LM_REQ)*PMTOP*1d2*BYGRAV
+          MA(LM+1:LM+LM_REQ) = REQ_FAC_D(1:LM_REQ)*PMTOP*1d2*BYGRAV
         PEDN(LM+2:LM+LM_REQ) = REQ_FAC(1:LM_REQ-1)*PEDN(LM+1)
         PEDN(LM+LM_REQ+1)=0.    ! 1d-5  ! why not zero?
       END IF

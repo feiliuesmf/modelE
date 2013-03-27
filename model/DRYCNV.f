@@ -371,13 +371,14 @@ C***
 
       subroutine apply_fluxes_to_atm(dt)
 !@sum applies earth fluxes to the first layer of the atmosphere
+!@vers 2013/03/26
 !@auth Original Development Team
       USE MODEL_COM, only : qcheck
 #ifdef SCM
      *                      ,I_TARG,J_TARG
 #endif
       USE RESOLUTION, only : im,jm
-      USE ATM_COM, only : u,v,t,q,byam,am,pk
+      USE ATM_COM, only : u,v,t,q,byam,MA,pk
       USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds
       USE DOMAIN_DECOMP_ATM, only : halo_update,checksum
       USE DOMAIN_DECOMP_ATM, only : halo_update_column,checksum_column
@@ -427,7 +428,7 @@ C****
             trmin=0.d0
 #ifdef TRACERS_WATER
             IF(tr_wd_TYPE(n).eq.nWATER) trmin = 
-     &      qmin*trw0(n)*am(1,i,j)*axyp(i,j)
+     &         qmin*trw0(n)*MA(1,i,j)*axyp(i,j)
 #endif
             if (t_qlimit(n).and.trm(i,j,1,n).lt.trmin) then
               if (qcheck) write(99,*) trname(n),I,J,' TR1:',

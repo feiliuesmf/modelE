@@ -95,9 +95,10 @@ C**** Some local constants
 
       SUBROUTINE DIAGA
 !@sum  DIAGA accumulate various diagnostics during dynamics
+!@vers 2013/03/26
 !@auth Original Development Team
       USE CONSTANT, only : grav,rgas,kapa,lhe,lhs,sha,bygrav,tf
-     *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb,mair   
+     *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb,mair
       USE RESOLUTION, only : ls1,ptop,pmtop,psfmpt
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : idacc
@@ -138,7 +139,7 @@ C**** Some local constants
       use OldTracer_mod, only: mass2vol
       USE TRCHEM_Shindell_COM, only : mNO2
 #endif
-      USE ATM_COM, only : pk,pek,phi,pmid,pdsig,plij,pedn,am
+      USE ATM_COM, only : pk,pek,phi,pmid,pdsig,plij,pedn,MA
      &     ,ua=>ualij,va=>valij
       USE DYNAMICS, only : SD,wcp,sig,sige,dsig
       USE CLOUDS_COM, only : svlhx
@@ -274,7 +275,7 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
 #endif
           AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+SLP(PS,TS_SLP,ZS)-P1000
 C**** calculate pressure diags including water
-          PS=PS+SUM((Q(I,J,:)+WM(I,J,:))*AM(:,I,J))*kg2mb
+          PS = PS + Sum((Q(I,J,:)+WM(I,J,:))*MA(:,I,J))*kg2mb
           AIJ(I,J,IJ_PRESQ)=AIJ(I,J,IJ_PRESQ)+ PS
           AIJ(I,J,IJ_SLPQ)=AIJ(I,J,IJ_SLPQ)+SLP(PS,TS_SLP,ZS)-P1000
 
@@ -312,22 +313,22 @@ C**** Follows logic for geopotential section following this...
             t_more(K,I,J)=TIJK
 #ifdef TRACERS_SPECIAL_Shindell
               chemL=1.d6*trm(i,j,L,n_Ox)*mass2vol(n_Ox)/
-     &        (am(L,i,j)*axyp(i,j))
+     &        (MA(L,i,j)*axyp(i,j))
               chemLm1=1.d6*trm(i,j,L-1,n_Ox)*mass2vol(n_Ox)/
-     &        (am(L-1,i,j)*axyp(i,j))
+     &        (MA(L-1,i,j)*axyp(i,j))
             o_more(K,I,J)= chemL+(chemLm1-chemL)*pfact
               chemL=1.d6*trm(i,j,L,n_NOx)*mass2vol(n_NOx)/
-     &        (am(L,i,j)*axyp(i,j))
+     &        (MA(L,i,j)*axyp(i,j))
               chemLm1=1.d6*trm(i,j,L-1,n_NOx)*mass2vol(n_NOx)/
-     &        (am(L-1,i,j)*axyp(i,j))
+     &        (MA(L-1,i,j)*axyp(i,j))
             x_more(K,I,J)= chemL+(chemLm1-chemL)*pfact
               chemL=1.d6*mNO2(i,j,L)
               chemLm1=1.d6*mNO2(i,j,L-1)
             n_more(K,I,J)= chemL+(chemLm1-chemL)*pfact
               chemL=1.d6*trm(i,j,L,n_CO)*mass2vol(n_CO)/
-     &        (am(L,i,j)*axyp(i,j))
+     &        (MA(L,i,j)*axyp(i,j))
               chemLm1=1.d6*trm(i,j,L-1,n_CO)*mass2vol(n_CO)/
-     &        (am(L-1,i,j)*axyp(i,j))
+     &        (MA(L-1,i,j)*axyp(i,j))
             m_more(K,I,J)= chemL+(chemLm1-chemL)*pfact
 #endif
           endif
@@ -400,22 +401,22 @@ C**** calculate geopotential heights + temperatures
 #ifdef TRACERS_SPECIAL_Shindell
             pfact=(PMB(K)-PL)/(PDN-PL)
               chemL=1.d6*trm(i,j,L,n_Ox)*mass2vol(n_Ox)/
-     &        (am(L,i,j)*axyp(i,j))
+     &        (MA(L,i,j)*axyp(i,j))
               chemLm1=1.d6*trm(i,j,L-1,n_Ox)*mass2vol(n_Ox)/
-     &        (am(L-1,i,j)*axyp(i,j))
+     &        (MA(L-1,i,j)*axyp(i,j))
             o_inst(K,I,J)= chemL+(chemLm1-chemL)*pfact
               chemL=1.d6*trm(i,j,L,n_NOx)*mass2vol(n_NOx)/
-     &        (am(L,i,j)*axyp(i,j))
+     &        (MA(L,i,j)*axyp(i,j))
               chemLm1=1.d6*trm(i,j,L-1,n_NOx)*mass2vol(n_NOx)/
-     &        (am(L-1,i,j)*axyp(i,j))
+     &        (MA(L-1,i,j)*axyp(i,j))
             x_inst(K,I,J)= chemL+(chemLm1-chemL)*pfact
               chemL=1.d6*mNO2(i,j,L)
               chemLm1=1.d6*mNO2(i,j,L-1)
             n_inst(K,I,J)= chemL+(chemLm1-chemL)*pfact
               chemL=1.d6*trm(i,j,L,n_CO)*mass2vol(n_CO)/
-     &        (am(L,i,j)*axyp(i,j))
+     &        (MA(L,i,j)*axyp(i,j))
               chemLm1=1.d6*trm(i,j,L-1,n_CO)*mass2vol(n_CO)/
-     &        (am(L-1,i,j)*axyp(i,j))
+     &        (MA(L-1,i,j)*axyp(i,j))
             m_inst(K,I,J)= chemL+(chemLm1-chemL)*pfact
 #endif
             if (qpress) then
@@ -457,7 +458,7 @@ C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
             call inc_ajl(i,j,l,jl_dpa,pdsig(l,i,j))
 c ajl(jl_dtdyn) was incremented by -t(i,j,l) before dynamics
             call inc_ajl(i,j,l,jl_dtdyn,tx(i,j,l)*pdsig(l,i,j))
-            AIJ(I,J,IJ_QM)=AIJ(I,J,IJ_QM)+Q(I,J,L)*AM(L,I,J)
+            AIJ(I,J,IJ_QM) = AIJ(I,J,IJ_QM) + Q(I,J,L)*MA(L,I,J)
             aijl(i,j,L,ijl_tempL)=aijl(i,j,L,ijl_tempL)+TX(i,j,L)
             aijl(i,j,L,ijl_husL)=aijl(i,j,L,ijl_husL)+Q(i,j,L)
 #ifdef HTAP_LIKE_DIAGS
@@ -1257,7 +1258,7 @@ C****
 #ifdef mjo_subdd
      *     ,E_acc,PW_acc,p_avg,sst_avg,lwu_avg
      *     ,u_avg,v_avg,w_avg,t_avg,r_avg,q_avg,z_avg
-#endif  
+#endif
 #ifdef TES_LIKE_DIAGS
      *                    ,kgz_max_more,pmnamemore
 #endif
@@ -1321,7 +1322,7 @@ C****
 !@dbparam subdd3 additional string of variables for sub-daily diags
 !@dbparam subdd4 additional string of variables for sub-daily diags
 C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
-      CHARACTER*64 :: subdd="SLP", 
+      CHARACTER*64 :: subdd="SLP",
      & subdd1=" ", subdd2=" ", subdd3=" ", subdd4=" "
 !@dbparam Nsubdd: DT_save_SUBDD =  Nsubdd*DTsrc sub-daily diag freq.
       INTEGER :: Nsubdd = 0
@@ -1726,7 +1727,7 @@ c get_subdd
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
      *           ,ctem,cd3d,ci3d,cl3d
 #endif
-      USE ATM_COM, only : ptropo,am,byam,wsave,pk,phi,pmid
+      USE ATM_COM, only : ptropo,MA,byam,wsave,pk,phi,pmid
 #if (defined ttc_subdd) || (defined etc_subdd)
      *     ,pedn
 #endif
@@ -1998,7 +1999,7 @@ C**** accumulating/averaging mode ***
         case ("PREC")           ! precip (mm/day)
 c          datar8=SECONDS_PER_DAY*prec/dtsrc
           ! accum over Nsubdd steps
-          datar8=SECONDS_PER_DAY*P_acc/(Nsubdd*dtsrc) 
+          datar8=SECONDS_PER_DAY*P_acc/(Nsubdd*dtsrc)
           P_acc=0.
           units_of_data = 'mm/day'
           long_name = 'Precipitation'
@@ -2006,7 +2007,7 @@ c          datar8=SECONDS_PER_DAY*prec/dtsrc
 #ifdef CALCULATE_FLAMMABILITY
         case ("RAPR")   !running avg precip (mm/day)
           ! accum over Nsubdd steps
-          datar8=SECONDS_PER_DAY*raP_acc/(Nsubdd*dtsrc) 
+          datar8=SECONDS_PER_DAY*raP_acc/(Nsubdd*dtsrc)
           raP_acc=0.
           units_of_data = 'mm/day'
           long_name = 'Running Average of Precipitation'
@@ -2083,7 +2084,7 @@ c          datar8=SECONDS_PER_DAY*prec/dtsrc
           long_name = 'Outgoing Longwave Radiation at TOA'
           qinstant = .false.
 #endif
-#ifdef etc_subdd 
+#ifdef etc_subdd
         case ("LWP")             !LWP (kg m-2)
           datar8=LWP2D
           LWP2D(:,:)=0.
@@ -2100,37 +2101,37 @@ c          datar8=SECONDS_PER_DAY*prec/dtsrc
 #ifdef TRACERS_WATER
         case ("TRP1")
           ! accum over Nsubdd steps
-          datar8=SECONDS_PER_DAY*TRP_acc(1,:,:)/(Nsubdd*dtsrc) 
+          datar8=SECONDS_PER_DAY*TRP_acc(1,:,:)/(Nsubdd*dtsrc)
           TRP_acc(1,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRE1")
           ! accum over Nsubdd steps
-          datar8=SECONDS_PER_DAY*TRE_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) 
+          datar8=SECONDS_PER_DAY*TRE_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:))
           TRE_acc(1,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRP2")
           ! accum over Nsubdd steps
-          datar8=SECONDS_PER_DAY*TRP_acc(2,:,:)/(Nsubdd*dtsrc) 
+          datar8=SECONDS_PER_DAY*TRP_acc(2,:,:)/(Nsubdd*dtsrc)
           TRP_acc(2,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRE2")
           ! accum over Nsubdd steps
-          datar8=SECONDS_PER_DAY*TRE_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) 
+          datar8=SECONDS_PER_DAY*TRE_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:))
           TRE_acc(2,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRP3")
           ! accum over Nsubdd steps
-          datar8=SECONDS_PER_DAY*TRP_acc(3,:,:)/(Nsubdd*dtsrc) 
+          datar8=SECONDS_PER_DAY*TRP_acc(3,:,:)/(Nsubdd*dtsrc)
           TRP_acc(3,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRE3")
           ! accum over Nsubdd steps
-          datar8=SECONDS_PER_DAY*TRE_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) 
+          datar8=SECONDS_PER_DAY*TRE_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:))
           TRE_acc(3,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
@@ -2899,19 +2900,19 @@ C**** get pressure level
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
               case ("O")        ! Ox  tracer (ppmv)
-                datar8=o_inst(kp,:,:) 
+                datar8=o_inst(kp,:,:)
                 units_of_data = 'ppmv'
                 long_name = 'Ox Tracer'
               case ("X")        ! NOx tracer (ppmv)
-                datar8=x_inst(kp,:,:) 
+                datar8=x_inst(kp,:,:)
                 units_of_data = 'ppmv'
                 long_name = 'NOx Tracer'
               case ("M")        ! CO  tracer (ppmv)
-                datar8=m_inst(kp,:,:) 
+                datar8=m_inst(kp,:,:)
                 units_of_data = 'ppmv'
                 long_name = 'CO Tracer'
               case ("N")        ! NO2 non-tracer (ppmv)
-                datar8=n_inst(kp,:,:) 
+                datar8=n_inst(kp,:,:)
                 units_of_data = 'ppmv'
                 long_name = 'NO2 (not a tracer)'
 #endif /* TRACERS_SPECIAL_Shindell */
@@ -3056,7 +3057,7 @@ C**** accumulating/averaging mode ***
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     datar8(i,j)=1.d6*trm(i,j,kp,n_Ox)*mass2vol(n_Ox)/
-     *                   (am(kp,i,j)*axyp(i,j))
+     *                   (MA(kp,i,j)*axyp(i,j))
                   end do
                 end do
                 units_of_data = 'ppmv'
@@ -3065,7 +3066,7 @@ C**** accumulating/averaging mode ***
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     datar8(i,j)=1.d6*trm(i,j,kp,n_NOx)*mass2vol(n_NOx)/
-     *                   (am(kp,i,j)*axyp(i,j))
+     *                   (MA(kp,i,j)*axyp(i,j))
                   end do
                 end do
                 units_of_data = 'ppmv'
@@ -3074,7 +3075,7 @@ C**** accumulating/averaging mode ***
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     datar8(i,j)=1.d6*trm(i,j,kp,n_CO)*mass2vol(n_CO)/
-     *                   (am(kp,i,j)*axyp(i,j))
+     *                   (MA(kp,i,j)*axyp(i,j))
                   end do
                 end do
                 units_of_data = 'ppmv'
@@ -3093,7 +3094,7 @@ C**** accumulating/averaging mode ***
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     datar8(i,j)=1.d6*trm(i,j,kp,n_Be7)* mass2vol(n_Be7)/
-     *                   (am(kp,i,j)*axyp(i,j))
+     *                   (MA(kp,i,j)*axyp(i,j))
                   end do
                 end do
                 units_of_data = 'ppmv'
@@ -3188,7 +3189,7 @@ C**** get model level
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     datar8(i,j)=1.d6*trm(i,j,l,n_Ox)*mass2vol(n_Ox)/
-     *                   (am(l,i,j)*axyp(i,j))
+     *                   (MA(l,i,j)*axyp(i,j))
                   end do
                 end do
                 units_of_data = 'ppmv'
@@ -3197,7 +3198,7 @@ C**** get model level
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     datar8(i,j)=1.d6*trm(i,j,l,n_NOx)*mass2vol(n_NOx)/
-     *                   (am(l,i,j)*axyp(i,j))
+     *                   (MA(l,i,j)*axyp(i,j))
                   end do
                 end do
                 units_of_data = 'ppmv'
@@ -3206,7 +3207,7 @@ C**** get model level
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     datar8(i,j)=1.d6*trm(i,j,l,n_CO)*mass2vol(n_CO)/
-     *                   (am(l,i,j)*axyp(i,j))
+     *                   (MA(l,i,j)*axyp(i,j))
                   end do
                 end do
                 units_of_data = 'ppmv'
@@ -3225,7 +3226,7 @@ C**** get model level
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     datar8(i,j)=1.d6*trm(i,j,l,n_Be7)* mass2vol(n_Be7)/
-     *                   (am(l,i,j)*axyp(i,j))
+     *                   (MA(l,i,j)*axyp(i,j))
                   end do
                 end do
                 units_of_data = 'ppmv'
@@ -3258,7 +3259,7 @@ C**** get model level
 !=========== any tracer 3d output at the model levels ==========
 ! tracer name should have the prefix "t", to avoid confusion with
 ! pre-existing diagnostics which are in many cases in different
-! units. 
+! units.
 #ifdef TRACERS_ON
         polefix=.true.
         do n=1,NTM
@@ -3268,7 +3269,7 @@ C**** get model level
               do j=J_0,J_1
                 do i=I_0,imaxj(j)
                   datar8(i,j)=trm(i,j,l,n)*MMR_to_VMR(n)/
-     *                 (am(l,i,j)*axyp(i,j))
+     *                 (MA(l,i,j)*axyp(i,j))
                 end do
               end do
               LmaxSUBDD_array(:,:,l)=datar8
@@ -4352,7 +4353,7 @@ c time_subdd
       logical,intent(in) :: q24
       integer :: year, month, dayOfYear
 
-      call modelEclock%getDate(year=year, month=month, 
+      call modelEclock%getDate(year=year, month=month,
      &       dayOfYear=dayOfYear)
       if (q24) then
         time_subdd = real((year - iyear1)*INT_DAYS_PER_YEAR + dayOfYear - 1,kind=8)
@@ -4576,8 +4577,8 @@ c write_time_coord_subdd
 
       character(len=*),intent(out) :: calendarstring
 
-      call modelEclock%getDate(year=year, month=month, hour=hour, 
-     *     date=date) 
+      call modelEclock%getDate(year=year, month=month, hour=hour,
+     *     date=date)
       call write_data(grid,fid,'itime',itime+1,record=rec)
       call write_data(grid,fid,'time',time,record=rec)
       call get_calendarstring(qinst,q24,year,month,date,hour,itime
@@ -5319,7 +5320,7 @@ c a parallelized i/o routine that understands it
       CHARACTER aDATE*14
       integer year, month, dayOfYear, hour, date
 
-      call modelEclock%getDate(year=year, month=month, 
+      call modelEclock%getDate(year=year, month=month,
      *     dayOfYear=dayOfYear, date=date,
      *     hour=hour)
       atmocn%aij => aij_loc
@@ -5848,7 +5849,7 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : JDendOfM,aMON,Jmon0,Jyear0,NMONAV,
      &                      modelEclock
-      use TimeConstants_mod, only: DAYS_PER_YEAR, INT_DAYS_PER_YEAR, 
+      use TimeConstants_mod, only: DAYS_PER_YEAR, INT_DAYS_PER_YEAR,
      &                             INT_MONTHS_PER_YEAR
       USE ATM_COM, only : kradia,iu_rad
       USE FLUXES, only : focean
@@ -5873,7 +5874,7 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       INTEGER :: J_0, J_1, I_0,I_1
       integer year, month, dayOfYear
 
-      call modelEclock%getDate(year=year, month=month, 
+      call modelEclock%getDate(year=year, month=month,
      &     dayOfYear=dayOfYear)
       call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = GRID%I_STRT
@@ -5906,7 +5907,7 @@ C**** The AIJ diagnostics are set once a year (zero otherwise)
         DO I=I_0,IMAXJ(J)
           if(lat2d(i,j).lt.0.) then
 C**** initialize/save South. Hemi. on Feb 28
-            IF (dayOfYear.eq.59 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) 
+            IF (dayOfYear.eq.59 .and. TSFREZ(I,J,TF_LKOFF).ne.undef)
      *            THEN
               AIJ(I,J,IJ_LKICE)=1.
               AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +307,
@@ -5923,7 +5924,7 @@ C**** initialize/save South. Hemi. on Feb 28
 C**** initiallise/save North. Hemi. on Aug 31
 C**** Note that for continuity across the new year, the julian days
 C**** are counted from Sep 1 (NH only).
-            IF (dayOfYear.eq.243 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) 
+            IF (dayOfYear.eq.243 .and. TSFREZ(I,J,TF_LKOFF).ne.undef)
      *            THEN
               AIJ(I,J,IJ_LKICE)=1.
               AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +123,

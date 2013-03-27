@@ -1640,7 +1640,7 @@ contains
               QMIX=.5*(QUP+QMP/MPLUME)
               SVMIX=SMIX             ! *(1.+DELTX*QMIX)
               SVUP=SUP               ! *(1.+DELTX*QUP)
-              DMMIX=(SVUP-SVMIX)*PLK(L) 
+              DMMIX=(SVUP-SVMIX)*PLK(L)
               !     +SLHE*(QSAT(SUP*PLK(L),LHX,PL(L))-QMIX)
               if(DMMIX.lt.1d-10) CDHDRT=CDHDRT+CDHEAT(L)
 
@@ -3625,7 +3625,7 @@ contains
 !c$$$C
 !C Get CCN properties
 !C
-!      avol(l) = axyp(i_debug,j_debug)*am(i_debug,j_debug,l)/mair*
+!      avol(l) = axyp(i_debug,j_debug)*MA(i_debug,j_debug,l)/mair*
 !!!   byam(l) = [m2/kg of air]
       boxvl = DXYPIJ*airm(l)*mb2kg*rgas*TL(L)  &
           /100./PL(L)

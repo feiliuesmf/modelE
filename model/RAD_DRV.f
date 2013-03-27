@@ -1117,6 +1117,7 @@ C**** Add water to relevant tracers as well
 
       SUBROUTINE RADIA
 !@sum  RADIA adds the radiation heating to the temperatures
+!@vers 2013/03/26
 !@auth Original Development Team
 !@calls tropwmo,coszs,coszt, RADPAR:rcompx ! writer,writet
       USE CONSTANT, only : lhe,lhs,twopi,tf,stbo,rhow,mair,grav
@@ -1237,7 +1238,7 @@ C     OUTPUT DATA
      *     ,j_vtau,j_ghg
 #endif
 
-      USE ATM_COM, only : pk,pedn,pmid,pdsig,ltropo,am,byam
+      USE ATM_COM, only : pk,pedn,pmid,pdsig,ltropo,MA,byam
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : si_atm
       USE GHY_COM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
@@ -1582,8 +1583,8 @@ C****   Calculate mean strat water conc
           MSTJ=0.
           DO I=I_0,IMAXJ(J)
             DO L=LTROPO(I,J)+1,LM
-              STRJ=STRJ+Q(I,J,L)*AM(L,I,J)*AXYP(I,J)
-              MSTJ=MSTJ+AM(L,I,J)*AXYP(I,J)
+              STRJ = STRJ + Q(I,J,L)*MA(L,I,J)*AXYP(I,J)
+              MSTJ = MSTJ + MA(L,I,J)*AXYP(I,J)
             END DO
           END DO
           IF (J.eq.1 .or. J.eq.JM) THEN

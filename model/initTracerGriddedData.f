@@ -1,6 +1,7 @@
 #include "rundeck_opts.h"
       SUBROUTINE initTracerGriddedData()
 !@sum init_tracer initializes trace gas attributes and diagnostics
+!@vers 2013/03/26
 !@auth J. Lerner
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
       USE DOMAIN_DECOMP_ATM, only:GRID,getDomainBounds,AM_I_ROOT,
@@ -13,7 +14,7 @@
       USE MODEL_COM, only: dtsrc,itime
       USE ATM_COM, only: pmidl00
       USE GEOM, only: axyp,byaxyp
-      USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: MA  ! Air mass of each box (kg/m^2)
       use OldTracer_mod, only: trname, trw0
       USE TRACER_COM, only: ntm, tracers, syncProperty
 #ifdef TRACERS_ON
@@ -215,7 +216,7 @@ c***          print*,'HERE!!!!!!!'
           do j=J_0,J_1  ; do i=I_0,I_1
            N2OICINL(:)=N2OICIN(i,j,:) ! now in PPPM
            CALL LOGPINT(LCOalt,PCOalt,N2OICINL,LM,PMIDL00,N2OICL,.true.)
-           N2OICX(I,J,:)=N2OICL(:)*am(:,i,j)*axyp(i,j)
+           N2OICX(I,J,:) = N2OICL(:)*MA(:,i,j)*axyp(i,j)
           end do     ; end do
 #endif
 
@@ -241,7 +242,7 @@ C         Interpolate CH4 altitude-dependence to model resolution:
              CH4ICINL(:)=CH4ICIN(I,J,:)! now in PPPM
              CALL LOGPINT(LCOalt,PCOalt,CH4ICINL,LM,PMIDL00,CH4ICL,
      &            .true.)
-             CH4ICX(I,J,:)=CH4ICL(:)*scale_ch4_IC_file*am(:,i,j)*
+             CH4ICX(I,J,:) = CH4ICL(:)*scale_ch4_IC_file*MA(:,i,j)*
      *            axyp(i,j)
             end do     ; end do
           end if
@@ -255,7 +256,7 @@ C         Interpolate CH4 altitude-dependence to model resolution:
           do j=J_0,J_1  ; do i=I_0,I_1
            OxICINL(:)=OxICIN(I,J,:)! now in PPPM
            CALL LOGPINT(LCOalt,PCOalt,OxICINL,LM,PMIDL00,OxICL,.true.)
-           OxIC(I,J,:)=OxICL(:)*am(:,i,j)*axyp(i,j)
+           OxIC(I,J,:) = OxICL(:)*MA(:,i,j)*axyp(i,j)
           end do     ; end do
 #endif /* TRACERS_SPECIAL_Shindell */
 
@@ -290,7 +291,7 @@ C          read the CFC initial conditions:
           do j=J_0,J_1  ; do i=I_0,I_1
            CFCICINL(:)=CFCICIN(I,J,:)! now in PPPM
            CALL LOGPINT(LCOalt,PCOalt,CFCICINL,LM,PMIDL00,CFCICL,.true.)
-           CFCIC(I,J,:)=CFCICL(:)*am(:,i,j)*axyp(i,j)
+           CFCIC(I,J,:) = CFCICL(:)*MA(:,i,j)*axyp(i,j)
           end do     ; end do
 #endif /* TRACERS_SPECIAL_Shindell */
 
@@ -302,7 +303,7 @@ C          read the CFC initial conditions:
           do j=J_0,J_1  ; do i=I_0,I_1
            COICINL(:)=COICIN(I,J,:)! now in PPPM
            CALL LOGPINT(LCOalt,PCOalt,COICINL,LM,PMIDL00,COICL,.true.)
-           COIC(I,J,:)=COICL(:)*am(:,i,j)*axyp(i,j)
+           COIC(I,J,:) = COICL(:)*MA(:,i,j)*axyp(i,j)
           end do     ; end do
 #endif /* TRACERS_SPECIAL_Shindell */
 

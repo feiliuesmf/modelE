@@ -3,6 +3,7 @@
       subroutine atm_diffus(lbase_min,lbase_max,dtime)
 !@sum  atm_diffus updates u,v,t,q due to turbulent transport throughout
 !@+    all GCM layers using a non-local turbulence model
+!@vers 2013/03/26
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
 !@cont atm_diffus,getdz,dout,de_solver_main,de_solver_edge,l_gcm,k_gcm,
 !@+    e_gcm,find_pbl_top,zze,apply_fluxes_to_atm
@@ -24,7 +25,7 @@
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,byaxyp,axyp
-      USE ATM_COM, only : pk,pdsig,plij,pek,byam,am,pmid
+      USE ATM_COM, only : pk,pdsig,plij,pek,byam,MA,pmid
      &     ,u_3d_agrid=>ualij,v_3d_agrid=>valij
       USE DOMAIN_DECOMP_ATM, ONLY : grid, getDomainBounds, halo_update
       USE DIAG_COM, only : jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
@@ -434,7 +435,7 @@ cc            tmom(:,i,j,l)=tmomij(:,l)
 
 #ifdef TRACERS_ON
           do l=1,lm
-            amkg(l) = am(l,i,j)*axyp(i,j)
+            amkg(l) = MA(l,i,j)*axyp(i,j)
           enddo
           do nx=1,nta
             n=ntix(nx)

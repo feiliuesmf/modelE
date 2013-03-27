@@ -24,6 +24,7 @@ C****
 !@+   sensible heat, evaporation, thermal radiation, and momentum
 !@+   drag.  It also calculates instantaneous surface temperature,
 !@+   surface specific humidity, and surface wind components.
+!@vers 2013/03/26
 !@auth Nobody will claim responsibilty
 
       USE CONSTANT, only : rgas,lhm,lhe,lhs
@@ -41,7 +42,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, GLOBALSUM
       USE GEOM, only : axyp,imaxj,byaxyp
       USE SOMTQ_COM, only : tmom,qmom,mz
-      USE ATM_COM, only : pmid,pk,pedn,pek,am,byam
+      USE ATM_COM, only : pmid,pk,pedn,pek,MA,byam
       USE RAD_COM, only : trhr,fsf,cosz1,trsurf
 #ifdef TRACERS_ON
       use OldTracer_mod, only: itime_tr0, needtrs
@@ -382,7 +383,7 @@ C****
       ! T=Temperature
       THV1=T(I,J,1)*(1.+Q1*xdelt)
 
-      MA1=AM(1,I,J) !@var MA1 mass of lowest atmospheric layer (kg/m^2)
+      MA1=MA(1,I,J) !@var MA1 mass of lowest atmospheric layer (kg/m^2)
 
 C****
       DO ITYPE=ITYPE_MIN,ITYPE_OCEANICE ! no earth or landice type
@@ -887,8 +888,8 @@ C****
 c****   retrieve fluxes
         uflux1(i,j)=atmsrf%uflux1(i,j)
         vflux1(i,j)=atmsrf%vflux1(i,j)
-        tflux1(i,j)=-atmsrf%dth1(i,j)*AM(1,I,J)/(dtsurf)
-        qflux1(i,j)=-atmsrf%dq1(i,j)*AM(1,I,J)/(dtsurf)
+        tflux1(i,j) = -atmsrf%dth1(i,j)*MA(1,I,J) / dtsurf
+        qflux1(i,j) = -atmsrf%dq1(i,j) *MA(1,I,J) / dtsurf
       END DO 
       END DO
 
@@ -1047,7 +1048,7 @@ C**** Accumulate subdaily precipitable water (kg/m^2) PW_acc ***
 C****   longwave upward flux lwu_avg,surface pres p_avg, sst sst_avg
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
-        PW_acc(I,J)=PW_acc(I,J)+SUM(Q(I,J,:)*AM(:,I,J))
+        PW_acc(I,J) = PW_acc(I,J) + Sum(Q(I,J,:)*MA(:,I,J))
         p_avg(I,J)=p_avg(I,J)+P(I,J)
         if (FOCEAN(I,J).gt.0) then
           sst_avg(i,j)=sst_avg(i,j)+atmocn%GTEMP(i,j)
