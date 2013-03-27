@@ -1,6 +1,7 @@
 #include "rundeck_opts.h"
       SUBROUTINE masterchem
 !@sum masterchem main chemistry routine
+!@vers 2013/03/26
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@calls photoj,Crates,Oxinit,HOxfam,NOxfam,chemstep
 C
@@ -908,7 +909,7 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
      &      *max(0.1d0,rh(L)*1.33333d0)
         endif
 
-        pfactor=axyp(I,J)*AM(L,I,J)/y(nM,L)
+        pfactor = axyp(I,J)*MA(L,I,J)/y(nM,L)
         bypfactor=1.D0/pfactor
         RVELN2O5=SQRT(TX(I,J,L)*RKBYPIM)*100.d0
 C       Calculate sulfate sink, and cap it at 20% of N2O5:
@@ -1551,13 +1552,13 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         endif ! i.e. y(nH2O,L)/y(nM,L) <= 10.d-6 
 
 #ifdef TRACERS_AEROSOLS_SOA
-        pfactor=axyp(I,J)*AM(L,I,J)/y(nM,L)
+        pfactor = axyp(I,J)*MA(L,I,J) / y(nM,L)
         bypfactor=1.D0/pfactor
         call soa_aerosolphase(I,J,L,changeL,bypfactor)
 #endif  /* TRACERS_AEROSOLS_SOA */
 
         tempChangeNOx= ! this needed for several diags below:
-     &  changeL(L,n_NOx)*mass2vol(n_NOx)*y(nM,L)/(axyp(I,J)*AM(L,I,J))
+     &  changeL(L,n_NOx)*mass2vol(n_NOx)*y(nM,L)/(axyp(I,J)*MA(L,I,J))
 
 ! Accumulate NO2 10:30am/1:30pm tropo column diags:
 ! -- moved from sunlight/darkness sections because needed changeNOx
@@ -1737,7 +1738,7 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
       do j=J_0,J_1
        do i=I_0,IMAXJ(j)
         fact6=2.69d20*axyp(i,j)*byavog
-        fact1=bymair*am(1,i,j)*axyp(i,j)
+        fact1 = bymair*MA(1,i,j)*axyp(i,j)
         fact5=fact6 
         fact4=fact6
         if(use_rad_n2o == 0)fact4=fact1 
@@ -1779,17 +1780,17 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
 #endif
             ! -- ClOx --
             tr3Dsource(i,j,L,nOverwrite,n_ClOx)=(1.d-11*ClOxalt(l)
-     &      *vol2mass(n_CLOx)*am(L,i,j)*axyp(i,j) - (
+     &      *vol2mass(n_CLOx)*MA(L,i,j)*axyp(i,j) - (
      &      trm(i,j,L,n_ClOx)+tr3Dsource(i,j,L,nChemistry,n_ClOx)*dtsrc
      &      ))*bydtsrc    
             ! -- BrOx --
             tr3Dsource(i,j,L,nOverwrite,n_BrOx)=(1.d-11*BrOxalt(l)
-     &      *vol2mass(n_BrOx)*am(L,i,j)*axyp(i,j) - (
+     &      *vol2mass(n_BrOx)*MA(L,i,j)*axyp(i,j) - (
      &      trm(i,j,L,n_BrOx)+tr3Dsource(i,j,L,nChemistry,n_BrOx)*dtsrc
      &      ))*bydtsrc
             ! -- NOx --
             tr3Dsource(i,j,L,nOverwrite,n_NOx)=(75.d-11 !75=1*300*2.5*.1
-     &      *am(L,i,j)*axyp(i,j)*PIfact(n_NOx)-(trm(i,j,L,n_NOx)+ 
+     &      *MA(L,i,j)*axyp(i,j)*PIfact(n_NOx)-(trm(i,j,L,n_NOx)+ 
      &      tr3Dsource(i,j,L,nChemistry,n_NOx)*dtsrc))*bydtsrc
           end do ! I 
         end do   ! J

@@ -1,6 +1,7 @@
 #include "rundeck_opts.h"
       SUBROUTINE chemstep(I,J,changeL,ierr_loc)
 !@sum chemstep Calculate new concentrations after photolysis & chemistry
+!@vers 2013/03/26
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@calls rates,chem1,chem1prn
 c
@@ -12,7 +13,7 @@ C
       USE RESOLUTION, only      : im,jm,lm
       USE ATM_COM, only         : Q
       USE DOMAIN_DECOMP_ATM,only : grid,getDomainBounds,write_parallel
-      USE ATM_COM, only         : am, byam,ltropo
+      USE ATM_COM, only         : MA, byam,ltropo
       USE GEOM, only            : byaxyp,axyp
       USE TRDIAG_COM, only : taijls=>taijls_loc,jls_OHcon,jls_day
      &     ,jls_OxpT,jls_OxdT,jls_Oxp,jls_Oxd,jls_COp,jls_COd,ijlt_OH
@@ -495,7 +496,7 @@ C       --- y --- :
         y(nH2O,L)=y(nH2O,L)+changeH2O(L)
 C       --- Q --- :
         dQ(L) = changeH2O(L)/(y(nM,L)*MWabyMWw)
-        dQM(L) = dQ(L)*AM(L,I,J)*axyp(I,J)
+        dQM(L) = dQ(L)*MA(L,I,J)*axyp(I,J)
         if(clim_interact_chem > 0)then
           fraQ2(l)=(Q(I,J,L)+changeH2O(L)/(y(nM,L)*MWabyMWw))/Q(I,J,L)
           Q(I,J,L) = Q(I,J,L) + dQ(L)
@@ -897,7 +898,7 @@ c (chem1prn: argument before multip is index = number of call):
 
 c Loops to calculate tracer changes:
 
-      rMAbyM(1:maxl)=AM(1:maxl,I,J)/y(nM,1:maxl)
+      rMAbyM(1:maxl) = MA(1:maxl,I,J) / y(nM,1:maxl)
 
       do igas=1,ntm_chem ! TRACER LOOP -----------------
       
