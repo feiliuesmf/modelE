@@ -949,8 +949,7 @@ subroutine CONDSE
           end if
 
           !**** level 1 downfdraft mass flux/rho (m/s)
-          DDM1(I,J) = (1.-FSSL(1))*DDMFLX(1)*RGAS*TSV/(GRAV*PEDN(1,I,J) &
-               *DTSrc)
+          DDM1(I,J) = DDMFLX(1)*RGAS*TSV/(GRAV*PEDN(1,I,J)*DTSrc)
         end if
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then

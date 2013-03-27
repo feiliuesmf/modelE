@@ -1,6 +1,7 @@
 #include "rundeck_opts.h"
 
       SUBROUTINE DYNAM2
+!@vers 2013/03/25
       USE model_com, only : im,jm,lm,ls1,
      &     u,v,t,p,NIdyn,dt,DTsrc,NSTEP,mrch,ndaa
       USE DYNAMICS, only : pu,pv,sd, pua,pva,sda
@@ -15,7 +16,7 @@
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     PT, PX, PSAVE, AM1, AM2, FPEU,FPEV, PPGF
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
-     &     UT,VT,TT,TZ,TZT,MA,UX,VX
+     &     UT,VT,TT,TZ,TZT,MMA,UX,VX
 
       REAL*8 DTFS,DTLF, DAMSUM
       INTEGER I,J,L   !@var I,J,L  loop variables
@@ -97,9 +98,9 @@ C**** ADVECT TEMPERATURE and accumulate mass fluxes
             enddo
           enddo
         enddo
-        call calc_ma(psave,ma)
+        call calc_ma (psave,mma)
         CALL HALO_UPDATE(grid,PU, FROM=NORTH)
-        CALL AADVT3(MA,T,TMOM, TZ, SD,PU,PV, DTLF)
+        CALL AADVT3 (MMA,T,TMOM, TZ, SD,PU,PV, DTLF)
         do l=1,lm
           do j=j_0s-1,j_1
             do i=1,imaxj(j)
@@ -1316,7 +1317,7 @@ c convert xy velocities back to polar coordinates
       return
       end subroutine isotropuv2
 
-      SUBROUTINE AADVT3(MA,RM,RMOM,RZ,SD,PU,PV,DT)
+      SUBROUTINE AADVT3 (MMA,RM,RMOM,RZ,SD,PU,PV,DT)
 !@sum  AADVT advection driver
 !@auth G. Russell, modified by Maxwell Kelley
 c****
@@ -1330,7 +1331,7 @@ c****
 c**** input/output:
 c****     rm = tracer concentration
 c****   rmom = moments of tracer concentration
-c****     ma (kg) = fluid mass
+c****     mma (kg) = fluid mass
 c****
       USE DOMAIN_DECOMP_1D, only: grid, get
       USE DOMAIN_DECOMP_1D, only:
@@ -1342,13 +1343,13 @@ c****
       USE GEOM, only : imaxj
       IMPLICIT NONE
 
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: 
-     &                  rm,ma,rz
-      REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) 
+      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) ::
+     &                  rm,mma,rz
+      REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
      &               :: rmom
 
       REAL*8, INTENT(IN) :: DT
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm), 
+      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm),
      &    intent(in) :: pu,pv
       REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm-1),
      &    intent(in) :: sd
@@ -1373,7 +1374,7 @@ c**** Extract domain decomposition info
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 c halo updates
-c      CALL HALO_UPDATE(grid, ma) ! not needed
+c      CALL HALO_UPDATE (grid, mma) ! not needed
 c      CALL HALO_UPDATE(grid, rm) ! already done by DYNAM
       CALL HALO_UPDATE_COLUMN(grid, rmom)
 
@@ -1401,8 +1402,8 @@ C**** convert from concentration to mass units
 C****
         DO J=J_0S-1,J_1S+1
         DO I=1,IMAXJ(J)
-          RM(I,J,L)=RM(I,J,L)*MA(I,J,L)
-          RMOM(:,I,J,L)=RMOM(:,I,J,L)*MA(I,J,L)
+          RM(I,J,L)=RM(I,J,L)*MMA(I,J,L)
+          RMOM(:,I,J,L)=RMOM(:,I,J,L)*MMA(I,J,L)
         enddo
         enddo
 
@@ -1411,44 +1412,44 @@ C****
           mflx(:,j)=pu(:,j,l)*(.5*dt)
         enddo
         CALL AADVTX3(RM(1,j_0h,l),RMOM(1,1,j_0h,l),
-     &       MA(1,j_0h,l),MFLX,jmin_x,jmax_x)
+     &       MMA(1,j_0h,l),MFLX,jmin_x,jmax_x)
 
 c include halo lat to the south
         mflx(:,J_0S-1:J_1S)=pv(:,J_0S:J_1S+1,l)*dt
         if (HAVE_NORTH_POLE) mflx(:,jm)=0.
         CALL AADVTY3(RM(1,j_0h,l),RMOM(1,1,j_0h,l),
-     &       MA(1,j_0h,l),MFLX)
+     &       MMA(1,j_0h,l),MFLX)
 
         if(l.gt.1) then
           do j=j_0,j_1
           do i=1,imaxj(j)
             MFLX(i,j)=SD(i,j,L-1)*(-DT)
 c high vertical resolution near steep topography needs courz checks
-            if(     mflx(i,j).gt.ma(i,j,l-1)) then
+            if(     mflx(i,j).gt.mma(i,j,l-1)) then
 c              write(6,'(a6,3i4,f6.2)')
-c     &             'courz ',i,j,l-1,mflx(i,j)/ma(i,j,l-1)
+c     &             'courz ',i,j,l-1,mflx(i,j)/mma(i,j,l-1)
               rmom(zmoms,i,j,l-1) = 0.
-            elseif(-mflx(i,j).gt.ma(i,j,l  )) then
+            elseif(-mflx(i,j).gt.mma(i,j,l  )) then
 c              write(6,'(a6,3i4,f6.2)')
-c     &             'courz ',i,j,l-1,mflx(i,j)/ma(i,j,l)
+c     &             'courz ',i,j,l-1,mflx(i,j)/mma(i,j,l)
               rmom(zmoms,i,j,l) = 0.
             endif
           enddo
           enddo
 
           CALL AADVTZ3(RM(1,j_0h,l-1),RMOM(1,1,j_0h,l-1),
-     &         MA(1,j_0h,l-1),MFLX,mwdn,fdn,fmomdn)
+     &         MMA(1,j_0h,l-1),MFLX,mwdn,fdn,fmomdn)
 
           jmin_x = j_0s; jmax_x = j_1s
           do j=jmin_x,jmax_x
             mflx(:,j)=pu(:,j,l-1)*(.5*dt)
           enddo
           CALL AADVTX3(RM(1,j_0h,l-1),RMOM(1,1,j_0h,l-1),
-     &         MA(1,j_0h,l-1),MFLX,jmin_x,jmax_x)
+     &         MMA(1,j_0h,l-1),MFLX,jmin_x,jmax_x)
 
           DO J=J_0,J_1
           DO I=1,IM
-            BYMA = 1.D0/MA(I,J,L-1)
+            BYMA = 1 / MMA(I,J,L-1)
             RM(I,J,L-1)=RM(I,J,L-1)*BYMA
             RMOM(:,I,J,L-1)=RMOM(:,I,J,L-1)*BYMA
             rz(i,j,l-1)=rmom(mz,i,j,l-1)
@@ -1462,16 +1463,16 @@ c     &             'courz ',i,j,l-1,mflx(i,j)/ma(i,j,l)
       l=lm
       mflx(:,j_0:j_1)=0.
       CALL AADVTZ3(RM(1,j_0h,l),RMOM(1,1,j_0h,l),
-     &     MA(1,j_0h,l),MFLX,mwdn,fdn,fmomdn)
+     &     MMA(1,j_0h,l),MFLX,mwdn,fdn,fmomdn)
       jmin_x = j_0s; jmax_x = j_1s
       do j=jmin_x,jmax_x
         mflx(:,j)=pu(:,j,l)*(.5*dt)
       enddo
       CALL AADVTX3(RM(1,j_0h,l),RMOM(1,1,j_0h,l),
-     &     MA(1,j_0h,l),MFLX,jmin_x,jmax_x)
+     &     MMA(1,j_0h,l),MFLX,jmin_x,jmax_x)
       DO J=J_0,J_1
       DO I=1,IM
-        BYMA = 1.D0/MA(I,J,L)
+        BYMA = 1 / MMA(I,J,L)
         RM(I,J,L)=RM(I,J,L)*BYMA
         RMOM(:,I,J,L)=RMOM(:,I,J,L)*BYMA
         rz(i,j,l)=rmom(mz,i,j,l)
@@ -1507,7 +1508,7 @@ c****
       use QUSCOM, only : im,jm
       implicit none
       integer :: jmin,jmax
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &                  rm,mass,mu
       REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &                  rmom
@@ -1716,7 +1717,7 @@ c****
       use QUSDEF
       use QUSCOM, only : im,jm,byim
       implicit none
-      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: 
+      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &                  rm,mass,mv
       REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:
      &                          grid%J_STOP_HALO) :: rmom
@@ -1879,9 +1880,9 @@ c**** average and unscale polar boxes
       if (HAVE_SOUTH_POLE) then
         mass(1,1 ) = (m_sp + sum(mass(:,1 )-m_sp))*byim
         rm(1,1 ) = (rm_sp + sum(rm(:,1 )-rm_sp))*byim
-        rmom(mz ,1,1 ) = (rzm_sp + 
+        rmom(mz ,1,1 ) = (rzm_sp +
      *       sum(rmom(mz ,:,1 )-rzm_sp ))*byim
-        rmom(mzz,1,1 ) = (rzzm_sp+ 
+        rmom(mzz,1,1 ) = (rzzm_sp+
      *       sum(rmom(mzz,:,1 )-rzzm_sp))*byim
         rmom(ihmoms,1,1) = 0
       end if   !SOUTH POLE
@@ -1889,9 +1890,9 @@ c**** average and unscale polar boxes
       if (HAVE_NORTH_POLE) then
         mass(1,jm) = (m_np + sum(mass(:,jm)-m_np))*byim
         rm(1,jm) = (rm_np + sum(rm(:,jm)-rm_np))*byim
-        rmom(mz ,1,jm) = (rzm_np + 
+        rmom(mz ,1,jm) = (rzm_np +
      &       sum(rmom(mz ,:,jm)-rzm_np ))*byim
-        rmom(mzz,1,jm) = (rzzm_np+ 
+        rmom(mzz,1,jm) = (rzzm_np+
      &       sum(rmom(mzz,:,jm)-rzzm_np))*byim
         rmom(ihmoms,1,jm) = 0.
       end if  !NORTH POLE
@@ -1921,11 +1922,11 @@ c****
       use QUSCOM, only : im,jm
       USE GEOM, only : imaxj
       implicit none
-      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,2) 
+      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,2)
      &        :: rm,mass
-      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo,2) 
+      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo,2)
      &        :: rmom
-      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo) 
+      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo)
      &        :: fmomdn
       REAL*8, dimension(IM,grid%j_strt_halo:grid%j_stop_halo) ::
      &     mw,mwdn,fdn

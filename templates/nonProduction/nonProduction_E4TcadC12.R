@@ -112,6 +112,7 @@ TCC12_E4Tcad (ModelE4 8x10, 12 layers, with Tcad tracers for testing only)
 &&PARAMETERS
 #include "static_ocn_params"
 #include "sdragC12_params"
+#include "gwdragC12_params"
 
 wsn_max=2.   ! restrict snow depth to 2 m-h2o (if 0. snow depth is NOT restricted)
 

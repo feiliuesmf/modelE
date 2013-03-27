@@ -101,6 +101,7 @@ contains
 !-------------------------------------------------------------------------------
   subroutine run_fv(fv_wrapper)
 !-------------------------------------------------------------------------------
+!@vers 2013/03/25
     use atm_com, only : clock=>atmclock
     USE RESOLUTION, Only : IM, JM, LM
     USE ATM_COM, Only : U, V, T, P, ZATMO
@@ -110,7 +111,7 @@ contains
     USE ATMDYN, only:  COMPUTE_MASS_FLUX_DIAGS
 #endif
     USE DYNAMICS, ONLY: PU, PV, SD, CONV
-    USE ATM_COM, ONLY: MA, PHI, GZ, PUA, PVA, SDA
+    USE ATM_COM, ONLY: MMA, PHI, GZ, PUA, PVA, SDA
 
     Type (FV_CORE_WRAPPER)    :: fv_wrapper
     type (ESMF_TimeInterval) :: timeInterval
@@ -127,7 +128,7 @@ contains
 #endif
 
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
-    call calc_amp(P, MA)
+    Call CALC_AMP (P, MMA)
 
     Call Copy_modelE_to_FV_import(fv_wrapper%fv)
 
