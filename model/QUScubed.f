@@ -1203,7 +1203,7 @@ c update rxm as if upwind box had zero moments and r = fm/am
       use domain_decomp_atm, only : grid,halo_update
       implicit none
       integer :: i,j,l
-      real*8 :: byma
+      real*8 :: bymma
 
       call calc_amp(ps,mb)
       call halo_update(grid, mb) ! for convenience. but calc_amp could fill in the halo.
@@ -1238,9 +1238,9 @@ c
       do l=1,lm
       do j=js,je
       do i=is,ie
-        byma = 1.d0/mma(i,j,l)
-        q(i,j,l)=q(i,j,l)*byma
-        qmom(:,i,j,l)=qmom(:,i,j,l)*byma
+        bymma = 1 / mma(i,j,l)
+        q(i,j,l) = q(i,j,l)*bymma
+        qmom(:,i,j,l) = qmom(:,i,j,l)*bymma
       enddo
       enddo
       enddo

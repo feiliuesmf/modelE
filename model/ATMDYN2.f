@@ -1319,6 +1319,7 @@ c convert xy velocities back to polar coordinates
 
       SUBROUTINE AADVT3 (MMA,RM,RMOM,RZ,SD,PU,PV,DT)
 !@sum  AADVT advection driver
+!@vers 2013/03/27
 !@auth G. Russell, modified by Maxwell Kelley
 c****
 c**** AADVT advects tracers using the Quadradic Upstream Scheme.
@@ -1362,7 +1363,7 @@ c****
 
       INTEGER :: I,J,L,N
       integer :: jmin_x,jmax_x
-      REAL*8 :: BYMA
+      Real*8  :: byMMA
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
@@ -1449,9 +1450,9 @@ c     &             'courz ',i,j,l-1,mflx(i,j)/mma(i,j,l)
 
           DO J=J_0,J_1
           DO I=1,IM
-            BYMA = 1 / MMA(I,J,L-1)
-            RM(I,J,L-1)=RM(I,J,L-1)*BYMA
-            RMOM(:,I,J,L-1)=RMOM(:,I,J,L-1)*BYMA
+            byMMA = 1 / MMA(I,J,L-1)
+            RM(I,J,L-1) = RM(I,J,L-1)*byMMA
+            RMOM(:,I,J,L-1) = RMOM(:,I,J,L-1)*byMMA
             rz(i,j,l-1)=rmom(mz,i,j,l-1)
           enddo
           enddo
@@ -1472,9 +1473,9 @@ c     &             'courz ',i,j,l-1,mflx(i,j)/mma(i,j,l)
      &     MMA(1,j_0h,l),MFLX,jmin_x,jmax_x)
       DO J=J_0,J_1
       DO I=1,IM
-        BYMA = 1 / MMA(I,J,L)
-        RM(I,J,L)=RM(I,J,L)*BYMA
-        RMOM(:,I,J,L)=RMOM(:,I,J,L)*BYMA
+        byMMA = 1 / MMA(I,J,L)
+        RM(I,J,L) = RM(I,J,L)*byMMA
+        RMOM(:,I,J,L) = RMOM(:,I,J,L)*byMMA
         rz(i,j,l)=rmom(mz,i,j,l)
       enddo
       enddo

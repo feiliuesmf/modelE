@@ -2724,6 +2724,7 @@ C****
 !@sum  QDYNAM is the driver to integrate dynamic terms by the method
 !@+          of pre-computing Courant limits using mean fluxes
 !@+    It replaces CALL AADVT (MMA,Q,QMOM, SD,PU,PV, DTLF,.TRUE.,
+!@vers 2013/03/27
 !@auth J. Lerner
       use resolution, only : im,jm,lm
       USE ATM_COM, only : q
@@ -2736,7 +2737,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
       USE DOMAIN_DECOMP_1D, only : halo_update, south, north
       IMPLICIT NONE
-      REAL*8 byncyc,byma
+      Real*8 :: byNCYC,byMMA
       INTEGER I,J,L   !@var I,J,L loop variables
 
 c**** Extract domain decomposition info
@@ -2774,9 +2775,9 @@ C****
       DO L=1,LM
       DO J=J_0,J_1
       DO I=1,IM
-        byMA = 1 / MMA(I,J,L)
-        Q(I,J,L)=Q(I,J,L)*BYMA
-        QMOM(:,I,J,L)=QMOM(:,I,J,L)*BYMA
+        byMMA = 1 / MMA(I,J,L)
+        Q(I,J,L) = Q(I,J,L)*byMMA
+        QMOM(:,I,J,L) = QMOM(:,I,J,L)*byMMA
       enddo; enddo; enddo
 
 #ifndef TRACERS_ON
