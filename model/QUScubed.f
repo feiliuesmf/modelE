@@ -116,7 +116,7 @@ c
      &           mma(i,jup),rmom(mz,i,jup),rmom(myz,i,jup),ysigni)
             call susin(bm,rmom(mxx,i,jup),mma(i,jup),rmom(mxx,i,jup))
             call susin(bm,rmom(mzx,i,jup),mma(i,jup),rmom(mzx,i,jup))
-            call susin(bm,rmom(mzz,i,jup),mam(i,jup),rmom(mzz,i,jup))
+            call susin(bm,rmom(mzz,i,jup),mma(i,jup),rmom(mzz,i,jup))
           endif
           mma(i,j) = mma(i,j) + mv(i,jbm)*ysigni
         enddo
