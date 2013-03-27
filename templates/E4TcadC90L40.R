@@ -56,6 +56,10 @@ RES_CS90L40                         ! C90 horiz. resolution, top at 0.1mb, 40 la
 TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shared_source_files"
 TRDIAG                              ! for offline postprocessing
+ShindellTracersMetadata
+sharedTracersMetadata
+KochTracersMetadata
+MiscTracersMetadata
 #include "tracer_shindell_source_files"
 #include "tracer_aerosols_source_files"
 
