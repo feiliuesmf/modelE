@@ -119,7 +119,7 @@ C Physical properties of aerosol components
 
 
       SUBROUTINE TOMAS_DRV 
-
+!@vers 2013/03/26
 C-----INCLUDE FILES--------------------------------------------------
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, 
      &   write_parallel ,am_i_root
@@ -141,7 +141,7 @@ C-----INCLUDE FILES--------------------------------------------------
       USE MODEL_COM, only : dtsrc
       USE GEOM, only: axyp,imaxj,BYAXYP
       USE CONSTANT,   only:  lhe,mair,gasc   
-      USE ATM_COM,   only: pmid,pk,byam,gz, am   ! midpoint pressure in hPa (mb)
+      USE ATM_COM,   only: pmid,pk,byam,gz, MA   ! midpoint pressure in hPa (mb)
 !                                           and pk is t mess up factor
 !                                           BYAM  1/Air mass (m^2/kg)
       IMPLICIT NONE
@@ -206,7 +206,7 @@ C     Loop over all grid cells
                temp = pk(l,i,j)*t(i,j,l) !should be in [K]
                rh = MIN(1.,q(i,j,l)/QSAT(temp,lhe,pmid(l,i,j))) ! rH [0-1]
                pres= pmid(l,i,j)*100. ! pmid in [hPa]
-               boxmass=am(l,i,j)*axyp(i,j) !kg of air
+               boxmass = MA(l,i,j)*axyp(i,j) !kg of air
                boxvol=boxmass/mair*1000.d0
      &              *gasc*temp/pres*1e6 !cm3
  
@@ -1718,10 +1718,10 @@ C Bulk species
 
 !@sum subgridcoag_drv: subgrid coagulation for 3D emissions  
 !@+   No moments updated here because aerosol emission are positive! 
+!@vers 2013/03/26
 !@auth Jeff Pierce/Yunha Lee, July 2011 
 
       SUBROUTINE subgridcoag_drv(dtstep)
-
 
       USE DOMAIN_DECOMP_ATM, ONLY : GRID,getDomainBounds,write_parallel
       USE TOMAS_AEROSOL
@@ -1733,7 +1733,7 @@ C Bulk species
      $     ,q                   ! saturated pressure
      $     ,pmid                ! midpoint pressure in hPa (mb)
      $     ,pk                  ! pk is t mess up factor
-     $     ,am                 ! BYAM  1/Air mass (m^2/kg) 
+     $     ,MA                  ! BYAM  1/Air mass (m^2/kg) 
       
       USE MODEL_COM, only : dtsrc
       USE GEOM, only : imaxj,axyp,BYAXYP
@@ -1779,7 +1779,7 @@ c$$$      ENDIF
       tscale=5.*3600.
       temp = pk(l,i,j)*t(i,j,l) !should be in [K]
       pres= pmid(l,i,j)*100.    ! pmid in [hPa]
-      boxvol=am(l,i,j)*axyp(i,j)/mair*1000.d0
+      boxvol = MA(l,i,j)*axyp(i,j)/mair*1000.d0
      &     *gasc*temp/pres*1e6  !cm3
 
       do k=1,nbins
@@ -1933,6 +1933,7 @@ c$$$      ENDIF
 
 !@sum subgridcoag_drv_2D: subgrid coagulation for 2D emissions  
 !@+   No moments updated here because aerosol emission are positive! 
+!@vers 2013/03/26
 !@auth Jeff Pierce/Yunha Lee, July 2011 
 
       SUBROUTINE subgridcoag_drv_2D(dtstep)
@@ -1948,7 +1949,7 @@ C-----INCLUDE FILES--------------------------------------------------
      $     ,q                   ! saturated pressure
      $     ,pmid                ! midpoint pressure in hPa (mb)
      $     ,pk                  ! pk is t mess up factor
-     $     ,am                 ! BYAM  1/Air mass (m^2/kg) 
+     $     ,MA                  ! BYAM  1/Air mass (m^2/kg) 
       
       USE MODEL_COM, only : dtsrc
       USE GEOM, only : imaxj,axyp,BYAXYP
@@ -1987,7 +1988,7 @@ C-----VARIABLE DECLARATIONS-----------------------------------
         tscale=5.*3600.
         temp = pk(l,i,j)*t(i,j,l) !should be in [K]
         pres= pmid(l,i,j)*100.  ! pmid in [hPa]
-        boxvol=am(l,i,j)*axyp(i,j)/mair*1000.d0
+        boxvol = MA(l,i,j)*axyp(i,j)/mair*1000.d0
      &       *gasc*temp/pres*1e6 !cm3
         
 !     Amount of tracer before emission is applied.         

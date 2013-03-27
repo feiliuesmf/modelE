@@ -6646,6 +6646,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 
       SUBROUTINE tracer_IC
 !@sum tracer_IC initializes tracers when they are first switched on
+!@vers 2013/03/26
 !@auth Jean Lerner
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT,readt_parallel,
      &     readt8_column, skip_parallel
@@ -6686,7 +6687,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE FLUXES, only : flice,focean
 #endif
       USE GEOM, only: axyp,byaxyp,lat2d_dg,lonlat_to_ij
-      USE ATM_COM, only: am,byam  ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: MA,byam  ! Air mass of each box (kg/m^2)
       USE PBLCOM, only: npbl
 #ifdef TRACERS_SPECIAL_Lerner
       USE LINOZ_CHEM_COM, only: tlt0m,tltzm, tltzzm
@@ -6881,7 +6882,7 @@ C**** set some defaults for water tracers
         case ('Air')
           do l=1,lm
           do j=J_0,J_1
-            trm(:,j,l,n) = am(l,:,j)*axyp(:,j)
+            trm(:,j,l,n) = MA(l,:,j)*axyp(:,j)
           end do; enddo
 
         case ('SF6','SF6_c')
@@ -6896,7 +6897,7 @@ C**** set some defaults for water tracers
           call closeunit(iu_data)
           do l=1,lm         !ppmv==>ppmm
           do j=J_0,J_1
-            trm(:,j,l,n) = co2ic(:,j,l)*am(l,:,j)*axyp(:,j)*1.54d-6
+            trm(:,j,l,n) = co2ic(:,j,l)*MA(l,:,j)*axyp(:,j)*1.54d-6
           enddo; enddo
 
         case ('N2O')
@@ -6908,7 +6909,7 @@ C**** ESMF: Each processor reads the global array: N2Oic
           if (AM_I_ROOT()) write(6,*) title,' read from N2O_IC'
           do l=1,lm         !ppmv==>ppmm
           do j=J_0,J_1
-            trm(:,j,l,n) = am(l,:,j)*axyp(:,j)*N2Oic(j,l)
+            trm(:,j,l,n) = MA(l,:,j)*axyp(:,j)*N2Oic(j,l)
           enddo; enddo
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -6955,7 +6956,7 @@ C**** ESMF: Each processor reads the global array: N2Oic
           CFC11ic = 268.D-12*136.5/29.029    !268 PPTV
           do l=1,lm
           do j=J_0,J_1
-            trm(:,j,l,n) = am(l,:,j)*axyp(:,j)*CFC11ic
+            trm(:,j,l,n) = MA(l,:,j)*axyp(:,j)*CFC11ic
           enddo; enddo
 #ifdef TRACERS_SPECIAL_Lerner
 C****
@@ -6972,17 +6973,17 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
         trm(i,j,:,n) = 0.
         PUP = STRATM*GRAV
         DO LS=LM,1,-1
-          PDN = PUP + AM(ls,I,J)*GRAV
+          PDN = PUP + MA(ls,I,J)*GRAV
           IF(PDN.GT.10000.d0)  GO TO 450
           trm(I,J,LS,N) =
-     *      AM(ls,I,J)*AXYP(I,J)*icCFC(i,j)*.5*(PUP+PDN)/10000.d0
+     *      MA(ls,I,J)*AXYP(I,J)*icCFC(i,j)*.5*(PUP+PDN)/10000.d0
           PUP = PDN
         enddo
   450   CONTINUE
-        trm(I,J,LS,N) = AM(ls,I,J)*AXYP(I,J)*icCFC(i,j)*
+        trm(I,J,LS,N) = MA(ls,I,J)*AXYP(I,J)*icCFC(i,j)*
      *    (1.-.5*(10000.-PUP)*(10000.-PUP)/(10000.*(PDN-PUP)))
         DO LT=1,LS-1
-          trm(I,J,LT,N) = AM(lt,I,J)*AXYP(I,J)*icCFC(i,j)
+          trm(I,J,LT,N) = MA(lt,I,J)*AXYP(I,J)*icCFC(i,j)
         enddo
       enddo; enddo
 #endif
@@ -6993,7 +6994,7 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
           call get_14CO2_IC(ic14CO2)
           do l=1,lm         !ppmv==>ppmm
           do j=J_0,J_1
-            trm(:,j,l,n) = am(l,:,j)*axyp(:,j)*ic14CO2(:,j,l)*1.d-18
+            trm(:,j,l,n) = MA(l,:,j)*axyp(:,j)*ic14CO2(:,j,l)*1.d-18
           enddo; enddo
 #endif
 
@@ -7057,14 +7058,14 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
           call get_wofsy_gas_IC(trname(n),CH4ic)
           do l=1,lm         !ppbv==>ppbm
           do j=J_0,J_1
-            trm(:,j,l,n) = am(l,:,j)*axyp(:,j)*CH4ic(j,l)*0.552d-9
+            trm(:,j,l,n) = MA(l,:,j)*axyp(:,j)*CH4ic(j,l)*0.552d-9
           enddo; enddo
 #endif
 
         case ('O3')
           do l=1,lm
           do j=J_0,J_1
-            trm(:,j,l,n) = am(l,:,j)*axyp(:,j)*20.d-9*vol2mass(n)
+            trm(:,j,l,n) = MA(l,:,j)*axyp(:,j)*20.d-9*vol2mass(n)
           enddo; enddo
 #ifdef TRACERS_SPECIAL_Lerner
           do l=lm,lm+1-nstrtc,-1
@@ -7072,11 +7073,11 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
             do j=J_0,J_1
             if (tlt0m(j,lr,5) /= 0.) then
             trm(:,j,l,n) =
-     *          tlt0m(j,lr,1)*am(l,:,j)*axyp(:,j)*vol2mass(n)
+     *          tlt0m(j,lr,1)*MA(l,:,j)*axyp(:,j)*vol2mass(n)
             trmom(mz,:,j,l,n)  =
-     *          tltzm(j,lr,1)*am(l,:,j)*axyp(:,j)*vol2mass(n)
+     *          tltzm(j,lr,1)*MA(l,:,j)*axyp(:,j)*vol2mass(n)
             trmom(mzz,:,j,l,n)  =
-     *         tltzzm(j,lr,1)*am(l,:,j)*axyp(:,j)*vol2mass(n)
+     *         tltzzm(j,lr,1)*MA(l,:,j)*axyp(:,j)*vol2mass(n)
             end if
             end do
           end do
@@ -7110,9 +7111,9 @@ c     tmominit = 0.
         do l=1,lm
         do j=J_0,J_1
           do i=I_0,I_1
-            trm(i,j,l,n) =  q(i,j,l)*am(l,i,j)*axyp(i,j)*trinit
-            trwm(i,j,l,n)= wm(i,j,l)*am(l,i,j)*axyp(i,j)*trinit
-            trmom(:,i,j,l,n) = qmom(:,i,j,l)*am(l,i,j)*axyp(i,j)
+            trm(i,j,l,n) =  q(i,j,l)*MA(l,i,j)*axyp(i,j)*trinit
+            trwm(i,j,l,n)= wm(i,j,l)*MA(l,i,j)*axyp(i,j)*trinit
+            trmom(:,i,j,l,n) = qmom(:,i,j,l)*MA(l,i,j)*axyp(i,j)
      *           *tmominit
           end do
         end do
@@ -7136,7 +7137,7 @@ c     tmominit = 0.
           do j=J_0,J_1
           do i=I_0,I_1
             if(nint(lat2d_dg(i,j)).ge.44.and.nint(lat2d_dg(i,j)).le.56)
-     *           trm(i,j,l,n)= q(i,j,l)*am(l,i,j)*axyp(i,j)*1d10*1d-18
+     *           trm(i,j,l,n)= q(i,j,l)*MA(l,i,j)*axyp(i,j)*1d10*1d-18
           end do
           end do
           end do
@@ -7243,32 +7244,32 @@ c**** earth
           case default; ICfactor=1.d0
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-            trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*1.d-11*ICfactor
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-11*ICfactor
             if(PRES(L).lt.10.)trm(i,j,l,n)=trm(i,j,l,n)*3.d2
           end do; end do; end do
 
         case ('ClOx')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      am(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-11*ClOxalt(l)
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-11*ClOxalt(l)
           end do; end do; end do
 
         case ('BrOx')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      am(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-11*BrOxalt(l)
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-11*BrOxalt(l)
           end do; end do; end do
 
         case ('HCl')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      am(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-11*HClalt(l)
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-11*HClalt(l)
           end do; end do; end do
 
         case ('ClONO2')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      am(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-11*ClONO2alt(l)
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-11*ClONO2alt(l)
           end do; end do; end do
 
         case ('N2O5')
@@ -7277,7 +7278,7 @@ c**** earth
           case default; ICfactor=1.d0
           end select
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
-            trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*1.d-12*ICfactor
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-12*ICfactor
           end do; end do; end do
 
         case ('HNO3')
@@ -7286,7 +7287,7 @@ c**** earth
           case default; ICfactor=1.d0
           end select
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
-            trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*1.d-10*ICfactor
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-10*ICfactor
             if(PRES(L).lt.50.and.PRES(L).gt.10.)
      &      trm(i,j,l,n)=trm(i,j,l,n)*1.d2
           end do; end do; end do
@@ -7294,19 +7295,19 @@ c**** earth
 
         case ('H2O2')
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
-            trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*5.d-10
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*5.d-10
           end do; end do; end do
 
 #ifdef SHINDELL_STRAT_EXTRA
         case ('GLT')
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
-            trm(i,j,l,n) = GLTic*vol2mass(n)*am(l,i,j)*axyp(i,j)
+            trm(i,j,l,n) = GLTic*vol2mass(n)*MA(l,i,j)*axyp(i,j)
           end do; end do; end do
 #endif
 
         case ('CH3OOH', 'HCHO')
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
-            trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*1.d-11
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-11
           end do; end do; end do
 
 #ifdef TRACERS_SPECIAL_Shindell
@@ -7316,7 +7317,7 @@ c**** earth
           case default; ICfactor=1.d0
           end select
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
-            trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*1.d-12*ICfactor
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-12*ICfactor
           end do; end do; end do
 
         case ('CO')
@@ -7348,7 +7349,7 @@ c**** earth
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      am(l,i,j)*axyp(i,j)*vol2mass(n)*4.d-11*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*4.d-11*ICfactor
           end do; end do; end do
 
         case ('Isoprene')
@@ -7358,7 +7359,7 @@ c**** earth
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      am(l,i,j)*axyp(i,j)*vol2mass(n)*0.d-11*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*0.d-11*ICfactor
           end do; end do; end do
 
         case ('AlkylNit')
@@ -7368,7 +7369,7 @@ c**** earth
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      am(l,i,j)*axyp(i,j)*vol2mass(n)*2.d-10*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*2.d-10*ICfactor
           end do; end do; end do
 
         case('Alkenes')
@@ -7378,7 +7379,7 @@ c**** earth
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      am(l,i,j)*axyp(i,j)*vol2mass(n)*4.d-10*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*4.d-10*ICfactor
           end do; end do; end do
 
         case('Paraffin')
@@ -7388,7 +7389,7 @@ c**** earth
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      am(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-10*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-10*ICfactor
           end do; end do; end do
 
         case('Terpenes'
@@ -7412,7 +7413,7 @@ c**** earth
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      am(l,i,j)*axyp(i,j)*vol2mass(n)*0.d0*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*0.d0*ICfactor
           end do; end do; end do
 #endif /* TRACERS_SPECIAL_Shindell */
 
@@ -7423,13 +7424,13 @@ c**** earth
              !       [bymair]=1/kg_air, [atmCO2]=ppmv=10^(-6)kg_CO2/kg_air
              !       [vol2mass]=(gr,CO2/moleCO2)/(gr,air/mole air)
 #ifdef constCO2
-             trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)
+             trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)
      .                    * atmCO2*1.d-6
              !!!!trmom(:,i,j,l,n)=0.d0
              atmocn%gtracer(n,i,j) = vol2mass(n)
      .                    * atmCO2 * 1.d-6      !initialize gtracer
 #else
-             trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)
+             trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)
      .                    * xnow(1) * 1.d-6
              atmocn%gtracer(n,i,j) = vol2mass(n)
      .                    * xnow(1) * 1.d-6      !initialize gtracer
@@ -7441,9 +7442,9 @@ c**** earth
         case ('CFCn')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             if(l.ge.LS1) then
-              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)*2.d-13
+              trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)*2.d-13
             else
-              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-13
+              trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-13
             end if
           end do; end do; end do
 #endif
@@ -7492,24 +7493,24 @@ c**** earth
         case ('BrONO2','HBr','HOBr')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             if(l.ge.LS1) then
-              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)*2.d-13
+              trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)*2.d-13
             else
-              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-13
+              trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-13
             end if
           end do; end do; end do
 
         case ('HOCl')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             if(l.ge.LS1) then
-              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-11
+              trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-11
             else
-              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-11
+              trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-11
             end if
           end do; end do; end do
 
         case('DMS')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-            trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-13
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-13
           end do; end do; end do
 
 #ifndef TRACERS_TOMAS
@@ -7532,13 +7533,13 @@ c**** earth
      *         'M_SSA_SS','M_SSC_SS','M_BC1_BC','M_OCC_OC',
      *         'M_SSS_SS','M_SSS_SU')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-            trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-14
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-14
           end do; end do; end do
 #endif
 #ifdef TRACERS_TOMAS
         case('SO2','NH3','NH4','H2SO4','SOAgas','H2O2_s')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-            trm(i,j,l,n) =am(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-30
+            trm(i,j,l,n) =MA(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-30
           end do; end do; end do
 
        case('ASO4__01','ASO4__02','ASO4__03','ASO4__04','ASO4__05',
@@ -7567,7 +7568,7 @@ c**** earth
      *    'AH2O__11','AH2O__12','AH2O__13','AH2O__14','AH2O__15')
 
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-                trm(i,j,l,n) =am(l,i,j)*axyp(i,j)*1.d-20
+                trm(i,j,l,n) =MA(l,i,j)*axyp(i,j)*1.d-20
           end do; end do; end do
 
       CASE('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
@@ -7577,8 +7578,8 @@ c**** earth
            k=n-IDTNUMD+1
 
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-                trm(i,j,l,n) =am(l,i,j)*axyp(i,j)*7.d-20
-     &               /(sqrt(xk(k+1)*xk(k))) !am(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-14
+                trm(i,j,l,n) =MA(l,i,j)*axyp(i,j)*7.d-20
+     &               /(sqrt(xk(k+1)*xk(k))) !MA(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-14
           end do; end do; end do
 #endif
 
@@ -7810,7 +7811,6 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE resolution,ONLY : lm,psf
       USE GEOM, only: axyp
-      USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
       USE DOMAIN_DECOMP_ATM, only: GRID,GLOBALSUM
       USE MODEL_COM, only : nday,nstep=>itime
 #ifdef constCO2
@@ -8223,6 +8223,7 @@ C**** at the start of any day
 #ifdef TRACERS_ON
       SUBROUTINE set_tracer_2Dsource
 !@sum tracer_source calculates non-interactive sources for tracers
+!@vers 2013/03/26
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: itime,dtsrc,nday
       use TracerSurfaceSource_mod, only: TracerSurfaceSource
@@ -8242,7 +8243,7 @@ C**** at the start of any day
       use OldTracer_mod, only: itime_tr0
       use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR, 
      &                             HOURS_PER_DAY, INT_MONTHS_PER_YEAR
-      USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: MA  ! Air mass of each box (kg/m^2)
       USE TRACER_COM, only: ntm
       USE FLUXES, only: trsource
       use TRACER_COM, only: tracers
@@ -8636,7 +8637,7 @@ C**** First layer is set to a constant 462.2 ppbm. (300 PPB V)
 C****
       case ('N2O')
       do j=J_0,J_1
-        trsource(:,j,1,n) = (am(1,:,j)*axyp(:,j)*462.2d-9
+        trsource(:,j,1,n) = (MA(1,:,j)*axyp(:,j)*462.2d-9
      *   -trm(:,j,1,n))*bydt
       end do
 C****
@@ -8659,13 +8660,13 @@ C****
       do j=J_0,J_1
       do i=I_0,I_1
          if (lat2d(i,j).lt.0.) then
-               tnew = am(1,i,j)*axyp(i,j)*(4.82d-18*46./mair)*
+               tnew = MA(1,i,j)*axyp(i,j)*(4.82d-18*46./mair)*
      *          (44.5 + tmon*(1.02535d0 - tmon*
      *                  (2.13565d-2 - tmon*8.61853d-5)))
                if (tnew.lt.trm(i,j,1,n))
      *             trsource(i,j,1,n) = (tnew-trm(i,j,1,n))*bydt
          else
-               tnew = am(1,i,j)*axyp(i,j)*(4.82d-18*46./mair)*
+               tnew = MA(1,i,j)*axyp(i,j)*(4.82d-18*46./mair)*
      *          (73.0 - tmon*(0.27823d0 + tmon*
      *                  (3.45648d-3 - tmon*4.21159d-5)))
                if (tnew.lt.trm(i,j,1,n))
@@ -9006,6 +9007,7 @@ c latlon grid
 !@sum tracer_3Dsource calculates interactive sources for tracers
 !@+   Please note that if the generic routine 'apply_tracer_3Dsource'
 !@+   is used, all diagnostics and moments are updated automatically.
+!@vers 2013/03/26
 !@auth Jean Lerner/Greg Faluvegi
 !@calls DIAGTCA, masterchem, apply_tracer_3Dsource
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, 
@@ -9039,7 +9041,7 @@ c latlon grid
       USE FLUXES, only: tr3Dsource
       use model_com, only: modelEclock
       USE MODEL_COM, only: itime,dtsrc,itimeI
-      USE ATM_COM, only: am,byam ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: MA,byam ! Air mass of each box (kg/m^2)
       use ATM_COM, only: phi
       USE apply3d, only : apply_tracer_3Dsource
       USE GEOM, only : byaxyp,axyp
@@ -9253,9 +9255,9 @@ C**** 3D biomass source
           do j=J_0,J_1; do i=I_0,I_1
             blay=int(dclev(i,j)+0.5d0)
             blsrc = axyp(i,j)*src_fact*bb_fact*
-     &       sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(am(1:blay,i,j))
+     &       sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(MA(1:blay,i,j))
             do l=1,blay
-              tr3Dsource(i,j,l,nBiomass,n) = blsrc*am(l,i,j)
+              tr3Dsource(i,j,l,nBiomass,n) = blsrc*MA(l,i,j)
             end do
           end do; end do
         end if 
@@ -9304,7 +9306,7 @@ C****
       case ('Be7')
 c cosmogenic src
         do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-          tr3Dsource(i,j,l,1,n) = am(l,i,j)*be7_src_3d(i,j,l)
+          tr3Dsource(i,j,l,1,n) = MA(l,i,j)*be7_src_3d(i,j,l)
         end do; end do; end do
 
         call apply_tracer_3Dsource(1,n)
@@ -9312,7 +9314,7 @@ C****
       case ('Be10')
 c cosmogenic src
         do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-           tr3Dsource(i,j,l,1,n) = am(l,i,j)*be10_src_3d(i,j,l)
+           tr3Dsource(i,j,l,1,n) = MA(l,i,j)*be10_src_3d(i,j,l)
         end do; end do; end do
 
         call apply_tracer_3Dsource(1,n)
@@ -10770,12 +10772,13 @@ C**** no fractionation for ice evap
       SUBROUTINE GET_SULF_GAS_RATES
 !@sum  GET_SULF_GAS_RATES calculation of rate coefficients for
 !@+    gas phase sulfur oxidation chemistry
+!@vers 2013/03/26
 !@auth Bell
       USE RESOLUTION, only : ls1
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only: t
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,write_parallel
-      USE ATM_COM, only: pmid,am,pk,LTROPO
+      USE ATM_COM, only: pmid,MA,pk,LTROPO
       USE GEOM, only: axyp,imaxj
       USE TRACER_COM, only: rsulf1,rsulf2,rsulf3,rsulf4
 #ifdef TRACERS_SPECIAL_Shindell
@@ -10826,7 +10829,7 @@ C Calculate effective temperature
 
         ppres=pmid(l,i,j)*9.869d-4 !in atm
         te=pk(l,i,j)*t(i,j,l)
-        mm=am(l,i,j)*axyp(i,j)
+        mm=MA(l,i,j)*axyp(i,j)
         tt = 1.d0/te
 
 c DMM is number density of air in molecules/cm3

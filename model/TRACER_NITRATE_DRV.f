@@ -5,6 +5,7 @@
 !@+     gas-particle partitioning.
 !@+
 !@+      A version of EQSAM (eqsam_v03d) is the current thermodynamic model. 
+!@vers 2013/03/26
 !@auth Susanne Bauer
 
 
@@ -40,7 +41,7 @@
       USE CONSTANT,   only: mair,gasc
       USE CLOUDS_COM, only: SVLHX        ! latent heat of evaporation
       USE FLUXES, only: tr3Dsource
-      USE ATM_COM,   only: pmid,pk,byam,am   ! midpoint pressure in hPa (mb)
+      USE ATM_COM,   only: pmid,pk,byam,MA   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
 !                                             BYAM  1/Air mass (m^2/kg)
       USE DOMAIN_DECOMP_ATM,only: GRID, getDomainBounds
@@ -140,7 +141,7 @@
       TK = pk(l,i,j)*t(i,j,l)           ! in [K]
       RH = q(i,j,l)/QSAT(pk(l,i,j)*t(i,j,l),SVLHX(l,i,j),pmid(l,i,j)) ! rH [0-1]
 c avol [m3/gb] mass of air pro m3      
-      AVOL = am(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/(pmid(l,i,j)*100.d0)
+      AVOL = MA(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/(pmid(l,i,j)*100.d0)
 ! gas and aerosol trm [kg/gb] -> [ug/m^3]
       GNH3 = trm(i,j,l,n_NH3) *1.d9 /AVOL
       ANH4 = trm(i,j,l,n_NH4) *1.d9 /AVOL
@@ -231,6 +232,7 @@ c avol [m3/gb] mass of air pro m3
 !@+     gas-particle partitioning.
 !@+
 !@+      A version of ISOROPIA 1 is the current thermodynamic model. 
+!@vers 2013/03/26
 !@auth Susanne Bauer
 
 
@@ -255,7 +257,7 @@ c avol [m3/gb] mass of air pro m3
       USE CONSTANT,   only: mair,gasc
       USE CLOUDS_COM, only: SVLHX        ! latent heat of evaporation
       USE FLUXES, only: tr3Dsource
-      USE ATM_COM,   only: pmid,pk,byam,am   ! midpoint pressure in hPa (mb)
+      USE ATM_COM,   only: pmid,pk,byam,MA   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
 !                                             BYAM  1/Air mass (m^2/kg)
       USE DOMAIN_DECOMP_ATM,only: GRID, getDomainBounds
@@ -359,7 +361,7 @@ c avol [m3/gb] mass of air pro m3
       TK = pk(l,i,j)*t(i,j,l)           ! in [K]
       RH = q(i,j,l)/QSAT(pk(l,i,j)*t(i,j,l),SVLHX(l,i,j),pmid(l,i,j)) ! rH [0-1]
 c avol [m3/gb] mass of air pro m3      
-      AVOL = am(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/(pmid(l,i,j)*100.d0)
+      AVOL = MA(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/(pmid(l,i,j)*100.d0)
 ! gas and aerosol trm [kg/gb] -> [ug/m^3]
       GNH3 = trm(i,j,l,n_NH3) *1.d9 /AVOL
       ANH4 = trm(i,j,l,n_NH4) *1.d9 /AVOL

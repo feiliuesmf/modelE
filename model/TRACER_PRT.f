@@ -4,6 +4,7 @@
 !@+    all tracers
 !@+   TRACEA and DIAGTCA are called throughout the day
 !@+   The other routines are for printing
+!@vers 2013/03/26
 !@auth Jean Lerner (with ideas stolen from G.Schmidt, R. Ruedy, etc.)
 
 #ifdef TRACERS_ON
@@ -30,7 +31,7 @@
 #ifdef TRACERS_WATER
      *     ,jlnt_cldh2o
 #endif
-      USE ATM_COM, only: am,byam
+      USE ATM_COM, only: MA,byam
       implicit none
 
       integer i,j,l,n
@@ -58,8 +59,8 @@ C**** save some basic model diags for weighting
       do l=1,lm
         do j=J_0,J_1
           do i=I_0,imaxj(j)
-            call inc_ajl2(i,j,l,jl_dpasrc,axyp(i,j)*am(l,i,j))
-            call inc_ajl2(i,j,l,jl_dwasrc,axyp(i,j)*am(l,i,j)*wm(i,j,l))
+            call inc_ajl2(i,j,l,jl_dpasrc,axyp(i,j)*MA(l,i,j))
+            call inc_ajl2(i,j,l,jl_dwasrc,axyp(i,j)*MA(l,i,j)*wm(i,j,l))
           end do
         end do
       end do
@@ -83,7 +84,7 @@ C**** Average concentration; surface concentration; total mass
       do j=J_0,J_1
       do i=I_0,I_1
         tsum = sum(trm(i,j,:,n))*byaxyp(i,j)  !sum over l
-        asum = sum(am(:,i,j))     !sum over l
+        asum = sum(MA(:,i,j))     !sum over l
         taijn(i,j,tij_mass,n) = taijn(i,j,tij_mass,n)+tsum  !MASS
         taijn(i,j,tij_conc,n) = taijn(i,j,tij_conc,n)+tsum/asum
       enddo; enddo
@@ -629,7 +630,7 @@ C****
       byapo(1:JM)=bydxyp(1:JM)*onespo(1:JM)/fim
 !     do j=1,jm
 !       ap=onespo(j)*APJ(j,1)/(fim*IDACC(ia_dga)+teeny)
-!       call CALC_VERT_AMP(ap,lm,PL,AM,PDSIG,PEDN,PMID)
+!       call CALC_VERT_AMP (ap,lm,PL,MA,PDSIG,PEDN,PMID)
 !       pdsigjl(j,l)=PDSIG(l)
 !     end do
       do L=1,LS1-1

@@ -646,7 +646,7 @@ c           trm(i,j,l,n) = trm(i,j,l,n) + dmass
 
 
       SUBROUTINE Strat_chem_O3(ns,n)
-c
+!@vers 2013/03/26
 c-----------------------------------------------------------------------
 c   Strat_chem_O3 applies linearized chemistry based on tables from
 c    PRATMO model using climatological T, O3, time of year
@@ -679,7 +679,7 @@ cXXXXX DSOL NOT USED XXXXX
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: itime,dtsrc
       USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
-      USE ATM_COM, only: t,pk,am,ltropo   ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: t,pk,MA,ltropo   ! Air mass of each box (kg/m^2)
       USE GEOM, only: imaxj,axyp
       USE TRACER_COM
       USE PRATHER_CHEM_COM, only: nstrtc
@@ -729,18 +729,18 @@ c ****** O3 Chemistry  ******
 c store tracer mass before chemistry
             T0Mold=trm(i,j,l,n)
 c climatological P-L:
-            climpml=tlT0M(j,lr,4)/mass2vol(n)*am(l,i,j)*axyp(i,j)
+            climpml = tlT0M(j,lr,4)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
 c local ozone feedback:
             dero3=tlT0M(j,lr,5)
-            climo3=tlT0M(j,lr,1)/mass2vol(n)*am(l,i,j)*axyp(i,j)
+            climo3 = tlT0M(j,lr,1)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
 c column ozone feedback:
-            derco3=tlT0M(j,lr,7)/mass2vol(n)*am(l,i,j)*axyp(i,j)
+            derco3 = tlT0M(j,lr,7)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
             dco3=(colo3(i,j,l)-tlT0M(j,lr,3))
 c temperature feedback: T is potential temp, need to convert
-            dertmp=tlT0M(j,lr,6)/mass2vol(n)*am(l,i,j)*axyp(i,j)
+            dertmp = tlT0M(j,lr,6)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
             dtmp=(t(i,j,l)*PK(L,I,J)-tlT0M(j,lr,2))
 c define sol.flux. derivative and convert from mixing ratio to mass
-CXXX        dersol = tlT0M(j,lr,8)/mass2vol(n)*am(l,i,j)*axyp(i,j)
+CXXX        dersol = tlT0M(j,lr,8)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
 c calulate steady-state ozone:
             sso3=climo3 - (climpml+dco3*derco3+dtmp*dertmp)/dero3
 CXXX        sso3=climo3 -

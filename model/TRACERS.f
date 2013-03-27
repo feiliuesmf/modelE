@@ -1170,6 +1170,7 @@ c**** Interpolate two months of data to current day
 
       subroutine checktr(subr)
 !@sum  CHECKTR Checks whether atmos tracer variables are reasonable
+!@vers 2013/03/26
 !@auth Gavin Schmidt
 #ifdef TRACERS_ON
       USE CONSTANT, only : teeny
@@ -1177,7 +1178,7 @@ c**** Interpolate two months of data to current day
       USE ATM_COM, only : q,wm
       USE GEOM, only : axyp,imaxj
       USE SOMTQ_COM, only : qmom
-      USE ATM_COM, only : am
+      USE ATM_COM, only : MA
       USE FLUXES, only : atmocn,atmice,atmgla,atmlnd
       use OldTracer_mod, only: trname, t_qlimit
       USE TRACER_COM, only: ntm, trmom, trm, nmom
@@ -1237,11 +1238,11 @@ C**** check whether air mass is conserved
           do l=1,lm
           do j=j_0,j_1
           do i=i_0,imaxj(j)
-            relerr=abs(trm(i,j,l,n)-am(l,i,j)*axyp(i,j))/
-     *           (am(l,i,j)*axyp(i,j))
+            relerr=abs(trm(i,j,l,n)-ma(l,i,j)*axyp(i,j))/
+     *           (ma(l,i,j)*axyp(i,j))
             if (relerr.gt.errmax) then
               lmax=l ; imax=i ; jmax=j ; errmax=relerr
-              tmax=trm(i,j,l,n) ; amax=am(l,i,j)*axyp(i,j)
+              tmax=trm(i,j,l,n) ; amax=ma(l,i,j)*axyp(i,j)
             end if
           end do
           end do
@@ -1258,26 +1259,26 @@ C**** check whether air mass is conserved
           do l=1,lm
           do j=j_0,j_1
           do i=i_0,imaxj(j)
-            errsc=(q(i,j,l)+sum(abs(qmom(:,i,j,l))))*am(l,i,j)*axyp(i,j)
+            errsc=(q(i,j,l)+sum(abs(qmom(:,i,j,l))))*ma(l,i,j)*axyp(i,j)
             if (errsc.eq.0.) errsc=1.
-            relerr=abs(trm(i,j,l,n)-q(i,j,l)*am(l,i,j)*axyp(i,j))/errsc
+            relerr=abs(trm(i,j,l,n)-q(i,j,l)*ma(l,i,j)*axyp(i,j))/errsc
             if (wm(i,j,l).gt.0 .and. trwm(i,j,l,n).gt.1.) relerr
-     *           =max(relerr,(trwm(i,j,l,n)-wm(i,j,l)*am(l,i,j)*axyp(i,j
-     *           ))/(wm(i,j,l)*am(l,i,j)*axyp(i,j)))
+     *           =max(relerr,(trwm(i,j,l,n)-wm(i,j,l)*ma(l,i,j)*axyp(i,j
+     *           ))/(wm(i,j,l)*ma(l,i,j)*axyp(i,j)))
             if ((wm(i,j,l).eq.0 .and.trwm(i,j,l,n).gt.1) .or. (wm(i,j,l)
      *           .gt.teeny .and.trwm(i,j,l,n).eq.0))
      *           print*,"Liquid water mismatch: ",subr,i,j,l,trwm(i,j,l
-     *           ,n),wm(i,j,l)*am(l,i,j)*axyp(i,j)
+     *           ,n),wm(i,j,l)*ma(l,i,j)*axyp(i,j)
             do m=1,nmom
-              relerr=max(relerr,(trmom(m,i,j,l,n)-qmom(m,i,j,l)*am(l,i,j
+              relerr=max(relerr,(trmom(m,i,j,l,n)-qmom(m,i,j,l)*ma(l,i,j
      *             )*axyp(i,j))/errsc)
             end do
             if (relerr.gt.errmax) then
               lmax=l ; imax=i ; jmax=j ; errmax=relerr
-              tmax=trm(i,j,l,n) ; qmax=q(i,j,l)*am(l,i,j)*axyp(i,j)
-              twmax=trwm(i,j,l,n) ; wmax=wm(i,j,l)*am(l,i,j)*axyp(i,j)
+              tmax=trm(i,j,l,n) ; qmax=q(i,j,l)*ma(l,i,j)*axyp(i,j)
+              twmax=trwm(i,j,l,n) ; wmax=wm(i,j,l)*ma(l,i,j)*axyp(i,j)
               tmomax(:)=trmom(:,i,j,l,n)
-              qmomax(:)=qmom(:,i,j,l)*am(l,i,j)*axyp(i,j)
+              qmomax(:)=qmom(:,i,j,l)*ma(l,i,j)*axyp(i,j)
             end if
           end do
           end do

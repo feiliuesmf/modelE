@@ -67,6 +67,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       END MODULE AMP_AEROSOL
 
       SUBROUTINE MATRIX_DRV
+!@vers 2013/03/26
       USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_NUMB_MAP,
      *  AMP_AERO_MAP
       USE TRACER_COM, only: n_H2SO4, n_M_ACC_SU, n_M_AKK_SU, n_M_BC1_BC,
@@ -90,7 +91,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE GEOM, only: axyp,imaxj,BYAXYP
       USE CONSTANT,   only:  lhe,mair,gasc   
       USE FLUXES, only: tr3Dsource,trsource,trflux1
-      USE ATM_COM,   only: pmid,pk,byam,gz, am   ! midpoint pressure in hPa (mb)
+      USE ATM_COM,   only: pmid,pk,byam,gz, MA   ! midpoint pressure in hPa (mb)
 !                                           and pk is t mess up factor
 !                                           BYAM  1/Air mass (m^2/kg)
       USE AERO_CONFIG
@@ -169,7 +170,7 @@ c for the hourly diagnostic
       WUP = SQRT(.6666667*EGCM(l,i,j))  ! updraft velocity
 
 c avol [m3/gb] mass of air pro m3      
-      AVOL = am(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/pres 
+      AVOL = MA(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/pres 
 ! in-cloud SO4 production rate [ug/m^3/s] ::: AQsulfRATE [kg] 
       AQSO4RATE = AQsulfRATE (i,j,l)* 1.d9  / AVOL /dtsrc
 c conversion trm [kg/gb] -> [ug /m^3]
