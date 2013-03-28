@@ -659,7 +659,7 @@ C TOMAS don't allow offline SS!
 
       SUBROUTINE aerosol_gas_chem
 !@sum aerosol gas phase chemistry
-!@vers 2013/03/26
+!@vers 2013/03/27
 !@auth Dorothy Koch
       use OldTracer_mod, only: trname, tr_mm
       use TRACER_COM, only: ntm, oh_live, no3_live, trm
@@ -694,7 +694,7 @@ C TOMAS don't allow offline SS!
       use atm_com, only : t,q
       use model_com, only: modelEclock
       USE MODEL_COM, only: dtsrc
-      USE ATM_COM, only: pmid,MA,pk,LTROPO,byam
+      USE ATM_COM, only: pmid,MA,pk,LTROPO,byMA
       USE PBLCOM, only : dclev
       USE GEOM, only: axyp,imaxj,BYAXYP
       USE FLUXES, only: tr3Dsource
@@ -1091,9 +1091,9 @@ c     if(l.le.maxl) then
       ohmc = oh(i,j,l)          !oh is alread in units of molecules/cm3
 #ifdef TRACERS_HETCHEM
       if (COUPLED_CHEM.ne.1) then
-      o3mc=o3_offline(i,j,l)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*BYAM(L,I,J)
+      o3mc=o3_offline(i,j,l)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*byMA(L,I,J)
       else
-        o3mc=trm(i,j,l,n_Ox)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*BYAM(L,I,J)
+        o3mc=trm(i,j,l,n_Ox)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*byMA(L,I,J)
       endif
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\

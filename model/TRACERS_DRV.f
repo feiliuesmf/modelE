@@ -6646,7 +6646,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 
       SUBROUTINE tracer_IC
 !@sum tracer_IC initializes tracers when they are first switched on
-!@vers 2013/03/26
+!@vers 2013/03/27
 !@auth Jean Lerner
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT,readt_parallel,
      &     readt8_column, skip_parallel
@@ -6687,7 +6687,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE FLUXES, only : flice,focean
 #endif
       USE GEOM, only: axyp,byaxyp,lat2d_dg,lonlat_to_ij
-      USE ATM_COM, only: MA,byam  ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: MA,byMA  ! Air mass of each box (kg/m^2)
       USE PBLCOM, only: npbl
 #ifdef TRACERS_SPECIAL_Lerner
       USE LINOZ_CHEM_COM, only: tlt0m,tltzm, tltzzm
@@ -7609,11 +7609,11 @@ C**** Initialise pbl profile if necessary
      &           trinit*asflx(ipatch)%qabl(ipbl,:,j)
           ELSE
             asflx(ipatch)%trabl(ipbl,n,:,j) =
-     &           trm(:,j,1,n)*byam(1,:,j)*byaxyp(:,j)
+     &           trm(:,j,1,n)*byMA(1,:,j)*byaxyp(:,j)
           END IF
 #else
             asflx(ipatch)%trabl(ipbl,n,:,j) =
-     &         trm(:,j,1,n)*byam(1,:,j)*byaxyp(:,j)
+     &         trm(:,j,1,n)*byMA(1,:,j)*byaxyp(:,j)
 #endif
         end do
         end do
@@ -9007,7 +9007,7 @@ c latlon grid
 !@sum tracer_3Dsource calculates interactive sources for tracers
 !@+   Please note that if the generic routine 'apply_tracer_3Dsource'
 !@+   is used, all diagnostics and moments are updated automatically.
-!@vers 2013/03/26
+!@vers 2013/03/27
 !@auth Jean Lerner/Greg Faluvegi
 !@calls DIAGTCA, masterchem, apply_tracer_3Dsource
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, 
@@ -9041,7 +9041,7 @@ c latlon grid
       USE FLUXES, only: tr3Dsource
       use model_com, only: modelEclock
       USE MODEL_COM, only: itime,dtsrc,itimeI
-      USE ATM_COM, only: MA,byam ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: MA,byMA ! Air mass of each box (kg/m^2)
       use ATM_COM, only: phi
       USE apply3d, only : apply_tracer_3Dsource
       USE GEOM, only : byaxyp,axyp
@@ -9693,9 +9693,9 @@ C       stop
           csPM2p5_acc(:,:)=csPM2p5_acc(:,:)  + trcSurfByVol(:,:,n)
           csPM10_acc(:,:)=csPM10_acc(:,:)    + trcSurfByVol(:,:,n)
           L1PM2p5_acc(:,:)=L1PM2p5_acc(:,:)+
-     &                 trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+     &                 trm(:,:,1,n)*byMA(1,:,:)*byaxyp(:,:)*1.d6
           L1PM10_acc(:,:)=L1PM10_acc(:,:)  +
-     &                 trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+     &                 trm(:,:,1,n)*byMA(1,:,:)*byaxyp(:,:)*1.d6
 ! then, conditional or partial of these: <=============================
         case('Silt1','N_d2','SO4_d2')
           sPM2p5_acc(:,:)=sPM2p5_acc(:,:)  + 0.322d0*1.d6*trcsurf(:,:,n)
@@ -9703,33 +9703,33 @@ C       stop
           csPM2p5_acc(:,:)=csPM2p5_acc(:,:)+ 0.322d0*trcSurfByVol(:,:,n)
           csPM10_acc(:,:)=csPM10_acc(:,:)  + trcSurfByVol(:,:,n)
           L1PM2p5_acc(:,:)=L1PM2p5_acc(:,:)+ 0.322d0*
-     &                         trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+     &                         trm(:,:,1,n)*byMA(1,:,:)*byaxyp(:,:)*1.d6
           L1PM10_acc(:,:)=L1PM10_acc(:,:)  +
-     &                         trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+     &                         trm(:,:,1,n)*byMA(1,:,:)*byaxyp(:,:)*1.d6
         case('Silt2','N_d3','SO4_d3')
           sPM10_acc(:,:)=sPM10_acc(:,:)    + 1.d6*trcsurf(:,:,n)
           csPM10_acc(:,:)=csPM10_acc(:,:)  + trcSurfByVol(:,:,n)
           L1PM10_acc(:,:)=L1PM10_acc(:,:)  +
-     &                 trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+     &                 trm(:,:,1,n)*byMA(1,:,:)*byaxyp(:,:)*1.d6
         case('Silt3')
           sPM10_acc(:,:)=sPM10_acc(:,:)    + 0.322d0*1.d6*trcsurf(:,:,n)
           csPM10_acc(:,:)=csPM10_acc(:,:)  + 0.322d0*trcSurfByVol(:,:,n)
           L1PM10_acc(:,:)=L1PM10_acc(:,:)  + 0.322d0*
-     &                         trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+     &                         trm(:,:,1,n)*byMA(1,:,:)*byaxyp(:,:)*1.d6
         case('seasalt2')
           sPM2p5_acc(:,:)=sPM2p5_acc(:,:)  + 0.500d0*1.d6*trcsurf(:,:,n)
           sPM10_acc(:,:)=sPM10_acc(:,:)    +         1.d6*trcsurf(:,:,n)
           csPM2p5_acc(:,:)=csPM2p5_acc(:,:)+ 0.500d0*trcSurfByVol(:,:,n)
           csPM10_acc(:,:)=csPM10_acc(:,:)  +         trcSurfByVol(:,:,n)
           L1PM2p5_acc(:,:)=L1PM2p5_acc(:,:)+ 0.500d0*
-     &                        trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+     &                        trm(:,:,1,n)*byMA(1,:,:)*byaxyp(:,:)*1.d6
           L1PM10_acc(:,:)=L1PM10_acc(:,:)  +
-     &                        trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+     &                        trm(:,:,1,n)*byMA(1,:,:)*byaxyp(:,:)*1.d6
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
         case('Ox')
           sOx_acc(:,:)=sOx_acc(:,:)+1.d9*trcsurf(:,:,n)*mass2vol(n)
-          l1Ox_acc(:,:)=l1Ox_acc(:,:)+trm(:,:,1,n)*byam(1,:,:)*
+          l1Ox_acc(:,:)=l1Ox_acc(:,:)+trm(:,:,1,n)*byMA(1,:,:)*
      &    byaxyp(:,:)*1.d9*mass2vol(n)
         case('NOx')
           sNOx_acc(:,:)=sNOx_acc(:,:)+1.d9*trcsurf(:,:,n)*mass2vol(n)
@@ -9771,12 +9771,12 @@ C       stop
             sPM2p5_acc(i,j)=sPM2p5_acc(i,j)  + 1.d6*trcsurf(i,j,tracnum)
             csPM2p5_acc(i,j)=csPM2p5_acc(i,j)+trcSurfByVol(i,j,tracnum)
             L1PM2p5_acc(i,j)=L1PM2p5_acc(i,j)+
-     &           trm(i,j,1,tracnum)*byam(1,i,j)*byaxyp(i,j)*1.d6
+     &           trm(i,j,1,tracnum)*byMA(1,i,j)*byaxyp(i,j)*1.d6
 
             sPM10_acc(i,j)=sPM10_acc(i,j)    + 1.d6*trcsurf(i,j,tracnum)
             csPM10_acc(i,j)=csPM10_acc(i,j) + trcSurfByVol(i,j,tracnum)
             L1PM10_acc(i,j)=L1PM10_acc(i,j)  +
-     &           trm(i,j,1,tracnum)*byam(1,i,j)*byaxyp(i,j)*1.d6
+     &           trm(i,j,1,tracnum)*byMA(1,i,j)*byaxyp(i,j)*1.d6
           elseif(xk(k).le.mp_PM2p5.and.xk(k+1).ge.mp_PM2p5)then
 !Need to interpolate 
             sPM2p5_acc(i,j)=sPM2p5_acc(i,j)  + 1.d6*trcsurf(i,j,tracnum)
@@ -9784,20 +9784,20 @@ C       stop
             csPM2p5_acc(i,j)=csPM2p5_acc(i,j)+ trcSurfByVol(i,j,tracnum)
      &           *((mp_PM2p5-xk(k))/(xk(k+1)-xk(k))) 
             L1PM2p5_acc(i,j)=L1PM2p5_acc(i,j)+
-     &           trm(i,j,1,tracnum)*byam(1,i,j)*byaxyp(i,j)*1.d6
+     &           trm(i,j,1,tracnum)*byMA(1,i,j)*byaxyp(i,j)*1.d6
      &           *((mp_PM2p5-xk(k))/(xk(k+1)-xk(k)))
 
             sPM10_acc(i,j)=sPM10_acc(i,j)    + 1.d6*trcsurf(i,j,tracnum)
             csPM10_acc(i,j)=csPM10_acc(i,j) + trcSurfByVol(i,j,tracnum)
             L1PM10_acc(i,j)=L1PM10_acc(i,j)  +
-     &           trm(i,j,1,tracnum)*byam(1,i,j)*byaxyp(i,j)*1.d6
+     &           trm(i,j,1,tracnum)*byMA(1,i,j)*byaxyp(i,j)*1.d6
 
           elseif (xk(k).gt.mp_PM2p5)then
 !NO PM2.5 but all mass goes to PM10
             sPM10_acc(i,j)=sPM10_acc(i,j)    + 1.d6*trcsurf(i,j,tracnum)
             csPM10_acc(i,j)=csPM10_acc(i,j) + trcSurfByVol(i,j,tracnum)
             L1PM10_acc(i,j)=L1PM10_acc(i,j)  +
-     &           trm(i,j,1,tracnum)*byam(1,i,j)*byaxyp(i,j)*1.d6
+     &           trm(i,j,1,tracnum)*byMA(1,i,j)*byaxyp(i,j)*1.d6
 
           endif
           enddo !ncomp 

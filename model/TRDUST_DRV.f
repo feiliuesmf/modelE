@@ -885,7 +885,7 @@ c accSubddDust
 !@sum  accSubddDust accumulates specific soil dust aerosol variables for
 !@+                 subdaily diagnostics
 !@auth Jan Perlwitz
-      use atm_com, only : t,byam,pk,pmid
+      use atm_com, only : t,byMA,pk,pmid
       implicit none
 
       type(dustDiagSubdd),intent(inout) :: dustDiagSubdd_acc
@@ -930,7 +930,7 @@ c accSubddDust
         do l=1,lm
           dustDiagSubdd_acc%dustConc(:,:,l,n) =
      &         dustDiagSubdd_acc%dustConc(:,:,l,n) + trm(:,:,l,n1)
-     &         *byam(l,:,:)*1d2*pmid(l,:,:)/(rgas*t(:,:,l)*pk(l,:,:))
+     &         *byMA(l,:,:)*1d2*pmid(l,:,:)/(rgas*t(:,:,l)*pk(l,:,:))
         end do
       end do
 

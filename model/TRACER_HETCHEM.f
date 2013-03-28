@@ -3,7 +3,7 @@
 #ifdef TRACERS_SPECIAL_Shindell
       SUBROUTINE HETCDUST
 !
-! Version 1. 
+! Version 1.
 !
 !-----------------------------------------------------------------------
 !   Computation of heterogeneous reaction rates on dust aerosol surfaces
@@ -18,7 +18,7 @@
       use TRACER_COM, only: n_Clay, n_Silt1, n_Silt2, n_Silt3
       USE CONSTANT,   only:  lhe       ! latent heat of evaporation at 0 C
       USE GEOM,       only:  byaxyp
-      USE ATM_COM,    only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)
+      USE ATM_COM,    only:  byMA ,pmid,pk   ! midpoint pressure in hPa (mb)
 c                                          and pk is t mess up factor
       USE CONSTANT,   only:  pi, avog, gasc
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
@@ -29,16 +29,16 @@ c                                          and pk is t mess up factor
 !-----------------------------------------------------------------------
 
       integer, parameter    :: ndtr = 8  ! # dust bins
-      REAL*8, 
+      REAL*8,
      * DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     *           GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr,rhet) :: 
+     *           GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr,rhet) ::
      * rxtnox
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      *                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr) ::
      * dusttx,dustnc
 !-----------------------------------------------------------------------
 !       ... Look up variables
-!----------------------------------------------------------------------- 
+!-----------------------------------------------------------------------
       integer, parameter :: klo = 1000
       integer ip,imd,np1,np2,nh1,nh2
       real klook,phelp,nmd
@@ -108,7 +108,7 @@ c      enteredb = .true.
 !     HNO3 + DUSTM =>    Dust Aerosol Reaction
 !-----------------------------------------------------------------
 
-  
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
 !                         LOOK UP TABLE
@@ -119,13 +119,13 @@ c      enteredb = .true.
        Rrange=5.E-8
 
        DO i   = 2, klo
-       md_look(i) = md_look(i-1) +  Rrange 
+       md_look(i) = md_look(i-1) +  Rrange
        END DO
 
-      DO il  = 1, rhet  ! no loop over rhet, only HNO3 uptake  
+      DO il  = 1, rhet  ! no loop over rhet, only HNO3 uptake
       wrk(il)=  (mQ(il) + Mgas) / mQ(il)
 
-      DO ip  = 1, 11  !pressure from 1000 to 0 hPa 
+      DO ip  = 1, 11  !pressure from 1000 to 0 hPa
 
       look_p=max(0.001,1.1-ip*0.1)         !atmosphere (minimum is 1 hPa)
       look_t=max(210.,288.*(look_p/1.)**((1.40-1)/1.40))
@@ -144,17 +144,17 @@ C Loop over radius
       DO imd  = 1,klo
        lookS(ip,imd,il) = 0.
       DO k = 1,ktoa-1
-C Knudsen Number 
+C Knudsen Number
        Kn(il)= lamb(il) / rada(k) ! Radius in [m]
 C Mass Transfer Coefficient
-       Kdj(il) =(4. * pi * rada(k) * Mdc(il)) 
+       Kdj(il) =(4. * pi * rada(k) * Mdc(il))
      .      / (1. + Kn(il) * (xx + 4 *(1.- alph(il))/(3. *alph(il))))
 C Number distribution
        dn=abs(erf(log( rada(k)/md_look(imd)) / lsig0
-     .       /sqrt(2.))-erf(log(rada(k+1)/ 
+     .       /sqrt(2.))-erf(log(rada(k+1)/
      .       md_look(imd)) / lsig0 /sqrt(2.)))/2.
 C Net removal rate [s-1]
-       lookS(ip,imd,il)= lookS(ip,imd,il) + Kdj(il)  * dn    
+       lookS(ip,imd,il)= lookS(ip,imd,il) + Kdj(il)  * dn
       END DO              !radius loop
       END DO              !median diameter loop
       END DO              !pressure loop
@@ -162,19 +162,19 @@ C Net removal rate [s-1]
 
       ENDIF
 
-  
+
 c--------------------------------------------------------------
- 
+
       dusttx(:,:,:,:)= 0.
-      
-      DO l  = 1,lm   
-      DO j  = J_0,J_1  
-      
-      dusttx(:,j,l,5)= trm(:,j,l,n_clay) * byam(l,:,j)* byaxyp (:,j)
-      dusttx(:,j,l,6)= trm(:,j,l,n_silt1)* byam(l,:,j)* byaxyp (:,j)
-      dusttx(:,j,l,7)= trm(:,j,l,n_silt2)* byam(l,:,j)* byaxyp (:,j)
-      dusttx(:,j,l,8)= trm(:,j,l,n_silt3)* byam(l,:,j)* byaxyp (:,j)
-      
+
+      DO l  = 1,lm
+      DO j  = J_0,J_1
+
+      dusttx(:,j,l,5)= trm(:,j,l,n_clay) * byMA(l,:,j)* byaxyp (:,j)
+      dusttx(:,j,l,6)= trm(:,j,l,n_silt1)* byMA(l,:,j)* byaxyp (:,j)
+      dusttx(:,j,l,7)= trm(:,j,l,n_silt2)* byMA(l,:,j)* byaxyp (:,j)
+      dusttx(:,j,l,8)= trm(:,j,l,n_silt3)* byMA(l,:,j)* byaxyp (:,j)
+
       enddo
       enddo
 
@@ -182,13 +182,13 @@ c--------------------------------------------------------------
 c--------------------------------------------------------------
 
 c INTERPOLATION FROM LOOK UP TABLES
- 
-C Net removal rates [s-1]  
+
+C Net removal rates [s-1]
         krate(:,:,:,:,:) = 0.
         rxtnox(:,:,:,:,:)=0
       DO il = 1,rhet    ! Loop over het reactions
       DO nd = 5,ndtr    ! Loop over dust tracers
-      DO l  = 1,lm   
+      DO l  = 1,lm
       DO j  = J_0,J_1
       DO i  = I_0,I_1
 
@@ -200,20 +200,20 @@ c number concentration
 c median number diameter
          nmd = (dusttx(i,j,l,nd) /dustnc(i,j,l,nd)*6./pi/rop(nd))
      .         **0.33333* exp(1.5*log(2.)**2)
-c pressure 
+c pressure
         phelp = pmid(l,i,j)*100.
-          if (pmid(l,i,j).gt.100000.) then 
+          if (pmid(l,i,j).gt.100000.) then
         phelp=99999.
           endif
 c potential temperature, temperature
         te=pk(l,i,j)*t(i,j,l)
-c pressure interpolation 
+c pressure interpolation
         np1=min(11,1+nint((10.-phelp/10000.)-0.499))  !pressure
         np1=max(1,np1)
         np2=min(11,np1+1)
 c radii interpolation
-        nh1=max(1,nint((nmd/Rrange)+0.499))      !median diameter 
-        nh1=min(klo,nh1)              
+        nh1=max(1,nint((nmd/Rrange)+0.499))      !median diameter
+        nh1=min(klo,nh1)
         nh2=min(klo,nh1+1)
         px=((11-np1)*10000.- phelp)/10000.
         hx=((nh1*Rrange+md_look(1)) - nmd)/Rrange
@@ -221,12 +221,12 @@ c radii interpolation
         hp2=px*lookS(np2,nh2,il)+(1.-px)*lookS(np1,nh2,il)
         klook=hx*hp1+(1.-hx)*hp2
 
-        if  (dustnc(i,j,l,nd).gt.1000..and.dustnc(i,j,l,nd).lt.(1.e30)) 
+        if  (dustnc(i,j,l,nd).gt.1000..and.dustnc(i,j,l,nd).lt.(1.e30))
      *       then
         rxtnox(i,j,l,nd,il) = klook* dustnc(i,j,l,nd)
      .              / (287.054 * te / (pmid(l,i,j)*100.))
         else
-        rxtnox(i,j,l,nd,il) = 0.    
+        rxtnox(i,j,l,nd,il) = 0.
         endif
 
         else
@@ -237,9 +237,9 @@ c radii interpolation
       ENDDO ! j
       ENDDO ! l
       ENDDO ! nd
-      
+
       DO nd = 5,ndtr  !1,ndtr
-        krate(:,J_0:J_1,:,1,il) = krate(:,J_0:J_1,:,1,il) 
+        krate(:,J_0:J_1,:,1,il) = krate(:,J_0:J_1,:,1,il)
      & + rxtnox(:,J_0:J_1,:,nd,il)
       ENDDO
         krate(:,J_0:J_1,:,2,il) = rxtnox(:,J_0:J_1,:,5,il)
@@ -249,8 +249,8 @@ c radii interpolation
       ENDDO ! il
 
       return
-      end subroutine 
-#endif  
+      end subroutine
+#endif
 
 
 #if (defined TRACERS_AEROSOLS_Koch)  || (defined TRACERS_TOMAS)
@@ -272,7 +272,7 @@ c radii interpolation
       use TRACER_COM, only: rxts1, rxts2, rxts3, rxts4
       USE CONSTANT,   only:  lhe       ! latent heat of evaporation at 0 C
       USE GEOM,       only:  byaxyp
-      USE ATM_COM,    only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)
+      USE ATM_COM,    only:  byMA ,pmid,pk   ! midpoint pressure in hPa (mb)
       USE CONSTANT,   only:  pi, avog, gasc
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       use SpecialFunctions_mod, only: erf
@@ -286,7 +286,7 @@ c radii interpolation
      * rxt,dusttx,dustnc
 !-----------------------------------------------------------------------
 !       ... Look up variables
-!----------------------------------------------------------------------- 
+!-----------------------------------------------------------------------
       integer, parameter :: klo = 1000
       integer ip,imd,np1,np2,nh1,nh2
       real klook,phelp,nmd
@@ -355,8 +355,8 @@ c      entereda = .true.
 !     SO2 + DUSTM =>    Dust Aerosol Reaction
 !-----------------------------------------------------------------
 
-      wrk(1)=  (mQ1 + Mgas) / mQ1 
-  
+      wrk(1)=  (mQ1 + Mgas) / mQ1
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
 !                         LOOK UP TABLE
@@ -367,10 +367,10 @@ c      entereda = .true.
        Rrange=5.E-8
 
        DO i   = 2, klo
-       md_look(i) = md_look(i-1) +  Rrange 
+       md_look(i) = md_look(i-1) +  Rrange
        END DO
 
-      DO ip  = 1, 11  !pressure from 1000 to 0 hPa 
+      DO ip  = 1, 11  !pressure from 1000 to 0 hPa
 
       look_p=max(0.001,1.1-ip*0.1)         !atmosphere (minimum is 1 hPa)
       look_t=max(210.,288.*(look_p/1.)**((1.40-1)/1.40))
@@ -393,26 +393,26 @@ C Loop over radius
        look(ip,imd,:) = 0.
 
       DO k = 1,ktoa-1
-C Knudsen Number 
+C Knudsen Number
        Kn(1)= lamb(1) / rada(k) ! Radius in [m]
 
 C Mass Transfer Coefficient
 c RH < 60 %
-       Kdj(1) =(4. * pi * rada(k) * Mdc(1)) 
+       Kdj(1) =(4. * pi * rada(k) * Mdc(1))
      .      / (1. + Kn(1) * (xx + 4 *(1.- alph1)/(3. *alph1)))
 c RH > 60 %
-       Kdj(2) =(4. * pi * rada(k) * Mdc(1)) 
+       Kdj(2) =(4. * pi * rada(k) * Mdc(1))
      .      / (1. + Kn(1) * (xx + 4 *(1.- alph2)/(3. *alph2)))
 
 C Number distribution
        dn=abs(erf(log( rada(k)/md_look(imd)) / lsig0
-     .       /sqrt(2.))-erf(log(rada(k+1)/ 
+     .       /sqrt(2.))-erf(log(rada(k+1)/
      .       md_look(imd)) / lsig0 /sqrt(2.)))/2.
 
 C Net removal rate [s-1]
-       
-       look(ip,imd,1)= look(ip,imd,1) + Kdj(1)  * dn    
-       look(ip,imd,2)= look(ip,imd,2) + Kdj(2)  * dn    
+
+       look(ip,imd,1)= look(ip,imd,1) + Kdj(1)  * dn
+       look(ip,imd,2)= look(ip,imd,2) + Kdj(2)  * dn
 
       END DO              !radius loop
       END DO              !median diameter loop
@@ -420,30 +420,30 @@ C Net removal rate [s-1]
 
       ENDIF
 
-  
+
 c--------------------------------------------------------------
 
-c  Or use online dust 
+c  Or use online dust
       dusttx(:,:,:,:)= 0.d0
-      
-      DO l  = 1,lm   
-      DO j  = J_0,J_1   
-      dusttx(:,j,l,5)= trm(:,j,l,n_clay) * byam(l,:,j)* byaxyp (:,j)
-      dusttx(:,j,l,6)= trm(:,j,l,n_silt1)* byam(l,:,j)* byaxyp (:,j)
-      dusttx(:,j,l,7)= trm(:,j,l,n_silt2)* byam(l,:,j)* byaxyp (:,j)
-      dusttx(:,j,l,8)= trm(:,j,l,n_silt3)* byam(l,:,j)* byaxyp (:,j)
+
+      DO l  = 1,lm
+      DO j  = J_0,J_1
+      dusttx(:,j,l,5)= trm(:,j,l,n_clay) * byMA(l,:,j)* byaxyp (:,j)
+      dusttx(:,j,l,6)= trm(:,j,l,n_silt1)* byMA(l,:,j)* byaxyp (:,j)
+      dusttx(:,j,l,7)= trm(:,j,l,n_silt2)* byMA(l,:,j)* byaxyp (:,j)
+      dusttx(:,j,l,8)= trm(:,j,l,n_silt3)* byMA(l,:,j)* byaxyp (:,j)
       enddo
       enddo
-    
+
 c--------------------------------------------------------------
 c--------------------------------------------------------------
 
 c INTERPOLATION FROM LOOK UP TABLES
- 
-C Net removal rate for SO2 [s-1]  
+
+C Net removal rate for SO2 [s-1]
 
       DO nd = 5,ndtr    ! Loop over dust tracers
-      DO l  = 1,lm   
+      DO l  = 1,lm
       DO j  = J_0,J_1
       DO i  = I_0,I_1
 
@@ -454,9 +454,9 @@ c median number diameter
         if(dustnc(i,j,l,nd).GT.0.) then
         nmd = (dusttx(i,j,l,nd) /dustnc(i,j,l,nd)*6./pi/rop(nd))
      .         **0.33333* exp(1.5*log(2.)**2)
-c pressure 
+c pressure
         phelp = pmid(l,i,j)*100.
-          if (pmid(l,i,j).gt.100000.) then 
+          if (pmid(l,i,j).gt.100000.) then
         phelp=99999.
           endif
 c potential temperature, temperature
@@ -465,13 +465,13 @@ c compute relative humidity
         RH=Q(i,j,l)/QSAT(te,lhe,pmid(l,i,j))    !temp in K, pres in mb
         IF(RH.LT.0.6) ll = 1
         IF(RH.GE.0.6) ll = 2
-c pressure interpolation 
+c pressure interpolation
         np1=min(11,1+nint((10.-phelp/10000.)-0.499))  !pressure
         np1=max(1,np1)
         np2=min(11,np1+1)
 c radii interpolation
-        nh1=max(1,nint((nmd/Rrange)+0.499))      !median diameter 
-        nh1=min(klo,nh1)              
+        nh1=max(1,nint((nmd/Rrange)+0.499))      !median diameter
+        nh1=min(klo,nh1)
         nh2=min(klo,nh1+1)
         px=((11-np1)*10000.- phelp)/10000.
         hx=((nh1*Rrange+md_look(1)) - nmd)/Rrange
@@ -479,13 +479,13 @@ c radii interpolation
         hp2=px*look(np2,nh2,ll)+(1.-px)*look(np1,nh2,ll)
         klook=hx*hp1+(1.-hx)*hp2
 
-        if  (dustnc(i,j,l,nd).gt.1000..and.dustnc(i,j,l,nd).lt.(1.e30)) 
-c        if  (dustnc(i,j,l,nd).gt.1000.) 
+        if  (dustnc(i,j,l,nd).gt.1000..and.dustnc(i,j,l,nd).lt.(1.e30))
+c        if  (dustnc(i,j,l,nd).gt.1000.)
      *       then
         rxt(i,j,l,nd) = klook* dustnc(i,j,l,nd)
      .              / (287.054 * te / (pmid(l,i,j)*100.))
         else
-        rxt(i,j,l,nd) = 0.d0    
+        rxt(i,j,l,nd) = 0.d0
         endif
 
         else
@@ -508,4 +508,4 @@ c        if  (dustnc(i,j,l,nd).gt.1000.)
 
 
       end subroutine sulfdust
-#endif   
+#endif

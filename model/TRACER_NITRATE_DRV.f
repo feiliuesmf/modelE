@@ -5,7 +5,7 @@
 !@+     gas-particle partitioning.
 !@+
 !@+      A version of EQSAM (eqsam_v03d) is the current thermodynamic model. 
-!@vers 2013/03/26
+!@vers 2013/03/27
 !@auth Susanne Bauer
 
 
@@ -41,9 +41,8 @@
       USE CONSTANT,   only: mair,gasc
       USE CLOUDS_COM, only: SVLHX        ! latent heat of evaporation
       USE FLUXES, only: tr3Dsource
-      USE ATM_COM,   only: pmid,pk,byam,MA   ! midpoint pressure in hPa (mb)
+      USE ATM_COM,   only: pmid,pk,MA   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
-!                                             BYAM  1/Air mass (m^2/kg)
       USE DOMAIN_DECOMP_ATM,only: GRID, getDomainBounds
 
       IMPLICIT NONE
@@ -257,9 +256,8 @@ c avol [m3/gb] mass of air pro m3
       USE CONSTANT,   only: mair,gasc
       USE CLOUDS_COM, only: SVLHX        ! latent heat of evaporation
       USE FLUXES, only: tr3Dsource
-      USE ATM_COM,   only: pmid,pk,byam,MA   ! midpoint pressure in hPa (mb)
+      USE ATM_COM,   only: pmid,pk,MA   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
-!                                             BYAM  1/Air mass (m^2/kg)
       USE DOMAIN_DECOMP_ATM,only: GRID, getDomainBounds
 
       IMPLICIT NONE

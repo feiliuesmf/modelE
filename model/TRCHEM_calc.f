@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
       SUBROUTINE chemstep(I,J,changeL,ierr_loc)
 !@sum chemstep Calculate new concentrations after photolysis & chemistry
-!@vers 2013/03/26
+!@vers 2013/03/27
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@calls rates,chem1,chem1prn
 c
@@ -13,7 +13,7 @@ C
       USE RESOLUTION, only      : im,jm,lm
       USE ATM_COM, only         : Q
       USE DOMAIN_DECOMP_ATM,only : grid,getDomainBounds,write_parallel
-      USE ATM_COM, only         : MA, byam,ltropo
+      USE ATM_COM, only         : MA, byMA,ltropo
       USE GEOM, only            : byaxyp,axyp
       USE TRDIAG_COM, only : taijls=>taijls_loc,jls_OHcon,jls_day
      &     ,jls_OxpT,jls_OxdT,jls_Oxp,jls_Oxd,jls_COp,jls_COd,ijlt_OH
@@ -1432,7 +1432,7 @@ c Print chemical changes in a particular grid box if desired:
       if(prnchg .and. J==jprn .and. I==iprn)then
        do igas=1,ntm_chem
          changeA=changeL(Lprn,igas)*y(nM,lprn)*mass2vol(igas)*
-     &   byaxyp(i,J)*byam(lprn,I,J)
+     &   byaxyp(i,J)*byMA(lprn,I,J)
          if(y(igas,lprn) == 0.d0)then
            write(out_line,156) ay(igas),': ',changeA,' molecules;  y=0'
            call write_parallel(trim(out_line),crit=jay)

@@ -4,7 +4,7 @@
 !@+    all tracers
 !@+   TRACEA and DIAGTCA are called throughout the day
 !@+   The other routines are for printing
-!@vers 2013/03/26
+!@vers 2013/03/28
 !@auth Jean Lerner (with ideas stolen from G.Schmidt, R. Ruedy, etc.)
 
 #ifdef TRACERS_ON
@@ -31,7 +31,7 @@
 #ifdef TRACERS_WATER
      *     ,jlnt_cldh2o
 #endif
-      USE ATM_COM, only: MA,byam
+      USE ATM_COM, only: MA,byMA
       implicit none
 
       integer i,j,l,n
@@ -71,13 +71,13 @@ C**** Latitude-longitude by layer concentration
       if (to_conc(n).eq.1) then ! kg/m3
         do l=1,lm
           taijln(:,J_0:J_1,l,n) = taijln(:,J_0:J_1,l,n) + trm(:,J_0:J_1
-     $          ,l,n)*byam(l,:,J_0:J_1)*1d2*pmid(l,:,J_0:J_1)/(rgas*t(:
+     $          ,l,n)*byMA(l,:,J_0:J_1)*1d2*pmid(l,:,J_0:J_1)/(rgas*t(:
      $          ,J_0:J_1,L)*pk(L,:,J_0:J_1))
         end do
       else ! mixing ratio
         do l=1,lm
           taijln(:,J_0:J_1,l,n) = taijln(:,J_0:J_1,l,n) + trm(:,J_0:J_1
-     $          ,l,n)*byam(l,:,J_0:J_1)
+     $          ,l,n)*byMA(l,:,J_0:J_1)
         end do
       end if
 C**** Average concentration; surface concentration; total mass

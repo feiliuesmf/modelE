@@ -402,11 +402,11 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
               if(use_rad_ch4 > 0) then
                 avgTT_CH4_part(I,J) =
      &          rad_to_chem(4,LTROPO(I,J),I,J)
-     &          *2.69d20*byavog*mair*BYAM(LTROPO(I,J),I,J)
+     &          *2.69d20*byavog*mair*byMA(LTROPO(I,J),I,J)
               else
                 avgTT_CH4_part(I,J) =
      &          trm(I,J,LTROPO(I,J),n_CH4)
-     &          *mass2vol(n_CH4)*BYAXYP(I,J)*BYAM(LTROPO(I,J),I,J)
+     &          *mass2vol(n_CH4)*BYAXYP(I,J)*byMA(LTROPO(I,J),I,J)
               endif
               countTT_part(I,J) = 1.d0
             end if
@@ -423,7 +423,7 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
       do j=J_0,J_1
         do i=I_0,IMAXJ(j)
           surfIsop(i,j)=trm(i,j,1,n_Isoprene)*mass2vol(n_Isoprene)*
-     &         byaxyp(i,j)*byAM(1,i,j)
+     &         byaxyp(i,j)*byMA(1,i,j)
         enddo
       enddo
       call zonalmean_ij2ij(surfIsop,zonalIsop)
@@ -438,7 +438,7 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
             acetone(i,j,L)=max(0.d0, ! in molec/cm3
      &      (1.25d0*(
      &        zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
-     &        byaxyp(i,j)*byAM(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
+     &        byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
           enddo
           do L=maxl+1,LM
             acetone(i,j,L)=0.d0
@@ -484,7 +484,7 @@ c Calculate M and set fixed ratios for O2 & H2:
 c Tracers (converted from mass to number density):
        do igas=1,ntm_chem
          y(igas,L)=trm(I,J,L,igas)*y(nM,L)*mass2vol(igas)*
-     &   BYAXYP(I,J)*BYAM(L,I,J)
+     &   BYAXYP(I,J)*byMA(L,I,J)
        enddo
 
 ! If we are fixing methane for chemistry purposes set it's y here:
@@ -515,9 +515,9 @@ c Tracers (converted from mass to number density):
 C Concentrations of DMS and SO2 for sulfur chemistry:
        if (coupled_chem == 1) then
          ydms(i,j,l)=trm(i,j,l,n_dms)*y(nM,L)*(28.0D0/62.0D0)*
-     &   BYAXYP(I,J)*BYAM(L,I,J)
+     &   BYAXYP(I,J)*byMA(L,I,J)
          yso2(i,j,l)=trm(i,j,l,n_so2)*y(nM,L)*(28.0D0/64.0D0)*
-     &   BYAXYP(I,J)*BYAM(L,I,J)
+     &   BYAXYP(I,J)*byMA(L,I,J)
        else
          ! Convert from pptv to molecule cm-3:
          ydms(i,j,l)=dms_offline(i,j,l)*1.0D-12*y(nM,L)
@@ -527,7 +527,7 @@ C Concentrations of DMS and SO2 for sulfur chemistry:
 
 c Save initial ClOx amount for use in ClOxfam:
        ClOx_old(L)=trm(I,J,L,n_ClOx)*y(nM,L)*mass2vol(n_ClOx)*
-     & BYAXYP(I,J)*BYAM(L,I,J)
+     & BYAXYP(I,J)*byMA(L,I,J)
 
 c Limit N2O5 number density:
        if(y(n_N2O5,L) < 1.) y(n_N2O5,L)=1.d0
@@ -1469,13 +1469,13 @@ c 1.8 ppbv CFC plus 0.8 ppbv background which is tied to methane) :
           !WARNING: RESETTING SOME Y's HERE; SO DON'T USE THEM BELOW!     
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           y(n_ClOx,L)=(trm(I,J,L,n_ClOx)+changeL(L,n_ClOx))*y(nM,L)*
-     &    mass2vol(n_ClOx)*BYAXYP(I,J)*BYAM(L,I,J)
+     &    mass2vol(n_ClOx)*BYAXYP(I,J)*byMA(L,I,J)
           y(n_HCl,L)= (trm(I,J,L,n_HCl)+changeL(L,n_HCl))*y(nM,L)*
-     &    mass2vol(n_HCl)*BYAXYP(I,J)*BYAM(L,I,J)
+     &    mass2vol(n_HCl)*BYAXYP(I,J)*byMA(L,I,J)
           y(n_HOCl,L)=(trm(I,J,L,n_HOCl)+changeL(L,n_HOCl))*y(nM,L)*
-     &    mass2vol(n_HOCl)*BYAXYP(I,J)*BYAM(L,I,J)
+     &    mass2vol(n_HOCl)*BYAXYP(I,J)*byMA(L,I,J)
           y(n_ClONO2,L)=(trm(I,J,L,n_ClONO2)+changeL(L,n_ClONO2))*
-     &    y(nM,L)*mass2vol(n_ClONO2)*BYAXYP(I,J)*BYAM(L,I,J)
+     &    y(nM,L)*mass2vol(n_ClONO2)*BYAXYP(I,J)*byMA(L,I,J)
           CLTOT=((y(n_CFC,1)/y(nM,1)-y(n_CFC,L)/y(nM,L))*(3.0d0/1.8d0)*
      &    y(n_CFC,1)/(1.8d-9*y(nM,1)))
           CLTOT=CLTOT+0.8d-9*(y(n_CH4,1)/y(nM,1)-y(n_CH4,L)/y(nM,L))/
@@ -1512,13 +1512,13 @@ C from complete oxidation of 1.8 ppbv CFC plus 0.5 pptv background) :
           !WARNING: RESETTING SOME Y's HERE; SO DON'T USE THEM BELOW!     
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           y(n_BrOx,L)=(trm(I,J,L,n_BrOx)+changeL(L,n_BrOx))*y(nM,L)*
-     &    mass2vol(n_BrOx)*BYAXYP(I,J)*BYAM(L,I,J)
+     &    mass2vol(n_BrOx)*BYAXYP(I,J)*byMA(L,I,J)
           y(n_HBr,L)= (trm(I,J,L,n_HBr)+changeL(L,n_HBr))*y(nM,L)*
-     &    mass2vol(n_HBr)*BYAXYP(I,J)*BYAM(L,I,J)
+     &    mass2vol(n_HBr)*BYAXYP(I,J)*byMA(L,I,J)
           y(n_HOBr,L)=(trm(I,J,L,n_HOBr)+changeL(L,n_HOBr))*y(nM,L)*
-     &    mass2vol(n_HOBr)*BYAXYP(I,J)*BYAM(L,I,J)
+     &    mass2vol(n_HOBr)*BYAXYP(I,J)*byMA(L,I,J)
           y(n_BrONO2,L)=(trm(I,J,L,n_BrONO2)+changeL(L,n_BrONO2))*
-     &    y(nM,L)*mass2vol(n_BrONO2)*BYAXYP(I,J)*BYAM(L,I,J)
+     &    y(nM,L)*mass2vol(n_BrONO2)*BYAXYP(I,J)*byMA(L,I,J)
      
           CLTOT=((y(n_CFC,1)/y(nM,1)-y(n_CFC,L)/y(nM,L))*(4.5d-3/1.8d0)
      &    *y(n_CFC,1)/(1.8d-9*y(nM,1)))

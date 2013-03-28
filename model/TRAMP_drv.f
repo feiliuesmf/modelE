@@ -67,7 +67,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       END MODULE AMP_AEROSOL
 
       SUBROUTINE MATRIX_DRV
-!@vers 2013/03/26
+!@vers 2013/03/27
       USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_NUMB_MAP,
      *  AMP_AERO_MAP
       USE TRACER_COM, only: n_H2SO4, n_M_ACC_SU, n_M_AKK_SU, n_M_BC1_BC,
@@ -91,9 +91,9 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE GEOM, only: axyp,imaxj,BYAXYP
       USE CONSTANT,   only:  lhe,mair,gasc   
       USE FLUXES, only: tr3Dsource,trsource,trflux1
-      USE ATM_COM,   only: pmid,pk,byam,gz, MA   ! midpoint pressure in hPa (mb)
+      USE ATM_COM,   only: pmid,pk,byMA,gz, MA   ! midpoint pressure in hPa (mb)
 !                                           and pk is t mess up factor
-!                                           BYAM  1/Air mass (m^2/kg)
+!                                           byMA  1/Air mass (m^2/kg)
       USE AERO_CONFIG
       USE AERO_INIT
       USE AERO_PARAM, only: IXXX, IYYY, ILAY, NEMIS_SPCS
@@ -281,7 +281,7 @@ c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
       tr3Dsource(i,j,l,3,n_HNO3)  =((GAS(2)/1.292 * 1.d-9)
      *        -trm(i,j,l,n_HNO3))/dtsrc
 #endif
-c       DT_AERO(:,:) = DT_AERO(:,:) * dtsrc !DT_AERO [# or ug/m3/s] , taijs [kg m2/kg(air)], byam [kg/m2]
+c       DT_AERO(:,:) = DT_AERO(:,:) * dtsrc !DT_AERO [# or ug/m3/s] , taijs [kg m2/kg(air)], byMA [kg/m2]
 
 c Update physical properties per mode
        do n=ntmAMPi,ntmAMPe
@@ -311,7 +311,7 @@ c Diagnostic of Processes - Sources and Sincs - timestep included
      *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ','N_MXX_1 ','N_OCS_1 ')
 c - 3d acc output
         taijls(i,j,l,ijlt_AMPm(1,n))=taijls(i,j,l,ijlt_AMPm(1,n)) + DIAM(i,j,l,AMP_MODES_MAP(nAMP))
-        taijls(i,j,l,ijlt_AMPm(2,n))=taijls(i,j,l,ijlt_AMPm(2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(nAMP))*AVOL*byam(l,i,j)/axyp(i,j))
+        taijls(i,j,l,ijlt_AMPm(2,n))=taijls(i,j,l,ijlt_AMPm(2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(nAMP))*AVOL*byMA(l,i,j)/axyp(i,j))
 
 c - 2d PRT Diagnostic
         if (itcon_AMPm(1,n) .gt.0) call inc_diagtcb(i,j,(DIAM(i,j,l,AMP_MODES_MAP(nAMP))*1d6),itcon_AMPm(1,n),n) 
@@ -320,14 +320,14 @@ c - 2d PRT Diagnostic
 
       enddo !n
 c - special diag: Size distribution pdfs
-c       if (l.eq.1) taijs(i,j,ijts_AMPpdf(l,:))=taijs(i,j,ijts_AMPpdf(l,:)) + (PDF1(:)*AVOL*byam(l,i,j))
+c       if (l.eq.1) taijs(i,j,ijts_AMPpdf(l,:))=taijs(i,j,ijts_AMPpdf(l,:)) + (PDF1(:)*AVOL*byMA(l,i,j))
 c - N_SSA, N_SSC, M_SSA_SU
-        taijls(i,j,l,ijlt_AMPext(1))=taijls(i,j,l,ijlt_AMPext(1)) + (NACTV(i,j,l,SEAS_MODE_MAP(1))*AVOL*byam(l,i,j)/axyp(i,j))
-        taijls(i,j,l,ijlt_AMPext(2))=taijls(i,j,l,ijlt_AMPext(2)) + (NACTV(i,j,l,SEAS_MODE_MAP(2))*AVOL*byam(l,i,j)/axyp(i,j))
+        taijls(i,j,l,ijlt_AMPext(1))=taijls(i,j,l,ijlt_AMPext(1)) + (NACTV(i,j,l,SEAS_MODE_MAP(1))*AVOL*byMA(l,i,j)/axyp(i,j))
+        taijls(i,j,l,ijlt_AMPext(2))=taijls(i,j,l,ijlt_AMPext(2)) + (NACTV(i,j,l,SEAS_MODE_MAP(2))*AVOL*byMA(l,i,j)/axyp(i,j))
         taijls(i,j,l,ijlt_AMPext(3))=taijls(i,j,l,ijlt_AMPext(3)) +  DIAM(i,j,l,SEAS_MODE_MAP(1)) 
         taijls(i,j,l,ijlt_AMPext(4))=taijls(i,j,l,ijlt_AMPext(4)) +  DIAM(i,j,l,SEAS_MODE_MAP(2)) 
-        taijls(i,j,l,ijlt_AMPext(5))=taijls(i,j,l,ijlt_AMPext(5)) + (AERO(22) *AVOL*byam(l,i,j)/axyp(i,j)) 
-        taijls(i,j,l,ijlt_AMPext(6))=taijls(i,j,l,ijlt_AMPext(6)) + (AERO(25) *AVOL*byam(l,i,j)/axyp(i,j)) 
+        taijls(i,j,l,ijlt_AMPext(5))=taijls(i,j,l,ijlt_AMPext(5)) + (AERO(22) *AVOL*byMA(l,i,j)/axyp(i,j)) 
+        taijls(i,j,l,ijlt_AMPext(6))=taijls(i,j,l,ijlt_AMPext(6)) + (AERO(25) *AVOL*byMA(l,i,j)/axyp(i,j)) 
 
 #ifndef NO_HDIURN
 c     Hourly Station Diagnostic -------------------------------------------------------------------------------
