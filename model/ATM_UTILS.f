@@ -204,13 +204,13 @@ C****
 
       SUBROUTINE CALC_AMPK(LMAX)
 !@sum  CALC_AMPK calculate air mass and pressure arrays
-!@vers 2013/03/26
+!@vers 2013/03/27
 !@auth Jean Lerner/Gavin Schmidt
       USE CONSTANT, only : bygrav,kapa
       USE RESOLUTION, only : ls1,ptop
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : p
-      USE ATM_COM, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,MA,byam
+      USE ATM_COM, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,MA,byMA
       USE DOMAIN_DECOMP_ATM, Only : grid, getDomainBounds, HALO_UPDATE
       USE FLUXES, only : atmsrf,asflx4
       IMPLICIT NONE
@@ -254,12 +254,12 @@ C**** Fill in polar boxes
             MA   (L,I,J) = AML   (L)
             PK   (L,I,J) = PMIDL (L)**KAPA
             PEK  (L,I,J) = PEDNL (L)**KAPA
-            BYAM (L,I,J) = 1 / MA(L,I,J)
+            byMA (L,I,J) = 1 / MA(L,I,J)
           END DO
           atmsrf%P1(I,J) = PMID(1,I,J)
           atmsrf%SRFPK(I,J) = PEK(1,I,J)
           atmsrf%AM1(I,J)   =   MA(1,I,J)
-          atmsrf%BYAM1(I,J) = BYAM(1,I,J)
+          atmsrf%BYAM1(I,J) = byMA(1,I,J)
 
           IF (LMAX.ge.LM) THEN
             PEDN(LM+1:LMAX+1,I,J) = PEDNL(LM+1:LMAX+1)

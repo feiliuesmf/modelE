@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
       MODULE ATM_COM
 !@sum  ATM_COM Main atmospheric variables
-!@vers 2013/03/26
+!@vers 2013/03/27
 !@auth Original Development Team
       USE RESOLUTION, only : LM
 #ifdef USE_ESMF
@@ -71,10 +71,10 @@ C**** Some helpful arrays (arrays should be L first)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PLIJ
 !@var  PDSIG  Surface pressure * DSIG(L) (mb)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PDSIG
-!@var  MA  Air mass of each box (kg/m^2)
+!@var  MA = Air mass per unit area of each layer (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: MA     ! PLIJ*DSIG(L)*100/grav
-!@var  BYAM  1/Air mass (m^2/kg)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: BYAM
+!@var  byMA = 1/MA (m^2/kg)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: byMA
 !@var  PMID  Pressure at mid point of box (mb)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PMID    ! SIG(L)*PLIJ+PTOP
 !@var  PK   PMID**KAPA
@@ -141,7 +141,7 @@ C**** module should own dynam variables used by other routines
      *  ,WMICE
 #endif
       USE ATM_COM, ONLY : 
-     &     PLIJ,PDSIG,MA,BYAM,PMID,PK,
+     &     PLIJ,PDSIG,MA,byMA,PMID,PK,
      &     PEDN,PEK,SD_CLOUDS,GZ,PHI,
      &     PUA,PVA,SDA,MB,MMA,DKE,KEA,
      &     UALIJ,VALIJ,WSAVE,
@@ -251,7 +251,7 @@ C**** Check polar uniformity
       ALLOCATE ( PLIJ(LM,I_0H:I_1H,J_0H:J_1H), 
      $           PDSIG(LM,I_0H:I_1H,J_0H:J_1H),
      $             MA(LM,I_0H:I_1H,J_0H:J_1H),  
-     $           BYAM(LM,I_0H:I_1H,J_0H:J_1H),
+     $           byMA(LM,I_0H:I_1H,J_0H:J_1H),
      $           PMID(LM,I_0H:I_1H,J_0H:J_1H),    
      $           PK(LM,I_0H:I_1H,J_0H:J_1H),
      $           PEDN(LM+1,I_0H:I_1H,J_0H:J_1H), 

@@ -104,7 +104,7 @@ C****
 #endif
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
-      USE TRACER_COM, only:  
+      USE TRACER_COM, only:
      *     n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
      *     n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1,
      *     n_N_BC2_1 ,n_N_BC3_1,
@@ -230,7 +230,7 @@ C**** sync radiation parameters from input
       call sync_param( "save3dAOD", save3dAOD)
       REFdry = REFdry*ref_mult
 
-      call getDomainBounds(grid, 
+      call getDomainBounds(grid,
      &     I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
 
       if(istart==2) then ! replace with cold vs warm start logic
@@ -392,13 +392,13 @@ C                  SO4    SEA    NO3    OCX    BCI    BCB    DST   VOL
      *        n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
 #endif
 #ifdef TRACERS_TOMAS
-!TOMAS does not include NO3 AND VOL, which use its default radiation. 
+!TOMAS does not include NO3 AND VOL, which use its default radiation.
       if (rad_interact_aer > 0) then
 C                  SO4    SEA    NO3    OCX    BCI    BCB    DST   VOL
         FS8OPX = (/0d0,   0d0,   1d0,   0d0,   0d0,   0d0,   0d0,  1d0/)
         FT8OPX = (/0d0,   0d0,   1d0,   0d0,   0d0,   0d0,   0d0,  1d0/)
       end if
-      NTRACE=icomp-2 
+      NTRACE=icomp-2
 ! ANUM(1) for internal-mixing case
 ! Others(ncomp-1) for external-mixing case.
       NTRIX(1:ntrace)=
@@ -859,7 +859,7 @@ c      end if
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
       integer :: year, month, dayOfYear, date
 
-      call modelEclock%getDate(year=year, month=month, 
+      call modelEclock%getDate(year=year, month=month,
      &     dayOfYear=dayOfYear, date=date)
 
       call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1,
@@ -1026,6 +1026,7 @@ C**** Update orbital parameters at start of year
 
       SUBROUTINE DAILY_ch4ox(end_of_day)
 !@sum  DAILY performs daily tasks at end-of-day and maybe at (re)starts
+!@vers 2013/03/27
 !@auth Original Development Team
 !@calls constant:orbit
       USE RESOLUTION, only : im,jm,lm
@@ -1033,7 +1034,7 @@ C**** Update orbital parameters at start of year
       use model_com, only: modelEclock
       USE MODEL_COM, only : itime
       USE GEOM, only : axyp,imaxj,lat2d
-      USE ATM_COM, only : byAM
+      USE ATM_COM, only : byMA
       USE RADPAR, only : ghgam,ghgyr2,ghgyr1
       USE RAD_COM, only : dh2o,H2ObyCH4,ghg_yr
 #ifdef TRACERS_WATER
@@ -1083,7 +1084,7 @@ c     &    write(6,*) 'add in stratosphere: H2O gen. by CH4(ppm)=',xCH4
 #else
           xdH2O = dH2O(j,l,month)
 #endif
-          q(i,j,l)=q(i,j,l)+xCH4*xdH2O*byAM(l,i,j)
+          q(i,j,l)=q(i,j,l)+xCH4*xdH2O*byMA(l,i,j)
 #ifdef TRACERS_WATER
 C**** Add water to relevant tracers as well
           do n=1,ntm
@@ -1117,7 +1118,7 @@ C**** Add water to relevant tracers as well
 
       SUBROUTINE RADIA
 !@sum  RADIA adds the radiation heating to the temperatures
-!@vers 2013/03/26
+!@vers 2013/03/27
 !@auth Original Development Team
 !@calls tropwmo,coszs,coszt, RADPAR:rcompx ! writer,writet
       USE CONSTANT, only : lhe,lhs,twopi,tf,stbo,rhow,mair,grav
@@ -1151,7 +1152,7 @@ C     INPUT DATA  (i,j) dependent
      *             ,TRACER,NTRACE,FSTOPX,FTTOPX,chem_IN,O3natL,O3natLref
      *             ,FTAUC,LOC_CHL,FSTASC,FTTASC
 #ifdef HEALY_LM_DIAGS
-     *             ,VTAULAT 
+     *             ,VTAULAT
 #endif
 
 C     OUTPUT DATA
@@ -1238,7 +1239,7 @@ C     OUTPUT DATA
      *     ,j_vtau,j_ghg
 #endif
 
-      USE ATM_COM, only : pk,pedn,pmid,pdsig,ltropo,MA,byam
+      USE ATM_COM, only : pk,pedn,pmid,pdsig,ltropo,MA,byMA
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : si_atm
       USE GHY_COM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
@@ -1442,7 +1443,7 @@ c     INTEGER ICKERR,JCKERR,KCKERR
       LOGICAL, DIMENSION(:,:), POINTER :: FLAG_DSWS
       integer :: year, dayOfYear, hour, date
 
-      call modelEclock%getDate(year=year, dayOfYear=dayOfYear, 
+      call modelEclock%getDate(year=year, dayOfYear=dayOfYear,
      *     hour=hour, date=date)
 
       RSI => SI_ATM%RSI
@@ -1671,7 +1672,7 @@ C**** SS clouds are considered as a block for each continuous cloud
       FCO2=FULGAS(2)*CO2R
       FN2O=FULGAS(6)*N2OR
       FCH4=FULGAS(7)*CH4R
-c      
+c
 c      write(6,*) 'RJH: GHG: CONC=',
 c     * FCO2,FN2O,FCH4
       ghg_totforc=5.35d0*log(FCO2/CO2I)
@@ -1920,7 +1921,7 @@ C**** EVEN PRESSURES
       TTAUSV(:,:)=0.
       aesqex(:,:,:)=0.0
       aesqsc(:,:,:)=0.0
-      aesqcb(:,:,:)=0.0 
+      aesqcb(:,:,:)=0.0
 #endif
       PLB(LM+1)=PEDN(LM+1,I,J)
       DO L=1,LM
@@ -1967,7 +1968,7 @@ C**** more than one tracer is lumped together for radiation purposes
      *          +trm(i,j,l,n_ococean)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
      *                  )*BYAXYP(I,J)
-          case ("OCB") 
+          case ("OCB")
 #ifdef TRACERS_AEROSOLS_VBS
            TRACER(L,n)=0.d0
 #else
@@ -2140,9 +2141,9 @@ C**** or not.
       O3natL(:)=O3JDAY_native(:,I,J)
       O3natLref(:)=O3JREF_native(:,I,J)
 #endif
-C YUNHA LEE - took the shindell outside of the Koch/dust directives. 
+C YUNHA LEE - took the shindell outside of the Koch/dust directives.
 #ifdef TRACERS_SPECIAL_Shindell
-C**** Ozone and Methane: 
+C**** Ozone and Methane:
       CHEM_IN(1,1:LM)=chem_tracer_save(1,1:LM,I,J)
       CHEM_IN(2,1:LM)=chem_tracer_save(2,1:LM,I,J)*CH4X_RADoverCHEM
       if (clim_interact_chem > 0) then
@@ -2328,7 +2329,7 @@ c set for BC-albedo effect
         IF (TOMAS_DIAG_FC == 2) THEN
             FSTOPX(:) = onoff_aer !turns on online tracer
             FTTOPX(:) = onoff_aer !
-          Do n = 1,icomp-2   
+          Do n = 1,icomp-2
             FSTOPX(n) = 1-onoff_aer !turns off online tracer
             FTTOPX(n) = 1-onoff_aer !
             CALL RCOMPX
@@ -2375,7 +2376,7 @@ C**** 2nd Optional calculation of CRF using a clear sky calc. without aerosols a
         if (cloud_rad_forc.gt.0) then
           FTAUC=0.   ! turn off cloud tau (tauic +tauwc)
           kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
-c Including turn off of aerosols and Ox during crf calc.+++++++++++++++++++ 
+c Including turn off of aerosols and Ox during crf calc.+++++++++++++++++++
 #ifdef TRACERS_SPECIAL_Shindell
        use_o3_ref=1 ; use_tracer_chem(1)=0  !turns off ozone
 #endif
@@ -2563,7 +2564,7 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
      &               taijs(i,j,ijts_sqcb(2,kr,ntrix(n)))
      &               =taijs(i,j,ijts_sqcb(2,kr,ntrix(n)))
      &               +qcb_col(kr,n)
-     &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY        
+     &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY
 #endif
               END DO
             END IF
@@ -2576,7 +2577,7 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
 #ifdef TRACERS_ON
 ! this to accumulate daily SUM of optical thickness for
 ! each active tracer. Will become average in DIAG.f.
-! Also saving the aerosol absorption (band 6) 3D, summed over species. 
+! Also saving the aerosol absorption (band 6) 3D, summed over species.
       aerAbs6SaveInst(i,j,:)=0.d0
       do n=1,NTRACE
         if(ntrix(n) > 0) then
@@ -2646,7 +2647,7 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
         end if
         do l=LS1_loc,lm
           tchg(l,i,j) = tchg(l,i,j) + ( srfhrl(l)*csz2-srhra(l,i,j) +
-     +      (-trfcrl(l)-trhra(l,i,j)) )*nrad*DTsrc*bysha*byam(l,i,j)
+     +      (-trfcrl(l)-trhra(l,i,j)) )*nrad*DTsrc*bysha*byMA(l,i,j)
         end do
         do l=lm+1,lm+lm_req
           tchg(l,i,j) = tchg(l,i,j) + ( srfhrl(l)*csz2-srhra(l,i,j) +
@@ -2777,7 +2778,7 @@ C**** Save clear sky/tropopause diagnostics here
      *     TRNFLB(LTROPO(I,J))
       AIJ(I,J,IJ_SRNTP)=AIJ(I,J,IJ_SRNTP)+SRNFLB(LTROPO(I,J))*CSZ2
       AIJ(I,J,IJ_TRNTP)=AIJ(I,J,IJ_TRNTP)+TRNFLB(LTROPO(I,J))
-      AIJ(I,J,IJ_SISWD)=AIJ(I,J,IJ_SISWD)+POICE*SRDFLB(1)*CSZ2 
+      AIJ(I,J,IJ_SISWD)=AIJ(I,J,IJ_SISWD)+POICE*SRDFLB(1)*CSZ2
       AIJ(I,J,IJ_SISWU)=AIJ(I,J,IJ_SISWU)+
      *     POICE*(SRDFLB(1)-FSRNFG(3))*CSZ2
 
@@ -2962,7 +2963,7 @@ C****
 C**** CRF diags if required
          if (moddrf .ne. 0) go to 770
          if (cloud_rad_forc > 0) then
-c    CRF diagnostics 
+c    CRF diagnostics
            AIJ(I,J,IJ_SWCRF)=AIJ(I,J,IJ_SWCRF)+
      +          (SNFS(3,I,J)-SNFSCRF(I,J))*CSZ2
            AIJ(I,J,IJ_LWCRF)=AIJ(I,J,IJ_LWCRF)-
@@ -3278,8 +3279,8 @@ c longwave GHG forcing at TOA
      &       (SRHR(L,I,J)*COSZ2(I,J)+TRHR(L,I,J))
 #ifdef mjo_subdd
        SWHR(I,J,L)=SWHR(I,J,L)+
-     *             SRHR(L,I,J)*COSZ2(I,J)*bysha*byam(L,I,J)
-       LWHR(I,J,L)=LWHR(I,J,L)+TRHR(L,I,J)*bysha*byam(L,I,J)
+     *             SRHR(L,I,J)*COSZ2(I,J)*bysha*byMA(L,I,J)
+       LWHR(I,J,L)=LWHR(I,J,L)+TRHR(L,I,J)*bysha*byMA(L,I,J)
 #endif
       END DO
       END DO
@@ -3307,7 +3308,7 @@ C****
         DO I=I_0,IMAXJ(J)
           DO L=1,LM
             T(I,J,L)=T(I,J,L)+(SRHR(L,I,J)*COSZ1(I,J)+TRHR(L,I,J))*
-     *           DTsrc*bysha*byam(l,i,j)/PK(L,I,J)
+     *           DTsrc*bysha*byMA(l,i,j)/PK(L,I,J)
           END DO
           AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*COSZ1(I,J))
         END DO
@@ -4186,7 +4187,7 @@ C**** Set the Black Carbon deposition array
       real*8 M,N
 
       Fe=0.47d0*log(1.+2.01d-5*(M*N)**(0.75)
-     .   +5.31d-15*M*(M*N)**(1.52)) 
+     .   +5.31d-15*M*(M*N)**(1.52))
       return
       end
 #endif

@@ -24,7 +24,7 @@ C****
 !@+   sensible heat, evaporation, thermal radiation, and momentum
 !@+   drag.  It also calculates instantaneous surface temperature,
 !@+   surface specific humidity, and surface wind components.
-!@vers 2013/03/26
+!@vers 2013/03/27
 !@auth Nobody will claim responsibilty
 
       USE CONSTANT, only : rgas,lhm,lhe,lhs
@@ -42,7 +42,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, GLOBALSUM
       USE GEOM, only : axyp,imaxj,byaxyp
       USE SOMTQ_COM, only : tmom,qmom,mz
-      USE ATM_COM, only : pmid,pk,pedn,pek,MA,byam
+      USE ATM_COM, only : pmid,pk,pedn,pek,MA,byMA
       USE RAD_COM, only : trhr,fsf,cosz1,trsurf
 #ifdef TRACERS_ON
       use OldTracer_mod, only: itime_tr0, needtrs
@@ -616,7 +616,7 @@ C**** Limit evaporation if lake mass is at minimum
         if (QCHECK) WRITE(99,*) "Lake EVAP limited: I,J,EVAP,MWL",I,J
      *     ,atmocn%EVAPOR(I,J)-DQ1X*MA1,
      *     MWL(I,J)/(RHOW*FLAKE(I,J)*AXYP(I,J))
-        DQ1X=(atmocn%EVAPOR(I,J)-EVAPLIM)*BYAM(1,I,J)
+        DQ1X=(atmocn%EVAPOR(I,J)-EVAPLIM)*byMA(1,I,J)
         lim_lake_evap=.true.
       ELSEIF (DQ1X.GT.Q1) THEN
         DQ1X=Q1
@@ -1141,7 +1141,7 @@ C**** For distributed implementation - ensure point is on local process.
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE GEOM, only : axyp,imaxj,byaxyp
       USE SOMTQ_COM, only : mz
-      USE ATM_COM, only : byam
+      USE ATM_COM, only : byMA
       USE RAD_COM, only : trhr
 #ifdef TRACERS_ON
       use OldTracer_mod, only: itime_tr0, needtrs
@@ -1382,7 +1382,7 @@ C**** Save surface tracer concentration whether calculated or not
       do n=1,ntm
         if (itime_tr0(n).le.itime) then
           if(.not. needtrs(n)) then
-            atmsrf%travg(n,i,j) = byam(1,i,j)*byaxyp(i,j)*
+            atmsrf%travg(n,i,j) = byMA(1,i,j)*byaxyp(i,j)*
      &           max(trm(i,j,1,n)-trmom(mz,i,j,1,n),0d0)
             atmsrf%travg_byvol(n,i,j) =
      &           atmsrf%travg(n,i,j)*atmsrf%rhoavg(i,j)

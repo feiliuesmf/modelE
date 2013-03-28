@@ -1699,6 +1699,7 @@ c get_subdd
 !@+                    FRAC land fractions over 6 types
 !@+
 !@+   More options can be added as extra cases in this routine
+!@vers 2013/03/27
 !@auth Gavin Schmidt/Reto Ruedy
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,tf,mair,sha
      *     ,lhe,rhow,undef,stbo,bysha
@@ -1727,7 +1728,7 @@ c get_subdd
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
      *           ,ctem,cd3d,ci3d,cl3d
 #endif
-      USE ATM_COM, only : ptropo,MA,byam,wsave,pk,phi,pmid
+      USE ATM_COM, only : ptropo,MA,byMA,wsave,pk,phi,pmid
 #if (defined ttc_subdd) || (defined etc_subdd)
      *     ,pedn
 #endif
@@ -3480,7 +3481,7 @@ C**** accumulating/averaging mode ***
               long_name = 'Moist Convective Cloud Optical Depth'
             case ("RADHEAT")
               datar8=(SRHR(L,:,:)*COSZ1(:,:)+TRHR(L,:,:))*
-     &             SECONDS_PER_DAY*bysha*byam(l,:,:)
+     &             SECONDS_PER_DAY*bysha*byMA(l,:,:)
               units_of_data = 'K/day'
               long_name = 'Radiative Heating Rate'
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
@@ -5061,6 +5062,7 @@ c write physical variable
       subroutine ahourly
 !@sum ahourly saves instantaneous variables at sub-daily frequency
 !@+   for diurnal cycle diagnostics
+!@vers 2013/03/27
 !@auth Reha Cakmur/Jan Perlwitz
       USE RESOLUTION, only : ptop
       USE MODEL_COM, only : modelEclock
@@ -5069,7 +5071,7 @@ c write physical variable
       USE domain_decomp_atm, ONLY : am_i_root,getDomainBounds
       USE domain_decomp_atm, ONLY : globalsum,grid
       USE GEOM, only : imaxj,axyp,byaxyp
-      USE ATM_COM, only : phi,wsave,pek,byam
+      USE ATM_COM, only : phi,wsave,pek,byMA
       USE DYNAMICS, only : sig
       USE rad_com,ONLY : cosz1,srnflb_save,trnflb_save,ttausv_save,
      &     ttausv_cs_save
@@ -5155,7 +5157,7 @@ C****
      *             ,1:lmax_dd2,n1)*byaxyp(i,j)
               tmp(idd_conc1:idd_conc1+lmax_dd2-1)
      *             =tmp(idd_conc1:idd_conc1+lmax_dd2-1)+trm(i,j
-     *             ,1:lmax_dd2,n1)*byam(1,i,j)*byaxyp(i,j)
+     *             ,1:lmax_dd2,n1)*byMA(1,i,j)*byaxyp(i,j)
               tmp(idd_tau1:idd_tau1+lmax_dd2-1)=tmp(idd_tau1:idd_tau1
      *             +lmax_dd2-1)+ttausv_save(i,j,n1,1:lmax_dd2)
               tmp(idd_tau_cs1:idd_tau_cs1+lmax_dd2-1)
