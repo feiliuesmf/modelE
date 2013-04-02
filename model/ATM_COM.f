@@ -134,6 +134,10 @@ C**** module should own dynam variables used by other routines
       USE FILEMANAGER
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,HALO_UPDATE,READT_PARALLEL
      &     ,hassouthpole,hasnorthpole
+#ifdef GLINT2
+      USE DOMAIN_DECOMP_ATM, ONLY : glint2
+      use glint2_modele
+#endif
       USE RESOLUTION, ONLY : IM,JM,LM,PSFMPT
       USE ATM_COM, ONLY : temperature_istart1
       USE ATM_COM, ONLY : ZATMO,P,U,V,T,Q,WM
@@ -213,7 +217,11 @@ C****
       WMICE (:,:,:)=0.
 #endif
 
+#ifdef GLINT2
+      nhc_local = glint2_modele_nhc(glint2)
+#else
       call sync_param("NHC", nhc_local)
+#endif
       if (nhc_local.eq.1) then
         call openunit("TOPO",iu_TOPO,.true.,.true.)
         CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),ZATMO ,5) ! Topography

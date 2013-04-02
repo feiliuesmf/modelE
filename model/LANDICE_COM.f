@@ -9,15 +9,15 @@
 !@auth Gavin Schmidt
 !@ver  2010/10/13
 !@cont io_landice
-#ifdef COUPLE_GLIMMER
-      USE glint_main, only : glint_params
-#endif
       use cdl_mod, only : cdl_type
       use mdiag_com, only : sname_strlen,units_strlen,lname_strlen
+      use iso_c_binding
       IMPLICIT NONE
       SAVE
 
 !@var nhc number of height classes
+! Moved to module DOMAIN_DECOMP_ATM
+!      type(c_ptr) :: glint2   ! Handle to ice sheet coupler API
       integer :: nhc=1
       REAL*8 :: HC_T_LAPSE_RATE = .008		! Lapse rate to use in T downscaling, K/m
 !@fhc fraction of landice area in each height class (static for testing purposes)
@@ -77,9 +77,13 @@
 !@+    run time
 !@auth NCCS (Goddard) Development Team
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
-      USE RESOLUTION, ONLY : IM,LM
+#ifdef GLINT2
+      USE  DOMAIN_DECOMP_ATM, ONLY : GLINT2
+      Use glint2_modele
+#endif
+      USE RESOLUTION, ONLY : IM,JM,LM
       Use LANDICE_COM, Only: NHC,FHC,SNOWLI,TLANDI, MDWNIMP,EDWNIMP,
-     *                       FSHGLM,FNHGLM, ELEVHC, HC_T_LAPSE_RATE
+     *   FSHGLM,FNHGLM, ELEVHC, HC_T_LAPSE_RATE
 #ifdef TRACERS_WATER
       USE LANDICE_COM, ONLY : TRSNOWLI, TRLNDI, TRDWNIMP
       USE TRACER_COM, only : NTM
@@ -97,13 +101,18 @@
       INTEGER :: I_1H, I_0H, J_1H, J_0H
       INTEGER :: IER
 
-      call sync_param("NHC",NHC)
       call sync_param("HC_T_LAPSE_RATE", HC_T_LAPSE_RATE)
 
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
       J_0H = grid%J_STRT_HALO
       J_1H = grid%J_STOP_HALO
+
+#ifdef GLINT2
+      NHC = glint2_modele_nhc(glint2)
+#else
+      call sync_param("NHC",NHC)
+#endif
 
       ALLOCATE( FHC(I_0H:I_1H,J_0H:J_1H,NHC),
      *          ELEVHC(I_0H:I_1H,J_0H:J_1H,NHC),
@@ -143,6 +152,16 @@
       fid = par_open(grid,'GIC','read')
       call new_io_landice(fid,ioread)
       call par_close(grid,fid)
+
+#ifdef GLINT2
+      ! FHC was just read in new_io_landice().
+      ! Fix up fhc, based on glint2 API
+      call glint2_modele_compute_fhc(glint2, FHC,
+     &     grid%i_strt_halo, grid%j_strt_halo)
+      call glint2_modele_get_elevhc(glint2, elevhc,
+     &     grid%i_strt_halo, grid%j_strt_halo)
+#endif
+
       return
       end subroutine read_landice_ic
 

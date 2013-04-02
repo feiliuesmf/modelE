@@ -1685,6 +1685,10 @@ C**** fluxes associated with variable lake fractions
       USE EXCHANGE_TYPES, only : alloc_xchng_vars
       USE DOMAIN_DECOMP_ATM, ONLY : GRD_DUM=>GRID,READT_PARALLEL,
      &     HALO_UPDATE,HASSOUTHPOLE,HASNORTHPOLE
+#ifdef GLINT2
+      USE DOMAIN_DECOMP_ATM, ONLY : glint2
+      use glint2_modele
+#endif
       USE FLUXES
       USE GEOM, only : lat2d
 #ifndef CUBED_SPHERE
@@ -1714,7 +1718,11 @@ C**** fluxes associated with variable lake fractions
       character(len=2) :: c2
       integer :: NHC_LOCAL = 1
 
+#ifdef GLINT2
+      nhc_local = glint2_modele_nhc(glint2)
+#else
       call sync_param( "NHC", nhc_local)
+#endif
       call sync_param( "NIsurf", NIsurf )
       call sync_param( "UOdrag", UOdrag )
 
@@ -1756,6 +1764,11 @@ C**** Actual array is set from restart file.
         call read_dist_data(grid,iu_TOPO,'fgrnd',FEARTH0)
         call read_dist_data(grid,iu_TOPO,'fgice',FLICE)
         call par_close(grid,iu_TOPO)
+
+#ifdef GLINT2
+        ! Fix it up with GLINT2
+        call glint2_modele_compute_fgice(glint2, FLICE, FEARTH0, FOCEAN, FLAKE0)
+#endif
       end if
 
 

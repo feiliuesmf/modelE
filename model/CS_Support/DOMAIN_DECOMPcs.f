@@ -27,13 +27,16 @@ c get i/o routines for netcdf format
 c get procedures from the MPP package as they become compatible with
 c model E or vice versa
 c      use mpp_domains_mod
+       use iso_c_binding
 
       implicit none
       save
 
 c declare an instance of dist_grid for the atmosphere
       type(dist_grid), target :: grid
-
+#ifdef GLINT2
+      type(c_ptr) :: glint2
+#endif
       contains
 
       SUBROUTINE INIT_GRID(grd_dum, IM,JM,LM,

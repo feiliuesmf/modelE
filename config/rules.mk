@@ -244,11 +244,23 @@ ifdef NETCDFLIBDIR
   ifeq ($(wildcard $(NETCDFLIBDIR)/libnetcdff.*),)
     LIBS += -L$(NETCDFLIBDIR) -lnetcdf
   else
-    LIBS += -L$(NETCDFLIBDIR) -lnetcdff -lnetcdf
+    LIBS += -L$(NETCDFLIBDIR) -L/opt/local/lib -lnetcdff -lnetcdf
   endif
 endif
 
 endif
+
+
+ifdef GLINT2INCLUDEDIR
+  FFLAGS += -I$(GLINT2INCLUDEDIR)
+  F90FLAGS += -I$(GLINT2INCLUDEDIR)
+  INCS += -I$(GLINT2INCLUDEDIR)
+endif
+
+ifdef GLINT2LIBDIR
+  LIBS += -L$(GLINT2LIBDIR) -lglint2 -L/opt/local/lib -lproj -lblitz -lCGAL -lmpfr -lgmp
+endif
+
 
 
 ifeq ($(ADIABATIC),YES)

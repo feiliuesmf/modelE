@@ -717,6 +717,11 @@ C****
 c Driver to allocate arrays that become dynamic as a result of
 c set-up for MPI implementation
       USE DOMAIN_DECOMP_ATM, ONLY : grid,init_grid
+#ifdef GLINT2
+      USE DOMAIN_DECOMP_ATM, ONLY : glint2
+      use MpiSupport_mod, only: ROOT_PROCESS
+      Use glint2_modele
+#endif
       USE RESOLUTION, only : im,jm,lm
 #ifndef CUBED_SPHERE
       USE MOMENTS, only : initMoments
@@ -726,6 +731,7 @@ c set-up for MPI implementation
       use ghy_tracers, only: initGhyTracers
 #endif
       IMPLICIT NONE
+      include 'mpif.h'      ! Needed for GLINT2
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       call initTracerCom
@@ -741,6 +747,16 @@ c initialize the atmospheric domain decomposition
 c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call init_grid(grid, im, jm, lm, CREATE_CAP=.true.)
 #endif
+
+#ifdef GLINT2
+      glint2 = glint2_modele_new('GLINT2', 6, 'm', 1,
+     &    im, jm,
+     &    grid%i_strt_halo, grid%i_stop_halo,
+     &    grid%j_strt_halo, grid%j_stop_halo,
+     &    grid%i_strt, grid%i_stop, grid%j_strt, grid%j_stop,
+     &    grid%j_strt_skp, grid%j_stop_skp,
+     &    MPI_COMM_WORLD, ROOT_PROCESS)
+#endif  ! GLINT2
 
       call alloc_dynamics(grid)
       call alloc_atm_com(grid)

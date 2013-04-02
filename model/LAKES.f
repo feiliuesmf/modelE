@@ -416,6 +416,9 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,readt_parallel
       USE DOMAIN_DECOMP_ATM, only : getDomainBounds,HALO_UPDATE
+#ifdef GLINT2
+      USE DOMAIN_DECOMP_ATM, only : glint2
+#endif
       USE DOMAIN_DECOMP_ATM, only : am_i_root
       USE GEOM, only : axyp,imaxj,lonlat_to_ij,lon2d_dg,lat2d_dg
 #ifdef TRACERS_WATER
@@ -429,6 +432,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE DIAG_COM, only : npts,conpt0,icon_LKM,icon_LKE
       USE Dictionary_mod
       USE pario
+      use glint2_modele
 
       IMPLICIT NONE
       INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0,I_1,I_0H,I_1H
@@ -500,7 +504,11 @@ C**** Get parameters from rundeck
       call sync_param("lake_rise_max",lake_rise_max)
 
 C**** Read Lake Depths
+#ifdef GLINT2
+      nhc_local = glint2_modele_nhc(glint2)
+#else
       call sync_param("NHC", NHC_LOCAL)
+#endif
       if (nhc_local.eq.1) then
         call openunit("TOPO",iu_SILL,.true.,.true.)
         CALL READT_PARALLEL(grid,iu_SILL,NAMEUNIT(iu_SILL),HLAKE ,7)
