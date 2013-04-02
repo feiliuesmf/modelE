@@ -4,7 +4,7 @@
 
       MODULE TRACER_ADV
 !@sum MODULE TRACER_ADV arrays needed for tracer advection
-!@vers 2013/03/25
+!@vers 2013/04/02
 
       USE RESOLUTION, ONLY : IM,JM,LM
       USE GEOM, only : byim
@@ -1234,7 +1234,7 @@ c****
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: sbfv
       integer :: i,j,jj
       REAL*8 :: m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
-      real*8, dimension(im) :: mvs,fs
+      real*8, dimension(im) :: mvj,fs
       real*8, dimension(nmom,im) :: fmoms
       real*8, dimension(nmom) :: fmomn
       real*8 :: frac1,fracm,fn,mold,mnew,bymnew,dm2
@@ -1332,7 +1332,7 @@ c compute fluxes at s. edge of local domain, or at edge of SP cap
             fn=-rm(i,j+1)
           endif
         endif
-        mvs(i) = mv(i,j)
+        mvj(i) = mv(i,j)
         fs(i) = fn
         fs0(i) = fn_pass
       enddo
@@ -1340,7 +1340,7 @@ c compute fluxes at s. edge of local domain, or at edge of SP cap
 c update south polar cap
       if (have_south_pole) then
         j = 1
-         m_sp =  m_sp - sum(mvs(:))
+         m_sp =  m_sp - sum(mvj(:))
         rm_sp = rm_sp - sum(fs(:))
         do i=1,im
            rzm_sp =  rzm_sp - fmoms(mz,i)
@@ -1420,9 +1420,9 @@ c loop over non-polar rows
          endif
 
          mold=mass(i,j)
-         mnew=mold+mvs(i)-mv(i,j)
+         mnew=mold+mvj(i)-mv(i,j)
          bymnew = 1./mnew
-         dm2=mvs(i)+mv(i,j)
+         dm2=mvj(i)+mv(i,j)
          rm0=rm(i,j)+fs0(i)-fn0
          rm(i,j)=rm(i,j)+fs(i)-fn
       !
@@ -1454,7 +1454,7 @@ c loop over non-polar rows
            rm(i,j)=0d0; rmom(:,i,j)=0d0
          endif
 
-         mvs(i) = mv(i,j)
+         mvj(i) = mv(i,j)
          fs(i) = fn
          fmoms(:,i) = fmomn(:)
 
@@ -1472,7 +1472,7 @@ c loop over non-polar rows
 
 c update north polar cap
       if (have_north_pole) then
-         m_np =  m_np + sum(mvs(:))
+         m_np =  m_np + sum(mvj(:))
         rm_np = rm_np + sum(fs(:))
         do i=1,im
            rzm_np =  rzm_np + fmoms(mz,i)
@@ -1852,7 +1852,7 @@ c****
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: sbfv
       integer :: i,j,jj
       REAL*8 :: m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
-      real*8, dimension(im) :: mvs,fs
+      real*8, dimension(im) :: mvj,fs
       real*8, dimension(nmom,im) :: fmoms
       real*8, dimension(nmom) :: fmomn
       real*8 :: frac1,fracm,fn,mold,mnew,bymnew,dm2
@@ -1928,14 +1928,14 @@ c compute fluxes at s. edge of local domain, or at edge of SP cap
         fmoms(mzz,i) = fracm*rmom(mzz,i,jj)
         fmoms(mxx,i) = fracm*rmom(mxx,i,jj)
         fmoms(mzx,i) = fracm*rmom(mzx,i,jj)
-        mvs(i) = mv(i,j)
+        mvj(i) = mv(i,j)
         fs(i) = fn
       enddo
 
 c update south polar cap
       if (have_south_pole) then
         j = 1
-         m_sp =  m_sp - sum(mvs(:))
+         m_sp =  m_sp - sum(mvj(:))
         rm_sp = rm_sp - sum(fs(:))
         do i=1,im
            rzm_sp =  rzm_sp - fmoms(mz,i)
@@ -1982,9 +1982,9 @@ c loop over non-polar rows
          fmomn(mzx) = fracm*rmom(mzx,i,jj)
 
          mold=mass(i,j)
-         mnew=mold+mvs(i)-mv(i,j)
+         mnew=mold+mvj(i)-mv(i,j)
          bymnew = 1./mnew
-         dm2=mvs(i)+mv(i,j)
+         dm2=mvj(i)+mv(i,j)
          rm(i,j)=rm(i,j)+fs(i)-fn
       !
          rmom(my,i,j)=(rmom(my,i,j)*mold-3.*(-dm2*rm(i,j)
@@ -2010,7 +2010,7 @@ c loop over non-polar rows
 
          mass(i,j) = mnew
 
-         mvs(i) = mv(i,j)
+         mvj(i) = mv(i,j)
          fs(i) = fn
          fmoms(:,i) = fmomn(:)
 
@@ -2024,7 +2024,7 @@ c loop over non-polar rows
 
 c update north polar cap
       if (have_north_pole) then
-         m_np =  m_np + sum(mvs(:))
+         m_np =  m_np + sum(mvj(:))
         rm_np = rm_np + sum(fs(:))
         do i=1,im
            rzm_np =  rzm_np + fmoms(mz,i)

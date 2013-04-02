@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
       SUBROUTINE DYNAM2
-!@vers 2013/03/25
+!@vers 2013/04/02
       USE model_com, only : im,jm,lm,ls1,
      &     u,v,t,p,NIdyn,dt,DTsrc,NSTEP,mrch,ndaa
       USE DYNAMICS, only : pu,pv,sd, pua,pva,sda
@@ -1724,7 +1724,7 @@ c****
      &                          grid%J_STOP_HALO) :: rmom
       integer :: i,j,jj
       REAL*8 :: m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
-      real*8, dimension(im) :: mvs,fs
+      real*8, dimension(im) :: mvj,fs
       real*8, dimension(nmom,im) :: fmoms
       real*8, dimension(nmom) :: fmomn
       real*8 :: frac1,fracm,fn,mold,mnew,bymnew,dm2
@@ -1778,7 +1778,7 @@ c--------------------------------------------------------------------
         mv(:,jm) = 0.
       endif
       if(have_south_pole) then
-        mvs(:) = 0.
+        mvj(:) = 0.
         fs(:) = 0.
         fmoms(:,:) = 0.
       else
@@ -1808,7 +1808,7 @@ c--------------------------------------------------------------------
           fmomn(mzz) = fracm*rmom(mzz,i,jj)
           fmomn(mxx) = fracm*rmom(mxx,i,jj)
           fmomn(mzx) = fracm*rmom(mzx,i,jj)
-          mvs(i) = mv(i,j)
+          mvj(i) = mv(i,j)
           fs(i) = fn
           fmoms(:,i) = fmomn(:)
         enddo ! i
@@ -1841,9 +1841,9 @@ c--------------------------------------------------------------------
          fmomn(mzx) = fracm*rmom(mzx,i,jj)
 
          mold=mass(i,j)
-         mnew=mold+mvs(i)-mv(i,j)
+         mnew=mold+mvj(i)-mv(i,j)
          bymnew = 1./mnew
-         dm2=mvs(i)+mv(i,j)
+         dm2=mvj(i)+mv(i,j)
          rm(i,j)=rm(i,j)+fs(i)-fn
       !
          rmom(my,i,j)=(rmom(my,i,j)*mold-3.*(-dm2*rm(i,j)
@@ -1869,7 +1869,7 @@ c--------------------------------------------------------------------
 
          mass(i,j) = mnew
 
-         mvs(i) = mv(i,j)
+         mvj(i) = mv(i,j)
          fs(i) = fn
          fmoms(:,i) = fmomn(:)
 

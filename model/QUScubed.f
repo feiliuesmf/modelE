@@ -6,7 +6,7 @@
 !@+      AADVQ:  driver routine for tracer advection
 !@+    For now, AADVQ assumes transported quantities are non-negative.
 !@+    Code for the easier case without this constraint will be added.
-!@vers 2013/03/25
+!@vers 2013/04/02
 !@auth M. Kelley
 
 #include "rundeck_opts.h"
@@ -647,7 +647,7 @@ c****
       REAL*8, dimension(isd:ied,jsd:jed+1) :: mv
       REAL*8, dimension(nmom,isd:ied,jsd:jed) :: rmom
       integer :: i,j,jj
-      real*8, dimension(isd:ied) :: mvs,fs
+      real*8, dimension(isd:ied) :: mvj,fs
       real*8, dimension(nmom,isd:ied) :: fmoms
       real*8, dimension(nmom) :: fmomn
       real*8 :: frac1,fracm,fn,mold,mnew,bymnew,dm2,am
@@ -719,7 +719,7 @@ c--------------------------------------------------------------------
           endif
         endif
 
-        mvs(i) = am
+        mvj(i) = am
         fs(i) = fn
         fmoms(:,i) = fmomn(:)
 
@@ -788,9 +788,9 @@ c--------------------------------------------------------------------
          endif
 
          mold=mass(i,j)
-         mnew=mold+mvs(i)-am
+         mnew=mold+mvj(i)-am
          bymnew = 1./mnew
-         dm2=mvs(i)+am
+         dm2=mvj(i)+am
          rm0=rm(i,j)+fs0(i)-fn0
          rm(i,j)=rm(i,j)+fs(i)-fn
       !
@@ -822,7 +822,7 @@ c--------------------------------------------------------------------
            rm(i,j)=0d0; rmom(:,i,j)=0d0
          endif
 
-         mvs(i) = am
+         mvj(i) = am
          fs(i) = fn
          fmoms(:,i) = fmomn(:)
 
