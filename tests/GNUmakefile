@@ -18,14 +18,14 @@ PFUNIT_LFLAGS += -L$(NETCDFHOME)/lib -lnetcdf
 PFUNIT_TEST_DIRECTORIES := $(foreach ITEM, $(COMPONENTS), ./$(ITEM))
 
 INCSAVAIL := $(wildcard $(INCS))
-EXTRA_FFLAGS += $(foreach ITEM, $(INCSAVAIL), -I$(ITEM))
+EXTRA_FFLAGS += $(foreach ITEM, $(INCSAVAIL), -I$(ITEM)) -I$(SOURCE_DIR)/include
 
 # Defaults
 
 USE_MPI = NO
 PFUNIT_USE_MPI = NO
 
-ifeq ($(COMPILER),Intel)
+ifeq ($(COMPILER),intel)
   FC = ifort
   EXTRA_FFLAGS += -g -O0 -traceback -fpp -O2 -check bounds
 else
