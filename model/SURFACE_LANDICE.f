@@ -96,7 +96,7 @@ C****
       INTEGER :: J_0, J_1, J_0H, J_1H, I_0,I_1
       LOGICAL :: debug
 
-      real*8, dimension(:,:), pointer :: trdn,srdn,e1,tgrnd,tgr4
+!      real*8, dimension(:,:), pointer :: trdn,srdn,e1,tgrnd,tgr4
 
       type (Timer_type), pointer :: aTimer
 ! ======================= MAIN BODY ======================================
@@ -113,19 +113,19 @@ C****
 
       call startTimer('SURFACE_LANDICE()')
 
-      trdn => atmgla%flong
-      srdn => atmgla%fshort
-      e1 => atmgla%e1
-      tgrnd => atmgla%tgrnd
-      tgr4 => atmgla%tgr4
+!      trdn => atmgla%flong
+!      srdn => atmgla%fshort
+!      e1 => atmgla%e1
+!      tgrnd => atmgla%tgrnd
+!      tgr4 => atmgla%tgr4
 
 ! inits before looping over surface timesteps.
       if(do_init) then
         do j=j_0,j_1
         do i=i_0,i_1
-          e1(i,j) = 0.
-          tgrnd(i,j) = atmgla%gtemp(i,j)
-          tgr4(i,j) = atmgla%gtempr(i,j)**4
+          atmgla%e1(i,j) = 0.
+          atmgla%tgrnd(i,j) = atmgla%gtemp(i,j)
+          atmgla%tgr4(i,j) = atmgla%gtempr(i,j)**4
         enddo
         enddo
       endif
@@ -140,7 +140,7 @@ C**** Zero out fluxes summed over type and surface time step
 c ---- Don't need this section, it's asflx is a global variable
 c and it's already zeroed out before outer loop
 
-!      E1=0.    ! I don't think local var E1 is really used.  It is set, but not read.
+!      atmgla%E1=0.    ! I don't think local var E1 is really used.  It is set, but not read.
 ! /------------ All global variables, zeroed in SURFACE.f ------------\
 !#ifdef SCM
 !      EVPFLX= 0.0d0
@@ -257,18 +257,18 @@ C****
       ! snow amount on land ice (kg/m^2)
       SNOW=SNOWLI(I,J,IHC)
       ! Temperature of top ice layer (C)
-      TG1=TGRND(I,J)
+      TG1=atmgla%TGRND(I,J)
 
       ! TR4 = TGR4(3,i,j) = atmgla%GTEMPR**4
       ! (Needed for Stefan-Boltzmann Law)
       ! GTEMPR radiative ground temperature over surface type (K)
-      TR4=TGR4(I,J)
+      TR4=atmgla%TGR4(I,J)
 
       ! SRHEAT = Solar Heating
       ! FSF = Solar Forcing over each type (W/m^2)
       ! FSF = net absorption (for cosZ = 1)
       ! COSZ1 = Mean Solar Zenith angle for curr. physics(not rad) time step
-      SRHEAT=SRDN(I,J)*atmgla%COSZ1(I,J)
+      SRHEAT=atmgla%fshort(I,J)*atmgla%COSZ1(I,J)
 
       ! LHS = latent heat of sublimation at 0 C (J/kg)
       ELHX=LHS
@@ -327,7 +327,7 @@ c      pbl_args%uocean = uocean
 c      pbl_args%vocean = vocean
       ! TODO: This will change with height
 c      pbl_args%psurf = PS
-c      pbl_args%trhr0 = TRDN(I,J)
+c      pbl_args%trhr0 = atmgla%flong(I,J)
       pbl_args%ocean = .false.
       pbl_args%snow = SNOW
 
@@ -372,7 +372,7 @@ C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
       ! Including gustiness in the latent heat flux:
       EVHEAT=(LHE+TG1*SHV)*(RCDQWS*(QSRF-QG_SAT)+
      *                      RCDQDWS*pbl_args%qprime)
-      TRHEAT=TRDN(I,J)-STBO*TR4
+      TRHEAT=atmgla%flong(I,J)-STBO*TR4
 
 ! BEGIN ------------------------------------------------------------
 ! Setting up implicit timestep aspects to surface flux calculations
@@ -494,7 +494,7 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       ! atmgla%e1 <= e1 (set below in SURFACE.f)
       ! E1 = net energy flux at layer 1
       ! (I believe this means between the top 10cm layer and the 2.9m layer below it)
-      E1(I,J)=E1(I,J)+F1DT
+      atmgla%E1(I,J)=atmgla%E1(I,J)+F1DT
 
       atmgla%EVAPOR(I,J)=atmgla%EVAPOR(I,J)+EVAP
 #ifdef SCM
@@ -507,10 +507,10 @@ c    *                   EVPFLX,SHFLX,ptype
           endif
       endif
 #endif
-      TGRND(I,J)=TG1  ! includes skin effects
-      TGR4(I,J) =TR4
+      atmgla%TGRND(I,J)=TG1  ! includes skin effects
+      atmgla%TGR4(I,J) =TR4
 C**** calculate correction for different TG in radiation and surface
-      dLWDT = DTSURF*(atmgla%TRUP_in_rad(I,J)-TRDN(I,J))+TRHDT
+      dLWDT = DTSURF*(atmgla%TRUP_in_rad(I,J)-atmgla%flong(I,J))+TRHDT
 C**** final fluxes
 #ifdef SCM
 cccccc for SCM use ARM provided fluxes for designated box
@@ -560,8 +560,8 @@ C****
 
       call dealloc_pbl_args(pbl_args)
 
-      atmgla%gtemp(:,:) = tgrnd(:,:)
-      atmgla%gtemps(:,:) = tgrnd(:,:)
+      atmgla%gtemp(:,:) = atmgla%tgrnd(:,:)
+      atmgla%gtemps(:,:) = atmgla%tgrnd(:,:)
 
       call stopTimer('SURFACE_LANDICE()')
 
