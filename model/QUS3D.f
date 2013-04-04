@@ -53,7 +53,7 @@ c arrays for upwind halos
      &     buffer_exchange=>halo_update_mask
       USE QUSDEF
       USE QUSCOM, ONLY : IM,JM,LM
-      USE ATM_COM, ONLY: pu=>pua, pv=>pva, sd=>sda, mb, MMA
+      USE ATM_COM, ONLY: pu=>MUs, pv=>MVs, sd=>MWs, mb, MMA
       IMPLICIT NONE
       character(*) tname          !tracer name
       logical :: qlimit
@@ -279,7 +279,7 @@ c
 !@+   Decide how many cycles to take such that mass does not become
 !@+   too small during any of the operator splitting steps of each cycle
 !@auth Maxwell Kelley
-      USE ATM_COM, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, MMA
+      USE ATM_COM, ONLY: mu=>MUs, mv=>MVs, mw=>MWs, mb, MMA
       USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds
       USE DOMAIN_DECOMP_1D, ONLY : GLOBALSUM, HALO_UPDATE, globalmax
       USE DOMAIN_DECOMP_1D, ONLY : NORTH, SOUTH, AM_I_ROOT

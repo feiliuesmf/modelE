@@ -91,7 +91,7 @@ c     endif
       USE GEOM, only : dyv,dxv,dxyp,areag,bydxyp
       USE SOMTQ_COM, only : tmom,mz
       USE ATM_COM, only : ptold,phi
-     &    ,pua,pva,sda,ps,mb,pk,pmid,pedn
+     &    ,MUs,MVs,MWs,ps,mb,pk,pmid,pedn
       USE DYNAMICS, only : pu,pv,sd,dut,dvt
      &    ,cos_limit,nidyn,dt,mrch,nstep,quvfilter,USE_UNR_DRAG
       USE DIAG_COM, only : aij => aij_loc,ij_fmv,ij_fgzv
@@ -133,9 +133,9 @@ c**** Extract domain decomposition info
       NSOLD=0                            ! strat
 
       DO L=1,LM
-         PUA(:,:,L) = 0.
-         PVA(:,:,L) = 0.
-         SDA(:,:,L) = 0.
+         MUs(:,:,L) = 0.
+         MVs(:,:,L) = 0.
+         MWs(:,:,L) = 0.
       ENDDO
 C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
   300 CONTINUE
@@ -225,9 +225,9 @@ C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
          IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
 C**** ACCUMULATE MASS FLUXES FOR TRACERS and Q
       DO L=1,LM
-        PUA(:,:,L)=PUA(:,:,L)+PU(:,:,L)
-        PVA(:,:,L)=PVA(:,:,L)+PV(:,:,L)
-        IF (L.LE.LM-1) SDA(:,:,L)=SDA(:,:,L)+SD(:,:,L)
+        MUs(:,:,L)=MUs(:,:,L)+PU(:,:,L)
+        MVs(:,:,L)=MVs(:,:,L)+PV(:,:,L)
+        IF (L.LE.LM-1) MWs(:,:,L)=MWs(:,:,L)+SD(:,:,L)
       END DO
 C**** ADVECT Q AND T
 CCC   TT(:,:,:) = T(:,:,:)
@@ -279,9 +279,9 @@ C**** Restart after 8 steps due to divergence of solutions
       V(:,:,:) = V(:,:,:) + UNRDRAG_y(:,:,:) * DTsrc
       end if
 
-      PUA = PUA * DTLF
-      PVA = PVA * DTLF
-      SDA(:,:,1:LM-1) = SDA(:,:,1:LM-1) * DTLF
+      MUs = MUs * DTLF
+      MVs = MVs * DTLF
+      MWs(:,:,1:LM-1) = MWs(:,:,1:LM-1) * DTLF
 
 c apply east-west filter to U and V once per physics timestep
       CALL FLTRUV(U,V,UT,VT)
@@ -340,7 +340,7 @@ c apply north-south filter to U and V once per physics timestep
       end subroutine compute_mass_flux_diags
 
       subroutine COMPUTE_DYNAM_AIJ_DIAGNOSTICS(
-     &    PUA, PVA, dt)
+     &    MUs, MVs, dt)
       use CONSTANT,      only: BY3
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
       use DOMAIN_DECOMP_1D, only: halo_update, SOUTH
@@ -349,8 +349,8 @@ c apply north-south filter to U and V once per physics timestep
      &     IJ_FGZU, IJ_FGZV, IJ_FMV, IJ_FMU
       use RESOLUTION, only: IM,JM,LM
 
-      real*8, intent(in) :: PUA(:,grid%J_STRT_HALO:,:)
-      real*8, intent(in) :: PVA(:,grid%J_STRT_HALO:,:)
+      real*8, intent(in) :: MUs(:,grid%J_STRT_HALO:,:)
+      real*8, intent(in) :: MVs(:,grid%J_STRT_HALO:,:)
       real*8, intent(in) :: dt
 
       integer :: I, IP1, J, L
@@ -367,24 +367,24 @@ c apply north-south filter to U and V once per physics timestep
 
       do j=J_0STG,J_1STG
       do L=1,LM
-         AIJ(:,J,IJ_FMV)  = AIJ(:,J,IJ_FMV )+PVA(:,J,L)*DTLF
+         AIJ(:,J,IJ_FMV)  = AIJ(:,J,IJ_FMV )+MVs(:,J,L)*DTLF
       enddo
       enddo
 
       do j=J_0S,J_1S
       do l=1,lm
-         AIJ(:,J,IJ_FMU) = AIJ(:,J,IJ_FMU)+PUA(:,J,L)*DTLF
+         AIJ(:,J,IJ_FMU) = AIJ(:,J,IJ_FMU)+MUs(:,J,L)*DTLF
       enddo
       enddo
 
       if (haveLatitude(grid, J=1)) then
          do l=1,lm
-            AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+PUA(:, 1,L)*DTLF*BY3
+            AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+MUs(:, 1,L)*DTLF*BY3
          enddo
       endif
       if(haveLatitude(grid, J=JM)) then
          do l=1,lm
-            AIJ(:,JM,IJ_FMU) = AIJ(:,JM,IJ_FMU )+PUA(:,JM,L)*DTLF*BY3
+            AIJ(:,JM,IJ_FMU) = AIJ(:,JM,IJ_FMU )+MUs(:,JM,L)*DTLF*BY3
          enddo
       endif
       end subroutine COMPUTE_DYNAM_AIJ_DIAGNOSTICS
@@ -2731,7 +2731,7 @@ C****
       USE SOMTQ_COM, only : qmom
       USE DIAG_COM, only: agc=>agc_loc,byim
       USE GCDIAG, only : jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh
-      Use ATM_COM, Only: PS,MB,MMA,SDA
+      Use ATM_COM, Only: PS,MB,MMA,MWs
       USE TRACER_ADV, only:
      *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
@@ -2748,7 +2748,7 @@ c**** Extract domain decomposition info
 
       CALL CALC_AMP(PS,MB)
       CALL HALO_UPDATE(grid, MB, FROM=SOUTH+NORTH) ! for convenience later
-      CALL AADVQ0 (1._8)  ! uses the fluxes pua,pva,sda from DYNAM
+      CALL AADVQ0 (1._8)  ! uses the fluxes MUs,MVs,MWs from DYNAM
 C****
 C**** convert from concentration to mass units
 C****
@@ -2783,7 +2783,7 @@ C****
 #ifndef TRACERS_ON
 c Unscale the vertical mass flux accumulation for use by column physics.
 c Switch the sign convention back to "positive downward".
-      SDA(:,:,:) = -SDA(:,:,:)*NCYC
+      MWs(:,:,:) = -MWs(:,:,:)*NCYC
 #else
 c TRDYNAM will do the unscaling
 #endif
@@ -2806,12 +2806,12 @@ c      end module ATMDYN_QDYNAM
      *     jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,jlnt_vt_mm,
      *     tij_uflx,tij_vflx
 #endif
-      USE ATM_COM, only : sda
+      USE ATM_COM, only : MWs
       IMPLICIT NONE
       REAL*8 byncyc
       INTEGER N
 
-C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
+C**** uses the fluxes MUs,MVs,MWs from DYNAM and QDYNAM
       DO N=1,NTM
         IF (itime.LT.itime_tr0(N)) cycle
         sfbm = 0.; sbm = 0.; sbf = 0.
@@ -2841,7 +2841,7 @@ C**** vertically integrated atmospheric fluxes
 
 c Unscale the vertical mass flux accumulation for use by column physics.
 c Switch the sign convention back to "positive downward".
-      SDA(:,:,:) = -SDA(:,:,:)*NCYC
+      MWs(:,:,:) = -MWs(:,:,:)*NCYC
 
       RETURN
       END SUBROUTINE TrDYNAM

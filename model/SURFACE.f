@@ -1039,7 +1039,7 @@ C****
       subroutine surface_diag_mjo
       USE CONSTANT, only : undef
       USE MODEL_COM, only : lm
-      USE ATM_COM, only : phi,sda
+      USE ATM_COM, only : phi,MWs
       USE DIAG_COM, only :
      *     ,PW_acc, E_acc,sst_avg,p_avg,lwu_avg
      *     ,u_avg,v_avg,w_avg,t_avg,q_avg,r_avg,z_avg
@@ -1071,7 +1071,7 @@ C**** Accumulate 3D subdaily quantities
         u_avg(I,J,K)=u_avg(I,J,K)+u(I,J,K)
         v_avg(I,J,K)=v_avg(I,J,K)+v(I,J,K)
         IF (K < LM) THEN
-          w_avg(I,J,K)=w_avg(I,J,K)+sda(I,J,K)*byaxyp(I,J)
+          w_avg(I,J,K)=w_avg(I,J,K)+MWs(I,J,K)*byaxyp(I,J)
         END IF
         t_avg(I,J,K)=t_avg(I,J,K)+t(I,J,K)*pk(K,I,J)
         q_avg(I,J,K)=q_avg(I,J,K)+q(I,J,K)

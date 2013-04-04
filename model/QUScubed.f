@@ -1249,7 +1249,7 @@ c
 
       subroutine aadvq0
       use tracer_adv
-      use atm_com, only : pua,pva,sda,mb,mma
+      use atm_com, only : MUs,MVs,MWs,mb,mma
       use domain_decomp_atm, only : grid,halo_update,am_i_root
       use domain_decomp_1d, only : globalmax,globalsum
       implicit none
@@ -1259,29 +1259,29 @@ c
       real*8, dimension(isd:ied,jsd:jed,lm,2) :: uven
       real*8, dimension(isd:ied,jsd:jed) :: ma2d,mb2d
 
-      call halo_update(grid,pua)
-      call halo_update(grid,pva)
+      call halo_update(grid,MUs)
+      call halo_update(grid,MVs)
 c at the top edge of an odd face, mv is the halo mu
       if(mod(tile,2).eq.1 .and. je.eq.nyg) then
-        pva(isd:ied,nyg+1,:) = pua(isd:ied,nyg+1,:)
+        MVs(isd:ied,nyg+1,:) = MUs(isd:ied,nyg+1,:)
       endif
 c at the right edge of an even face, mu is the halo mv
       if(mod(tile,2).eq.0 .and. ie.eq.nxg) then
-        pua(nxg+1,jsd:jed,:) = pva(nxg+1,jsd:jed,:)
+        MUs(nxg+1,jsd:jed,:) = MVs(nxg+1,jsd:jed,:)
       endif
 
       do l=1,lm
       do j=jsd,jed
       do i=isd,ied
-        mu(i,j,l) = pua(i,j,l)
-        mv(i,j,l) = pva(i,j,l)
+        mu(i,j,l) = MUs(i,j,l)
+        mv(i,j,l) = MVs(i,j,l)
       enddo
       enddo
       enddo
       do l=1,lm-1
         do j=js,je
         do i=is,ie
-          mw(i,j,l) = -sda(i,j,l)
+          mw(i,j,l) = -MWs(i,j,l)
         enddo
         enddo
       enddo
@@ -1293,10 +1293,10 @@ c      call mpp_update_domains(mu, mv, domain, gridtype=CGRID_SW)
       if(grid%nprocx.gt.1) then
         do l=1,lm
           do j=jsd,jed
-            uven(is,j,l,1) = pua(is+1,j,l)
+            uven(is,j,l,1) = MUs(is+1,j,l)
           enddo
           do i=is,ie
-            uven(i,js,l,2) = pva(i,js+1,l)
+            uven(i,js,l,2) = MVs(i,js+1,l)
           enddo
         enddo
         call halo_update(grid,uven)

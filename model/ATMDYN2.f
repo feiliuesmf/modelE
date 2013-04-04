@@ -4,7 +4,7 @@
 !@vers 2013/04/02
       USE model_com, only : im,jm,lm,ls1,
      &     u,v,t,p,NIdyn,dt,DTsrc,NSTEP,mrch,ndaa
-      USE DYNAMICS, only : pu,pv,sd, pua,pva,sda
+      USE DYNAMICS, only : pu,pv,sd, MUs,MVs,MWs
       USE DYNAMICS, only : gz,phi
       USE SOMTQ_COM, only : tmom,mz
       USE DOMAIN_DECOMP_1D, only : grid, GET, globalsum
@@ -43,9 +43,9 @@ c**** Extract domain decomposition info
       call halo_update(grid,t)
 
       DO L=1,LM
-         PUA(:,:,L) = 0.
-         PVA(:,:,L) = 0.
-         SDA(:,:,L) = 0.
+         MUs(:,:,L) = 0.
+         MVs(:,:,L) = 0.
+         MWs(:,:,L) = 0.
       ENDDO
 
       DO L=1,LM
@@ -1340,7 +1340,7 @@ c****
      &     NORTH,SOUTH
       USE QUSDEF
       USE QUSCOM, ONLY : IM,JM,LM
-      USE DYNAMICS, only : pua,pva,sda
+      USE DYNAMICS, only : MUs,MVs,MWs
       USE GEOM, only : imaxj
       IMPLICIT NONE
 
@@ -1394,9 +1394,9 @@ C****
       DO L=1,LM
 
 C**** ACCUMULATE MASS FLUXES FOR TRACERS and Q (halo included)
-        PUA(:,:,L) = PUA(:,:,L)+PU(:,:,L)*DT
-        PVA(:,:,L) = PVA(:,:,L)+PV(:,:,L)*DT
-        IF (L.LT.LM) SDA(:,:,L) = SDA(:,:,L)+SD(:,:,L)*DT
+        MUs(:,:,L) = MUs(:,:,L)+PU(:,:,L)*DT
+        MVs(:,:,L) = MVs(:,:,L)+PV(:,:,L)*DT
+        IF (L.LT.LM) MWs(:,:,L) = MWs(:,:,L)+SD(:,:,L)*DT
 
 C****
 C**** convert from concentration to mass units
@@ -2064,7 +2064,7 @@ c slopes to prevent excessive subsidence warming in gridcells downwind
 c of high surface altitudes.
 c
       use model_com, only : im,jm,lm,ls1,zatmo,t
-      use dynamics, only : pua,pva
+      use dynamics, only : MUs,MVs
       use qusdef, only : mx,mxx,my,myy
       use somtq_com, only : tmom
       use domain_decomp_atm, only : grid,getDomainBounds,halo_update
@@ -2077,7 +2077,7 @@ C**** define local grid
       call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
 
       call halo_update(grid,t)    ! already haloed ?
-      call halo_update(grid,pva)  ! already haloed ?
+      call halo_update(grid,MVs)  ! already haloed ?
 
       do j=j_0s,j_1s
       do i=2,im-1 ! skipping wraparound for now
@@ -2093,11 +2093,11 @@ c
             te2_sv = t(i,j,l)+tmom(my,i,j,l)+tmom(myy,i,j,l)
             te1 = te1_sv
             te2 = te2_sv
-            if(zatmo(i,j-1).lt.zthresh .and. pva(i,j-1,l).lt.0.) then
+            if(zatmo(i,j-1).lt.zthresh .and. MVs(i,j-1,l).lt.0.) then
               te1 = min(te1, .5*t(i,j,l)+.5*t(i,j-1,l) )
 c              te1 = min(te1, .25*t(i,j,l)+.75*t(i,j-1,l) )
             endif
-            if(zatmo(i,j+1).lt.zthresh .and. pva(i,j  ,l).gt.0.) then
+            if(zatmo(i,j+1).lt.zthresh .and. MVs(i,j  ,l).gt.0.) then
               te2 = min(te2, .5*t(i,j,l)+.5*t(i,j+1,l) )
 c              te2 = min(te2, .25*t(i,j,l)+.75*t(i,j+1,l) )
             endif
@@ -2116,11 +2116,11 @@ c
             te2_sv = t(i,j,l)+tmom(mx,i,j,l)+tmom(mxx,i,j,l)
             te1 = te1_sv
             te2 = te2_sv
-            if(zatmo(i-1,j).lt.zthresh .and. pua(i-1,j,l).lt.0.) then
+            if(zatmo(i-1,j).lt.zthresh .and. MUs(i-1,j,l).lt.0.) then
               te1 = min(te1, .5*t(i,j,l)+.5*t(i-1,j,l) )
 c              te1 = min(te1, .25*t(i,j,l)+.75*t(i-1,j,l) )
             endif
-            if(zatmo(i+1,j).lt.zthresh .and. pua(i  ,j,l).gt.0.) then
+            if(zatmo(i+1,j).lt.zthresh .and. MUs(i  ,j,l).gt.0.) then
               te2 = min(te2, .5*t(i,j,l)+.5*t(i+1,j,l) )
 c              te2 = min(te2, .25*t(i,j,l)+.75*t(i+1,j,l) )
             endif

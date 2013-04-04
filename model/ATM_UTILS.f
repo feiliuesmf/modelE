@@ -660,7 +660,7 @@ c        end if
       END DO
       end subroutine addEnergyAsLocalHeat
 
-C**** Calculate 3D vertical velocity (take SDA which has units
+C**** Calculate 3D vertical velocity (take MWs which has units
 C**** mb*m2, needs division by physics time step)
 C**** and convert to WSAVE, units of m/s):
 
@@ -671,7 +671,7 @@ C**** and convert to WSAVE, units of m/s):
       USE RESOLUTION, only : im,jm,lm
       use MODEL_COM, only: DTsrc
       use ATM_COM, only: T
-      use ATM_COM, only: wsave, sda,pk,pedn
+      use ATM_COM, only: wsave, MWs,pk,pedn
       implicit none
 
       integer :: i, j, l
@@ -684,7 +684,7 @@ C**** and convert to WSAVE, units of m/s):
       do l=1,lm-1
         do j=J_0,J_1
         do i=I_0,I_1
-         wsave(i,j,l)=sda(i,j,l)*byaxyp(i,j)*
+         wsave(i,j,l)=MWs(i,j,l)*byaxyp(i,j)*
      &   rgas*0.5*(T(i,j,l)*pk(l,i,j)+T(i,j,l+1)*
      &   pk(l+1,i,j))*bygrav/(DTsrc*pedn(l+1,i,j))
         end do

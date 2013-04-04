@@ -495,7 +495,7 @@ contains
     use MAPL_MOD, Only: ESMFL_StateGetPointerToData
     Use Resolution, only: LM
     USE GEOM, ONLY: AXYP
-    USE ATM_COM, ONLY: PUA,PVA,SDA
+    USE ATM_COM, ONLY: MUs,MVs,MWs
     USE DYNAMICS, ONLY: PU,PV,CONV,SD,PIT
     Use MODEL_COM, only: DT=>DTsrc
     USE DOMAIN_DECOMP_ATM, only: getDomainBounds, grid
@@ -557,9 +557,9 @@ contains
     CONV(I_0:I_1,J_0:J_1,1) = PIT(I_0:I_1,J_0:J_1)
     CONV(I_0:I_1,J_0:J_1,2:LM) = SD(I_0:I_1,J_0:J_1,1:LM-1)
 
-    PUA(I_0:I_1,J_0:J_1,:) = PUA(I_0:I_1,J_0:J_1,:) + PU(I_0:I_1,J_0:J_1,:)*DTfac
-    PVA(I_0:I_1,J_0:J_1,:) = PVA(I_0:I_1,J_0:J_1,:) + PV(I_0:I_1,J_0:J_1,:)*DTfac
-    SDA(I_0:I_1,J_0:J_1,1:LM-1) = SDA(I_0:I_1,J_0:J_1,1:LM-1) + SD(I_0:I_1,J_0:J_1,1:LM-1)*DTfac
+    MUs(I_0:I_1,J_0:J_1,:) = MUs(I_0:I_1,J_0:J_1,:) + PU(I_0:I_1,J_0:J_1,:)*DTfac
+    MVs(I_0:I_1,J_0:J_1,:) = MVs(I_0:I_1,J_0:J_1,:) + PV(I_0:I_1,J_0:J_1,:)*DTfac
+    MWs(I_0:I_1,J_0:J_1,1:LM-1) = MWs(I_0:I_1,J_0:J_1,1:LM-1) + SD(I_0:I_1,J_0:J_1,1:LM-1)*DTfac
 
   end subroutine accumulate_mass_fluxes
 

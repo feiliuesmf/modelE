@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
       MODULE ATM_COM
 !@sum  ATM_COM Main atmospheric variables
-!@vers 2013/03/27
+!@vers 2013/04/02
 !@auth Original Development Team
       USE RESOLUTION, only : LM
 #ifdef USE_ESMF
@@ -109,10 +109,10 @@ C**** module should own dynam variables used by other routines
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PHI
 
-!@var PUA,PVA,SDA,PS save PU,PV,SD,P for hourly tracer advection
+!@var MUs,MVs,MWs,PS save PU,PV,SD,P for hourly tracer advection
 !@var MB Air mass array for tracers (before advection)
 !@var MMA (kg) Air mass array for tracers (updated during advection)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PUA,PVA,SDA,MB,MMA
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: MUs,MVs,MWs,MB,MMA
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PS
 
 !@var DKE change in KE due to dissipation (SURF/DC/MC) (m^2/s^2)
@@ -143,7 +143,7 @@ C**** module should own dynam variables used by other routines
       USE ATM_COM, ONLY : 
      &     PLIJ,PDSIG,MA,byMA,PMID,PK,
      &     PEDN,PEK,SD_CLOUDS,GZ,PHI,
-     &     PUA,PVA,SDA,MB,MMA,DKE,KEA,
+     &     MUs,MVs,MWs,MB,MMA,DKE,KEA,
      &     UALIJ,VALIJ,WSAVE,
      &     SQRTP,PTROPO,LTROPO,PS,PTOLD,
 #ifdef etc_subdd
@@ -261,9 +261,9 @@ C**** Check polar uniformity
       ALLOCATE( SD_CLOUDS(I_0H:I_1H,J_0H:J_1H,LM),  
      $                 GZ(I_0H:I_1H,J_0H:J_1H,LM), 
      $                PHI(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                PUA(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                PVA(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                SDA(I_0H:I_1H,J_0H:J_1H,LM),  
+     $                MUs(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                MVs(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                MWs(I_0H:I_1H,J_0H:J_1H,LM),  
      $                MB(I_0H:I_1H,J_0H:J_1H,LM), 
      $                MMA(I_0H:I_1H,J_0H:J_1H,LM), 
      $                DKE(I_0H:I_1H,J_0H:J_1H,LM), 

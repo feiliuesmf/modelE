@@ -18,7 +18,7 @@ C**** vertically integrated fluxes
       SUBROUTINE AADVQ (RM,RMOM,QLIMIT,tname)
 !@sum  AADVQ advection driver
 !@auth G. Russell, modified by Maxwell Kelley
-!@vers 2013/03/25
+!@vers 2013/04/03
 !@+        Jean Lerner modified this for tracers in mass units
 c****
 c**** AADVQ advects tracers using the Quadradic Upstream Scheme.
@@ -37,7 +37,7 @@ c****
       USE DOMAIN_DECOMP_1D, only : GETDomainBounds
 
       USE QUSCOM, ONLY : MFLX,nmom
-      USE ATM_COM, ONLY: pu=>pua, pv=>pva, sd=>sda, mb,mma
+      USE ATM_COM, ONLY: pu=>MUs, pv=>MVs, sd=>MWs, mb,mma
       IMPLICIT NONE
 
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: rm
@@ -154,7 +154,7 @@ C**** deal with vertical polar box diagnostics outside ncyc loop
 !@auth Maxwell Kelley
 c****
 C**** The MMA array space is temporarily put to use in this section
-      USE ATM_COM, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, mma
+      USE ATM_COM, ONLY: mu=>MUs, mv=>MVs, mw=>MWs, mb, mma
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, GLOBALSUM
       USE DOMAIN_DECOMP_1D, ONLY : NORTH, SOUTH, AM_I_ROOT, HALO_UPDATE
@@ -747,7 +747,7 @@ c****
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, GLOBALSUM
       USE QUSCOM, ONLY : IM,JM,LM,byim
-      USE ATM_COM, ONLY: mu=>pua
+      USE ATM_COM, ONLY: mu=>MUs
       IMPLICIT NONE
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: m
       REAL*8, dimension(im) :: a,am,mi
@@ -829,7 +829,7 @@ C
       USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, HALO_UPDATE, NORTH
       USE DOMAIN_DECOMP_1D, ONLY : GLOBALSUM, GLOBALMAX, SOUTH
       USE QUSCOM, ONLY : IM,JM,LM,byim
-      USE ATM_COM, ONLY: mv=>pva
+      USE ATM_COM, ONLY: mv=>MVs
       IMPLICIT NONE
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: m
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: mij
@@ -932,7 +932,7 @@ C
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, GLOBALSUM
       USE QUSCOM, ONLY : IM,JM,LM,byim
-      USE ATM_COM, ONLY: mw=>sda
+      USE ATM_COM, ONLY: mw=>MWs
       IMPLICIT NONE
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: m
       REAL*8, dimension(lm) :: ml

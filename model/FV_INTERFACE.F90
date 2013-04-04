@@ -111,7 +111,7 @@ contains
     USE ATMDYN, only:  COMPUTE_MASS_FLUX_DIAGS
 #endif
     USE DYNAMICS, ONLY: PU, PV, SD, CONV
-    USE ATM_COM, ONLY: MMA, PHI, GZ, PUA, PVA, SDA
+    USE ATM_COM, ONLY: MMA, PHI, GZ, MUs, MVs, MWs
 
     Type (FV_CORE_WRAPPER)    :: fv_wrapper
     type (ESMF_TimeInterval) :: timeInterval
@@ -149,7 +149,7 @@ contains
       call ESMF_ClockAdvance(clock, timeInterval, rc=rc)
 
       call accumulate_mass_fluxes(fv_wrapper%fv)
-      call Copy_FV_export_to_modelE(fv_wrapper%fv) ! inside loop to accumulate PUA,PVA,SDA
+      call Copy_FV_export_to_modelE(fv_wrapper%fv) ! inside loop to accumulate MUs,MVs,MWs
 
       call reset_tmom
 #if defined(USE_FV_Q)
@@ -163,7 +163,7 @@ contains
 
     end do
 
-    call compute_cp_vvel(pua,pva,sda,p)
+    call compute_cp_vvel(MUs,MVs,MWs,p)
 
     gz  = phi
     

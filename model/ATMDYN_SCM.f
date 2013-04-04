@@ -13,7 +13,7 @@
       SUBROUTINE DYNAM
       USE RESOLUTION, only: im,lm,ls1
       USE SOMTQ_COM,  only: tmom,mz
-      USE ATM_COM,    only: t,p,q,PMID,PEDN,PUA,PVA,SDA
+      USE ATM_COM,    only: t,p,q,PMID,PEDN,MUs,MVs,MWs
       USE DOMAIN_DECOMP_ATM, only : grid
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
@@ -22,9 +22,9 @@
       INTEGER L
 
       do L=1,LM
-         PUA(:,:,L) = 0.
-         PVA(:,:,L) = 0.
-         SDA(:,:,L) = 0.
+         MUs(:,:,L) = 0.
+         MVs(:,:,L) = 0.
+         MWs(:,:,L) = 0.
       ENDDO
 
       call pass_SCMDATA
@@ -301,12 +301,12 @@ c     END SUBROUTINE AFLUX
 
 C**** Dummy routines
 
-      SUBROUTINE COMPUTE_DYNAM_AIJ_DIAGNOSTICS( PUA,PVA,dt)
+      SUBROUTINE COMPUTE_DYNAM_AIJ_DIAGNOSTICS( MUs,MVs,dt)
 !@sum COMPUTE_DYNAM_AIJ_DIAGNOSTICS Dummy
       use DOMAIN_DECOMP_ATM, only: grid
 
-      real*8, intent(in) :: PUA(:,grid%J_STRT_HALO:,:)
-      real*8, intent(in) :: PVA(:,grid%J_STRT_HALO:,:)
+      real*8, intent(in) :: MUs(:,grid%J_STRT_HALO:,:)
+      real*8, intent(in) :: MVs(:,grid%J_STRT_HALO:,:)
       real*8, intent(in) :: dt
 
       return
