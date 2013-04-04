@@ -73,7 +73,7 @@ EOF
   else
 
     cat << EOF >> $jobScript
-module load other/comp/gcc-4.7-20120331 other/mpi/mvapich2-1.8a2/gcc-4.7-20120331
+module load other/comp/gcc-4.7.1 other/mpi/mvapich2-1.9a2/gcc-4.7.1
 EOF
 
   fi
