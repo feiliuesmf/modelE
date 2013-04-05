@@ -447,8 +447,7 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
 
       subroutine gissmix( 
       ! in:
-     &    n,ze,zg,db,dv2,adt,bds,rho,uob,vob,u2b
-     &   ,fc,hbl,strait,ilon,jlat
+     &    n,ze,zg,db,dv2,adt,bds,rho,ustarb2,exy,fc,hbl,strait
       ! out:
      &   ,ri,rr,bv2,km,kh,ks,kc,e) 
 
@@ -478,14 +477,12 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
       real*8 adt(lmo)    !@var adt rho*alpha*DT (kg/m^3)
       real*8 bds(lmo)    !@var bds rho*beta*DS  (kg/m^3)
       real*8 rho(lmo)    !@var rho density
-      real*8 uob         !@var uob x component of velocity at zg(n)
-      real*8 vob         !@var vob x component of velocity at zg(n)
-      real*8 u2b         !@var u2b velocity squared at zg(n)
+      real*8 ustarb2     !@var ustarb2 velocity squared at zg(n)
+      real*8 exy         !@var exy tidal power input
       real*8 fc          !@var fc Coriolis parameter=2*omega*sin(lat) (1/s)
       real*8 hbl         !@var hbl pbl depth (m)
-      integer strait,ilon,jlat
-      intent (in) n,ze,zg,db,dv2,adt,bds,rho
-     &  ,uob,vob,u2b,fc,hbl,strait,ilon,jlat
+      integer strait     !@var strait 0: not in strait; 1: in strait
+      intent (in) n,ze,zg,db,dv2,adt,bds,rho,ustarb2,exy,fc,hbl,strait
 
       ! out:
       real*8 ri(0:lmo+1) !@var ri local richardson number
@@ -523,7 +520,6 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
       ! consts appeared in C2010, (65a)-(66)
       !@var f30 2*omega*sin(30 degrees)=omega
       real*8, parameter :: bv0=5.24d-3    ! (1/s), below (65b)
-     &   ,cd=3.d-3                        !@var cd dry drag coeff.
      &   ,f30=omega                       ! (1/s), below (65b)
      &   ,bv0byf30=bv0/f30                ! (1), (65b)
      &   ,byden=1./(f30*acosh(bv0byf30))  ! (1), (65b)
@@ -531,11 +527,8 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
      &   ,q=.7d0   ! fraction of baroclinic energy into creating mixing
      &   ,byzet=1./500.d0                 ! upward decaying factor (1/m)
       real*8 fbyden,afc,ltn,bvbyf,fac,kmbg,khbg,ksbg
-
-      ! for tidally-induced diffusivities, exy from table in GISS_OTURB
-      real*8 exy,den,fz,epstd_byn2,kmtd,khtd,kstd
-      ! for unresolved bottom shear, ut2 from table in GISS_OTURB
-      real*8 ut2,ustarb2,phim2,zb,unr20
+      real*8 den,fz,epstd_byn2,kmtd,khtd,kstd
+      real*8 phim2,zb,unr20
 
       ! Vertical grid diagram
       !
@@ -589,28 +582,7 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
       ! phim=f/(1-a*f*rf), f=sqrt(2.)/b1*(gm/sm**2)**.25, a=0 or 2.7
       ! iterate for ri=n2/(sig2+unr2)
 
-      if(strait.eq.1) then ! in the strait area
-         exy=0.
-         ut2=0.
-      else                 ! not in the strait area
-         !@var exy tidal power input used to calculate
-         !@+    tide-induced diffusivities 
-         !@var ut2 mean square tidal velocity used to calculate 
-         !@+   tide-induced drag and reduction of bottom Ri 
-         !@var tauby tidally enhanced meridional bottom drag
-         !@var tau_b momentum flux into rock beneath bottom ocean grid box
-         !@+   divided by mass of bottom ocean grid box
-         !@+   tau_b is according to C2010. eq.(72)
-         exy=exya(ilon,jlat)
-         ut2=ut2a(ilon,jlat)
-         tmp1=cd*(u2b+ut2)**.5d0
-         taubx(ilon,jlat)=tmp1*uob
-         tauby(ilon,jlat)=tmp1*vob
-         ! taubx, tauby are variables of MODULE OTURB,
-         ! they are calculated above and will be used in subroutine OBDRAG
-         ! in OCNDYN.f and OCNDYN2.f if idrag=1
-
-         ustarb2=cd*(ut2*(u2b+ut2))**.5d0
+      if(strait.eq.0) then
          l=n-1
          zb=ze(n)-ze(l)
          unr20=ustarb2/(kappa*zb)**2
