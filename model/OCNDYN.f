@@ -4247,7 +4247,7 @@ C     IF(LMU(1,1 or JM) <= 0)  GO TO
           bdragfac=BDRAGX*SQRT(WSQ)
         else
           taub = SQRT(taubx(im,jm)*taubx(im,jm) +
-     &           tauby(ivnp,jm)*tauby(ivnp,jm))
+     &           taubx(ivnp,jm)*taubx(ivnp,jm))
           taubbyu=taub/SQRT(WSQ)
           bdragfac=rhobot(1,jm)*taubbyu
         endif
