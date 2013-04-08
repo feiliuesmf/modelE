@@ -201,10 +201,7 @@ c median number diameter
          nmd = (dusttx(i,j,l,nd) /dustnc(i,j,l,nd)*6./pi/rop(nd))
      .         **0.33333* exp(1.5*log(2.)**2)
 c pressure
-        phelp = pmid(l,i,j)*100.
-          if (pmid(l,i,j).gt.100000.) then
-        phelp=99999.
-          endif
+        phelp = Min (99999d0, pmid(l,i,j)*100)
 c potential temperature, temperature
         te=pk(l,i,j)*t(i,j,l)
 c pressure interpolation
@@ -455,10 +452,7 @@ c median number diameter
         nmd = (dusttx(i,j,l,nd) /dustnc(i,j,l,nd)*6./pi/rop(nd))
      .         **0.33333* exp(1.5*log(2.)**2)
 c pressure
-        phelp = pmid(l,i,j)*100.
-          if (pmid(l,i,j).gt.100000.) then
-        phelp=99999.
-          endif
+        phelp = Min (99999d0, pmid(l,i,j)*100)
 c potential temperature, temperature
         te=pk(l,i,j)*t(i,j,l)
 c compute relative humidity
