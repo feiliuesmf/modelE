@@ -1352,10 +1352,8 @@ C****
 #endif
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
      &     ,uod1,vod1
-      USE GISS_OTURB, only : taubx,tauby
-      USE GISSMIX_COM, only : ut2a
 #ifdef OCN_GISSMIX
-      USE GISSMIX_COM, only : otke,rhobot,exya
+      USE GISSMIX_COM, only : otke,rhobot,exya,ut2a,taubx,tauby
 #endif
       USE OFLUXES, only : oRSI, oSOLARw,oSOLARi, oDMUA,oDMVA,oDMUI,oDMVI
       USE SW2OCEAN, only : fsr,lsrpd
@@ -1568,8 +1566,10 @@ C**** Processes are checked and applied on every horizontal quarter box.
 C****
       call halo_update (grid,   VO1, from=south)
       call halo_update (grid, oDMVI, from=south)
+#ifdef OCN_GISSMIX
       call halo_update (grid,  ut2a, from=north)
       taubx=0.d0; tauby=0.d0
+#endif
       DO 790 J=j_0s,j_1
 C**** coriolis parameter, defined at tracer point
       Coriol = 2d0*OMEGA*SINPO(J)
@@ -2241,8 +2241,9 @@ C****
 C**** End of outside J loop
   790 CONTINUE
 
+c#ifdef OCN_GISSMIX
 c     if(have_north_pole) then
-c     ! for the north pole, used in subroutine obdrag (not active) 
+c     ! for the north pole, in subroutine obdrag only (not active) 
 c       unp=0.d0
 c       vnp=0.d0
 c       do i=1,im
@@ -2252,6 +2253,7 @@ c       end do
 c       taubx(im,jm)  =unp*2/im
 c       taubx(ivnp,jm)=vnp*2/im
 c     endif
+c#endif
 
 C**** Update velocities outside parallel region
       call halo_update_block (grid, UKM, from=north)
