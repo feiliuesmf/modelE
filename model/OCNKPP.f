@@ -1352,8 +1352,10 @@ C****
 #endif
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
      &     ,uod1,vod1
+      USE GISS_OTURB, only : taubx,tauby
+      USE GISSMIX_COM, only : ut2a
 #ifdef OCN_GISSMIX
-      USE GISSMIX_COM, only : otke,rhobot,exya,ut2a,taubx,tauby
+      USE GISSMIX_COM, only : otke,rhobot,exya
 #endif
       USE OFLUXES, only : oRSI, oSOLARw,oSOLARi, oDMUA,oDMVA,oDMUI,oDMVI
       USE SW2OCEAN, only : fsr,lsrpd

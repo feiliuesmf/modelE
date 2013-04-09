@@ -40,6 +40,7 @@ QUS_DRV QUS3D
 
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM   ! dynamic ocean modules
 OCNDYN OCNDYN2                           ! dynamic ocean routines
+OCNGISSVM
 OCN_Interp OCN_Int_LATLON                ! dynamic ocean routines
 OSTRAITS OCNGM OCNKPP                    ! dynamic ocean routines
 OCEANR_DIM OFLUXES
