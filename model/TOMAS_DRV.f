@@ -141,7 +141,7 @@ C-----INCLUDE FILES--------------------------------------------------
       USE MODEL_COM, only : dtsrc
       USE GEOM, only: axyp,imaxj,BYAXYP
       USE CONSTANT,   only:  lhe,mair,gasc   
-      USE ATM_COM,   only: pmid,pk,byam,gz, MA   ! midpoint pressure in hPa (mb)
+      USE ATM_COM,   only: pmid,pk,byma,gz, MA   ! midpoint pressure in hPa (mb)
 !                                           and pk is t mess up factor
 !                                           BYAM  1/Air mass (m^2/kg)
       IMPLICIT NONE

@@ -17,12 +17,23 @@
       subroutine init_tracer_cons_diag
 !@sum init_tracer_cons_diag Initialize tracer conservation diagnostics
 !@auth Gavin Schmidt
-      use OldTracer_mod, only: trname, dowetdep, dodrydep
-      use OldTracer_mod, only: ntm_power
-      use TracerBundle_mod, only: getTracer
-      USE TRACER_COM, only: ntm, noverwrite, nvolcanic, nother
-      use TRACER_COM, only: nchemloss, nchemistry, nbiomass, naircraft
-      use TRACER_COM, only: ntsurfsrc, n_SO2, tracers
+      use AbstractAttribute_mod, only: AbstractAttribute
+      use Attributes_mod, only: assignment(=), IntegerAttribute
+      use TracerSurfaceSource_mod, only: TracerSurfaceSource
+      USE TRACER_COM, only: ntm
+      use TracerHashMap_mod, only: TracerIterator, operator(/=)
+      USE TRACER_COM, only: noverwrite
+      USE TRACER_COM, only: nvolcanic
+      USE TRACER_COM, only: nother
+      use OldTracer_mod, only: ntm_power, dowetdep, dodrydep
+      use TRACER_COM, only: nchemloss
+      use TRACER_COM, only: nchemistry
+      use TRACER_COM, only: nbiomass
+      use TRACER_COM, only: naircraft
+      use TRACER_COM, only: ntsurfsrc
+      use TRACER_COM, only: tracers
+      use TRACER_COM, only: n_SO2
+      use Tracer_mod, only: Tracer, getName
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: IDTNUMD, IDTH2O, n_AECOB, n_AOCOB, n_ANUM
       use TRACER_COM, only: N_AECOB, IDTSO4, xk
@@ -31,9 +42,6 @@
       USE TRDIAG_COM
 #endif /* TRACERS_ON */
       USE FLUXES, only : atmocn
-      use Tracer_mod, only: Tracer_type
-      use TracerSurfaceSource_mod, only: TracerSurfaceSource
-      use TracerBundle_mod, only: getTracer
       implicit none
       character*20 sum_unit(NTM),inst_unit(NTM)   ! for conservation
       character*50 :: unit_string
@@ -41,12 +49,15 @@
       logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
       logical :: Qf
       integer n,k,g,kk
-      type (Tracer_type), pointer :: tracer
+      class (AbstractAttribute), pointer :: pa
+      integer, pointer :: index
+      class (Tracer), pointer :: pTracer
       type (TracerSurfaceSource), pointer :: sources(:) 
       type (TracerSurfaceSource), pointer :: SO2sources(:)
       type (TracerSurfaceSource), pointer :: AECOB01sources(:)
       type (TracerSurfaceSource), pointer :: AOCOB01sources(:)
 #endif
+      type (TracerIterator) :: iter
 
 #ifdef TRACERS_ON
 
@@ -143,18 +154,25 @@ C**** set some defaults
 #endif
 
       k = 0
-      tracer => getTracer(tracers,'SO2')
-      SO2sources => tracer%surfaceSources
-      tracer => getTracer(tracers,'AECOB_01')
-      AECOB01sources => tracer%surfaceSources
-      tracer => getTracer(tracers,'AOCOB_01')
-      AOCOB01sources => tracer%surfaceSources
+      pTracer => tracers%getReference('SO2')
+      SO2sources => pTracer%surfaceSources
+      pTracer => tracers%getReference('AECOB_01')
+      AECOB01sources => pTracer%surfaceSources
+      pTracer => tracers%getReference('AOCOB_01')
+      AOCOB01sources => pTracer%surfaceSources
       
-      do n=1,NTM
-        tracer => getTracer(tracers, n)
-        sources => tracer%surfaceSources
+      iter = tracers%begin()
+      do while (iter /= tracers%last())
+        pTracer => iter%value()
 
-        select case (trname(n))
+! TODO: ifort needs to split this into two steps ???
+c$$$        index = (pTracer%getReference('index'))
+        pa => pTracer%getReference('index')
+        index = pa
+        n = index
+        sources => pTracer%surfaceSources
+
+        select case (trim(getName(pTracer)))
 
         case ('Air','CFCn', 'SF6', 'SF6_c')
                ! nothing to do: use defaults
@@ -303,7 +321,7 @@ C**** set some defaults
      *       ,'AlkylNit','ClOx','BrOx','HCl','HOCl','ClONO2','HBr'
      *       ,'HOBr','BrONO2','CFC','NOx','CO','Isoprene','Alkenes'
      *       ,'Paraffin','stratOx','Terpenes') ! N2O done above
-          select case (trname(n))
+          select case (trim(getName(pTracer)))
             case ('N2O5','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','CFC'
      *           ,'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr'
      *           ,'BrONO2','NOx')
@@ -323,7 +341,7 @@ C**** set some defaults
           qcon(itcon_3Dsrc(nOverwrite,N)) = .true.
           conpts(g-12)='Overwrite'
           qsum(itcon_3Dsrc(nOverwrite,N)) = .true.
-          select case(trname(n))
+          select case(trim(getName(pTracer)))
             case ('NOx')
               g=g+1; itcon_3Dsrc(nOther,N) = g
               qcon(itcon_3Dsrc(nOther,N)) = .true.
@@ -334,14 +352,14 @@ C**** set some defaults
               conpts(g-12) = 'Aircraft'
               qsum(itcon_3Dsrc(nAircraft,N)) = .true.
           end select
-          select case(trname(n))
+          select case(trim(getName(pTracer)))
             case('NOx','CO','Alkenes','Paraffin')
               g=g+1; itcon_3Dsrc(nBiomass,N) = g
               qcon(g) = .true.; conpts(g-12) = 'Biomass src'
               qsum(g) = .true.
           end select
 #ifdef TRACERS_NITRATE
-          select case (trname(n))
+          select case (trim(getName(pTracer)))
             case ('HNO3')
               g=g+1; itcon_3Dsrc(3,N) = g
               qcon(g) = .true.; conpts(g-12)='Nitrate Chemistry'
@@ -536,7 +554,7 @@ C**** set some defaults
      &        'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
      &        'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
           g=12
-          select case(trname(n))
+          select case(trim(getName(pTracer)))
           case ('vbsGm2', 'vbsGm1', 'vbsGz',  'vbsGp1', 'vbsGp2',
      &          'vbsGp3', 'vbsGp4', 'vbsGp5', 'vbsGp6')
             g=g+1; itcon_3Dsrc(nChemistry,N) = g
@@ -576,7 +594,7 @@ C**** set some defaults
             g=g+1; itcon_3Dsrc(nChemistry,N) = g
             qcon(g) = .true.; conpts(g-12) = 'Aging source'
             qsum(g) = .true.
-            select case(trname(n))
+            select case(trim(getName(pTracer)))
             case ('BCII')
               g=g+1; itcon_3Dsrc(nAircraft,N) = g
               qcon(g) = .true.; conpts(g-12) = 'Aircraft Source'
@@ -631,7 +649,7 @@ C**** set some defaults
           qcon(g) = .true.; conpts(g-12) = 'Gas phase change'
           qsum(g) = .true.
 #ifdef TRACERS_TOMAS
-          select case (trname(n))
+          select case (trim(getName(pTracer)))
           case ('H2SO4')
             g=g+1; itcon_3Dsrc(nOther,N) = g
             qcon(g) = .true.; conpts(g-12) = 'Microphysics change'
@@ -639,7 +657,7 @@ C**** set some defaults
           end select
 #endif
           qsum(g) = .true.
-          select case (trname(n))
+          select case (trim(getName(pTracer)))
           case ('NH3')
             g=g+1; itcon_3Dsrc(nBiomass,N) = g
             qcon(g) = .true.; conpts(g-12) = 'Biomass src'
@@ -715,7 +733,7 @@ C**** set some defaults
             qsum(itcon_dd(n,2)) = .false.
           end if
 #endif
-          if (trname(n).eq."Be7") then
+          if (trim(getName(pTracer)).eq."Be7") then
             itcon_decay(n) = 18
             qcon(itcon_decay(n)) = .true.; conpts(6) = 'DECAY'
             qsum(itcon_decay(n)) = .true.
@@ -832,7 +850,7 @@ c- Species including AMP  emissions - 2D sources and 3D sources
           g=g+1; itcon_3Dsrc(nChemistry,n) = g
           qcon(g) = .true.; conpts(g-12) = 'AMP source'
           qsum(g) = .true.
-          select case (trname(n))
+          select case (trim(getName(pTracer)))
             case ('M_SSA_SS','M_SSC_SS','M_SSS_SS','M_DD1_DU'
      *           ,'M_DD2_DU')
               g=g+1; itcon_surf(1,n) = g
@@ -840,7 +858,7 @@ c- Species including AMP  emissions - 2D sources and 3D sources
               qsum(g) = .true.
             case ('M_AKK_SU','M_ACC_SU',
      &            'M_BC1_BC','M_OCC_OC','M_BOC_BC','M_BOC_OC')
-              select case (trname(n))
+              select case (trim(getName(pTracer)))
               case ('M_AKK_SU','M_ACC_SU')
                 do kk=1,ntsurfsrc(n_SO2)
                   g=g+1; itcon_surf(kk,N) = g
@@ -1043,7 +1061,7 @@ c     Processes TOMAS Budget
           end if
 #endif
 
-       select case (trname(n))
+       select case (trim(getName(pTracer)))
 
          case ('ASO4__01','ASO4__02','ASO4__03','ASO4__04','ASO4__05',
      *        'ASO4__06','ASO4__07','ASO4__08','ASO4__09','ASO4__10',
@@ -1188,15 +1206,17 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
         sum_unit(n)  = unit_string(kt_power_change(n),'kg/m^2 s)')
 #endif
 
-        CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+        CALL SET_TCON(QCON,GETNAME(PTRACER),QSUM,inst_unit(n),
      *       sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
         qcon(13:) = .false.     ! reset to defaults for next tracer
         qsum(13:) = .false.     ! reset to defaults for next tracer
         qcon(10)  = .false.     ! reset to defaults for next tracer
         qsum(10)  = .false.     ! reset to defaults for next tracer
 
-        natmtrcons=N
+        call iter%next()
       end do
+
+      natmtrcons = tracers%size()
 
 #ifdef TRACERS_OCEAN
       atmocn%natmtrcons = natmtrcons
@@ -1210,12 +1230,13 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
       subroutine init_jls_diag
 !@sum init_jls_diag Initialise zonal mean/height tracer diags
 !@auth Gavin Schmidt
+      use Tracer_mod, only: Tracer
+      use TracerSurfaceSource_mod, only: TracerSurfaceSource
+      use TRACER_COM, only: ntm
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE MODEL_COM, only: dtsrc
-      use TracerBundle_mod, only: getTracer
-      use OldTracer_mod, only: trname, ntm_power
-      use TRACER_COM, only: ntm, n_SO2, naircraft, nbiomass, nchemistry
+      use TRACER_COM, only: n_SO2, naircraft, nbiomass, nchemistry
       use TRACER_COM, only: nOther, nOverwrite, nVolcanic, nChemloss
       use TRACER_COM, only: ntsurfsrc, tracers
 #ifdef TRACERS_TOMAS
@@ -1232,14 +1253,12 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       USE CLOUDS, ONLY : diag_wetdep
 #endif
-      use Tracer_mod, only: Tracer_type
-      use TracerSurfaceSource_mod, only: TracerSurfaceSource
-      use TracerBundle_mod, only: getTracer
 #endif /* TRACERS_ON */
+      use OldTracer_mod, only: trname, ntm_power
       implicit none
       integer k,n,kk,ltop
       character*50 :: unit_string
-      type (Tracer_type), pointer :: tracer
+      class (Tracer), pointer :: pTracer
       type (TracerSurfaceSource), pointer :: sources(:) 
       type (TracerSurfaceSource), pointer :: SO2sources(:)
       type (TracerSurfaceSource), pointer :: AECOB01sources(:)
@@ -1269,15 +1288,15 @@ C**** set defaults for some precip/wet-dep related diags
 #endif
 
       k = 0
-      tracer => getTracer(tracers,'SO2')
-      SO2sources => tracer%surfaceSources
-      tracer => getTracer(tracers,'AECOB_01')
-      AECOB01sources => tracer%surfaceSources
-      tracer => getTracer(tracers,'AOCOB_01')
-      AOCOB01sources => tracer%surfaceSources
+      pTracer => tracers%getReference('SO2')
+      SO2sources => pTracer%surfaceSources
+      pTracer => tracers%getReference('AECOB_01')
+      AECOB01sources => pTracer%surfaceSources
+      pTracer => tracers%getReference('AOCOB_01')
+      AOCOB01sources => pTracer%surfaceSources
       do n=1,NTM
-        tracer => getTracer(tracers, n)
-        sources => tracer%surfaceSources
+        pTracer => tracers%getReference(trname(n))
+        sources => pTracer%surfaceSources
       select case (trname(n))
 
       case ('SF6','SF6_c','CFCn')
@@ -2929,11 +2948,11 @@ c Oxidants
       subroutine init_ijts_diag
 !@sum init_ijts_diag Initialise lat/lon tracer diags
 !@auth Gavin Schmidt
+      use Tracer_mod, only: Tracer
+      use TracerSurfaceSource_mod, only: TracerSurfaceSource
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE MODEL_COM, only: dtsrc
-      use TracerBundle_mod, only: getTracer
-      use OldTracer_mod, only: trname, ntm_power
       use TRACER_COM, only: ntm, n_SO2, naircraft, nbiomass, nchemistry
       use TRACER_COM, only: nOther, nOverwrite, nVolcanic, nChemloss
       use TRACER_COM, only: ntsurfsrc, tracers
@@ -2942,8 +2961,6 @@ c Oxidants
 #endif
       USE DIAG_COM
 #ifdef TRACERS_ON
-      use Tracer_mod, only: Tracer_type
-      use TracerSurfaceSource_mod, only: TracerSurfaceSource
       USE TRDIAG_COM
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -2960,11 +2977,12 @@ c Oxidants
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only: TOMAS_DIAG_FC
 #endif
+      use OldTracer_mod, only: trname, ntm_power
       implicit none
       integer k,n,n1,kr,ktaijs_out
       character*50 :: unit_string
       CHARACTER*17 :: cform
-      type (Tracer_type), pointer :: tracer
+      class (Tracer), pointer :: pTracer
       type (TracerSurfaceSource), pointer :: sources(:) 
       type (TracerSurfaceSource), pointer :: SO2sources(:)
       type (TracerSurfaceSource), pointer :: AECOB01sources(:)
@@ -2990,16 +3008,16 @@ C**** Defaults for ijts (sources, sinks, etc.)
 #endif
 C**** This needs to be 'hand coded' depending on circumstances
       k = 0
-      tracer => getTracer(tracers,'SO2')
-      SO2sources => tracer%surfaceSources
-      tracer => getTracer(tracers,'AECOB_01')
-      AECOB01sources => tracer%surfaceSources
-      tracer => getTracer(tracers,'AOCOB_01')
-      AOCOB01sources => tracer%surfaceSources
+      pTracer => tracers%getReference('SO2')
+      SO2sources => pTracer%surfaceSources
+      pTracer => tracers%getReference('AECOB_01')
+      AECOB01sources => pTracer%surfaceSources
+      pTracer => tracers%getReference('AOCOB_01')
+      AOCOB01sources => pTracer%surfaceSources
       
       do n=1,NTM
-        tracer => getTracer(tracers, n)
-        sources => tracer%surfaceSources
+        pTracer => tracers%getReference(trname(n))
+        sources => pTracer%surfaceSources
 
       select case (trname(n))
 
@@ -5614,15 +5632,15 @@ c SW forcing from albedo change
 #endif
 
 #ifdef TRACERS_AMP
-      tracer => getTracer(tracers,'SO2')
-      SO2sources => tracer%surfaceSources
-      tracer => getTracer(tracers,'AECOB_01')
-      AECOB01sources => tracer%surfaceSources
-      tracer => getTracer(tracers,'AOCOB_01')
-      AOCOB01sources => tracer%surfaceSources
+      pTracer => tracers%getReference('SO2')
+      SO2sources => pTracer%surfaceSources
+      pTracer => tracers%getReference('AECOB_01')
+      AECOB01sources => pTracer%surfaceSources
+      pTracer => tracers%getReference('AOCOB_01')
+      AOCOB01sources => pTracer%surfaceSources
       do n=1,NTM
-        tracer => getTracer(tracers, n)
-        sources => tracer%surfaceSources
+        pTracer => tracers%getReference(trname(n))
+        sources => pTracer%surfaceSources
       select case(trname(n))
       CASE('M_AKK_SU','M_ACC_SU',
      &     'M_BC1_BC','M_OCC_OC','M_BOC_BC','M_BOC_OC')
@@ -7766,7 +7784,6 @@ c **** reads in files for dust/mineral tracers
 
       end subroutine tracer_IC
 
-
       subroutine daily_tracer(end_of_day)
 !@sum daily_tracer is called once a day for tracers
 !@+   SUBROUTINE tracer_IC is called from daily_tracer to allow for
@@ -7831,8 +7848,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
 #endif
-      use TracerBundle_mod, only: getTracer
-      use Tracer_mod, only: Tracer_type, readSurfaceSources
+      use Tracer_mod, only: Tracer, readSurfaceSources
       IMPLICIT NONE
       INTEGER n,last_month,kk,nread,xday,xyear,ns
       LOGICAL, INTENT(IN) :: end_of_day
@@ -7852,7 +7868,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
       integer km, najl_num,naij_num,k
       real*8 :: scalesize(nbins+nbins) !temporal emission mass fraction
 #endif
-      type (Tracer_type), pointer :: tracer
+      class (Tracer), pointer :: pTracer
 C****
       integer :: year, month, dayOfYear
       character(len=MAX_LEN_NAME) :: tmpString
@@ -7983,15 +7999,15 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
       do n=1,NTM
-        tracer => getTracer(tracers,n)
+        pTracer => tracers%getReference(trname(n))
         if(trname(n)=='CH4')then ! ---------- methane --------------
 #ifdef TRACERS_SPECIAL_Shindell
          nread=ntsurfsrc(n)+nBBsources(n)
-         if(nread>0) call readSurfaceSources(tracer,n,
+         if(nread>0) call readSurfaceSources(pTracer,n,
      &        nread,xyear,xday,.true., itime, itime_tr0(n), sfc_src)
 #ifdef WATER_MISC_GRND_CH4_SRC
          do ns=1,ntsurfsrc(n) 
-           if(tracer%surfaceSources(ns)%sourceName=='gsfMGOLjal')
+           if(pTracer%surfaceSources(ns)%sourceName=='gsfMGOLjal')
      &          sfc_src(I_0:I_1,J_0:J_1,n,ns)=
      &     1.698d-12*fearth0(I_0:I_1,J_0:J_1) + ! 5.3558e-5 Jean
      &     5.495d-11*flake0(I_0:I_1,J_0:J_1)  + ! 17.330e-4 Jean
@@ -8081,7 +8097,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 !skip these tracers!               
             else
 
-            if(nread>0) call readSurfaceSources(tracer, n,
+            if(nread>0) call readSurfaceSources(pTracer, n,
      &             nread,xyear,xday,.false.,itime,itime_tr0(n),sfc_src)
 
             endif
@@ -8099,12 +8115,12 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
             select case(trname(n))
             case ('vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
      &            'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
-              if(nread>0)call readSurfaceSources(tracer, n,
+              if(nread>0)call readSurfaceSources(pTracer, n,
      &           nread,xyear,xday,.false.,itime,itime_tr0(n),sfc_src)
             case ('SO4')
               ! nothing here, SO4 sources come from SO2
             case default
-              if(nread>0)call readSurfaceSources(tracer,n,
+              if(nread>0)call readSurfaceSources(pTracer,n,
      &             nread,xyear,xday,.true.,itime,itime_tr0(n),sfc_src)
             end select
 #endif
@@ -8143,8 +8159,8 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       end do ! NTM
 
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-      tracer => getTracer(tracers, n_codirect)
-      call readSurfaceSources(tracer,n_codirect,
+      pTracer => tracers%getReference(trname(n_codirect))
+      call readSurfaceSources(pTracer,n_codirect,
      &     ntsurfsrc(n_codirect),xyear,
      & xday,.true.,itime,itime_tr0(n),sfc_src)
 #endif
@@ -8227,12 +8243,11 @@ C**** at the start of any day
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: itime,dtsrc,nday
       use TracerSurfaceSource_mod, only: TracerSurfaceSource
-      use TracerBundle_mod, only: getTracer
+      use Tracer_mod, only: Tracer, getName
       use model_com, only: modelEclock
       use RESOLUTION, only: im
       USE DOMAIN_DECOMP_ATM, only : GRID, GLOBALSUM,AM_I_ROOT
      *   ,globalmax, getDomainBounds
-      use Tracer_mod, only: Tracer_type
       USE FLUXES, only: fland,flice,focean,atmsrf
       USE SEAICE_COM, only : si_atm
       USE GHY_COM, only : fearth
@@ -8257,6 +8272,7 @@ C**** at the start of any day
       use TRACER_COM, only: n_isoprene, n_SO2, no_emis_over_ice
       use TRACER_COM, only: trm, ntsurfsrc, rnsrc, reg_N, reg_W, reg_S
       use TRACER_COM, only: tracers, num_regions, reg_E, ef_FACT
+      use OldTracer_mod, only: itime_tr0, vol2mass, trname
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: IDTH2O, IDTNUMD, n_AECOB, n_AOCOB
       use TRACER_COM, only: n_ANUM, IDTECIL, IDTOCIL, IDTECOB, IDTOCOB
@@ -8295,6 +8311,10 @@ C**** at the start of any day
 #ifdef TRACERS_TOMAS
       USE TOMAS_EMIS, only : scalesizeSO4,scalesizeCARBO30
 #endif
+      use TracerHashMap_mod, only:
+     &     TracerIterator, operator(/=)
+      use Attributes_mod, only: assignment(=), IntegerAttribute
+      use AbstractAttribute_mod
       implicit none
       integer :: i,j,ns,ns_isop,l,ky,n,nsect,kreg
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
@@ -8331,7 +8351,7 @@ c      real*8 :: nlight, max_COSZ1, fact0
       real*8, dimension(NTM) :: trsource_glbavg
 #endif
       INTEGER I_0, I_1, J_0, J_1
-      type (Tracer_type), pointer :: tracer
+      class (Tracer), pointer :: pTracer
       type (TracerSurfaceSource), pointer :: sources(:) 
 #ifdef TRACERS_TOMAS
       integer :: k, kn
@@ -8339,6 +8359,10 @@ c      real*8 :: nlight, max_COSZ1, fact0
      &     GRID%J_STRT:GRID%J_STOP)
 #endif
       integer :: year, month, dayOfYear
+
+      type (TracerIterator) :: iter
+      class (AbstractAttribute), pointer :: pa
+      integer, pointer :: index
 
       call modelEclock%getDate(year=year, month=month, 
      *     dayOfYear=dayOfYear)
@@ -8357,14 +8381,21 @@ C****
         enddo
 #endif
 C**** All sources are saved as kg/s
-      do n=1,NTM
-        tracer => getTracer(tracers, n)
-        sources => tracer%surfaceSources
+      iter = tracers%begin()
+      do while (iter /= tracers%last())
+        pTracer => iter%value()
+
+        pa => pTracer%getReference('index')
+        index = pa
+        n = index
+
+        pTracer => tracers%getReference(trname(n))
+        sources => pTracer%surfaceSources
       if (itime.lt.itime_tr0(n)) cycle
-      select case (trname(n))
+      select case (trim(getName(pTracer)))
 
       case default
-!     write(6,*) ' Sources for ',trname(n),' are not in this routine'
+!     write(6,*) ' Sources for ',trim(getName(pTracer)),' are not in this routine'
 C****
 C**** Surface Sources of SF6 and CFCn (Same grid as CFC11)
 C****
@@ -8376,16 +8407,17 @@ C**** CFCn source increases each year so that the glbavg is from obs
 C**** CFC source is the same each year
 C**** Distribute source over ice-free land
         steppy = 1./(SECONDS_PER_DAY*INT_DAYS_PER_YEAR)
-        if (trname(n).eq.'SF6' .or. trname(n).eq.'CFCn' .or.
-     *      trname(n).eq.'SF6_c') then
+        if (trim(getName(pTracer)).eq.'SF6' .or. 
+     *      trim(getName(pTracer)).eq.'CFCn' .or.
+     *      trim(getName(pTracer)).eq.'SF6_c') then
 C         Make sure index KY=1 in year that tracer turns on
           ky = 1 + (itime-itime_tr0(n))/(nday*INT_DAYS_PER_YEAR)
-          if (trname(n).eq.'SF6_c') ky = 1
+          if (trim(getName(pTracer)).eq.'SF6_c') ky = 1
           base = (0.3d-12)*vol2mass(n) !pptm
           x = base*ky
           airm = (psf-pmtop)*100.*bygrav*AREAG !(kg/m**2 X m**2 = kg)
           anngas = x*airm
-        else if (trname(n).eq.'CFC11') then
+        else if (trim(getName(pTracer)).eq.'CFC11') then
           anngas = 310.d6
         endif
 
@@ -8787,7 +8819,7 @@ C****
      &      'ASO4__01','AOCOB_01','AECOB_01')
         src_fact=1.d0 ! factor to multiply emissions with
         src_index=n   ! index to be used for emissions
-        select case (trname(n))
+        select case (trim(getName(pTracer)))
         case ('SO2')
           src_fact=0.975d0 ! the rest goes to sulfate (SO4 or M_ACC_SU)
         case ('SO4','ASO4__01')
@@ -8821,7 +8853,7 @@ C****
 #endif
 
 #ifndef TRACERS_AEROSOLS_SOA
-        select case (trname(n))
+        select case (trim(getName(pTracer)))
         case ('OCII', 'M_OCC_OC')
           sfc_src(:,J_0:J_1,src_index,ntsurfsrc(n))=
      &      OCT_src(:,J_0:J_1,month)/axyp(:,J_0:J_1)/src_fact
@@ -8933,8 +8965,8 @@ c$$$      end do
         enddo
       endif
 
+      call iter%next()
       end do ! n - main tracer loop
-
 
       END SUBROUTINE set_tracer_2Dsource
 
@@ -9013,8 +9045,9 @@ c latlon grid
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, 
      & write_parallel,AM_I_ROOT
       use RESOLUTION, only: LM
-      use OldTracer_mod, only: itime_tr0, do_fire, trname
-      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
+c$$$      use OldTracer_mod, only: itime_tr0, do_fire, trname
+c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
+      use OldTracer_mod
       USE TRACER_COM, only: ntm, sfc_src, trm
       use TRACER_COM, only: mchem, mtrace, n_BCIA , n_BCII
       use TRACER_COM, only: mchem, mtrace, n_BCIA, n_BCII, n_CFC, n_CH4
@@ -10766,6 +10799,7 @@ C**** no fractionation for ice evap
       END SUBROUTINE GET_EVAP_FACTOR_array
 
 #endif
+
 
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)

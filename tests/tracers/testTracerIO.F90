@@ -2,7 +2,8 @@ module testTracerIO_mod
   use pFUnit
   use Tracer_mod
   use TracerBundle_mod
-  use Dictionary_mod, only: Dictionary_type
+  use Dictionary_mod, only: Dictionary
+  use AttributeDictionary_mod, only: AttributeDictionary
   implicit none
   private
 
@@ -16,8 +17,9 @@ module testTracerIO_mod
 
 
   type fixture
-    type (TracerBundle_type) :: bundle
-    type (Dictionary_type) :: defaultValues
+    type (TracerBundle) :: bundle
+    type (Dictionary) :: defaultValues
+    type (AttributeDictionary) :: newDefaultValues
     integer :: unit
     integer :: numTracers
   end type fixture
@@ -26,7 +28,7 @@ contains
 
   subroutine setUp(this)
     use Dictionary_mod, only: Dictionary
-    use Dictionary_mod, only: insert
+    use AttributeDictionary_mod
     use FileManager
     type (fixture) :: this
     integer :: unit
@@ -52,10 +54,14 @@ contains
     this%numTracers = 2
 
     this%defaultValues = Dictionary()
-    call insert(this%defaultValues, 'optionC', .true.)
-    call insert(this%defaultValues, 'optionD',  1)
+    call this%defaultValues%insert('optionC', .true.)
+    call this%defaultValues%insert('optionD',  1)
 
-    this%bundle = TracerBundle()
+    this%newDefaultValues = newAttributeDictionary()
+    call this%newDefaultValues%insert('optionC', .true.)
+    call this%newDefaultValues%insert('optionD', 1)
+
+    this%bundle = newTracerBundle()
 
   end subroutine setUp
 
@@ -66,7 +72,9 @@ contains
     close(this%unit, status='delete')
     this%unit = -1
     call clean(this%defaultValues)
+    call clean(this%newDefaultValues)
     call clean(this%bundle)
+
   end subroutine tearDown
 
   subroutine testReadFromText(this)
@@ -75,9 +83,9 @@ contains
     integer :: unit
 
     unit = this%unit
-    this%bundle = readFromText(unit, this%defaultValues)
+    this%bundle = readFromText(unit, this%newDefaultValues)
 
-    call assertEqual(this%numTracers, getNumTracers(this%bundle), &
+    call assertEqual(this%numTracers, this%bundle%size(), &
          & 'Incorrect number of tracers found.')
 
   end subroutine testReadFromText
@@ -85,19 +93,19 @@ contains
   ! support routine
   subroutine readTracers(this)
     type (fixture) :: this
-    this%bundle = readFromText(this%unit, this%defaultValues)
+    this%bundle = readFromText(this%unit, this%newDefaultValues)
   end subroutine readTracers
 
   subroutine testWriteFormatted(this)
     use FileManager
     type (fixture) :: this
-    type (TracerBundle_type) :: bundle
+    type (TracerBundle) :: bundle
     integer :: unit
 
     call readTracers(this)
 
     call openUnit('testTracersOut.txt', unit, qold=.false., qbin=.false.)
-    call writeFormatted(this%bundle, unit)
+    call this%bundle%writeFormatted(unit)
     rewind(unit)
 
     bundle = readFromText(unit)
@@ -109,19 +117,19 @@ contains
   end subroutine testWriteFormatted
 
   subroutine testWriteUnformatted(this)
-    use FileManager
+     use FileManager
     type (fixture) :: this
-    type (TracerBundle_type) :: bundle
+    type (TracerBundle) :: bundle
     integer :: unit
 
     call readTracers(this)
 
     call openUnit('testTracersOut.bin', unit, qold=.false., qbin=.true.)
-    call writeUnformatted(this%bundle, unit)
+    call this%bundle%writeUnformatted(unit)
     rewind(unit)
 
-    call readUnformatted(bundle, unit)
-    call assertTrue(bundle == this%bundle)
+    bundle = readUnformattedBundle(unit)
+    call assertTrue(bundle == this%bundle, 'should be ==')
 
     close(unit, status ='delete')
     call clean(bundle)

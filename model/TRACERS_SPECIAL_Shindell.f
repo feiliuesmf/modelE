@@ -380,12 +380,11 @@ C we change that.)
 !@+ set sector for NOx aircraft source.
 !@auth Greg Faluvegi
       use TracerSource_mod, only: TracerSource3D
-      use TracerBundle_mod, only: getTracer
+      use Tracer_mod, only: Tracer
       use tracer_com, only: nAircraft, tracers,
      & sect_name,num_sectors,
      & n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
       use Dictionary_mod, only: sync_param
-      use Tracer_mod, only: Tracer_type
       IMPLICIT NONE
       integer, intent(in) :: n_NOx
       integer :: i,j,ns,nsect,nn
@@ -393,11 +392,11 @@ C we change that.)
       character*32 :: pname
 
       type (TracerSource3D), pointer :: source
-      type (Tracer_type), pointer :: tracer
+      class (Tracer), pointer :: pTracer
 
       tr_sectors_are = ' '
-      tracer => getTracer(tracers,'NOx')
-      source => tracer%sources3D(nAircraft)
+      pTracer => tracers%getReference('NOx')
+      source => pTracer%sources3D(nAircraft)
 
       pname='NOx_AIRC_sect'
       call sync_param(pname,tr_sectors_are)

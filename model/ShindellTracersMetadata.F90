@@ -49,7 +49,7 @@ module ShindellTracersMetadata_mod
 #ifdef TRACERS_AEROSOLS_SOA
   USE CONSTANT, only: gasc
 #endif
-  use Tracer_mod, only: Tracer_type
+  use Tracer_mod, only: Tracer
 
   implicit none
   private
@@ -63,9 +63,9 @@ contains
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
-  subroutine SHINDELL_initMetadata(tracer)
+  subroutine SHINDELL_initMetadata(pTracer)
 !------------------------------------------------------------------------------
-    type (Tracer_type), pointer :: tracer
+    class (Tracer), pointer :: pTracer
 
     call  Ox_setSpec('Ox')
     call  NOx_setSpec('NOx')

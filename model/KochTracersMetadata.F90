@@ -29,7 +29,7 @@ module KochTracersMetadata_mod
   use RunTimeControls_mod, only: tracers_drydep
   use RunTimeControls_mod, only: sulf_only_aerosols
   use RunTimeControls_mod, only: tracers_special_shindell
-  use Tracer_mod, only: Tracer_type
+  use Tracer_mod, only: Tracer
 #ifdef TRACERS_AEROSOLS_VBS
   use TRACERS_VBS, only: ivbs_m2,ivbs_m1,ivbs_m0,ivbs_p1,ivbs_p2,ivbs_p3,&
                          ivbs_p4,ivbs_p5,ivbs_p6
@@ -47,9 +47,9 @@ module KochTracersMetadata_mod
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
-  subroutine KOCH_InitMetadata(tracer)
+  subroutine KOCH_InitMetadata(pTracer)
 !------------------------------------------------------------------------------
-    type (Tracer_type), pointer :: tracer
+    class (Tracer), pointer :: pTracer
 
     call  DMS_setSpec('DMS')
     call  MSA_setSpec('MSA')

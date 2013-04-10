@@ -1854,7 +1854,9 @@ C**** Ensure that no round off error effects land with ice and earth
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       ALLOCATE(pprec(I_0H:I_1H,J_0H:J_1H),STAT = IER)
+      pprec = 0
       ALLOCATE(pevap(I_0H:I_1H,J_0H:J_1H),STAT = IER)
+      pevap = 0
       ALLOCATE(dust_flux_glob(I_0H:I_1H,J_0H:J_1H,Ntm_dust),STAT = IER)
 #ifdef TRACERS_DRYDEP
       ALLOCATE(depo_turb_glob(I_0H:I_1H,J_0H:J_1H,Ntm)

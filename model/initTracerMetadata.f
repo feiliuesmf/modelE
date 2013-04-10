@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 !------------------------------------------------------------------------------
-      subroutine setDefaultSpec(n, tracer)
+      subroutine setDefaultSpec(n, pTracer)
 !------------------------------------------------------------------------------
       use Dictionary_mod, only: sync_param
       use RunTimeControls_mod, only: tracers_amp
@@ -12,23 +12,21 @@
       use TRACER_COM, only: sect_name
       use TRACER_COM, only: set_ntsurfsrc, ntsurfsrc, ntsurfsrcmax
       use TRACER_COM, only: num_sectors
-      use Tracer_mod, only: Tracer_type
-      use Tracer_mod, only: setProperty
+      use Tracer_mod, only: Tracer
       use Tracer_mod, only: findSurfaceSources
       use Tracer_mod, only: addSurfaceSource
-      use TracerBundle_mod, only: getTracer
 #ifdef TRACERS_SPECIAL_Shindell      
       use TRCHEM_Shindell_COM, only: use_rad_ch4
 #endif
       implicit none
 
       integer, intent(in) :: n
-      type (Tracer_type), pointer :: tracer
+      class (Tracer), pointer :: pTracer
 
       logical :: checkSourceName
       integer :: val
 
-      call setProperty(tracer, 'ntSurfSrc', 0)
+      call pTracer%insert('ntSurfSrc', 0)
 
 !     The following section will check for rundeck file of
 !     the form: trname_01, trname_02... and thereby define
@@ -47,7 +45,7 @@
          checkSourceName = .true.
       end if
 
-      call findSurfaceSources(tracer, checkSourceName, 
+      call findSurfaceSources(pTracer, checkSourceName, 
      &     sect_name(1:num_sectors))
 
 #ifdef DYNAMIC_BIOMASS_BURNING
@@ -109,8 +107,8 @@
         (defined TRACERS_TOMAS)
         select case (trname(n))
         case ('OCII', 'M_OCC_OC', 'SOAgas') ! this handles OCT_src (terpene source)
-          tracer => getTracer(tracers, trname(n))
-          call addSurfaceSource(tracer, "Terpene_source")
+          pTracer => tracers%getReference(trname(n))
+          call addSurfaceSource(pTracer, "Terpene_source")
         end select
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -126,7 +124,6 @@
       subroutine initTracerMetadata()
 !------------------------------------------------------------------------------
       use Dictionary_mod, only: set_param, sync_param
-      use TracerBundle_mod, only: getNumTracers
       use RunTimeControls_mod, only: tracers_special_shindell
       use RunTimeControls_mod, only: tracers_terp
       use RunTimeControls_mod, only: shindell_strat_extra
@@ -170,7 +167,7 @@
       use OldTracer_mod, only: set_dowetdep
       use OldTracer_mod, only: set_dodrydep
       use OldTracer_mod, only: set_to_volume_MixRat
-      use Tracer_mod, only: Tracer_type
+      use Tracer_mod, only: Tracer
 #ifdef TRACERS_SPECIAL_Shindell
       use ShindellTracersMetadata_mod
 #endif   
@@ -201,7 +198,7 @@
       USE TRACER_COM, only: tracers
 
       implicit none
-      type (Tracer_type), pointer :: tracer
+      class (Tracer), pointer :: pTracer
       external setDefaultSpec
       integer :: i
 
@@ -221,13 +218,13 @@
 
 #ifdef TRACERS_SPECIAL_Shindell
         if (tracers_special_shindell) then
-          call SHINDELL_InitMetadata(tracer)
+          call SHINDELL_InitMetadata(pTracer)
         end if
 #endif
 
 #ifdef TRACERS_SPECIAL_LERNER
         if (tracers_special_lerner) then
-          call Lerner_InitMetadata(tracer, 1)
+          call Lerner_InitMetadata(pTracer, 1)
         end if
 #endif
 
@@ -252,7 +249,7 @@
       
 #ifdef TRACERS_SPECIAL_LERNER
       if (tracers_special_lerner) then
-        call Lerner_InitMetadata(tracer, 2)
+        call Lerner_InitMetadata(pTracer, 2)
         if (tracers_special_shindell) 
      &    call stop_model('contradictory tracer specs')
       end if
@@ -260,7 +257,7 @@
 
 #ifdef TRACERS_AEROSOLS_Koch
       if (tracers_aerosols_koch) then
-        call KOCH_InitMetadata(tracer)
+        call KOCH_InitMetadata(pTracer)
       end if
 #endif
 
@@ -314,13 +311,13 @@
 
 #ifdef TRACERS_MINERALS
        if (tracers_minerals) then
-         call Minerals_InitMetadata(tracer)
+         call Minerals_InitMetadata(pTracer)
        end if
 #endif
 
 #ifdef TRACERS_QUARZHEM
       if (tracers_quarzhem) then
-        call Quarzhem_InitMetadata(tracer)
+        call Quarzhem_InitMetadata(pTracer)
       end if
 #endif
 
@@ -330,13 +327,13 @@
 
 #ifdef TRACERS_AMP
       if (tracers_amp) then
-        call AMP_InitMetadata(tracer)
+        call AMP_InitMetadata(pTracer)
       end if
 #endif
 
 #ifdef TRACERS_TOMAS
       if (tracers_tomas) then
-        call TOMAS_InitMetadata(tracer)
+        call TOMAS_InitMetadata(pTracer)
       end if
 #endif
 
@@ -344,7 +341,7 @@
 
       ! Generic tracer work
       ! All tracers must have been declared before reaching this point!!!
-      ntm = getNumTracers(tracers)
+      ntm = tracers%size()
 
       call set_param("NTM",NTM,'o')
       call set_param("TRNAME",trName(),ntm,'o')

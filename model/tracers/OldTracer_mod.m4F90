@@ -1,5 +1,6 @@
+#include "rundeck_opts.h"
 changequote([,])
-include([m4Iteration.m4])
+include([../shared/m4Iteration.m4])
 
 define([PROPERTIES_AND_TYPES],
  [(tr_mm,real*8,,!@var TR_MM: molecular mass of each tracer (g/mole)),
@@ -71,33 +72,41 @@ define([DECLARE_COMPONENT],
 )dnl
 
 
-define([SET_PROPERTY],
-[call setProperty(aTracer, '$1', $1(i))]
-)dnl
-
 define([CREATE_ACCESSORS],
 [  subroutine set_$1(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     $2, intent(in) :: value
-    tracers(oldIndex)%$1 = value
+    internalTracers(oldIndex)%$1 = value
+    call tracerReference%setAttribute(trName(oldIndex), "$1", newAttribute(value))
   end subroutine set_$1
   
   function $1_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     $2 :: $1_s
-    $1_s = tracers(oldIndex)%$1
+#ifdef NEW_TRACER_PROPERTIES
+    $1_s = tracerReference%getProperty(trName(oldIndex), "$1")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    $1_s = tracerReference%internalTracers(oldIndex)%getProperty("$1")
+#else
+    $1_s = internalTracers(oldIndex)%$1
+#endif
+#endif
   end function $1_s
 
 ifelse($1,emisPerFireByVegType,,
 [  function $1_all()
-    $2 :: $1_all(size(tracers))
-    $1_all = tracers(:)%$1
+    $2 :: $1_all(size(internalTracers))
+    $1_all = internalTracers(:)%$1
   end function $1_all
 
   function $1_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     $2 :: $1_m(size(oldIndices))
-    $1_m = tracers(oldIndices(:))%$1
+    $1_m = internalTracers(oldIndices(:))%$1
   end function $1_m
 ]
 )
@@ -111,9 +120,8 @@ module OldTracer_mod
 
   public :: OldTracer_type
   public :: initializeOldTracers
-  public :: makeNewTracers
   public :: oldAddTracer
-  public :: tracers
+!!$  public :: internalTracers
   public :: trName
   public :: MAX_LEN_NAME
 
@@ -138,14 +146,14 @@ foreachq([property_and_type],[PROPERTIES_AND_TYPES],[_cat([DECLARE_COMPONENT],pr
   end type OldTracer_type
 
   integer, save :: numTracers = 0
-  type (OldTracer_type), allocatable :: tracers(:)
+  type (OldTracer_type), allocatable :: internalTracers(:)
   procedure(IdefaultSpec), pointer :: defaultSpec
 
   abstract interface
     subroutine IdefaultSpec(n_idx, trcer)
     use Tracer_mod
     integer, intent(in) :: n_idx
-    type (Tracer_type), pointer :: trcer
+    class (Tracer), pointer :: trcer
     end subroutine IdefaultSpec
   end interface
 
@@ -154,77 +162,55 @@ foreachq([property_and_type],[PROPERTIES_AND_TYPES],[_cat([DECLARE_COMPONENT],pr
     module procedure trname_all
   end interface trName
   
-  type (TracerBundle_type), pointer :: tracerReference => null()
+  type (TracerBundle), pointer :: tracerReference => null()
 
 contains
 
   function trName_s(idx) result(name)
     integer, intent(in) :: idx
-    character(len=len_trim(tracers(idx)%name)) :: name
-    name = trim(tracers(idx)%name)
+    character(len=len_trim(internalTracers(idx)%name)) :: name
+    name = trim(internalTracers(idx)%name)
   end function trName_s
 
   function trName_all() result(name)
     character(len=MAX_LEN_NAME) :: name(numTracers)
-    name = tracers(:)%name
+    name = internalTracers(:)%name
   end function trName_all
 
   subroutine initializeOldTracers(tracerRef, spec)
-    type (TracerBundle_type), target :: tracerRef
+    type (TracerBundle), target :: tracerRef
     procedure(IdefaultSpec) :: spec
 
     tracerReference => tracerRef
     defaultSpec => spec
-    allocate(tracers(0))
+    allocate(internalTracers(0))
     
   end subroutine initializeOldTracers
 
   integer function oldAddTracer(name) result(n)
-    use TracerBundle_mod, only: getTracer
     character(len=*), intent(in) :: name
     type (OldTracer_type), allocatable :: tmp(:)
+    class (Tracer), pointer :: t
 
     allocate(tmp(numTracers))
-    tmp = tracers
-    deallocate(tracers)
+    tmp = internalTracers
+    deallocate(internalTracers)
 
-    allocate(tracers(numTracers+1))
-    tracers(1:numTracers) = tmp
+    allocate(internalTracers(numTracers+1))
+    internalTracers(1:numTracers) = tmp
     deallocate(tmp)
 
     numTracers = numTracers + 1
-    tracers(numTracers)%name = trim(name)
+    internalTracers(numTracers)%name = trim(name)
 
-    call addTracer(tracerReference, Tracer(name))
-    call defaultSpec(numTracers, getTracer(tracerReference, name))
+    t => newTracer(name)
+    call tracerReference%insert(name, t)
+    t => tracerReference%getReference(name)
+    call t%insert('index', numTracers)
+    call defaultSpec(numTracers, t)
     n = numTracers
 
   end function oldAddTracer
-
-  function makeNewTracers() result (bundle)
-    use Tracer_mod, only: Tracer_type
-    use Tracer_mod, only: Tracer
-    use TracerBundle_mod, only: TracerBundle_type
-    use TracerBundle_mod, only: TracerBundle
-    use TracerBundle_mod, only: addTracer
-    use Tracer_mod, only: setProperty
-    use Tracer_mod, only: clean
-    type (TracerBundle_type), pointer :: bundle
-
-    type (Tracer_type) :: aTracer
-    integer :: i
-
-    bundle = TracerBundle()
-    do i = 1, numTracers
-      aTracer = Tracer(tracers(i)%name)
-      foreach([property],PROPERTIES,[SET_PROPERTY(property)])
-
-      call addTracer(bundle, aTracer)
-      call clean(aTracer)
-
-    end do
-    
-  end function makeNewTracers
 
   foreachq([property_and_type],[PROPERTIES_AND_TYPES],[_cat([CREATE_ACCESSORS],property_and_type)]
 )

@@ -66,6 +66,13 @@ ifdef PFUNIT
 endif
 
 # Rules
+FooAssociativeArray.o: ../model/include/AssociativeArrayTemplate.h
+FooHashMap.o: ../model/include/HashMapTemplate.h
+TestAssociativeArray.o : FooAssociativeArray.o
+TestHashMap.o : FooHashMap.o FooAssociativeArray.o
+TestAssociativeArrayIterator.o : FooAssociativeArray.o
+PFUNIT_APP_OBJECTS=FooAssociativeArray.o
+PFUNIT_APP_OBJECTS+=FooHashMap.o
 
 %.o : %.F90
 	$(FC) -c $(EXTRA_FFLAGS) $($(PFUNIT_FFLAGS_VARIABLE)) $<

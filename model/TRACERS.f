@@ -9,15 +9,11 @@
 !@+      Gravitaional Settling: trgrav
 !@+      Check routine: checktr
 !@auth Jean Lerner/Gavin Schmidt
-
       MODULE apply3d
 !@sum apply3d is used simply so that I can get optional arguments
 !@+   to work. If anyone can some up with something neater, let me know.
-!@sum apply_tracer_3Dsource adds 3D sources to tracers
-!@auth Jean Lerner/Gavin Schmidt
       use TracerSource_mod, only: TracerSource3D
-      use TracerBundle_mod, only: getTracer
-      use Tracer_mod, only: Tracer_type
+      use Tracer_mod, only: Tracer
       use OldTracer_mod, only: trname
       USE TRACER_COM, only : NTM,trm,trmom,alter_sources,
      * ef_FACT3d,tracers
@@ -31,11 +27,14 @@
      *     ,ijts_3Dsource,taijs=>taijs_loc
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, am_i_root
       use EmissionRegion_mod, only: numRegions, regions
+
       IMPLICIT NONE
 
       CONTAINS
 
       SUBROUTINE apply_tracer_3Dsource( ns , n , momlog )
+!@sum apply_tracer_3Dsource adds 3D sources to tracers
+!@auth Jean Lerner/Gavin Schmidt
 !@var MOM true (default) if moments are to be modified
       logical, optional, intent(in) :: momlog
       integer, intent(in) :: n,ns
@@ -51,7 +50,7 @@
       real*8 :: coef(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
 
       type (TracerSource3D), pointer :: source
-      type (Tracer_type), pointer :: tracer
+      class (Tracer), pointer :: pTracer
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
@@ -73,8 +72,8 @@ C**** Modify tracer amount, moments, and diagnostics
       naij = ijts_3Dsource(ns,n)
 
 C**** apply tracer source alterations if requested in rundeck:
-      tracer => getTracer(tracers, n)
-      source => tracer%sources3D(ns)
+      pTracer => tracers%getReference(trname(n))
+      source => pTracer%sources3D(ns)
       if (alter_sources) then
         do kreg = 1, numRegions
           do j = j_0, j_1
@@ -650,7 +649,6 @@ c
 
       RETURN
       END SUBROUTINE set_generic_tracer_diags
-
 
       SUBROUTINE sum_prescribed_tracer_2Dsources(dtstep)
 !@sum apply_tracer_2Dsource adds surface sources to tracers
@@ -2420,3 +2418,4 @@ c daily_z is currently only needed for CS
       endif
 
       end subroutine setup_emis_sectors_regions
+

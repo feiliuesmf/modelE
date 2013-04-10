@@ -26,9 +26,9 @@ contains
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
-  subroutine Lerner_InitMetadata(tracer, phase)
+  subroutine Lerner_InitMetadata(pTracer, phase)
 !------------------------------------------------------------------------------
-    type (Tracer_type), pointer :: tracer
+    class (Tracer), pointer :: pTracer
     integer , intent(in) :: phase
 
     if (phase==1) then
