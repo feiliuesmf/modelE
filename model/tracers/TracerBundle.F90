@@ -548,16 +548,20 @@ contains
   end function findAttribute
 
   subroutine copyBundle(a, b)
-     use TracerHashMap_mod, only: assignment(=)
-     type (TracerBundle), intent(inout) :: a
-     type (TracerBundle), intent(in) :: b
-
-     a%TracerHashMap = b%TracerHashMap
-     a%defaultValues = b%defaultValues
-     a%mandatoryAttributes = b%mandatoryAttributes
-     a%locked = b%locked
-     a%attributeVectorCache = b%attributeVectorCache
-
+    use TracerHashMap_mod, only: assignment(=)
+    type (TracerBundle), intent(inout) :: a
+    type (TracerBundle), intent(in) :: b
+    a%TracerHashMap = b%TracerHashMap
+    a%defaultValues = b%defaultValues
+    if (allocated(b%mandatoryAttributes)) then
+#ifdef COMPILER_Intel8
+      allocate(a%mandatoryAttributes, source=b%mandatoryAttributes)
+#else
+      a%mandatoryAttributes = b%mandatoryAttributes
+#endif
+    end if
+    a%locked = b%locked
+    a%attributeVectorCache = b%attributeVectorCache
   end subroutine copyBundle
 
 end module TracerBundle_mod

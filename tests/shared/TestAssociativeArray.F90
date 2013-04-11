@@ -93,11 +93,9 @@ contains
     type (Fixture), intent(inout) :: this
     class (Foo), pointer :: p
 
-    print*,__LINE__,__FILE__
     call this%dictionary%insert('A', Foo(1))
     call this%dictionary%insert('B', Foo(2))
     call this%dictionary%insert('C', Foo(3))
-    print*,__LINE__,__FILE__
 
     p => this%dictionary%getReference('B')
     if (.not. catch(preserve=.true.)) then

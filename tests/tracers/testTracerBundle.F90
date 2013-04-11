@@ -290,19 +290,16 @@ contains
 
     bundle = newTracerBundle()
     
-    print*,__LINE__,__FILE__
     t=> newTracer('Ox')
     call bundle%insert(t)
     t => bundle%getReference('Ox')
     call t%insert('index', 1)
 
-    print*,__LINE__,__FILE__
     t=> newTracer('NOx')
     call bundle%insert(t)
     t => bundle%getReference('NOx')
     call t%insert('index', 2)
 
-    print*,__LINE__,__FILE__
     t=> newTracer('ClOx')
     call bundle%insert(t)
     t => bundle%getReference('ClOx')
@@ -317,19 +314,14 @@ contains
     t=> newTracer('N2O5')
     call bundle%insert(t)
 
-    print*,__LINE__,__FILE__
     t=> newTracer('DMS')
     call bundle%insert(t)
     t => bundle%getReference('DMS')
     call t%insert('index', 6)
 
-    print*,__LINE__,__FILE__
     call bundle%setAttribute('N2O5', "ntm_power", newAttribute(-12))
-    print*,__LINE__,__FILE__
     call bundle%setAttribute('N2O5', "tr_mm", newAttribute(108.02d0))
-    print*,__LINE__,__FILE__
     call bundle%setAttribute('N2O5', "mass2vol", newAttribute(1.234d0))
-    print*,__LINE__,__FILE__
 
   end subroutine test_modelErepdroducer
 
