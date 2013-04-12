@@ -84,7 +84,7 @@ $numProcesses->{"0"}->{INSANE}         = [];
 $numProcesses->{"CS"}->{GENTLE}        = [6];
 $numProcesses->{"CS"}->{AGGRESSIVE}    = [6,48];
 $numProcesses->{"CS"}->{INSANE}        = [6,84];
-$numProcesses->{"2x2.5"}->{XLDECK}     = [45];  # for extra large (memory) rundecks
+$numProcesses->{"2x2.5"}->{XLDECK}     = [44];  # for extra large (memory) rundecks
 $numProcesses->{"2x2.5"}->{XLRUN}      = [88];  # for extra long (>=1mo) runs
 
 # Loop over configurations and copy into local arrays

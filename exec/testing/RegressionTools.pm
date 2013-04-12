@@ -2,7 +2,7 @@ use CommandEntry;
 use Env;
 
 my $extraFlags;
-my $localDebug=0;
+my $localDebug=1;
 $extraFlags{SERIAL}   = "";
 $extraFlags{MPI}      = "MPI=YES";
 $extraFlags{OPENMP}   = "EXTRA_FFLAGS=-mp MP=YES NPROCS=\$npes";
@@ -56,7 +56,14 @@ sub compileRundeck
 
   my $resultsDir = $env -> {RESULTS_DIRECTORY};
   $resultsDir .="/$compiler";
-  my $MODELERC = $env->{MODELERC};
+  my $MODELERC;
+  my $onEC2 = $ENV{RUNONEC2};
+  if ($onEC2) {
+     $MODELERC = $ENV{MODELERC}
+  }
+  else {
+    $MODELERC = $env->{MODELERC};
+  }
  
   my $flags;
   if ($debugFlags eq 'N')
@@ -122,7 +129,15 @@ sub runConfiguration
   my $resultsDir = $env->{RESULTS_DIRECTORY};
   $resultsDir .="/$compiler";
   my $expName = "$rundeck.$configuration.$compiler";
-  my $MODELERC = $env->{MODELERC};
+  my $MODELERC;
+  my $onEC2 = $ENV{RUNONEC2};
+  if ($onEC2) {
+     $MODELERC = $ENV{MODELERC}
+  }
+  else {
+    $MODELERC = $env->{MODELERC};
+  }
+  my $doMock = $ENV{MOCKMODELE};
 
   print "BRANCH: $branch \n" if $localDebug;
   print "DURATION: $duration \n" if $localDebug;
@@ -165,7 +180,11 @@ sub runConfiguration
   {  
     $run1hr = createMakeCommand($env, $expName, $npes, $flags, 2);
     $run1dy = createMakeCommand($env, $expName, $npes, $flags, 48);
-    $restart = "cd $expName; cp fort.2.nc fort.1.nc; ./$expName $mpiArgs; cd -";
+    if ($doMock == 1) {
+      $restart = "cd $expName; cp fort.2.nc fort.1.nc; ./run_command; cd -";
+    } else {
+      $restart = "cd $expName; cp fort.2.nc fort.1.nc; ./$expName $mpiArgs; cd -";
+    }
   }
   else
   {

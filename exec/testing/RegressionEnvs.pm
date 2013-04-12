@@ -100,7 +100,7 @@ sub getGfortranEnvironment
     $env->{MPIDIR}="/usr/local/other/mvapich2/1.9a2/gcc-4.7.1";
     $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc4.7_mvapich2-1.8";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc-4.7.1_mvapich2-1.9a2";
-    $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.6";
+    $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.7";
   }
   $env->{MODELERC} = $env->{SCRATCH_DIRECTORY} . "/gfortran/modelErc.gfortran";
   return $env;
@@ -122,8 +122,7 @@ sub getNagEnvironment
   else 
   {
     $env->{MPIDISTR}="mvapich2";
-    #$env->{MPIDIR}="/usr/local/other/SLES11/mvapich2/1.8a2/nag-5.3-886";
-    $env->{MPIDIR}="/discover/nobackup/ccruz/Baselibs/mvapich2_1.8/nag-5.3-886";
+    $env->{MPIDIR}="/usr/local/other/SLES11/mvapich2/1.8a2/nag-5.3-886";
     $env->{BASELIBDIR5}="";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/nag-5.3-886_mvapich2-1.8";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_nag-5.3";
@@ -156,11 +155,16 @@ sub setupENVvariables
    else {
       $env->{NOBACKUP}=$ENV{NOBACKUP};
    }
-   if (defined $ENV{MOCKMODELE}) {
-       $env->{GIT_REPOSITORY} = "/discover/nobackup/ccruz/devel/modelE.mock.git";
+   if (defined $ENV{MODELEGIT}) {
+     $env->{GIT_REPOSITORY} = $ENV{MODELEGIT};
    }
    else {
+     if (defined $ENV{MOCKMODELE}) {
+       $env->{GIT_REPOSITORY} = "/discover/nobackup/ccruz/devel/modelE.mock.git";
+     }
+     else {
        $env->{GIT_REPOSITORY} = "simplex.giss.nasa.gov:/giss/gitrepo/modelE.git";
+     }
    }
    $env->{RESULTS_DIRECTORY} = $env->{NOBACKUP} . "/regression_results";
    $env->{SCRATCH_DIRECTORY} = $env->{NOBACKUP} . "/regression_scratch";

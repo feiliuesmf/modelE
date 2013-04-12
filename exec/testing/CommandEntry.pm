@@ -133,10 +133,10 @@ sub runInBatch
     { $walltime = "00:30:00"; }
     elsif ($jobname =~ M20) 
     { $walltime = "01:00:00"; }
-    elsif ($jobname =~ obio || $jobname =~ cad || $jobname =~ amp) 
+    elsif ($jobname =~ obio || $jobname =~ cadi) 
     { $walltime = "02:00:00"; }
-    elsif ($jobname =~ tomas || $jobname =~ AR5_CAD) 
-    { $walltime = "02:00:00"; $nodes=4; }
+    elsif ($jobname =~ tomas || $jobname =~ AR5_CAD || $jobname =~ amp) 
+    { $walltime = "03:00:00"; $nodes=4; }
     else 
     { $walltime = "01:00:00"; $nodes=1; }
   }
@@ -145,7 +145,7 @@ sub runInBatch
 
   my $script = <<EOF;
 #!/bin/bash
-#PBS -l select=$nodes:ncpus=12:mpiprocs=12
+#PBS -l select=$nodes:ncpus=12
 #PBS -l walltime=$walltime
 #PBS -W group_list=s1001
 #PBS -N $jobname
