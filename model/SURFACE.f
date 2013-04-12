@@ -726,12 +726,12 @@ cccccc for SCM use ARM provided fluxes for designated box
       endif
       endif
 #endif
-      DMUA_IJ=PTYPE*DTSURF*RCDMWS*(US-UOCEAN)
-      DMVA_IJ=PTYPE*DTSURF*RCDMWS*(VS-VOCEAN)
-      asflx(itype)%DMUA(I,J) = asflx(itype)%DMUA(I,J) + DMUA_IJ
-      asflx(itype)%DMVA(I,J) = asflx(itype)%DMVA(I,J) + DMVA_IJ
-      asflx(itype)%uflux1(i,j) = RCDMWS*(US-UOCEAN)
-      asflx(itype)%vflux1(i,j) = RCDMWS*(VS-VOCEAN)
+      DMUA_IJ=RCDMWS*(US-UOCEAN)
+      DMVA_IJ=RCDMWS*(VS-VOCEAN)
+      asflx(itype)%DMUA(I,J) = asflx(itype)%DMUA(I,J) + DMUA_IJ*DTSURF
+      asflx(itype)%DMVA(I,J) = asflx(itype)%DMVA(I,J) + DMVA_IJ*DTSURF
+      asflx(itype)%uflux1(i,j) = DMUA_IJ
+      asflx(itype)%vflux1(i,j) = DMVA_IJ
 
 C****
 C**** SAVE SOME TYPE DEPENDENT FLUXES/DIAGNOSTICS

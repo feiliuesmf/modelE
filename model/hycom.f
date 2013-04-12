@@ -388,16 +388,16 @@ c --- accumulate
        aice_loc(ia,ja)= aice_loc(ia,ja) + rsi_loc(ia,ja)*
      .                             dtsrc/(real(nhr)*SECONDS_PER_HOUR)
 c --- dmua on A-grid, admui on C-grid
-      ataux_loc(ia,ja)=ataux_loc(ia,ja)+(dmua_loc(ia,ja)
+      ataux_loc(ia,ja)=ataux_loc(ia,ja)+(dmua_loc(ia,ja)*rsi_loc(ia,ja)
      .               +(admui_loc(ia,ja)+admui_loc(iam1,ja))*.5)          ! scaled by rsi
      .               /(SECONDS_PER_HOUR*real(nhr))                       ! kg/ms => N/m2
-      atauy_loc(ia,ja)=atauy_loc(ia,ja)+(dmva_loc(ia,ja)
+      atauy_loc(ia,ja)=atauy_loc(ia,ja)+(dmva_loc(ia,ja)*rsi_loc(ia,ja)
      .               +(admvi_loc(ia,ja)+admvi_loc(ia,max(1,ja-1)))*.5)   ! scaled by rsi
      .               /(SECONDS_PER_HOUR*real(nhr))                       ! kg/ms => N/m2
       austar_loc(ia,ja)=austar_loc(ia,ja)+(
-     . sqrt(sqrt((dmua_loc(ia,ja)
+     . sqrt(sqrt((dmua_loc(ia,ja)*rsi_loc(ia,ja)
      .          +(admui_loc(ia,ja)+admui_loc(iam1,ja))*.5)**2
-     .          +(dmva_loc(ia,ja)
+     .          +(dmva_loc(ia,ja)*rsi_loc(ia,ja)
      .          +(admvi_loc(ia,ja)+admvi_loc(ia,max(1,ja-1)))*.5)**2)
      .          /dtsrc*thref))                                           ! sqrt(T/r)=>m/s
      .          *dtsrc/(real(nhr)*SECONDS_PER_HOUR)

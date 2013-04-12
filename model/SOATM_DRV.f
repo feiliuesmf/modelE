@@ -2927,15 +2927,15 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       if(itype.eq.1) then
         atmocn%E0(I,J)=F0DT
         atmocn%EVAPOR(I,J)=EVAP
-        atmocn%DMUA(I,J)=PTYPE*DTSRC*RCDMWS*(US-UOCEAN)
-        atmocn%DMVA(I,J)=PTYPE*DTSRC*RCDMWS*(VS-VOCEAN)
+        atmocn%DMUA(I,J)=DTSRC*RCDMWS*(US-UOCEAN)
+        atmocn%DMVA(I,J)=DTSRC*RCDMWS*(VS-VOCEAN)
         aij(i,j,ij_ocheat) = aij(i,j,ij_ocheat) + ptype*F0DT
       else
         atmice%E0(I,J)=F0DT
         atmice%E1(I,J)=F1DT
         atmice%EVAPOR(I,J)=EVAP
-        atmice%DMUA(I,J)=PTYPE*DTSRC*RCDMWS*(US-UOCEAN)
-        atmice%DMVA(I,J)=PTYPE*DTSRC*RCDMWS*(VS-VOCEAN)
+        atmice%DMUA(I,J)=DTSRC*RCDMWS*(US-UOCEAN)
+        atmice%DMVA(I,J)=DTSRC*RCDMWS*(VS-VOCEAN)
       endif
 
       ENDDO   ! end of itype loop
@@ -2945,8 +2945,10 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       do j=j_0,j_1
       do i=i_0,atmocn%imaxj(j)
         if(focean(i,j).le.0.) cycle
-        taux = (atmocn%dmua(i,j)+atmice%dmua(i,j))/dtsrc
-        tauy = (atmocn%dmva(i,j)+atmice%dmva(i,j))/dtsrc
+        poice = rsi(i,j)
+        pocean = 1d0-poice
+        taux = (atmocn%dmua(i,j)*pocean+atmice%dmua(i,j)*poice)/dtsrc
+        tauy = (atmocn%dmva(i,j)*pocean+atmice%dmva(i,j)*poice)/dtsrc
         aij(i,j,ij_tauus) = aij(i,j,ij_tauus) + taux
         aij(i,j,ij_tauvs) = aij(i,j,ij_tauvs) + tauy
         aij(i,j,ij_taus) = aij(i,j,ij_taus) + sqrt(taux**2 + tauy**2)

@@ -54,7 +54,6 @@
 !@var SOLAR absorbed solar radiation (J/m^2)
 !@var TRHEAT net LW flux accumulation (J/m^2)
      &      E0,SOLAR,TRHEAT
-C**** Momemtum stresses are calculated as if they were over whole box
 !@var DMUA,DMVA momentum flux from atmosphere (kg/m s)
 !@+   On atmospheric A grid (tracer point)
      &     ,DMUA, DMVA
