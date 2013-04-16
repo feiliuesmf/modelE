@@ -634,7 +634,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
             tmp(idd_wtke)=pbl_args%wsubtke*ptype
             tmp(idd_wd)=pbl_args%wsubwd*ptype
             tmp(idd_wm)=pbl_args%wsubwm*ptype
-            if(itype==4) then
+            if(itype==4) then        ! land
               tmp(idd_wtrsh)=pbl_args%wtrsh*ptype
 #ifdef TRACERS_DUST
               tmp(idd_emis)=0.D0

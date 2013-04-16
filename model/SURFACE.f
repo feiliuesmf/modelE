@@ -78,6 +78,10 @@ C****
      &     ,nisurf,fland,flice,focean
      &     ,atmocn,atmice,atmgla,atmlnd,asflx,atmsrf
      &     ,atmglas
+#ifdef GLINT2
+      USE FLUXES, only : atmglas_hp
+#endif
+
 #ifdef TRACERS_ON
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
@@ -116,6 +120,9 @@ C****
 
       INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IHM
      *     ,ii,itype4,ipatch
+#ifdef GLINT2
+      INTEGER ihp
+#endif
       REAL*8 PLAND,PLICE,POICE,POCEAN,PS,P1K
      *     ,ELHX,MSI2,CDTERM,CDENOM,dF1dTG,HCG1,HCG2,EVHDT,F1DT
      *     ,CM,CH,CQ,EVHEAT,F0,F1,DSHDTG,DQGDTG
@@ -199,18 +206,17 @@ C****
       DO I=I_0,IMAXJ(J)
         PLAND=FLAND(I,J)
         PWATER=1.-PLAND
-        PLICE=FLICE(I,J)
       ! RSI = RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
         POICE=RSI(I,J)*PWATER
         POCEAN=PWATER-POICE
         atmocn%ftype(i,j) = pocean
         atmice%ftype(i,j) = poice
-        atmgla%ftype(i,j) = plice
+        atmgla%ftype(i,j) = flice(I,J)
         atmlnd%ftype(i,j) = fearth(i,j)
       enddo
       enddo
 
-      call patchify_landice_inputs(after_atm_phase1)
+      call downscale_pressure_li
 
       do ipatch=1,size(asflx)
         ! solar,trheat,evapor,sensht,latht,e0,dmua,dmva,runo,eruno
@@ -223,9 +229,17 @@ C****
 
       CALL PRECIP_SI(si_atm,icelak,atmice)
 
+#ifdef GLINT2
+      do ihp=1,ubound(atmglas_hp,1)
+        CALL PRECIP_LI(atmglas_hp(ihp),ihp)
+      enddo
+      call hp_to_hc_precip_li(atmglas_hp, atmglas)
+#else
       do ipatch=1,ubound(atmglas,1)
         CALL PRECIP_LI(atmglas(ipatch),ipatch)
       enddo
+#endif
+
 c The following landice section will migrate once precip_li AND precip_lk
 c are folded into their respective top-level drivers in a "single-entry-point"
 c design (as already exists for the land surface).
@@ -761,10 +775,23 @@ C****
 C****
 C**** LAND ICE
 C****
-      call patchify_landice_inputs(during_srfflx)
+      call downscale_temperature_li
+#ifdef GLINT2
+      do ihp=1,ubound(atmglas_hp,1)
+        CALL SURFACE_LANDICE(NS==1,MODDD,DTSURF,atmglas_hp(ihp),ihp)
+      enddo
+
+      ! Convert variables set in surface_landice from height point
+      ! to height class space.
+      call hp_to_hc_surface_landice(atmglas_hp, atmglas)
+#else
       do ipatch=1,ubound(atmglas,1)
+!        print *,'SURFACE_LANDICE',ipatch
         CALL SURFACE_LANDICE(NS==1,MODDD,DTSURF,atmglas(ipatch),ipatch)
       enddo
+
+#endif
+
 
 C****
 C**** EARTH
@@ -949,10 +976,20 @@ C****
 
       atmice%e1(:,:) = e1(2,:,:)
 
-C**** APPLY SURFACE FLUXES TO LAND ICE
+C**** APPLY SURFACE FLUXES TO LAND ICE (and modify fluxes as well)
+#ifdef GLINT2
+      do ipatch=1,ubound(atmglas_hp,1)
+        CALL GROUND_LI(atmglas_hp(ipatch),ipatch)
+      enddo
+
+      ! Convert variables set in surface_landice from height point
+      ! to height class space.
+      call hp_to_hc_ground_li(atmglas_hp, atmglas)
+#else
       do ipatch=1,ubound(atmglas,1)
         CALL GROUND_LI(atmglas(ipatch),ipatch)
       enddo
+#endif
 
 c create composite values for land ice for diagnostics
       call avg_patches_srfflx_exports(grid,
@@ -1821,11 +1858,25 @@ C**** accumulate implicit fluxes for setting ocean balance
       use landice, only : snmin
       implicit none
       integer :: itype,i,j,n
-      real*8 ::
-     &     tg1, rcdqws, rcdqdws, evap, snow, qg_sat, qsrf,
-     &     dtsurf, flake,
-     &     trm1, trs, trgrnd, trgrnd2, trprime,
-     &     tevaplim, trsrfflx, trevapor
+      real*8 :: tg1
+      real*8 :: rcdqws
+      real*8 :: rcdqdws
+      real*8 :: evap
+      real*8 :: snow
+      real*8 :: qg_sat
+      real*8 :: qsrf,
+      real*8 :: dtsurf
+      real*8 :: flake,
+      real*8, intent(in) :: trm1	! comes from atmgla%
+      real*8 :: trs
+      real*8, intent(in) :: trgrnd	! comes from atmgla%
+      real*8 :: trgrnd2
+      real*8 :: trprime,
+      real*8 :: tevaplim
+      real*8, intent(out) :: trsrfflx	! comes from atmgla%
+      real*8, intent(out) :: trevapor	! comes from atmgla%
+
+
       logical :: lim_lake_evap, lim_dew
 c
       real*8 ::

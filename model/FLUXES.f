@@ -266,7 +266,7 @@ C**** Momemtum stresses are calculated as if they were over whole box
          REAL*8, DIMENSION(:,:), POINTER ::
 !@var ftype fraction of the gridcell occupied by this patch
      &      FTYPE
-     &     ,FTYPE_REL
+     &     ,FHC
 !@var LAT latitude of gridbox (radians)
      &     ,LAT
 !@var WORK1,WORK2 temporary workspace
@@ -665,7 +665,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 
       ALLOCATE(
      &          this % FTYPE   ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % FTYPE_REL( I_0H:I_1H , J_0H:J_1H ),
+     &          this % FHC     ( I_0H:I_1H , J_0H:J_1H ),
 
      &          this % LAT     ( I_0H:I_1H , J_0H:J_1H ),
 
@@ -881,7 +881,7 @@ c
         do k=1,np
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
-          ftype(i,j,k) = patches(k)%ftype_rel(i,j)
+          ftype(i,j,k) = patches(k)%fhc(i,j)
         enddo
         enddo
         enddo
@@ -955,7 +955,7 @@ c
         do k=1,np
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
-          ftype(i,j,k) = patches(k)%ftype_rel(i,j)
+          ftype(i,j,k) = patches(k)%fhc(i,j)
         enddo
         enddo
         enddo
@@ -1028,7 +1028,7 @@ c
         do k=1,np
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
-          ftype(i,j,k) = patches(k)%ftype_rel(i,j)
+          ftype(i,j,k) = patches(k)%fhc(i,j)
         enddo
         enddo
         enddo
@@ -1103,7 +1103,7 @@ c
         do k=1,np
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
-          ftype(i,j,k) = patches(k)%ftype_rel(i,j)
+          ftype(i,j,k) = patches(k)%fhc(i,j)
         enddo
         enddo
         enddo
@@ -1604,6 +1604,9 @@ C**** fluxes associated with variable lake fractions
 !@+   water, floating ice, glacial ice, and the land surface.
       type(atmocn_xchng_vars) :: atmocns(1) ! ocean and lakes
       type(atmice_xchng_vars) :: atmices(1) ! ocean and lakes
+#ifdef GLINT2
+      type(atmgla_xchng_vars), allocatable, dimension(:) :: atmglas_hp !(1-min(nhc,2)/2:nhc) ! glacial ice
+#endif
       type(atmgla_xchng_vars), allocatable, dimension(:) :: atmglas !(1-min(nhc,2)/2:nhc) ! glacial ice
       type(atmlnd_xchng_vars) :: atmlnds(1) ! land surface
 
@@ -1615,6 +1618,9 @@ C**** fluxes associated with variable lake fractions
       type(atmlnd_xchng_vars), pointer :: atmlnd ! land surface
 
       target :: atmocns,atmices,atmglas,atmlnds
+#ifdef GLINT2
+      target :: atmglas_hp
+#endif
 
 !@var atmsrf contains atm-surf interaction quantities averaged over
 !@+   all surface types.
@@ -1735,8 +1741,11 @@ C**** fluxes associated with variable lake fractions
       I_1 = grd_dum%I_STOP
       J_0 = grd_dum%J_STRT
       J_1 = grd_dum%J_STOP
-
+!      print *,'ALLOCATE atmglas', 1-min(nhc_local,2)/2, nhc_local
       ALLOCATE(atmglas(1-min(nhc_local,2)/2:nhc_local), STAT=IER)
+#ifdef GLINT2
+      ALLOCATE(atmglas_hp(1-min(nhc_local,2)/2:nhc_local), STAT=IER)
+#endif
       ALLOCATE(FLAND(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(FOCEAN(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(FLICE(I_0H:I_1H,J_0H:J_1H), STAT = IER)
@@ -1930,12 +1939,26 @@ C**** Ensure that no round off error effects land with ice and earth
       do k=lbound(atmglas,1),ubound(atmglas,1)
         write(c2,'(i2.2)') k
         atmglas(k)%surf_name = 'gla'//c2
+#ifdef GLINT2
+        atmglas_hp(k)%surf_name = 'gla'//c2
+#endif
+
 #ifdef TRACERS_ON
         atmglas(k)%ntm = ntm
+#ifdef GLINT2
+        atmglas_hp(k)%ntm = ntm
+#endif
 #endif
         call alloc_xchng_vars(grid,atmglas(k))
+#ifdef GLINT2
+        call alloc_xchng_vars(grid,atmglas_hp(k))
+#endif
         atmglas(k)%grid => grd_dum
         atmglas(k)%lat(:,:) = lat2d(:,:)
+#ifdef GLINT2
+        atmglas_hp(k)%grid => grd_dum
+        atmglas_hp(k)%lat(:,:) = lat2d(:,:)
+#endif
       enddo
 
       do k=lbound(atmlnds,1),ubound(atmlnds,1)
@@ -1988,6 +2011,10 @@ C**** Ensure that no round off error effects land with ice and earth
       do k=p1gla,p2gla
         call alloc_xchng_vars(grid,
      &       atmglas(1+k-p1gla)%atmsrf_xchng_vars,asflx(k))
+#ifdef GLINT2
+        call alloc_xchng_vars(grid,
+     &       atmglas_hp(1+k-p1gla)%atmsrf_xchng_vars,asflx(k))
+#endif
       enddo
       do k=p1lnd,p2lnd
         call alloc_xchng_vars(grid,
