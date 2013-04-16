@@ -161,6 +161,7 @@
       use domain_decomp_atm, only : grid
       use pario, only : par_open,par_close
 #ifdef GLINT2
+      use glint2_modele
       use  domain_decomp_atm, only : glint2
       use hp2hc, only : hp_to_hc
       use landice_com, only : elevhc, fhp_approx, fhc
@@ -177,7 +178,6 @@
       call glint2_modele_init_landice_com(glint2,
      &     fhc, elevhc, hp_to_hc, fhp_approx,
      &     grid%i_strt_halo, grid%j_strt_halo)
-      call hp2hc_init(glint2)
 #endif
 
       return

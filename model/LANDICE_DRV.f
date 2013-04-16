@@ -37,7 +37,9 @@
 #endif
       USE FLUXES, only : atmgla,atmglas,atmocn
 #ifdef GLINT2
-      USE FLUXES, only : atmglas_hp
+      use fluxes, only : atmglas_hp, flice
+      use hp2hc
+      use landice_com, only : fhp_approx
 #endif
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_OCEAN_INDEP
@@ -533,6 +535,9 @@ c
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE EXCHANGE_TYPES
       USE LANDICE_COM, only : ijhc,ijhc_frac,IJHC_PRECLI,IJHC_RUNLI
+#ifdef GLINT2
+      use fluxes, only : flice
+#endif
       IMPLICIT NONE
       type(atmgla_xchng_vars) :: atmgla
       integer :: ihc
@@ -678,6 +683,9 @@ C**** ACCUMULATE DIAGNOSTICS
       USE LANDICE_COM, only : IJHC_SHDTLI,IJHC_EVHDT,IJHC_TRHDT
       USE LANDICE_COM, only : IJHC_F0LI,IJHC_EVAPLI,IJHC_TSLI
       USE LANDICE_COM, only : IJHC_IMPMLI,IJHC_IMPHLI, IJHC_RUNLI
+#ifdef GLINT2
+      use fluxes, only : flice
+#endif
 
       IMPLICIT NONE
       type(atmgla_xchng_vars) :: atmgla
