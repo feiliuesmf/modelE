@@ -80,6 +80,7 @@ C****
      &     ,atmglas
 #ifdef GLINT2
       USE FLUXES, only : atmglas_hp
+      use hp2hc
 #endif
 
 #ifdef TRACERS_ON
@@ -233,7 +234,7 @@ C****
       do ihp=1,ubound(atmglas_hp,1)
         CALL PRECIP_LI(atmglas_hp(ihp),ihp)
       enddo
-      call hp_to_hc_precip_li(atmglas_hp, atmglas)
+      call bundle_hp_to_hc(bundle_precip_li,atmglas_hp, atmglas)
 #else
       do ipatch=1,ubound(atmglas,1)
         CALL PRECIP_LI(atmglas(ipatch),ipatch)
@@ -783,7 +784,7 @@ C****
 
       ! Convert variables set in surface_landice from height point
       ! to height class space.
-      call hp_to_hc_surface_landice(atmglas_hp, atmglas)
+      call bundle_hp_to_hc(bundle_surface_landice, atmglas_hp, atmglas)
 #else
       do ipatch=1,ubound(atmglas,1)
 !        print *,'SURFACE_LANDICE',ipatch
@@ -984,7 +985,7 @@ C**** APPLY SURFACE FLUXES TO LAND ICE (and modify fluxes as well)
 
       ! Convert variables set in surface_landice from height point
       ! to height class space.
-      call hp_to_hc_ground_li(atmglas_hp, atmglas)
+      call bundle_hp_to_hc(bundle_ground_li, atmglas_hp, atmglas)
 #else
       do ipatch=1,ubound(atmglas,1)
         CALL GROUND_LI(atmglas(ipatch),ipatch)
@@ -1864,14 +1865,14 @@ C**** accumulate implicit fluxes for setting ocean balance
       real*8 :: evap
       real*8 :: snow
       real*8 :: qg_sat
-      real*8 :: qsrf,
+      real*8 :: qsrf
       real*8 :: dtsurf
-      real*8 :: flake,
+      real*8 :: flake
       real*8, intent(in) :: trm1	! comes from atmgla%
       real*8 :: trs
       real*8, intent(in) :: trgrnd	! comes from atmgla%
       real*8 :: trgrnd2
-      real*8 :: trprime,
+      real*8 :: trprime
       real*8 :: tevaplim
       real*8, intent(out) :: trsrfflx	! comes from atmgla%
       real*8, intent(out) :: trevapor	! comes from atmgla%

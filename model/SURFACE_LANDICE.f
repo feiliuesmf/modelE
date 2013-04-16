@@ -51,6 +51,10 @@ C****
       USE TimerList_mod, only: stopTimer => stop
       USE itype_enum
 
+#ifdef GLINT2
+      use fluxes, only : flice
+#endif
+
       IMPLICIT NONE
 ! ================ Parameter Declarations =====================
       logical, intent(in) :: do_init

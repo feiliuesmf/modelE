@@ -75,14 +75,14 @@
      &     IJHC_SHDTLI,IJHC_EVHDT,IJHC_TRHDT,IJHC_IMPMLI,IJHC_IMPHLI
 
       END MODULE LANDICE_COM
-
+! -----------------------------------------------------------
       SUBROUTINE ALLOC_LANDICE_COM(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
 #ifdef GLINT2
-      USE  DOMAIN_DECOMP_ATM, ONLY : GLINT2
+      use  domain_decomp_atm, only : glint2
       use glint2_modele
       use hp2hc
       use landice_com, only : fhp_approx
@@ -123,7 +123,7 @@
 
       ALLOCATE( FHC(I_0H:I_1H,J_0H:J_1H,NHC),
 #ifdef GLINT2
-     *          FHC_APPROX(I_0H:I_1H,J_0H:J_1H,NHC),
+     *          FHP_APPROX(I_0H:I_1H,J_0H:J_1H,NHC),
 #endif
      *          ELEVHC(I_0H:I_1H,J_0H:J_1H,NHC),
      *          SNOWLI(I_0H:I_1H,J_0H:J_1H,NHC),
@@ -135,7 +135,7 @@
      *          STAT=IER)
       fhc(:,:,:) = 1d0/nhc
 #ifdef GLINT2
-      fhc_approx(:,:,:) = 1d0/nhc
+      fhp_approx(:,:,:) = 1d0/nhc
 #endif
       elevhc(:,:,:) = 0
 #ifdef TRACERS_WATER
@@ -153,7 +153,7 @@
 
       RETURN
       END SUBROUTINE ALLOC_LANDICE_COM
-
+! ----------------------------------------------------------
 #ifdef NEW_IO
       subroutine read_landice_ic
 !@sum   read_landice_ic read land ice initial conditions file.
@@ -161,7 +161,9 @@
       use domain_decomp_atm, only : grid
       use pario, only : par_open,par_close
 #ifdef GLINT2
+      use  domain_decomp_atm, only : glint2
       use hp2hc, only : hp_to_hc
+      use landice_com, only : elevhc, fhp_approx, fhc
 #endif
       implicit none
       integer :: fid

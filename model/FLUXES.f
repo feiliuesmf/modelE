@@ -1776,7 +1776,9 @@ C**** Actual array is set from restart file.
 
 #ifdef GLINT2
         ! Fix it up with GLINT2
-        call glint2_modele_compute_fgice(glint2, FLICE, FEARTH0, FOCEAN, FLAKE0)
+        call glint2_modele_compute_fgice(glint2,
+     &         FLICE, FEARTH0, FOCEAN, FLAKE0,
+     &     grid%i_strt_halo, grid%j_strt_halo)
 #endif
       end if
 
