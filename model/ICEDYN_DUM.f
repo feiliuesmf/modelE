@@ -77,8 +77,8 @@ c
 c          UI2rho(I,J) = rhows*(oi_ustar0)**2  ! default
 C**** with wind stress dependence
           if (rsi(i,j)*focean(i,j).gt.0) then
-            ustar1= SQRT(SQRT(DMUA(I,J)**2+DMVA(I,J)**2)/(RSI(i,j)
-     *           *focean(i,j)*DTSRC*RHOWS))
+            ustar1= SQRT(SQRT(DMUA(I,J)**2+DMVA(I,J)**2)/
+     &           (DTSRC*RHOWS))
             UI2rho(I,J)=rhows*(oi_ustar0*max(1d0,1d3*ustar1))**2
           end if
         END DO

@@ -619,7 +619,6 @@ contains
 !-------------------------------------------------------------------------------
     use MAPL_MOD, Only: ESMFL_StateGetPointerToData
     Use Resolution, only: IM,JM,LM,LS1,Ptop
-    USE ATM_COM, ONLY: PUA,PVA,SDA
     USE DYNAMICS, ONLY: PU, PV, SD
     Use ATM_COM, only: U, V, T, P, Q
     USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
@@ -781,10 +780,10 @@ contains
 !-------------------------------------------------------------------------------
   subroutine clear_accumulated_mass_fluxes()
 !-------------------------------------------------------------------------------
-    USE ATM_COM, ONLY: PUA,PVA,SDA
-    PUA(:,:,:) = 0.0
-    PVA(:,:,:) = 0.0
-    SDA(:,:,:) = 0.0
+    Use ATM_COM, Only: MUs,MVs,MWs
+    MUs(:,:,:) = 0.0
+    MVs(:,:,:) = 0.0
+    MWs(:,:,:) = 0.0
   end subroutine clear_accumulated_mass_fluxes
 
 !-------------------------------------------------------------------------------

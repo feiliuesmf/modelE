@@ -1,4 +1,4 @@
-
+#include "rundeck_opts.h"
 
 
 
@@ -35,9 +35,8 @@ module OldTracer_mod
 
   public :: OldTracer_type
   public :: initializeOldTracers
-  public :: makeNewTracers
   public :: oldAddTracer
-  public :: tracers
+!!$  public :: internalTracers
   public :: trName
   public :: MAX_LEN_NAME
 
@@ -345,14 +344,14 @@ end interface
   end type OldTracer_type
 
   integer, save :: numTracers = 0
-  type (OldTracer_type), allocatable :: tracers(:)
+  type (OldTracer_type), allocatable :: internalTracers(:)
   procedure(IdefaultSpec), pointer :: defaultSpec
 
   abstract interface
     subroutine IdefaultSpec(n_idx, trcer)
     use Tracer_mod
     integer, intent(in) :: n_idx
-    type (Tracer_type), pointer :: trcer
+    class (Tracer), pointer :: trcer
     end subroutine IdefaultSpec
   end interface
 
@@ -361,973 +360,1336 @@ end interface
     module procedure trname_all
   end interface trName
   
-  type (TracerBundle_type), pointer :: tracerReference => null()
+  type (TracerBundle), pointer :: tracerReference => null()
 
 contains
 
   function trName_s(idx) result(name)
     integer, intent(in) :: idx
-    character(len=len_trim(tracers(idx)%name)) :: name
-    name = trim(tracers(idx)%name)
+    character(len=len_trim(internalTracers(idx)%name)) :: name
+    name = trim(internalTracers(idx)%name)
   end function trName_s
 
   function trName_all() result(name)
     character(len=MAX_LEN_NAME) :: name(numTracers)
-    name = tracers(:)%name
+    name = internalTracers(:)%name
   end function trName_all
 
   subroutine initializeOldTracers(tracerRef, spec)
-    type (TracerBundle_type), target :: tracerRef
+    type (TracerBundle), target :: tracerRef
     procedure(IdefaultSpec) :: spec
 
     tracerReference => tracerRef
     defaultSpec => spec
-    allocate(tracers(0))
+    allocate(internalTracers(0))
     
   end subroutine initializeOldTracers
 
   integer function oldAddTracer(name) result(n)
-    use TracerBundle_mod, only: getTracer
     character(len=*), intent(in) :: name
     type (OldTracer_type), allocatable :: tmp(:)
+    class (Tracer), pointer :: t
 
     allocate(tmp(numTracers))
-    tmp = tracers
-    deallocate(tracers)
+    tmp = internalTracers
+    deallocate(internalTracers)
 
-    allocate(tracers(numTracers+1))
-    tracers(1:numTracers) = tmp
+    allocate(internalTracers(numTracers+1))
+    internalTracers(1:numTracers) = tmp
     deallocate(tmp)
 
     numTracers = numTracers + 1
-    tracers(numTracers)%name = trim(name)
+    internalTracers(numTracers)%name = trim(name)
 
-    call addTracer(tracerReference, Tracer(name))
-    call defaultSpec(numTracers, getTracer(tracerReference, name))
+    t => newTracer(name)
+    call tracerReference%insert(name, t)
+    t => tracerReference%getReference(name)
+    call t%insert('index', numTracers)
+    call defaultSpec(numTracers, t)
     n = numTracers
 
   end function oldAddTracer
 
-  function makeNewTracers() result (bundle)
-    use Tracer_mod, only: Tracer_type
-    use Tracer_mod, only: Tracer
-    use TracerBundle_mod, only: TracerBundle_type
-    use TracerBundle_mod, only: TracerBundle
-    use TracerBundle_mod, only: addTracer
-    use Tracer_mod, only: setProperty
-    use Tracer_mod, only: clean
-    type (TracerBundle_type), pointer :: bundle
-
-    type (Tracer_type) :: aTracer
-    integer :: i
-
-    bundle = TracerBundle()
-    do i = 1, numTracers
-      aTracer = Tracer(tracers(i)%name)
-      call setProperty(aTracer, 'tr_mm', tr_mm(i))
-call setProperty(aTracer, 'ntm_power', ntm_power(i))
-call setProperty(aTracer, 't_qlimit', t_qlimit(i))
-call setProperty(aTracer, 'needtrs', needtrs(i))
-call setProperty(aTracer, 'trdecay', trdecay(i))
-call setProperty(aTracer, 'itime_tr0', itime_tr0(i))
-call setProperty(aTracer, 'trsi0', trsi0(i))
-call setProperty(aTracer, 'trw0', trw0(i))
-call setProperty(aTracer, 'mass2vol', mass2vol(i))
-call setProperty(aTracer, 'vol2mass', vol2mass(i))
-call setProperty(aTracer, 'dodrydep', dodrydep(i))
-call setProperty(aTracer, 'F0', F0(i))
-call setProperty(aTracer, 'HSTAR', HSTAR(i))
-call setProperty(aTracer, 'do_fire', do_fire(i))
-call setProperty(aTracer, 'nBBsources', nBBsources(i))
-call setProperty(aTracer, 'emisPerFireByVegType', emisPerFireByVegType(i))
-call setProperty(aTracer, 'trpdens', trpdens(i))
-call setProperty(aTracer, 'trradius', trradius(i))
-call setProperty(aTracer, 'tr_wd_TYPE', tr_wd_TYPE(i))
-call setProperty(aTracer, 'tr_RKD', tr_RKD(i))
-call setProperty(aTracer, 'tr_DHD', tr_DHD(i))
-call setProperty(aTracer, 'fq_aer', fq_aer(i))
-call setProperty(aTracer, 'rc_washt', rc_washt(i))
-call setProperty(aTracer, 'isDust', isDust(i))
-call setProperty(aTracer, 'tr_H2ObyCH4', tr_H2ObyCH4(i))
-call setProperty(aTracer, 'dowetdep', dowetdep(i))
-call setProperty(aTracer, 'ntrocn', ntrocn(i))
-call setProperty(aTracer, 'conc_from_fw', conc_from_fw(i))
-call setProperty(aTracer, 'trglac', trglac(i))
-call setProperty(aTracer, 'ntisurfsrc', ntisurfsrc(i))
-call setProperty(aTracer, 'iso_index', iso_index(i))
-call setProperty(aTracer, 'om2oc', om2oc(i))
-call setProperty(aTracer, 'to_volume_MixRat', to_volume_MixRat(i))
-call setProperty(aTracer, 'to_conc', to_conc(i))
-call setProperty(aTracer, 'TRLI0', TRLI0(i))
-
-
-      call addTracer(bundle, aTracer)
-      call clean(aTracer)
-
-    end do
-    
-  end function makeNewTracers
-
     subroutine set_tr_mm(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%tr_mm = value
+    internalTracers(oldIndex)%tr_mm = value
+    call tracerReference%setAttribute(trName(oldIndex), "tr_mm", newAttribute(value))
   end subroutine set_tr_mm
   
   function tr_mm_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: tr_mm_s
-    tr_mm_s = tracers(oldIndex)%tr_mm
+#ifdef NEW_TRACER_PROPERTIES
+    tr_mm_s = tracerReference%getProperty(trName(oldIndex), "tr_mm")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    tr_mm_s = tracerReference%internalTracers(oldIndex)%getProperty("tr_mm")
+#else
+    tr_mm_s = internalTracers(oldIndex)%tr_mm
+#endif
+#endif
   end function tr_mm_s
 
   function tr_mm_all()
-    real*8 :: tr_mm_all(size(tracers))
-    tr_mm_all = tracers(:)%tr_mm
+    real*8 :: tr_mm_all(size(internalTracers))
+    tr_mm_all = internalTracers(:)%tr_mm
   end function tr_mm_all
 
   function tr_mm_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: tr_mm_m(size(oldIndices))
-    tr_mm_m = tracers(oldIndices(:))%tr_mm
+    tr_mm_m = internalTracers(oldIndices(:))%tr_mm
   end function tr_mm_m
 
 
 
   subroutine set_ntm_power(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     integer, intent(in) :: value
-    tracers(oldIndex)%ntm_power = value
+    internalTracers(oldIndex)%ntm_power = value
+    call tracerReference%setAttribute(trName(oldIndex), "ntm_power", newAttribute(value))
   end subroutine set_ntm_power
   
   function ntm_power_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     integer :: ntm_power_s
-    ntm_power_s = tracers(oldIndex)%ntm_power
+#ifdef NEW_TRACER_PROPERTIES
+    ntm_power_s = tracerReference%getProperty(trName(oldIndex), "ntm_power")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    ntm_power_s = tracerReference%internalTracers(oldIndex)%getProperty("ntm_power")
+#else
+    ntm_power_s = internalTracers(oldIndex)%ntm_power
+#endif
+#endif
   end function ntm_power_s
 
   function ntm_power_all()
-    integer :: ntm_power_all(size(tracers))
-    ntm_power_all = tracers(:)%ntm_power
+    integer :: ntm_power_all(size(internalTracers))
+    ntm_power_all = internalTracers(:)%ntm_power
   end function ntm_power_all
 
   function ntm_power_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     integer :: ntm_power_m(size(oldIndices))
-    ntm_power_m = tracers(oldIndices(:))%ntm_power
+    ntm_power_m = internalTracers(oldIndices(:))%ntm_power
   end function ntm_power_m
 
 
 
   subroutine set_t_qlimit(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     logical, intent(in) :: value
-    tracers(oldIndex)%t_qlimit = value
+    internalTracers(oldIndex)%t_qlimit = value
+    call tracerReference%setAttribute(trName(oldIndex), "t_qlimit", newAttribute(value))
   end subroutine set_t_qlimit
   
   function t_qlimit_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     logical :: t_qlimit_s
-    t_qlimit_s = tracers(oldIndex)%t_qlimit
+#ifdef NEW_TRACER_PROPERTIES
+    t_qlimit_s = tracerReference%getProperty(trName(oldIndex), "t_qlimit")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    t_qlimit_s = tracerReference%internalTracers(oldIndex)%getProperty("t_qlimit")
+#else
+    t_qlimit_s = internalTracers(oldIndex)%t_qlimit
+#endif
+#endif
   end function t_qlimit_s
 
   function t_qlimit_all()
-    logical :: t_qlimit_all(size(tracers))
-    t_qlimit_all = tracers(:)%t_qlimit
+    logical :: t_qlimit_all(size(internalTracers))
+    t_qlimit_all = internalTracers(:)%t_qlimit
   end function t_qlimit_all
 
   function t_qlimit_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     logical :: t_qlimit_m(size(oldIndices))
-    t_qlimit_m = tracers(oldIndices(:))%t_qlimit
+    t_qlimit_m = internalTracers(oldIndices(:))%t_qlimit
   end function t_qlimit_m
 
 
 
   subroutine set_needtrs(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     logical, intent(in) :: value
-    tracers(oldIndex)%needtrs = value
+    internalTracers(oldIndex)%needtrs = value
+    call tracerReference%setAttribute(trName(oldIndex), "needtrs", newAttribute(value))
   end subroutine set_needtrs
   
   function needtrs_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     logical :: needtrs_s
-    needtrs_s = tracers(oldIndex)%needtrs
+#ifdef NEW_TRACER_PROPERTIES
+    needtrs_s = tracerReference%getProperty(trName(oldIndex), "needtrs")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    needtrs_s = tracerReference%internalTracers(oldIndex)%getProperty("needtrs")
+#else
+    needtrs_s = internalTracers(oldIndex)%needtrs
+#endif
+#endif
   end function needtrs_s
 
   function needtrs_all()
-    logical :: needtrs_all(size(tracers))
-    needtrs_all = tracers(:)%needtrs
+    logical :: needtrs_all(size(internalTracers))
+    needtrs_all = internalTracers(:)%needtrs
   end function needtrs_all
 
   function needtrs_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     logical :: needtrs_m(size(oldIndices))
-    needtrs_m = tracers(oldIndices(:))%needtrs
+    needtrs_m = internalTracers(oldIndices(:))%needtrs
   end function needtrs_m
 
 
 
   subroutine set_trdecay(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%trdecay = value
+    internalTracers(oldIndex)%trdecay = value
+    call tracerReference%setAttribute(trName(oldIndex), "trdecay", newAttribute(value))
   end subroutine set_trdecay
   
   function trdecay_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: trdecay_s
-    trdecay_s = tracers(oldIndex)%trdecay
+#ifdef NEW_TRACER_PROPERTIES
+    trdecay_s = tracerReference%getProperty(trName(oldIndex), "trdecay")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    trdecay_s = tracerReference%internalTracers(oldIndex)%getProperty("trdecay")
+#else
+    trdecay_s = internalTracers(oldIndex)%trdecay
+#endif
+#endif
   end function trdecay_s
 
   function trdecay_all()
-    real*8 :: trdecay_all(size(tracers))
-    trdecay_all = tracers(:)%trdecay
+    real*8 :: trdecay_all(size(internalTracers))
+    trdecay_all = internalTracers(:)%trdecay
   end function trdecay_all
 
   function trdecay_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: trdecay_m(size(oldIndices))
-    trdecay_m = tracers(oldIndices(:))%trdecay
+    trdecay_m = internalTracers(oldIndices(:))%trdecay
   end function trdecay_m
 
 
 
   subroutine set_itime_tr0(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     integer, intent(in) :: value
-    tracers(oldIndex)%itime_tr0 = value
+    internalTracers(oldIndex)%itime_tr0 = value
+    call tracerReference%setAttribute(trName(oldIndex), "itime_tr0", newAttribute(value))
   end subroutine set_itime_tr0
   
   function itime_tr0_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     integer :: itime_tr0_s
-    itime_tr0_s = tracers(oldIndex)%itime_tr0
+#ifdef NEW_TRACER_PROPERTIES
+    itime_tr0_s = tracerReference%getProperty(trName(oldIndex), "itime_tr0")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    itime_tr0_s = tracerReference%internalTracers(oldIndex)%getProperty("itime_tr0")
+#else
+    itime_tr0_s = internalTracers(oldIndex)%itime_tr0
+#endif
+#endif
   end function itime_tr0_s
 
   function itime_tr0_all()
-    integer :: itime_tr0_all(size(tracers))
-    itime_tr0_all = tracers(:)%itime_tr0
+    integer :: itime_tr0_all(size(internalTracers))
+    itime_tr0_all = internalTracers(:)%itime_tr0
   end function itime_tr0_all
 
   function itime_tr0_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     integer :: itime_tr0_m(size(oldIndices))
-    itime_tr0_m = tracers(oldIndices(:))%itime_tr0
+    itime_tr0_m = internalTracers(oldIndices(:))%itime_tr0
   end function itime_tr0_m
 
 
 
   subroutine set_trsi0(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%trsi0 = value
+    internalTracers(oldIndex)%trsi0 = value
+    call tracerReference%setAttribute(trName(oldIndex), "trsi0", newAttribute(value))
   end subroutine set_trsi0
   
   function trsi0_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: trsi0_s
-    trsi0_s = tracers(oldIndex)%trsi0
+#ifdef NEW_TRACER_PROPERTIES
+    trsi0_s = tracerReference%getProperty(trName(oldIndex), "trsi0")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    trsi0_s = tracerReference%internalTracers(oldIndex)%getProperty("trsi0")
+#else
+    trsi0_s = internalTracers(oldIndex)%trsi0
+#endif
+#endif
   end function trsi0_s
 
   function trsi0_all()
-    real*8 :: trsi0_all(size(tracers))
-    trsi0_all = tracers(:)%trsi0
+    real*8 :: trsi0_all(size(internalTracers))
+    trsi0_all = internalTracers(:)%trsi0
   end function trsi0_all
 
   function trsi0_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: trsi0_m(size(oldIndices))
-    trsi0_m = tracers(oldIndices(:))%trsi0
+    trsi0_m = internalTracers(oldIndices(:))%trsi0
   end function trsi0_m
 
 
 
   subroutine set_trw0(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%trw0 = value
+    internalTracers(oldIndex)%trw0 = value
+    call tracerReference%setAttribute(trName(oldIndex), "trw0", newAttribute(value))
   end subroutine set_trw0
   
   function trw0_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: trw0_s
-    trw0_s = tracers(oldIndex)%trw0
+#ifdef NEW_TRACER_PROPERTIES
+    trw0_s = tracerReference%getProperty(trName(oldIndex), "trw0")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    trw0_s = tracerReference%internalTracers(oldIndex)%getProperty("trw0")
+#else
+    trw0_s = internalTracers(oldIndex)%trw0
+#endif
+#endif
   end function trw0_s
 
   function trw0_all()
-    real*8 :: trw0_all(size(tracers))
-    trw0_all = tracers(:)%trw0
+    real*8 :: trw0_all(size(internalTracers))
+    trw0_all = internalTracers(:)%trw0
   end function trw0_all
 
   function trw0_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: trw0_m(size(oldIndices))
-    trw0_m = tracers(oldIndices(:))%trw0
+    trw0_m = internalTracers(oldIndices(:))%trw0
   end function trw0_m
 
 
 
   subroutine set_mass2vol(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%mass2vol = value
+    internalTracers(oldIndex)%mass2vol = value
+    call tracerReference%setAttribute(trName(oldIndex), "mass2vol", newAttribute(value))
   end subroutine set_mass2vol
   
   function mass2vol_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: mass2vol_s
-    mass2vol_s = tracers(oldIndex)%mass2vol
+#ifdef NEW_TRACER_PROPERTIES
+    mass2vol_s = tracerReference%getProperty(trName(oldIndex), "mass2vol")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    mass2vol_s = tracerReference%internalTracers(oldIndex)%getProperty("mass2vol")
+#else
+    mass2vol_s = internalTracers(oldIndex)%mass2vol
+#endif
+#endif
   end function mass2vol_s
 
   function mass2vol_all()
-    real*8 :: mass2vol_all(size(tracers))
-    mass2vol_all = tracers(:)%mass2vol
+    real*8 :: mass2vol_all(size(internalTracers))
+    mass2vol_all = internalTracers(:)%mass2vol
   end function mass2vol_all
 
   function mass2vol_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: mass2vol_m(size(oldIndices))
-    mass2vol_m = tracers(oldIndices(:))%mass2vol
+    mass2vol_m = internalTracers(oldIndices(:))%mass2vol
   end function mass2vol_m
 
 
 
   subroutine set_vol2mass(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%vol2mass = value
+    internalTracers(oldIndex)%vol2mass = value
+    call tracerReference%setAttribute(trName(oldIndex), "vol2mass", newAttribute(value))
   end subroutine set_vol2mass
   
   function vol2mass_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: vol2mass_s
-    vol2mass_s = tracers(oldIndex)%vol2mass
+#ifdef NEW_TRACER_PROPERTIES
+    vol2mass_s = tracerReference%getProperty(trName(oldIndex), "vol2mass")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    vol2mass_s = tracerReference%internalTracers(oldIndex)%getProperty("vol2mass")
+#else
+    vol2mass_s = internalTracers(oldIndex)%vol2mass
+#endif
+#endif
   end function vol2mass_s
 
   function vol2mass_all()
-    real*8 :: vol2mass_all(size(tracers))
-    vol2mass_all = tracers(:)%vol2mass
+    real*8 :: vol2mass_all(size(internalTracers))
+    vol2mass_all = internalTracers(:)%vol2mass
   end function vol2mass_all
 
   function vol2mass_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: vol2mass_m(size(oldIndices))
-    vol2mass_m = tracers(oldIndices(:))%vol2mass
+    vol2mass_m = internalTracers(oldIndices(:))%vol2mass
   end function vol2mass_m
 
 
 
   subroutine set_dodrydep(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     logical, intent(in) :: value
-    tracers(oldIndex)%dodrydep = value
+    internalTracers(oldIndex)%dodrydep = value
+    call tracerReference%setAttribute(trName(oldIndex), "dodrydep", newAttribute(value))
   end subroutine set_dodrydep
   
   function dodrydep_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     logical :: dodrydep_s
-    dodrydep_s = tracers(oldIndex)%dodrydep
+#ifdef NEW_TRACER_PROPERTIES
+    dodrydep_s = tracerReference%getProperty(trName(oldIndex), "dodrydep")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    dodrydep_s = tracerReference%internalTracers(oldIndex)%getProperty("dodrydep")
+#else
+    dodrydep_s = internalTracers(oldIndex)%dodrydep
+#endif
+#endif
   end function dodrydep_s
 
   function dodrydep_all()
-    logical :: dodrydep_all(size(tracers))
-    dodrydep_all = tracers(:)%dodrydep
+    logical :: dodrydep_all(size(internalTracers))
+    dodrydep_all = internalTracers(:)%dodrydep
   end function dodrydep_all
 
   function dodrydep_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     logical :: dodrydep_m(size(oldIndices))
-    dodrydep_m = tracers(oldIndices(:))%dodrydep
+    dodrydep_m = internalTracers(oldIndices(:))%dodrydep
   end function dodrydep_m
 
 
 
   subroutine set_F0(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%F0 = value
+    internalTracers(oldIndex)%F0 = value
+    call tracerReference%setAttribute(trName(oldIndex), "F0", newAttribute(value))
   end subroutine set_F0
   
   function F0_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: F0_s
-    F0_s = tracers(oldIndex)%F0
+#ifdef NEW_TRACER_PROPERTIES
+    F0_s = tracerReference%getProperty(trName(oldIndex), "F0")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    F0_s = tracerReference%internalTracers(oldIndex)%getProperty("F0")
+#else
+    F0_s = internalTracers(oldIndex)%F0
+#endif
+#endif
   end function F0_s
 
   function F0_all()
-    real*8 :: F0_all(size(tracers))
-    F0_all = tracers(:)%F0
+    real*8 :: F0_all(size(internalTracers))
+    F0_all = internalTracers(:)%F0
   end function F0_all
 
   function F0_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: F0_m(size(oldIndices))
-    F0_m = tracers(oldIndices(:))%F0
+    F0_m = internalTracers(oldIndices(:))%F0
   end function F0_m
 
 
 
   subroutine set_HSTAR(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%HSTAR = value
+    internalTracers(oldIndex)%HSTAR = value
+    call tracerReference%setAttribute(trName(oldIndex), "HSTAR", newAttribute(value))
   end subroutine set_HSTAR
   
   function HSTAR_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: HSTAR_s
-    HSTAR_s = tracers(oldIndex)%HSTAR
+#ifdef NEW_TRACER_PROPERTIES
+    HSTAR_s = tracerReference%getProperty(trName(oldIndex), "HSTAR")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    HSTAR_s = tracerReference%internalTracers(oldIndex)%getProperty("HSTAR")
+#else
+    HSTAR_s = internalTracers(oldIndex)%HSTAR
+#endif
+#endif
   end function HSTAR_s
 
   function HSTAR_all()
-    real*8 :: HSTAR_all(size(tracers))
-    HSTAR_all = tracers(:)%HSTAR
+    real*8 :: HSTAR_all(size(internalTracers))
+    HSTAR_all = internalTracers(:)%HSTAR
   end function HSTAR_all
 
   function HSTAR_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: HSTAR_m(size(oldIndices))
-    HSTAR_m = tracers(oldIndices(:))%HSTAR
+    HSTAR_m = internalTracers(oldIndices(:))%HSTAR
   end function HSTAR_m
 
 
 
   subroutine set_do_fire(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     logical, intent(in) :: value
-    tracers(oldIndex)%do_fire = value
+    internalTracers(oldIndex)%do_fire = value
+    call tracerReference%setAttribute(trName(oldIndex), "do_fire", newAttribute(value))
   end subroutine set_do_fire
   
   function do_fire_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     logical :: do_fire_s
-    do_fire_s = tracers(oldIndex)%do_fire
+#ifdef NEW_TRACER_PROPERTIES
+    do_fire_s = tracerReference%getProperty(trName(oldIndex), "do_fire")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    do_fire_s = tracerReference%internalTracers(oldIndex)%getProperty("do_fire")
+#else
+    do_fire_s = internalTracers(oldIndex)%do_fire
+#endif
+#endif
   end function do_fire_s
 
   function do_fire_all()
-    logical :: do_fire_all(size(tracers))
-    do_fire_all = tracers(:)%do_fire
+    logical :: do_fire_all(size(internalTracers))
+    do_fire_all = internalTracers(:)%do_fire
   end function do_fire_all
 
   function do_fire_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     logical :: do_fire_m(size(oldIndices))
-    do_fire_m = tracers(oldIndices(:))%do_fire
+    do_fire_m = internalTracers(oldIndices(:))%do_fire
   end function do_fire_m
 
 
 
   subroutine set_nBBsources(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     integer, intent(in) :: value
-    tracers(oldIndex)%nBBsources = value
+    internalTracers(oldIndex)%nBBsources = value
+    call tracerReference%setAttribute(trName(oldIndex), "nBBsources", newAttribute(value))
   end subroutine set_nBBsources
   
   function nBBsources_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     integer :: nBBsources_s
-    nBBsources_s = tracers(oldIndex)%nBBsources
+#ifdef NEW_TRACER_PROPERTIES
+    nBBsources_s = tracerReference%getProperty(trName(oldIndex), "nBBsources")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    nBBsources_s = tracerReference%internalTracers(oldIndex)%getProperty("nBBsources")
+#else
+    nBBsources_s = internalTracers(oldIndex)%nBBsources
+#endif
+#endif
   end function nBBsources_s
 
   function nBBsources_all()
-    integer :: nBBsources_all(size(tracers))
-    nBBsources_all = tracers(:)%nBBsources
+    integer :: nBBsources_all(size(internalTracers))
+    nBBsources_all = internalTracers(:)%nBBsources
   end function nBBsources_all
 
   function nBBsources_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     integer :: nBBsources_m(size(oldIndices))
-    nBBsources_m = tracers(oldIndices(:))%nBBsources
+    nBBsources_m = internalTracers(oldIndices(:))%nBBsources
   end function nBBsources_m
 
 
 
   subroutine set_emisPerFireByVegType(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, dimension(12), intent(in) :: value
-    tracers(oldIndex)%emisPerFireByVegType = value
+    internalTracers(oldIndex)%emisPerFireByVegType = value
+    call tracerReference%setAttribute(trName(oldIndex), "emisPerFireByVegType", newAttribute(value))
   end subroutine set_emisPerFireByVegType
   
   function emisPerFireByVegType_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8, dimension(12) :: emisPerFireByVegType_s
-    emisPerFireByVegType_s = tracers(oldIndex)%emisPerFireByVegType
+#ifdef NEW_TRACER_PROPERTIES
+    emisPerFireByVegType_s = tracerReference%getProperty(trName(oldIndex), "emisPerFireByVegType")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    emisPerFireByVegType_s = tracerReference%internalTracers(oldIndex)%getProperty("emisPerFireByVegType")
+#else
+    emisPerFireByVegType_s = internalTracers(oldIndex)%emisPerFireByVegType
+#endif
+#endif
   end function emisPerFireByVegType_s
 
 
 
   subroutine set_trpdens(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%trpdens = value
+    internalTracers(oldIndex)%trpdens = value
+    call tracerReference%setAttribute(trName(oldIndex), "trpdens", newAttribute(value))
   end subroutine set_trpdens
   
   function trpdens_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: trpdens_s
-    trpdens_s = tracers(oldIndex)%trpdens
+#ifdef NEW_TRACER_PROPERTIES
+    trpdens_s = tracerReference%getProperty(trName(oldIndex), "trpdens")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    trpdens_s = tracerReference%internalTracers(oldIndex)%getProperty("trpdens")
+#else
+    trpdens_s = internalTracers(oldIndex)%trpdens
+#endif
+#endif
   end function trpdens_s
 
   function trpdens_all()
-    real*8 :: trpdens_all(size(tracers))
-    trpdens_all = tracers(:)%trpdens
+    real*8 :: trpdens_all(size(internalTracers))
+    trpdens_all = internalTracers(:)%trpdens
   end function trpdens_all
 
   function trpdens_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: trpdens_m(size(oldIndices))
-    trpdens_m = tracers(oldIndices(:))%trpdens
+    trpdens_m = internalTracers(oldIndices(:))%trpdens
   end function trpdens_m
 
 
 
   subroutine set_trradius(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%trradius = value
+    internalTracers(oldIndex)%trradius = value
+    call tracerReference%setAttribute(trName(oldIndex), "trradius", newAttribute(value))
   end subroutine set_trradius
   
   function trradius_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: trradius_s
-    trradius_s = tracers(oldIndex)%trradius
+#ifdef NEW_TRACER_PROPERTIES
+    trradius_s = tracerReference%getProperty(trName(oldIndex), "trradius")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    trradius_s = tracerReference%internalTracers(oldIndex)%getProperty("trradius")
+#else
+    trradius_s = internalTracers(oldIndex)%trradius
+#endif
+#endif
   end function trradius_s
 
   function trradius_all()
-    real*8 :: trradius_all(size(tracers))
-    trradius_all = tracers(:)%trradius
+    real*8 :: trradius_all(size(internalTracers))
+    trradius_all = internalTracers(:)%trradius
   end function trradius_all
 
   function trradius_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: trradius_m(size(oldIndices))
-    trradius_m = tracers(oldIndices(:))%trradius
+    trradius_m = internalTracers(oldIndices(:))%trradius
   end function trradius_m
 
 
 
   subroutine set_tr_wd_TYPE(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     integer, intent(in) :: value
-    tracers(oldIndex)%tr_wd_TYPE = value
+    internalTracers(oldIndex)%tr_wd_TYPE = value
+    call tracerReference%setAttribute(trName(oldIndex), "tr_wd_TYPE", newAttribute(value))
   end subroutine set_tr_wd_TYPE
   
   function tr_wd_TYPE_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     integer :: tr_wd_TYPE_s
-    tr_wd_TYPE_s = tracers(oldIndex)%tr_wd_TYPE
+#ifdef NEW_TRACER_PROPERTIES
+    tr_wd_TYPE_s = tracerReference%getProperty(trName(oldIndex), "tr_wd_TYPE")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    tr_wd_TYPE_s = tracerReference%internalTracers(oldIndex)%getProperty("tr_wd_TYPE")
+#else
+    tr_wd_TYPE_s = internalTracers(oldIndex)%tr_wd_TYPE
+#endif
+#endif
   end function tr_wd_TYPE_s
 
   function tr_wd_TYPE_all()
-    integer :: tr_wd_TYPE_all(size(tracers))
-    tr_wd_TYPE_all = tracers(:)%tr_wd_TYPE
+    integer :: tr_wd_TYPE_all(size(internalTracers))
+    tr_wd_TYPE_all = internalTracers(:)%tr_wd_TYPE
   end function tr_wd_TYPE_all
 
   function tr_wd_TYPE_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     integer :: tr_wd_TYPE_m(size(oldIndices))
-    tr_wd_TYPE_m = tracers(oldIndices(:))%tr_wd_TYPE
+    tr_wd_TYPE_m = internalTracers(oldIndices(:))%tr_wd_TYPE
   end function tr_wd_TYPE_m
 
 
 
   subroutine set_tr_RKD(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%tr_RKD = value
+    internalTracers(oldIndex)%tr_RKD = value
+    call tracerReference%setAttribute(trName(oldIndex), "tr_RKD", newAttribute(value))
   end subroutine set_tr_RKD
   
   function tr_RKD_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: tr_RKD_s
-    tr_RKD_s = tracers(oldIndex)%tr_RKD
+#ifdef NEW_TRACER_PROPERTIES
+    tr_RKD_s = tracerReference%getProperty(trName(oldIndex), "tr_RKD")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    tr_RKD_s = tracerReference%internalTracers(oldIndex)%getProperty("tr_RKD")
+#else
+    tr_RKD_s = internalTracers(oldIndex)%tr_RKD
+#endif
+#endif
   end function tr_RKD_s
 
   function tr_RKD_all()
-    real*8 :: tr_RKD_all(size(tracers))
-    tr_RKD_all = tracers(:)%tr_RKD
+    real*8 :: tr_RKD_all(size(internalTracers))
+    tr_RKD_all = internalTracers(:)%tr_RKD
   end function tr_RKD_all
 
   function tr_RKD_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: tr_RKD_m(size(oldIndices))
-    tr_RKD_m = tracers(oldIndices(:))%tr_RKD
+    tr_RKD_m = internalTracers(oldIndices(:))%tr_RKD
   end function tr_RKD_m
 
 
 
   subroutine set_tr_DHD(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%tr_DHD = value
+    internalTracers(oldIndex)%tr_DHD = value
+    call tracerReference%setAttribute(trName(oldIndex), "tr_DHD", newAttribute(value))
   end subroutine set_tr_DHD
   
   function tr_DHD_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: tr_DHD_s
-    tr_DHD_s = tracers(oldIndex)%tr_DHD
+#ifdef NEW_TRACER_PROPERTIES
+    tr_DHD_s = tracerReference%getProperty(trName(oldIndex), "tr_DHD")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    tr_DHD_s = tracerReference%internalTracers(oldIndex)%getProperty("tr_DHD")
+#else
+    tr_DHD_s = internalTracers(oldIndex)%tr_DHD
+#endif
+#endif
   end function tr_DHD_s
 
   function tr_DHD_all()
-    real*8 :: tr_DHD_all(size(tracers))
-    tr_DHD_all = tracers(:)%tr_DHD
+    real*8 :: tr_DHD_all(size(internalTracers))
+    tr_DHD_all = internalTracers(:)%tr_DHD
   end function tr_DHD_all
 
   function tr_DHD_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: tr_DHD_m(size(oldIndices))
-    tr_DHD_m = tracers(oldIndices(:))%tr_DHD
+    tr_DHD_m = internalTracers(oldIndices(:))%tr_DHD
   end function tr_DHD_m
 
 
 
   subroutine set_fq_aer(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%fq_aer = value
+    internalTracers(oldIndex)%fq_aer = value
+    call tracerReference%setAttribute(trName(oldIndex), "fq_aer", newAttribute(value))
   end subroutine set_fq_aer
   
   function fq_aer_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: fq_aer_s
-    fq_aer_s = tracers(oldIndex)%fq_aer
+#ifdef NEW_TRACER_PROPERTIES
+    fq_aer_s = tracerReference%getProperty(trName(oldIndex), "fq_aer")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    fq_aer_s = tracerReference%internalTracers(oldIndex)%getProperty("fq_aer")
+#else
+    fq_aer_s = internalTracers(oldIndex)%fq_aer
+#endif
+#endif
   end function fq_aer_s
 
   function fq_aer_all()
-    real*8 :: fq_aer_all(size(tracers))
-    fq_aer_all = tracers(:)%fq_aer
+    real*8 :: fq_aer_all(size(internalTracers))
+    fq_aer_all = internalTracers(:)%fq_aer
   end function fq_aer_all
 
   function fq_aer_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: fq_aer_m(size(oldIndices))
-    fq_aer_m = tracers(oldIndices(:))%fq_aer
+    fq_aer_m = internalTracers(oldIndices(:))%fq_aer
   end function fq_aer_m
 
 
 
   subroutine set_rc_washt(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%rc_washt = value
+    internalTracers(oldIndex)%rc_washt = value
+    call tracerReference%setAttribute(trName(oldIndex), "rc_washt", newAttribute(value))
   end subroutine set_rc_washt
   
   function rc_washt_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: rc_washt_s
-    rc_washt_s = tracers(oldIndex)%rc_washt
+#ifdef NEW_TRACER_PROPERTIES
+    rc_washt_s = tracerReference%getProperty(trName(oldIndex), "rc_washt")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    rc_washt_s = tracerReference%internalTracers(oldIndex)%getProperty("rc_washt")
+#else
+    rc_washt_s = internalTracers(oldIndex)%rc_washt
+#endif
+#endif
   end function rc_washt_s
 
   function rc_washt_all()
-    real*8 :: rc_washt_all(size(tracers))
-    rc_washt_all = tracers(:)%rc_washt
+    real*8 :: rc_washt_all(size(internalTracers))
+    rc_washt_all = internalTracers(:)%rc_washt
   end function rc_washt_all
 
   function rc_washt_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: rc_washt_m(size(oldIndices))
-    rc_washt_m = tracers(oldIndices(:))%rc_washt
+    rc_washt_m = internalTracers(oldIndices(:))%rc_washt
   end function rc_washt_m
 
 
 
   subroutine set_isDust(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     integer, intent(in) :: value
-    tracers(oldIndex)%isDust = value
+    internalTracers(oldIndex)%isDust = value
+    call tracerReference%setAttribute(trName(oldIndex), "isDust", newAttribute(value))
   end subroutine set_isDust
   
   function isDust_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     integer :: isDust_s
-    isDust_s = tracers(oldIndex)%isDust
+#ifdef NEW_TRACER_PROPERTIES
+    isDust_s = tracerReference%getProperty(trName(oldIndex), "isDust")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    isDust_s = tracerReference%internalTracers(oldIndex)%getProperty("isDust")
+#else
+    isDust_s = internalTracers(oldIndex)%isDust
+#endif
+#endif
   end function isDust_s
 
   function isDust_all()
-    integer :: isDust_all(size(tracers))
-    isDust_all = tracers(:)%isDust
+    integer :: isDust_all(size(internalTracers))
+    isDust_all = internalTracers(:)%isDust
   end function isDust_all
 
   function isDust_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     integer :: isDust_m(size(oldIndices))
-    isDust_m = tracers(oldIndices(:))%isDust
+    isDust_m = internalTracers(oldIndices(:))%isDust
   end function isDust_m
 
 
 
   subroutine set_tr_H2ObyCH4(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%tr_H2ObyCH4 = value
+    internalTracers(oldIndex)%tr_H2ObyCH4 = value
+    call tracerReference%setAttribute(trName(oldIndex), "tr_H2ObyCH4", newAttribute(value))
   end subroutine set_tr_H2ObyCH4
   
   function tr_H2ObyCH4_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: tr_H2ObyCH4_s
-    tr_H2ObyCH4_s = tracers(oldIndex)%tr_H2ObyCH4
+#ifdef NEW_TRACER_PROPERTIES
+    tr_H2ObyCH4_s = tracerReference%getProperty(trName(oldIndex), "tr_H2ObyCH4")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    tr_H2ObyCH4_s = tracerReference%internalTracers(oldIndex)%getProperty("tr_H2ObyCH4")
+#else
+    tr_H2ObyCH4_s = internalTracers(oldIndex)%tr_H2ObyCH4
+#endif
+#endif
   end function tr_H2ObyCH4_s
 
   function tr_H2ObyCH4_all()
-    real*8 :: tr_H2ObyCH4_all(size(tracers))
-    tr_H2ObyCH4_all = tracers(:)%tr_H2ObyCH4
+    real*8 :: tr_H2ObyCH4_all(size(internalTracers))
+    tr_H2ObyCH4_all = internalTracers(:)%tr_H2ObyCH4
   end function tr_H2ObyCH4_all
 
   function tr_H2ObyCH4_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: tr_H2ObyCH4_m(size(oldIndices))
-    tr_H2ObyCH4_m = tracers(oldIndices(:))%tr_H2ObyCH4
+    tr_H2ObyCH4_m = internalTracers(oldIndices(:))%tr_H2ObyCH4
   end function tr_H2ObyCH4_m
 
 
 
   subroutine set_dowetdep(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     logical, intent(in) :: value
-    tracers(oldIndex)%dowetdep = value
+    internalTracers(oldIndex)%dowetdep = value
+    call tracerReference%setAttribute(trName(oldIndex), "dowetdep", newAttribute(value))
   end subroutine set_dowetdep
   
   function dowetdep_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     logical :: dowetdep_s
-    dowetdep_s = tracers(oldIndex)%dowetdep
+#ifdef NEW_TRACER_PROPERTIES
+    dowetdep_s = tracerReference%getProperty(trName(oldIndex), "dowetdep")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    dowetdep_s = tracerReference%internalTracers(oldIndex)%getProperty("dowetdep")
+#else
+    dowetdep_s = internalTracers(oldIndex)%dowetdep
+#endif
+#endif
   end function dowetdep_s
 
   function dowetdep_all()
-    logical :: dowetdep_all(size(tracers))
-    dowetdep_all = tracers(:)%dowetdep
+    logical :: dowetdep_all(size(internalTracers))
+    dowetdep_all = internalTracers(:)%dowetdep
   end function dowetdep_all
 
   function dowetdep_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     logical :: dowetdep_m(size(oldIndices))
-    dowetdep_m = tracers(oldIndices(:))%dowetdep
+    dowetdep_m = internalTracers(oldIndices(:))%dowetdep
   end function dowetdep_m
 
 
 
   subroutine set_ntrocn(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     integer, intent(in) :: value
-    tracers(oldIndex)%ntrocn = value
+    internalTracers(oldIndex)%ntrocn = value
+    call tracerReference%setAttribute(trName(oldIndex), "ntrocn", newAttribute(value))
   end subroutine set_ntrocn
   
   function ntrocn_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     integer :: ntrocn_s
-    ntrocn_s = tracers(oldIndex)%ntrocn
+#ifdef NEW_TRACER_PROPERTIES
+    ntrocn_s = tracerReference%getProperty(trName(oldIndex), "ntrocn")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    ntrocn_s = tracerReference%internalTracers(oldIndex)%getProperty("ntrocn")
+#else
+    ntrocn_s = internalTracers(oldIndex)%ntrocn
+#endif
+#endif
   end function ntrocn_s
 
   function ntrocn_all()
-    integer :: ntrocn_all(size(tracers))
-    ntrocn_all = tracers(:)%ntrocn
+    integer :: ntrocn_all(size(internalTracers))
+    ntrocn_all = internalTracers(:)%ntrocn
   end function ntrocn_all
 
   function ntrocn_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     integer :: ntrocn_m(size(oldIndices))
-    ntrocn_m = tracers(oldIndices(:))%ntrocn
+    ntrocn_m = internalTracers(oldIndices(:))%ntrocn
   end function ntrocn_m
 
 
 
   subroutine set_conc_from_fw(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     logical, intent(in) :: value
-    tracers(oldIndex)%conc_from_fw = value
+    internalTracers(oldIndex)%conc_from_fw = value
+    call tracerReference%setAttribute(trName(oldIndex), "conc_from_fw", newAttribute(value))
   end subroutine set_conc_from_fw
   
   function conc_from_fw_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     logical :: conc_from_fw_s
-    conc_from_fw_s = tracers(oldIndex)%conc_from_fw
+#ifdef NEW_TRACER_PROPERTIES
+    conc_from_fw_s = tracerReference%getProperty(trName(oldIndex), "conc_from_fw")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    conc_from_fw_s = tracerReference%internalTracers(oldIndex)%getProperty("conc_from_fw")
+#else
+    conc_from_fw_s = internalTracers(oldIndex)%conc_from_fw
+#endif
+#endif
   end function conc_from_fw_s
 
   function conc_from_fw_all()
-    logical :: conc_from_fw_all(size(tracers))
-    conc_from_fw_all = tracers(:)%conc_from_fw
+    logical :: conc_from_fw_all(size(internalTracers))
+    conc_from_fw_all = internalTracers(:)%conc_from_fw
   end function conc_from_fw_all
 
   function conc_from_fw_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     logical :: conc_from_fw_m(size(oldIndices))
-    conc_from_fw_m = tracers(oldIndices(:))%conc_from_fw
+    conc_from_fw_m = internalTracers(oldIndices(:))%conc_from_fw
   end function conc_from_fw_m
 
 
 
   subroutine set_trglac(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%trglac = value
+    internalTracers(oldIndex)%trglac = value
+    call tracerReference%setAttribute(trName(oldIndex), "trglac", newAttribute(value))
   end subroutine set_trglac
   
   function trglac_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: trglac_s
-    trglac_s = tracers(oldIndex)%trglac
+#ifdef NEW_TRACER_PROPERTIES
+    trglac_s = tracerReference%getProperty(trName(oldIndex), "trglac")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    trglac_s = tracerReference%internalTracers(oldIndex)%getProperty("trglac")
+#else
+    trglac_s = internalTracers(oldIndex)%trglac
+#endif
+#endif
   end function trglac_s
 
   function trglac_all()
-    real*8 :: trglac_all(size(tracers))
-    trglac_all = tracers(:)%trglac
+    real*8 :: trglac_all(size(internalTracers))
+    trglac_all = internalTracers(:)%trglac
   end function trglac_all
 
   function trglac_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: trglac_m(size(oldIndices))
-    trglac_m = tracers(oldIndices(:))%trglac
+    trglac_m = internalTracers(oldIndices(:))%trglac
   end function trglac_m
 
 
 
   subroutine set_ntisurfsrc(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     integer, intent(in) :: value
-    tracers(oldIndex)%ntisurfsrc = value
+    internalTracers(oldIndex)%ntisurfsrc = value
+    call tracerReference%setAttribute(trName(oldIndex), "ntisurfsrc", newAttribute(value))
   end subroutine set_ntisurfsrc
   
   function ntisurfsrc_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     integer :: ntisurfsrc_s
-    ntisurfsrc_s = tracers(oldIndex)%ntisurfsrc
+#ifdef NEW_TRACER_PROPERTIES
+    ntisurfsrc_s = tracerReference%getProperty(trName(oldIndex), "ntisurfsrc")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    ntisurfsrc_s = tracerReference%internalTracers(oldIndex)%getProperty("ntisurfsrc")
+#else
+    ntisurfsrc_s = internalTracers(oldIndex)%ntisurfsrc
+#endif
+#endif
   end function ntisurfsrc_s
 
   function ntisurfsrc_all()
-    integer :: ntisurfsrc_all(size(tracers))
-    ntisurfsrc_all = tracers(:)%ntisurfsrc
+    integer :: ntisurfsrc_all(size(internalTracers))
+    ntisurfsrc_all = internalTracers(:)%ntisurfsrc
   end function ntisurfsrc_all
 
   function ntisurfsrc_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     integer :: ntisurfsrc_m(size(oldIndices))
-    ntisurfsrc_m = tracers(oldIndices(:))%ntisurfsrc
+    ntisurfsrc_m = internalTracers(oldIndices(:))%ntisurfsrc
   end function ntisurfsrc_m
 
 
 
   subroutine set_iso_index(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     integer, intent(in) :: value
-    tracers(oldIndex)%iso_index = value
+    internalTracers(oldIndex)%iso_index = value
+    call tracerReference%setAttribute(trName(oldIndex), "iso_index", newAttribute(value))
   end subroutine set_iso_index
   
   function iso_index_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     integer :: iso_index_s
-    iso_index_s = tracers(oldIndex)%iso_index
+#ifdef NEW_TRACER_PROPERTIES
+    iso_index_s = tracerReference%getProperty(trName(oldIndex), "iso_index")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    iso_index_s = tracerReference%internalTracers(oldIndex)%getProperty("iso_index")
+#else
+    iso_index_s = internalTracers(oldIndex)%iso_index
+#endif
+#endif
   end function iso_index_s
 
   function iso_index_all()
-    integer :: iso_index_all(size(tracers))
-    iso_index_all = tracers(:)%iso_index
+    integer :: iso_index_all(size(internalTracers))
+    iso_index_all = internalTracers(:)%iso_index
   end function iso_index_all
 
   function iso_index_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     integer :: iso_index_m(size(oldIndices))
-    iso_index_m = tracers(oldIndices(:))%iso_index
+    iso_index_m = internalTracers(oldIndices(:))%iso_index
   end function iso_index_m
 
 
 
   subroutine set_om2oc(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%om2oc = value
+    internalTracers(oldIndex)%om2oc = value
+    call tracerReference%setAttribute(trName(oldIndex), "om2oc", newAttribute(value))
   end subroutine set_om2oc
   
   function om2oc_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: om2oc_s
-    om2oc_s = tracers(oldIndex)%om2oc
+#ifdef NEW_TRACER_PROPERTIES
+    om2oc_s = tracerReference%getProperty(trName(oldIndex), "om2oc")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    om2oc_s = tracerReference%internalTracers(oldIndex)%getProperty("om2oc")
+#else
+    om2oc_s = internalTracers(oldIndex)%om2oc
+#endif
+#endif
   end function om2oc_s
 
   function om2oc_all()
-    real*8 :: om2oc_all(size(tracers))
-    om2oc_all = tracers(:)%om2oc
+    real*8 :: om2oc_all(size(internalTracers))
+    om2oc_all = internalTracers(:)%om2oc
   end function om2oc_all
 
   function om2oc_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: om2oc_m(size(oldIndices))
-    om2oc_m = tracers(oldIndices(:))%om2oc
+    om2oc_m = internalTracers(oldIndices(:))%om2oc
   end function om2oc_m
 
 
 
   subroutine set_to_volume_MixRat(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     integer, intent(in) :: value
-    tracers(oldIndex)%to_volume_MixRat = value
+    internalTracers(oldIndex)%to_volume_MixRat = value
+    call tracerReference%setAttribute(trName(oldIndex), "to_volume_MixRat", newAttribute(value))
   end subroutine set_to_volume_MixRat
   
   function to_volume_MixRat_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     integer :: to_volume_MixRat_s
-    to_volume_MixRat_s = tracers(oldIndex)%to_volume_MixRat
+#ifdef NEW_TRACER_PROPERTIES
+    to_volume_MixRat_s = tracerReference%getProperty(trName(oldIndex), "to_volume_MixRat")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    to_volume_MixRat_s = tracerReference%internalTracers(oldIndex)%getProperty("to_volume_MixRat")
+#else
+    to_volume_MixRat_s = internalTracers(oldIndex)%to_volume_MixRat
+#endif
+#endif
   end function to_volume_MixRat_s
 
   function to_volume_MixRat_all()
-    integer :: to_volume_MixRat_all(size(tracers))
-    to_volume_MixRat_all = tracers(:)%to_volume_MixRat
+    integer :: to_volume_MixRat_all(size(internalTracers))
+    to_volume_MixRat_all = internalTracers(:)%to_volume_MixRat
   end function to_volume_MixRat_all
 
   function to_volume_MixRat_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     integer :: to_volume_MixRat_m(size(oldIndices))
-    to_volume_MixRat_m = tracers(oldIndices(:))%to_volume_MixRat
+    to_volume_MixRat_m = internalTracers(oldIndices(:))%to_volume_MixRat
   end function to_volume_MixRat_m
 
 
 
   subroutine set_to_conc(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     integer, intent(in) :: value
-    tracers(oldIndex)%to_conc = value
+    internalTracers(oldIndex)%to_conc = value
+    call tracerReference%setAttribute(trName(oldIndex), "to_conc", newAttribute(value))
   end subroutine set_to_conc
   
   function to_conc_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     integer :: to_conc_s
-    to_conc_s = tracers(oldIndex)%to_conc
+#ifdef NEW_TRACER_PROPERTIES
+    to_conc_s = tracerReference%getProperty(trName(oldIndex), "to_conc")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    to_conc_s = tracerReference%internalTracers(oldIndex)%getProperty("to_conc")
+#else
+    to_conc_s = internalTracers(oldIndex)%to_conc
+#endif
+#endif
   end function to_conc_s
 
   function to_conc_all()
-    integer :: to_conc_all(size(tracers))
-    to_conc_all = tracers(:)%to_conc
+    integer :: to_conc_all(size(internalTracers))
+    to_conc_all = internalTracers(:)%to_conc
   end function to_conc_all
 
   function to_conc_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     integer :: to_conc_m(size(oldIndices))
-    to_conc_m = tracers(oldIndices(:))%to_conc
+    to_conc_m = internalTracers(oldIndices(:))%to_conc
   end function to_conc_m
 
 
 
   subroutine set_TRLI0(oldIndex, value)
+   use Attributes_mod
     integer, intent(in) :: oldIndex
     real*8, intent(in) :: value
-    tracers(oldIndex)%TRLI0 = value
+    internalTracers(oldIndex)%TRLI0 = value
+    call tracerReference%setAttribute(trName(oldIndex), "TRLI0", newAttribute(value))
   end subroutine set_TRLI0
   
   function TRLI0_s(oldIndex)
+    use GenericType_mod
     integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
     real*8 :: TRLI0_s
-    TRLI0_s = tracers(oldIndex)%TRLI0
+#ifdef NEW_TRACER_PROPERTIES
+    TRLI0_s = tracerReference%getProperty(trName(oldIndex), "TRLI0")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    TRLI0_s = tracerReference%internalTracers(oldIndex)%getProperty("TRLI0")
+#else
+    TRLI0_s = internalTracers(oldIndex)%TRLI0
+#endif
+#endif
   end function TRLI0_s
 
   function TRLI0_all()
-    real*8 :: TRLI0_all(size(tracers))
-    TRLI0_all = tracers(:)%TRLI0
+    real*8 :: TRLI0_all(size(internalTracers))
+    TRLI0_all = internalTracers(:)%TRLI0
   end function TRLI0_all
 
   function TRLI0_m(oldIndices)
     integer, intent(in) :: oldIndices(:)
     real*8 :: TRLI0_m(size(oldIndices))
-    TRLI0_m = tracers(oldIndices(:))%TRLI0
+    TRLI0_m = internalTracers(oldIndices(:))%TRLI0
   end function TRLI0_m
 
 

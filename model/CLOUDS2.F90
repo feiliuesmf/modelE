@@ -62,7 +62,7 @@ module CLOUDS
 #endif
 #endif
 #endif
-       
+
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
 #ifdef TRACERS_AMP
   use CLOUDS_COM, only: NACTC,NAERC
@@ -3078,13 +3078,13 @@ contains
       INTEGER :: NCCNMx,NCC,NSECi
       PARAMETER (NCCNMx=100, NCC=10)
       REAL*8 SULFI, BOXVL, TOTi,TOT_MI, &
-           TPi(NCCNMx), MLi(NCCNMx), SLVL(NCC), CCON(NCC), & 
+           TPi(NCCNMx), MLi(NCCNMx), SLVL(NCC), CCON(NCC), &
            NACTEarth, NACTOcean, NACT, NACTBL, &
-           SMAXEarth, SMAXOcean, SMAX, & 
+           SMAXEarth, SMAXOcean, SMAX, &
            REFFEarth, REFFOcean, REFF, REFFBL, REFFGISS, &
            CLDTAUEarth, CLDTAUOcean, CLDTAU, CLDTAUBL, CLDTAULIQ, &
-           CLDTAUICE, TPARC,PPARC, & 
-           WPARCOcean, WPARCEarth, WPARC, & 
+           CLDTAUICE, TPARC,PPARC, &
+           WPARCOcean, WPARCEarth, WPARC, &
            RHOSI,QLWC,EPSILON,AUTO(6),DIFFLWMR,DIFFEPS
 
       INTEGER ITYP
@@ -3095,7 +3095,7 @@ contains
 !c$$$     &                 CldIceTauGS
 !Can
 !Can
-   
+
 #endif
 #endif
 
@@ -3639,32 +3639,32 @@ contains
 !      CLDTAU     = 0d0
 !      CLDTAUBL   = 0d0 ! I don't account BL case- yhl
 !c$$$      QautP6     = 0d0
-!c$$$      QautKK     = 0d0 
-!c$$$      QautMC     = 0d0 
+!c$$$      QautKK     = 0d0
+!c$$$      QautMC     = 0d0
 !c$$$      QautBH     = 0d0
-!c$$$      QautGI     = 0d0 
-!c$$$      QautNS     = 0d0 
+!c$$$      QautGI     = 0d0
+!c$$$      QautNS     = 0d0
 !c$$$C
 !C Get CCN properties
 !C
-!      avol(l) = axyp(i_debug,j_debug)*am(i_debug,j_debug,l)/mair*
+!      avol(l) = axyp(i_debug,j_debug)*MA(i_debug,j_debug,l)/mair*
 !!!   byam(l) = [m2/kg of air]
       boxvl = DXYPIJ*airm(l)*mb2kg*rgas*TL(L)  &
-          /100./PL(L) 
+          /100./PL(L)
 
       CALL getCCN (I_debug,J_debug,L,BOXVL,TOT_MI,TOTi,TPi,MLi, &
          NCCNMx,NSECi)        ! Get CCN properties
 !C
 !C Call cloud microphysics
-!C    
+!C
       IF (LHX.EQ.LHE) THEN         ! Liquid clouds present
 !CCC
 !CCC *** Nenes & Seinfeld parameterization - calcuilate droplet number
 !CCC
 
-!Two options for Updrate velocity 
+!Two options for Updrate velocity
 
-!1. fixed as a constant  
+!1. fixed as a constant
 
 !         WPARCOcean = 0.15d0       ! Fix Ocean and terrestrial updrafts for now
 !         WPARCEarth = 0.3d0
@@ -3674,11 +3674,11 @@ contains
 ! TOMAS (Nov 2011) WPARC results in too high CDNC. So it reduced by 7 times (arbitrary)
 
         WPARC=v0(mkx)/7. !wturb=sqrt(0.6667*EGCM(l,i,j))
-!End of updrate velocity option. 
+!End of updrate velocity option.
 
 
-         QLWC=WMX(L)/(FCLD + teeny)    	!in-cloud dimensionless LWC
-         QLWC=MIN(QLWC, 3.d-03)  		!(upper limit for the QLWC)
+         QLWC=WMX(L)/(FCLD + teeny)     !in-cloud dimensionless LWC
+         QLWC=MIN(QLWC, 3.d-03)    !(upper limit for the QLWC)
 
          RHO=1.d5*PL(L)/(RGAS*TL(L))
          RHOSI = RHO*1.d-3
@@ -3727,7 +3727,7 @@ contains
       ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
 #endif
 #ifdef TRACERS_TOMAS
-      !*** Using the TOMAS_actv interface from TOMAS 
+      !*** Using the TOMAS_actv interface from TOMAS
         ldummy=execute_bulk2m_driver('toma','drop_nucl',dtB2M,mkx)
 #endif
       ! Droplets' autoconversion: Beheng (concentration and content)
@@ -4419,14 +4419,14 @@ contains
 !yunha          if (WMX(L)-PREP(L)*DTsrc.gt.0.) FWTOQ=-(QHEAT(L) &
 !yunha               +CLEARA(L)*FSSL(L)*ER(L))*DTsrc/(LHX*(WMX(L)-PREP(L)*DTsrc))
 !yunha          FWTOQ=min(1d0,FWTOQ)
-          IF (FORM_CLOUDS) THEN 
+          IF (FORM_CLOUDS) THEN
             IF (WMX(L)-PREP(L)*DTsrc.gt.0.) FWTOQ=-(QHEAT(L) &
                  +CLEARA(L)*FSSL(L)*ER(L))*DTsrc/(LHX*(WMX(L)-PREP(L)*DTsrc))
-            FWTOQ=MIN(1d0,FWTOQ) 
+            FWTOQ=MIN(1d0,FWTOQ)
             IF(WMNEW.EQ.0.AND.QNEW.GE.0) FWTOQ=1.
           ELSE ! YUNHA
-            IF (WMX(L)-PREP(L)*DTsrc.gt.0.)FWTOQ=DWDT/(WMX(L)-PREP(L)*DTsrc) 
-            FWTOQ=MIN(1d0,FWTOQ) 
+            IF (WMX(L)-PREP(L)*DTsrc.gt.0.)FWTOQ=DWDT/(WMX(L)-PREP(L)*DTsrc)
+            FWTOQ=MIN(1d0,FWTOQ)
           ENDIF
 #endif
         end if
@@ -5488,11 +5488,11 @@ contains
 
   !***************************************************************************************
 
-  subroutine CONVECTIVE_MICROPHYSICS(PL,WCU,DWCU,LFRZ,WCUFRZ,TP,         & 
-       TI,FITMAX,PLAND,CN0,CN0I,CN0G,FLAMW,FLAMG,FLAMI,RHOIP,            & 
-       RHOG,ITMAX,TLMIN,TLMIN1,WMAX,                                     & 
+  subroutine CONVECTIVE_MICROPHYSICS(PL,WCU,DWCU,LFRZ,WCUFRZ,TP,         &
+       TI,FITMAX,PLAND,CN0,CN0I,CN0G,FLAMW,FLAMG,FLAMI,RHOIP,            &
+       RHOG,ITMAX,TLMIN,TLMIN1,WMAX,                                     &
 #ifdef CLD_AER_CDNC
-       TL,RCLD_C,MCDNCW,CONDMU,CONDPC,                                   & 
+       TL,RCLD_C,MCDNCW,CONDMU,CONDPC,                                   &
 #endif
        CONDP,CONDP1,CONDIP,CONDGP)                                       ! output
 

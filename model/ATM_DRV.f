@@ -6,7 +6,7 @@
       use resolution, only : im,jm,lm,ls1,ptop
       USE MODEL_COM
       USE ATM_COM, only : p,wm
-      USE ATM_COM, only : pua,pva,sd_clouds,ptold,ps,kea
+      USE ATM_COM, only : MUs,MVs,sd_clouds,ptold,ps,kea
       USE DYNAMICS, only : nstep,nidyn,nfiltr,mfiltr,dt,conv
       USE DOMAIN_DECOMP_ATM, only: grid
       use domain_decomp_atm, only: writei8_parallel
@@ -124,7 +124,7 @@ C**** Currently energy is put in uniformly weighted by mass
       finalTotalEnergy = getTotalEnergy()
       call addEnergyAsDiffuseHeat(finalTotalEnergy - initialTotalEnergy)
 #ifndef CUBED_SPHERE
-      call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(PUA, PVA, DT)
+      call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(MUs, MVs, DT)
 #endif
 #ifdef SCM
        do L=1,LM

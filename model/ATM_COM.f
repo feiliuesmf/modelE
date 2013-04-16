@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
       MODULE ATM_COM
 !@sum  ATM_COM Main atmospheric variables
-!@vers 2013/03/25
+!@vers 2013/04/02
 !@auth Original Development Team
       USE RESOLUTION, only : LM
 #ifdef USE_ESMF
@@ -71,10 +71,10 @@ C**** Some helpful arrays (arrays should be L first)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PLIJ
 !@var  PDSIG  Surface pressure * DSIG(L) (mb)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PDSIG
-!@var  AM  Air mass of each box (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AM     ! PLIJ*DSIG(L)*100/grav
-!@var  BYAM  1/Air mass (m^2/kg)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: BYAM
+!@var  MA = Air mass per unit area of each layer (kg/m^2)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: MA     ! PLIJ*DSIG(L)*100/grav
+!@var  byMA = 1/MA (m^2/kg)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: byMA
 !@var  PMID  Pressure at mid point of box (mb)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PMID    ! SIG(L)*PLIJ+PTOP
 !@var  PK   PMID**KAPA
@@ -109,10 +109,10 @@ C**** module should own dynam variables used by other routines
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PHI
 
-!@var PUA,PVA,SDA,PS save PU,PV,SD,P for hourly tracer advection
+!@var MUs,MVs,MWs,PS save PU,PV,SD,P for hourly tracer advection
 !@var MB Air mass array for tracers (before advection)
 !@var MMA (kg) Air mass array for tracers (updated during advection)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PUA,PVA,SDA,MB,MMA
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: MUs,MVs,MWs,MB,MMA
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PS
 
 !@var DKE change in KE due to dissipation (SURF/DC/MC) (m^2/s^2)
@@ -145,9 +145,9 @@ C**** module should own dynam variables used by other routines
      *  ,WMICE
 #endif
       USE ATM_COM, ONLY : 
-     &     PLIJ,PDSIG,AM,BYAM,PMID,PK,
+     &     PLIJ,PDSIG,MA,byMA,PMID,PK,
      &     PEDN,PEK,SD_CLOUDS,GZ,PHI,
-     &     PUA,PVA,SDA,MB,MMA,DKE,KEA,
+     &     MUs,MVs,MWs,MB,MMA,DKE,KEA,
      &     UALIJ,VALIJ,WSAVE,
      &     SQRTP,PTROPO,LTROPO,PS,PTOLD,
 #ifdef etc_subdd
@@ -258,8 +258,8 @@ C**** Check polar uniformity
       ! K-I-J arrays
       ALLOCATE ( PLIJ(LM,I_0H:I_1H,J_0H:J_1H), 
      $           PDSIG(LM,I_0H:I_1H,J_0H:J_1H),
-     $             AM(LM,I_0H:I_1H,J_0H:J_1H),  
-     $           BYAM(LM,I_0H:I_1H,J_0H:J_1H),
+     $             MA(LM,I_0H:I_1H,J_0H:J_1H),  
+     $           byMA(LM,I_0H:I_1H,J_0H:J_1H),
      $           PMID(LM,I_0H:I_1H,J_0H:J_1H),    
      $           PK(LM,I_0H:I_1H,J_0H:J_1H),
      $           PEDN(LM+1,I_0H:I_1H,J_0H:J_1H), 
@@ -269,9 +269,9 @@ C**** Check polar uniformity
       ALLOCATE( SD_CLOUDS(I_0H:I_1H,J_0H:J_1H,LM),  
      $                 GZ(I_0H:I_1H,J_0H:J_1H,LM), 
      $                PHI(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                PUA(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                PVA(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                SDA(I_0H:I_1H,J_0H:J_1H,LM),  
+     $                MUs(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                MVs(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                MWs(I_0H:I_1H,J_0H:J_1H,LM),  
      $                MB(I_0H:I_1H,J_0H:J_1H,LM), 
      $                MMA(I_0H:I_1H,J_0H:J_1H,LM), 
      $                DKE(I_0H:I_1H,J_0H:J_1H,LM), 

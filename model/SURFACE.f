@@ -24,6 +24,7 @@ C****
 !@+   sensible heat, evaporation, thermal radiation, and momentum
 !@+   drag.  It also calculates instantaneous surface temperature,
 !@+   surface specific humidity, and surface wind components.
+!@vers 2013/03/27
 !@auth Nobody will claim responsibilty
 
       USE CONSTANT, only : rgas,lhm,lhe,lhs
@@ -41,7 +42,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, GLOBALSUM
       USE GEOM, only : axyp,imaxj,byaxyp
       USE SOMTQ_COM, only : tmom,qmom,mz
-      USE ATM_COM, only : pmid,pk,pedn,pek,am,byam
+      USE ATM_COM, only : pmid,pk,pedn,pek,MA,byMA
       USE RAD_COM, only : trhr,fsf,cosz1,trsurf
 #ifdef TRACERS_ON
       use OldTracer_mod, only: itime_tr0, needtrs
@@ -397,7 +398,7 @@ C****
       ! T=Temperature
       THV1=T(I,J,1)*(1.+Q1*xdelt)
 
-      MA1=AM(1,I,J) !@var MA1 mass of lowest atmospheric layer (kg/m^2)
+      MA1=MA(1,I,J) !@var MA1 mass of lowest atmospheric layer (kg/m^2)
 
 C****
       DO ITYPE=ITYPE_MIN,ITYPE_OCEANICE ! no earth or landice type
@@ -630,7 +631,7 @@ C**** Limit evaporation if lake mass is at minimum
         if (QCHECK) WRITE(99,*) "Lake EVAP limited: I,J,EVAP,MWL",I,J
      *     ,atmocn%EVAPOR(I,J)-DQ1X*MA1,
      *     MWL(I,J)/(RHOW*FLAKE(I,J)*AXYP(I,J))
-        DQ1X=(atmocn%EVAPOR(I,J)-EVAPLIM)*BYAM(1,I,J)
+        DQ1X=(atmocn%EVAPOR(I,J)-EVAPLIM)*byMA(1,I,J)
         lim_lake_evap=.true.
       ELSEIF (DQ1X.GT.Q1) THEN
         DQ1X=Q1
@@ -740,12 +741,12 @@ cccccc for SCM use ARM provided fluxes for designated box
       endif
       endif
 #endif
-      DMUA_IJ=PTYPE*DTSURF*RCDMWS*(US-UOCEAN)
-      DMVA_IJ=PTYPE*DTSURF*RCDMWS*(VS-VOCEAN)
-      asflx(itype)%DMUA(I,J) = asflx(itype)%DMUA(I,J) + DMUA_IJ
-      asflx(itype)%DMVA(I,J) = asflx(itype)%DMVA(I,J) + DMVA_IJ
-      asflx(itype)%uflux1(i,j) = RCDMWS*(US-UOCEAN)
-      asflx(itype)%vflux1(i,j) = RCDMWS*(VS-VOCEAN)
+      DMUA_IJ=RCDMWS*(US-UOCEAN)
+      DMVA_IJ=RCDMWS*(VS-VOCEAN)
+      asflx(itype)%DMUA(I,J) = asflx(itype)%DMUA(I,J) + DMUA_IJ*DTSURF
+      asflx(itype)%DMVA(I,J) = asflx(itype)%DMVA(I,J) + DMVA_IJ*DTSURF
+      asflx(itype)%uflux1(i,j) = DMUA_IJ
+      asflx(itype)%vflux1(i,j) = DMVA_IJ
 
 C****
 C**** SAVE SOME TYPE DEPENDENT FLUXES/DIAGNOSTICS
@@ -915,8 +916,8 @@ C****
 c****   retrieve fluxes
         uflux1(i,j)=atmsrf%uflux1(i,j)
         vflux1(i,j)=atmsrf%vflux1(i,j)
-        tflux1(i,j)=-atmsrf%dth1(i,j)*AM(1,I,J)/(dtsurf)
-        qflux1(i,j)=-atmsrf%dq1(i,j)*AM(1,I,J)/(dtsurf)
+        tflux1(i,j) = -atmsrf%dth1(i,j)*MA(1,I,J) / dtsurf
+        qflux1(i,j) = -atmsrf%dq1(i,j) *MA(1,I,J) / dtsurf
       END DO 
       END DO
 
@@ -1076,7 +1077,7 @@ C****
       subroutine surface_diag_mjo
       USE CONSTANT, only : undef
       USE MODEL_COM, only : lm
-      USE ATM_COM, only : phi,sda
+      USE ATM_COM, only : phi,MWs
       USE DIAG_COM, only :
      *     ,PW_acc, E_acc,sst_avg,p_avg,lwu_avg
      *     ,u_avg,v_avg,w_avg,t_avg,q_avg,r_avg,z_avg
@@ -1085,7 +1086,7 @@ C**** Accumulate subdaily precipitable water (kg/m^2) PW_acc ***
 C****   longwave upward flux lwu_avg,surface pres p_avg, sst sst_avg
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
-        PW_acc(I,J)=PW_acc(I,J)+SUM(Q(I,J,:)*AM(:,I,J))
+        PW_acc(I,J) = PW_acc(I,J) + Sum(Q(I,J,:)*MA(:,I,J))
         p_avg(I,J)=p_avg(I,J)+P(I,J)
         if (FOCEAN(I,J).gt.0) then
           sst_avg(i,j)=sst_avg(i,j)+atmocn%GTEMP(i,j)
@@ -1108,7 +1109,7 @@ C**** Accumulate 3D subdaily quantities
         u_avg(I,J,K)=u_avg(I,J,K)+u(I,J,K)
         v_avg(I,J,K)=v_avg(I,J,K)+v(I,J,K)
         IF (K < LM) THEN
-          w_avg(I,J,K)=w_avg(I,J,K)+sda(I,J,K)*byaxyp(I,J)
+          w_avg(I,J,K)=w_avg(I,J,K)+MWs(I,J,K)*byaxyp(I,J)
         END IF
         t_avg(I,J,K)=t_avg(I,J,K)+t(I,J,K)*pk(K,I,J)
         q_avg(I,J,K)=q_avg(I,J,K)+q(I,J,K)
@@ -1178,7 +1179,7 @@ C**** For distributed implementation - ensure point is on local process.
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE GEOM, only : axyp,imaxj,byaxyp
       USE SOMTQ_COM, only : mz
-      USE ATM_COM, only : byam
+      USE ATM_COM, only : byMA
       USE RAD_COM, only : trhr
 #ifdef TRACERS_ON
       use OldTracer_mod, only: itime_tr0, needtrs
@@ -1419,7 +1420,7 @@ C**** Save surface tracer concentration whether calculated or not
       do n=1,ntm
         if (itime_tr0(n).le.itime) then
           if(.not. needtrs(n)) then
-            atmsrf%travg(n,i,j) = byam(1,i,j)*byaxyp(i,j)*
+            atmsrf%travg(n,i,j) = byMA(1,i,j)*byaxyp(i,j)*
      &           max(trm(i,j,1,n)-trmom(mz,i,j,1,n),0d0)
             atmsrf%travg_byvol(n,i,j) =
      &           atmsrf%travg(n,i,j)*atmsrf%rhoavg(i,j)

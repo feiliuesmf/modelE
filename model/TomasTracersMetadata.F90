@@ -40,7 +40,7 @@ module TomasTracersMetadata_mod
   use TOMAS_AEROSOL, only : binact10, binact02, fraction10, fraction02
   use RunTimeControls_mod, only: tracers_aerosols_soa
   use RunTimeControls_mod, only: tracers_drydep
-  use Tracer_mod, only: Tracer_type
+  use Tracer_mod, only: Tracer
 
   implicit none
   private
@@ -54,9 +54,9 @@ contains
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
-  subroutine TOMAS_initMetadata(tracer)
+  subroutine TOMAS_initMetadata(pTracer)
 !------------------------------------------------------------------------------
-    type (Tracer_type), pointer :: tracer
+    class (Tracer), pointer :: pTracer
     real*8 :: TOMAS_dens,TOMAS_radius
 
     CALL initbounds()

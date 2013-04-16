@@ -178,17 +178,17 @@ contains
   subroutine testReadWriteUnformatted()
     use FileManager
     integer :: unit
-    type (Dictionary_type) :: dictionaryA
-    type (Dictionary_type) :: dictionaryB
+    type (Dictionary) :: dictionaryA
+    type (Dictionary) :: dictionaryB
 
     dictionaryA = Dictionary()
-    call insert(dictionaryA, 'key1', 1)
-    call insert(dictionaryA, 'key2', [.true., .false.])
-    call insert(dictionaryA, 'key3', [1.2d+0,2.d+0])
-    call insert(dictionaryA, 'key4', 'string')
+    call dictionaryA%insert('key1', 1)
+    call dictionaryA%insert('key2', [.true., .false.])
+    call dictionaryA%insert('key3', [1.2d+0,2.d+0])
+    call dictionaryA%insert('key4', 'string')
     
     call openUnit('dictionary.dat',unit,qold=.false.,qbin=.true.)
-    call writeUnformatted(dictionaryA, unit)
+    call dictionaryA%writeUnformatted(unit)
 
     rewind(unit)
     call readUnformatted(dictionaryB, unit)
@@ -199,12 +199,12 @@ contains
   end subroutine testReadWriteUnformatted
 
   subroutine testKeyNotFound()
-    type (Dictionary_type) :: aDictionary
+    type (Dictionary) :: aDictionary
     integer :: i
 
 #ifdef PFUNIT
     aDictionary = Dictionary()
-    i = lookup(aDictionary, 'alpha')
+    i = aDictionary%lookup('alpha')
     call assertFailedAssert('GenericType_mod: nonconforming shapes.')
     call assertFailedAssert('Key not found: <alpha>.', &
          & 'Failed to detect missing key.')
@@ -213,13 +213,13 @@ contains
   end subroutine testKeyNotFound
 
   subroutine testGetValueA()
-    type (Dictionary_type) :: aDictionary
+    type (Dictionary) :: aDictionary
     integer :: expected, found
 
     expected = 1
     aDictionary = Dictionary()
-    call insert(aDictionary, 'key', expected)
-    found = lookup(aDictionary, 'key')
+    call aDictionary%insert('key', expected)
+    found = aDictionary%lookup('key')
     call assertEqual(expected, found)
 
     call clean(aDictionary)
@@ -227,20 +227,20 @@ contains
   end subroutine testGetValueA
 
   subroutine testGetValueB()
-    type (Dictionary_type) :: aDictionary
+    type (Dictionary) :: aDictionary
     integer :: expectedA, foundA
     integer :: expectedB, foundB
 
     expectedA = 1
     expectedB = 2
     aDictionary = Dictionary()
-    call insert(aDictionary, 'keyA', expectedA)
-    call insert(aDictionary, 'keyB', expectedB)
+    call aDictionary%insert('keyA', expectedA)
+    call aDictionary%insert('keyB', expectedB)
 
-    foundB = lookup(aDictionary, 'keyB')
+    foundB = aDictionary%lookup('keyB')
     call assertEqual(expectedB, foundB)
 
-    foundA = lookup(aDictionary, 'keyA')
+    foundA = aDictionary%lookup('keyA')
     call assertEqual(expectedA, foundA)
 
     call clean(aDictionary)
@@ -248,13 +248,13 @@ contains
   end subroutine testGetValueB
 
   subroutine testGetValueReal64()
-    type (Dictionary_type) :: aDictionary
+    type (Dictionary) :: aDictionary
     real(kind=r64) :: expected, found
 
     expected = 1
     aDictionary = Dictionary()
-    call insert(aDictionary, 'key', expected)
-    found = lookup(aDictionary, 'key')
+    call aDictionary%insert('key', expected)
+    found = aDictionary%lookup('key')
     call assertEqual(expected, found)
 
     call clean(aDictionary)
@@ -262,49 +262,49 @@ contains
   end subroutine testGetValueReal64
 
   subroutine testGetNumEntries()
-    type (Dictionary_type) :: aDictionary
+    type (Dictionary) :: aDictionary
     real(kind=r64) :: expected, found
 
     expected = 1
     aDictionary = Dictionary()
 
-    call assertEqual(0, getNumEntries(aDictionary))
+    call assertEqual(0, aDictionary%getNumEntries())
 
-    call insert(aDictionary, 'key1', expected)
-    call assertEqual(1, getNumEntries(aDictionary))
+    call aDictionary%insert('key1', expected)
+    call assertEqual(1, aDictionary%getNumEntries())
 
-    call insert(aDictionary, 'key2', expected)
-    call assertEqual(2, getNumEntries(aDictionary))
+    call aDictionary%insert('key2', expected)
+    call assertEqual(2, aDictionary%getNumEntries())
 
   end subroutine testGetNumEntries
 
   subroutine testHasKey()
-    type (Dictionary_type) :: aDictionary
+    type (Dictionary) :: aDictionary
 
     aDictionary = Dictionary()
-    call assertFalse(hasKey(aDictionary, 'a'))
+    call assertFalse(aDictionary%hasKey('a'))
 
-    call insert(aDictionary, 'a', 1)
-    call assertTrue(hasKey(aDictionary, 'a'))
-    call assertFalse(hasKey(aDictionary, 'b'))
+    call aDictionary%insert('a', 1)
+    call assertTrue(aDictionary%hasKey('a'))
+    call assertFalse(aDictionary%hasKey('b'))
 
-    call insert(aDictionary, 'b', 1)
-    call assertTrue(hasKey(aDictionary, 'a'))
-    call assertTrue(hasKey(aDictionary, 'b'))
+    call aDictionary%insert('b', 1)
+    call assertTrue(aDictionary%hasKey('a'))
+    call assertTrue(aDictionary%hasKey('b'))
 
     call clean(aDictionary)
 
   end subroutine testHasKey
 
   subroutine testGetKeys()
-    type (Dictionary_type) :: aDictionary
+    type (Dictionary) :: aDictionary
     character(len=MAX_LEN_KEY), pointer :: keys(:)
 
     aDictionary = Dictionary()
-    call insert(aDictionary, 'a', 1)
-    call insert(aDictionary, 'b', 1)
+    call aDictionary%insert('a', 1)
+    call aDictionary%insert('b', 1)
 
-    keys => getKeys(aDictionary)
+    keys => aDictionary%getKeys()
     call assertEqual(2, size(keys))
     call assertTrue(any(keys == 'b'))
     call assertTrue(any(keys == 'a'))
@@ -313,11 +313,11 @@ contains
   end subroutine testGetKeys
 
   subroutine testFailDuplicateKey()
-    type (Dictionary_type) :: aDictionary
+    type (Dictionary) :: aDictionary
 #ifdef USE_PFUNIT
     aDictionary = Dictionary()
-    call insert(aDictionary, 'a', 1)
-    call insert(aDictionary, 'a', 2)
+    call aDictionary%insert('a', 1)
+    call aDictionary%insert('a', 2)
     call assertFailedAssert('Dictionary: duplicate key - <a>.', &
          & 'Failed to diagnose duplicate key.')
     call clean(aDictionary)
@@ -325,8 +325,8 @@ contains
   end subroutine testFailDuplicateKey
 
   subroutine testEqualsA()
-    type (Dictionary_type) :: a
-    type (Dictionary_type) :: b
+    type (Dictionary) :: a
+    type (Dictionary) :: b
     
     a = Dictionary()
     b = Dictionary()
@@ -335,89 +335,89 @@ contains
   end subroutine testEqualsA
 
   subroutine testEqualsB()
-    type (Dictionary_type) :: a
-    type (Dictionary_type) :: b
+    type (Dictionary) :: a
+    type (Dictionary) :: b
     
     a = Dictionary()
     b = Dictionary()
-    call insert(a, 'key1', 1)
+    call a%insert('key1', 1)
     call assertFalse(a == b)
 
   end subroutine testEqualsB
 
   subroutine testEqualsC()
-    type (Dictionary_type) :: a
-    type (Dictionary_type) :: b
+    type (Dictionary) :: a
+    type (Dictionary) :: b
     
     a = Dictionary()
     b = Dictionary()
-    call insert(a, 'key1', 1)
-    call insert(b, 'key1', 1)
+    call a%insert('key1', 1)
+    call b%insert('key1', 1)
     call assertTrue(a == b)
 
   end subroutine testEqualsC
 
   subroutine testEqualsD()
-    type (Dictionary_type) :: a
-    type (Dictionary_type) :: b
+    type (Dictionary) :: a
+    type (Dictionary) :: b
     
     a = Dictionary()
     b = Dictionary()
-    call insert(a, 'key1', 1)
-    call insert(b, 'key2', 1)
+    call a%insert('key1', 1)
+    call b%insert('key2', 1)
     call assertFalse(a == b)
 
   end subroutine testEqualsD
 
   subroutine testEqualsE()
-    type (Dictionary_type) :: a
-    type (Dictionary_type) :: b
+    type (Dictionary) :: a
+    type (Dictionary) :: b
     
     a = Dictionary()
     b = Dictionary()
-    call insert(a, 'key1', 1)
-    call insert(b, 'key1', 2)
+    call a%insert('key1', 1)
+    call b%insert('key1', 2)
     call assertFalse(a == b)
 
   end subroutine testEqualsE
 
   subroutine testEqualsF()
-    type (Dictionary_type) :: a
-    type (Dictionary_type) :: b
+    type (Dictionary) :: a
+    type (Dictionary) :: b
     
     a = Dictionary()
     b = Dictionary()
-    call insert(a, 'key1', [1,2])
-    call insert(b, 'key1', [2])
+    call a%insert('key1', [1,2])
+    call b%insert('key1', [2])
     call assertFalse(a == b)
 
   end subroutine testEqualsF
 
   subroutine testEqualsG()
-    type (Dictionary_type) :: a
-    type (Dictionary_type) :: b
+    type (Dictionary) :: a
+    type (Dictionary) :: b
     
     a = Dictionary()
     b = Dictionary()
-    call insert(a, 'key1', [1,2])
-    call insert(b, 'key1', [1,2])
+    call a%insert('key1', [1,2])
+    call b%insert('key1', [1,2])
     call assertTrue(a == b)
 
   end subroutine testEqualsG
 
   subroutine testEqualsH()
-    type (Dictionary_type) :: a
-    type (Dictionary_type) :: b
+    type (Dictionary) :: a
+    type (Dictionary) :: b
     
     a = Dictionary()
     b = Dictionary()
-    call insert(a, 'key1', [1,2])
-    call insert(a, 'key2', .true.)
-    call insert(a, 'key3', 'hello')
+    call a%insert('key1', [1,2])
+    call a%insert('key2', .true.)
+    call a%insert('key3', 'hello')
 
-    call insert(b, 'key3', 'hello')
-    call insert(b, 'key2', .true.)
-    call insert(b, 'key1', [1,2])
+    call b%insert('key3', 'hello')
+    call b%insert('key2', .true.)
+    call b%insert('key1', [1,2])
 
     call assertTrue(a == b)
 
@@ -427,31 +427,31 @@ contains
   end subroutine testEqualsH
 
   subroutine testMergeInteger()
-    type (Dictionary_type) :: aDictionary
+    type (Dictionary) :: aDictionary
     integer :: probe
     integer :: two
 
     aDictionary = Dictionary()
-    call insert(aDictionary, 'a', 1)
+    call aDictionary%insert('a', 1)
     
     ! 
     probe = 2
-    call merge(aDictionary, 'a', probe)
+    call aDictionary%merge('a', probe)
     call assertEqual(1, probe)
-    call assertTrue(all(1 == lookup(aDictionary, 'a')))
+    call assertTrue(all(1 == aDictionary%lookup('a')))
 
     two = 2
-    call merge(aDictionary, 'b', two)
+    call aDictionary%merge('b', two)
     call assertEqual(2, two)
-    call assertTrue(all(2 == lookup(aDictionary, 'b')))
+    call assertTrue(all(2 == aDictionary%lookup('b')))
 
     call clean(aDictionary)
   end subroutine testMergeInteger
 
   subroutine testMergeDictionary()
     use GenericType_mod
-    type (Dictionary_type) :: aDictionary
-    type (Dictionary_type) :: otherDictionary
+    type (Dictionary) :: aDictionary
+    type (Dictionary) :: otherDictionary
 
     integer :: expectedA
     real(kind=r64) :: expectedB
@@ -460,22 +460,22 @@ contains
     aDictionary = Dictionary()
     otherDictionary = Dictionary()
 
-    call insert(aDictionary, 'a', 1)
-    call insert(aDictionary, 'b', 2.34d+0)
+    call aDictionary%insert('a', 1)
+    call aDictionary%insert('b', 2.34d+0)
 
-    call insert(otherDictionary, 'a', 1) ! same
-    call insert(otherDictionary, 'b', 1.23d+0) ! different
-    call insert(otherDictionary, 'c', .true.) ! new
+    call otherDictionary%insert('a', 1) ! same
+    call otherDictionary%insert('b', 1.23d+0) ! different
+    call otherDictionary%insert('c', .true.) ! new
 
-    call merge(aDictionary, otherDictionary)
+    call aDictionary%merge(otherDictionary)
 
     expectedA = 1
     expectedB = 2.34d+0
     expectedC = .true.
 
-    call assertTrue(all(expectedA == lookup(aDictionary, 'a')))
-    call assertTrue(all(expectedB == lookup(aDictionary, 'b')))
-    call assertTrue(all(expectedC == lookup(aDictionary, 'c')))
+    call assertTrue(all(expectedA == aDictionary%lookup('a')))
+    call assertTrue(all(expectedB == aDictionary%lookup('b')))
+    call assertTrue(all(expectedC == aDictionary%lookup('c')))
 
     call clean(otherDictionary)
     call clean(aDictionary)

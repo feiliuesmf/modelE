@@ -852,7 +852,7 @@ c input
       INTENT (IN) ze,zgrid,byhwide,lmij,dVsq,ustar,Bo,Bosol
      *           ,dbloc,Ritop
 c output
-      real*8 rib(lmo)     !@var rib bulk Richardson number
+      real*8 rib(lmo)   !@var rib bulk Richardson number
       real*8 hbl        !@var hbl boundary layer depth (m)
       integer kbl       !@var kbl index of first grid level below hbl
       real*8 bf         !@var bfsfc surface buoyancy forcing (m^2/s^3)
@@ -1353,7 +1353,7 @@ C****
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
      &     ,uod1,vod1
 #ifdef OCN_GISSMIX
-      USE GISSMIX_COM, only : otke,rhobot
+      USE GISSMIX_COM, only : otke,rhobot,exya,ut2a,taubx,tauby
 #endif
       USE OFLUXES, only : oRSI, oSOLARw,oSOLARi, oDMUA,oDMVA,oDMUI,oDMVI
       USE SW2OCEAN, only : fsr,lsrpd
@@ -1436,22 +1436,36 @@ C**** KPP variables
      &     extra_slope_limitations,
      &     mix_tripled_resolution
 #ifdef OCN_GISSMIX
+      real*8, parameter :: cd=3.d-3 !@var cd dry drag coeff.
       REAL*8 bf          !@var bf surface buoyancy forcing
 c     REAL*8 omfrac      !@var omfrac 1 - fraction of Bosol penetrated
       REAL*8 u2b         !@var u2b velocity squared at zgrid(lmij)
+      real*8 ut2         !@var ut2 unresolved bottom velocity squared (m/s)^2
+      real*8 exy         !@var exy tidal power input used to tidal diffusivities
+      real*8 ustarb2     !@var ustarb2 velocity squared at zg(n)
+
       REAL*8 uob         !@var uob bottom u-component of velocity at zgrid(lmij) (m/s)
       REAL*8 vob         !@var vob bottom u-component of velocity at zgrid(lmij) (m/s)
-      REAL*8 rib(lmo)    !
-      REAL*8 wtnl(lmo)   !@var wtnl non-local term of wt
-      REAL*8 wsnl(lmo)   !@var wsnl non-local term of ws
+      REAL*8 uodb        !@var uob at v velocity point
+      REAL*8 vodb        !@var vob at u velocity point
+      REAL*8 u2bx        !@var u2b at u velocity point
+      REAL*8 u2by        !@var u2b at v velocity point
+      real*8 ut2x        !@var ut2x ut2 at the u velocity point
+      real*8 ut2y        !@var ut2y ut2 at the v velocity point
+      real*8 unp,vnp
+      integer ier
+
+      REAL*8 rib(lmo)    !@var rib bulk Richardson number
+c     REAL*8 wtnl(lmo)   !@var wtnl non-local term of wt
+c     REAL*8 wsnl(lmo)   !@var wsnl non-local term of ws
 c     real*8 ga          !@var ga grav*alpha
 c     real*8 gb          !@var gb grav*beta
 c     real*8 buoynl(lmo) !@var buoynl non-local part of buoyancy flux (m^2/s^3)
       REAL*8 ri(0:lmo+1)   !@var ri Rchardson number
       REAL*8 rrho(0:lmo+1) !@var rrho salt to head density ratio
-      real*8 bv2(0:lmo+1)!@var bv2 Brunt Vaisala frequency squared (1/s**2)
-      real*8 buoy(0:lmo+1)!@var buoy buoyancy flux (m**2/s**3)
-      REAL*8 e(lmo)      !@var e ocean turbulent kinetic energy (m/s)**2
+      real*8 bv2(0:lmo+1)  !@var bv2 Brunt Vaisala frequency squared (1/s**2)
+      real*8 buoy(0:lmo+1) !@var buoy buoyancy flux (m**2/s**3)
+      REAL*8 e(lmo)        !@var e ocean turbulent kinetic energy (m/s)**2
       integer strait
 #endif
 #ifdef TRACERS_OCEAN
@@ -1462,7 +1476,7 @@ c     real*8 buoynl(lmo) !@var buoynl non-local part of buoyancy flux (m^2/s^3)
       REAL*8 :: DFLUX,MINRAT ! for GHATT limits
 #endif
       real*8 ptdd,ptdm,ptd(lmo),mld
-      integer kmld
+      integer kmld,ip1
 
       call getDomainBounds(grid, j_strt=j_0, j_stop=j_1,
      &                j_strt_skp=j_0s, j_stop_skp=j_1s,
@@ -1552,6 +1566,10 @@ C**** Processes are checked and applied on every horizontal quarter box.
 C****
       call halo_update (grid,   VO1, from=south)
       call halo_update (grid, oDMVI, from=south)
+#ifdef OCN_GISSMIX
+      call halo_update (grid,  ut2a, from=north)
+      taubx=0.d0; tauby=0.d0
+#endif
       DO 790 J=j_0s,j_1
 C**** coriolis parameter, defined at tracer point
       Coriol = 2d0*OMEGA*SINPO(J)
@@ -1876,7 +1894,6 @@ C**** find mld, the mixed layer depth
           exit
         endif
       end do
-c     write(61,*) i,j,kmld,mld
       talpha(1) =  ALPHAGSP(G(1),S(1),PO(1)) ! <0
       sbeta(1)  =   BETAGSP(G(1),S(1),PO(1))
 
@@ -1927,23 +1944,48 @@ c-c     omfrac=(bf-Bo)/(Bosol+1d-20)
 c-c     wt0=-BYRHO(1)*(BYSHC*(DELTAE+omfrac*DELTASR)-
 c-c    *              (BYSHC*G(1))*DELTAM)
 c-c     ws0=-BYRHO(1)*(DELTAS-S(1)*DELTAM)
-      uob=uo(i,j,lmij)
-      vob=vo(i,j,lmij)
-      u2b=(uob*uob + vob*vob)
-      !@var rhobot bottom density, a variable of MODULE GISSMIX_COM
-      rhobot(i,j)=rho(lmij) 
+C if j<jm: ul(:,1)=u(i-1,j) ul(:,2)=u(i,j) ul(:,3)=v(i,j-1) ul(:,4)=v(i,j)
+C          uld(:,1)=vd(i-1,j) uld(:,2)=vd(i,j) uld(:,3)=ud(i,j-1) uld(:,4)=ud(i,j)
+C ud is u interpolated to the v point and vd is v interpolated to the u point.
 
       strait=0   ! not in strait area (for most of the oceans)
+      l=lmij
+      ! at tracer grid:
+      u2b=0.d0
+      do k=1,kmuv
+        u2b=u2b+ravm(k)*ul(l,k)**2
+      end do
+      ut2=ut2a(i,j)
+      ustarb2=cd*(ut2*(u2b+ut2))**.5d0
+      exy=exya(i,j)
+      rhobot(i,j)=rho(l)
+      ! at velocity grid:
+      if(j.lt.jm) then
+        ip1=i+1
+        if(i.eq.im) ip1=1
+        uob=ul(l,2)
+        vob=ul(l,4)
+        uodb=uld(l,4)
+        vodb=uld(l,2)
+        u2bx=uob**2+vodb**2
+        u2by=vob**2+uodb**2
+        ut2x=0.5D0*(ut2+ut2a(ip1,j))
+        ut2y=0.5D0*(ut2+ut2a(i,j+1))
+        taubx(i,j)=cd*(u2bx+ut2x)**.5D0*uob
+        tauby(i,j)=cd*(u2by+ut2y)**.5D0*vob
+      endif
+
       do l=1,lmij-1
          e(l)=otke(l,i,j)
       end do
 
       call gissmix(
       ! in:
-     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,rho,uob,vob,u2b
-     &   ,Coriol,hbl,strait,i,j
+     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,rho
+     &   ,ustarb2,exy,Coriol,hbl,strait
       ! out:
      &   ,ri,rrho,bv2,akvm,akvg,akvs,akvc,e)
+
       buoy=0.
       do l=1,lmij-1
          otke(l,i,j)=e(l)
@@ -2198,6 +2240,20 @@ C****
       END DO
 C**** End of outside J loop
   790 CONTINUE
+
+c#ifdef OCN_GISSMIX
+c     if(have_north_pole) then
+c     ! for the north pole, in subroutine obdrag only (not active) 
+c       unp=0.d0
+c       vnp=0.d0
+c       do i=1,im
+c         unp=unp-sinic(i)*tauby(i,jm-1)
+c         vnp=vnp+cosic(i)*tauby(i,jm-1)
+c       end do
+c       taubx(im,jm)  =unp*2/im
+c       taubx(ivnp,jm)=vnp*2/im
+c     endif
+c#endif
 
 C**** Update velocities outside parallel region
       call halo_update_block (grid, UKM, from=north)
@@ -2559,11 +2615,10 @@ C**** CONV parameters: BETA controls degree of convection (default 0.5).
       INTEGER, SAVE :: IFIRST = 1
       INTEGER I,L,N,LMIJ,IQ,ITER,NSIGG,NSIGS,KBL
 #ifdef OCN_GISSMIX
-      REAL*8 rib(lmo),bf
-      REAL*8, SAVE :: u2b,uob,vob
+      REAL*8 rib(lmo),bf,ustarb2,exy
       INTEGER strait
-      REAL*8 wtnl(lmo)   !@var wtnl non-local term of wt
-      REAL*8 wsnl(lmo)   !@var wsnl non-local term of ws
+c     REAL*8 wtnl(lmo)   !@var wtnl non-local term of wt
+c     REAL*8 wsnl(lmo)   !@var wsnl non-local term of ws
       REAL*8 e(lmo)      !@var e ocean turbulent kinetic energy (m/s)**2
 c     real*8 buoynl(lmo) !@var buoynl nonlocal part of buoy production
 c     real*8 ga          !@var ga grav*alphaT
@@ -2713,19 +2768,19 @@ C**** Get diffusivities for the whole column
       call bldepth(ZE,zgrid,byhwide,LMIJ,dVsq,Ustar,Bo,Bosol
      *     ,dbloc,Ritop
      *     ,rib,HBL,KBL,bf)
-      bf=0.d0
-      uob=0.
-      vob=0.
-      u2b=0.
+
       strait=1
+      bf=0.d0
+      ustarb2=0.d0
+      exy=0.d0
       do l=1,lmij-1
          e(l)=otkest(l,n)
       end do
 
       call gissmix(
       ! in:
-     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,rho,uob,vob,u2b
-     &   ,Coriol,hbl,strait,0,0
+     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,rho
+     &   ,ustarb2,exy,Coriol,hbl,strait
       ! out:
      &   ,ri1,rrho,bv2,akvm,akvg,akvs,akvc,e)
       buoy=0.

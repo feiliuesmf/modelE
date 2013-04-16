@@ -552,10 +552,10 @@ cccccc for SCM use ARM provided fluxes for designated box
       endif
       endif
 #endif
-!unused      DMUA_IJ=PTYPE*DTSURF*RCDMWS*US
-!unused      DMVA_IJ=PTYPE*DTSURF*RCDMWS*VS
-!unused      igla%DMUA(I,J) = igla%DMUA(I,J) + DMUA_IJ
-!unused      igla%DMVA(I,J) = igla%DMVA(I,J) + DMVA_IJ
+!unused      DMUA_IJ=RCDMWS*US
+!unused      DMVA_IJ=RCDMWS*VS
+!unused      igla%DMUA(I,J) = igla%DMUA(I,J) + DMUA_IJ*DTSURF
+!unused      igla%DMVA(I,J) = igla%DMVA(I,J) + DMVA_IJ*DTSURF
       igla%uflux1(i,j) = RCDMWS*US
       igla%vflux1(i,j) = RCDMWS*VS
 

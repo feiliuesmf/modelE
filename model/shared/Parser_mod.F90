@@ -2,9 +2,6 @@ module Parser_mod
 !@sum procedures to read parameters from the rundeck into the database
 !@auth I. Aleinov and T. Clune
 !@ver 1.1     
-  use GenericType_mod
-  use KeyValuePair_mod
-  use Dictionary_mod, only: MAX_LEN_LINE
   implicit none
 
   public :: Parser_type ! data type
@@ -15,7 +12,6 @@ module Parser_mod
   public :: setCommentCharacters
   public :: setBeginData
   public :: setEndData
-  public :: getValueType
   public :: splitTokens
   public :: writeFormatted
 
@@ -24,6 +20,7 @@ module Parser_mod
   integer, parameter :: MAX_COMMENT_CHARACTERS = 3
   integer, parameter :: MAX_TOKEN_SEPARATORS   = 2
   integer, parameter :: MAX_LEN_TOKEN = 32
+  integer, parameter :: MAX_LEN_LINE = 256
   character(len=*), parameter :: ENTIRE_LINE = '(a256)' ! MAX_LEN_LINE
   character(len=*), parameter :: ENTIRE_TOKEN = '(a33)' ! MAX_LEN_TOKEN
 
@@ -35,11 +32,6 @@ module Parser_mod
   end type Parser_type
 
   type (Parser_type), save :: globalParser
-
-  interface getValueType
-    module procedure getValueType_single
-    module procedure getValueType_multi
-  end interface
 
   interface writeFormatted
     module procedure writeFormatted_parser
@@ -208,16 +200,20 @@ contains
     &     'PARSER: No &&PARAMETERS or &&END_PARAMETERS found',255)
   end subroutine parse_params
 
-  function parseLine(this, line) result(pair)
+  subroutine parseLine(this, line, name, value)
 !@sum Attempts to create a key value pair by parsing a line of text
 !@+ into separate tokens (via splitTokens).  Throws an exception if
 !@+ less than two tokens are found.   (Should probably be modified
 !@+ to also throw exception if first token is not an exceptable
 !@+ key.)
-    use Dictionary_mod
+    use Attributes_mod
+    use AttributeDictionary_mod
+    use AbstractAttribute_mod
+    use StringUtilities_mod
     type (Parser_type), intent(in) :: this
     character(len=*), intent(in) :: line
-    type (KeyValuePair_type) :: pair
+    character(len=*), intent(out) :: name
+    class (AbstractAttribute), pointer :: value
 
     character(len=MAX_LEN_TOKEN), pointer :: tokens(:)
 
@@ -227,48 +223,63 @@ contains
       return
     end if
 
-    pair = readPair(key=tokens(1), tokens=tokens(2:))
+    name = tokens(1)
+    if (isInteger(tokens(2))) then
+      if (size(tokens) == 2) then
+!!$        value = newAttribute(stringToInteger(tokens(2))) ! scalar
+         allocate(value,source=newAttribute(stringToInteger(tokens(2)))) ! scalar
+      else
+!!$        value = newAttribute(stringToInteger(tokens(2:)))
+        allocate(value,source=newAttribute(stringToInteger(tokens(2:))))
+      end if
+    else if (isReal64(tokens(2))) then
+      if (size(tokens) == 2) then
+!!$        value = newAttribute(stringToRealDP(tokens(2))) ! scalar
+        allocate(value,source=newAttribute(stringToRealDP(tokens(2))))
+      else
+!!$        value = newAttribute(stringToRealDP(tokens(2:)))
+        allocate(value,source=newAttribute(stringToRealDP(tokens(2:))))
+      end if
+    else if (isLogical(tokens(2))) then
+      if (size(tokens) == 2) then
+!!$        value = newAttribute(stringToLogical(tokens(2))) ! scalar
+        allocate(value, source=newAttribute(stringToLogical(tokens(2)))) ! scalar
+      else
+!!$        value = newAttribute(stringToLogical(tokens(2:)))
+        allocate(value, source=newAttribute(stringToLogical(tokens(2:))))
+      end if
+    else ! is string
+      if (size(tokens) == 2) then
+!!$        value = newAttribute(tokens(2)) ! scalar
+        allocate(value, source=newAttribute(tokens(2))) ! scalar
+      else
+!!$        value = newAttribute(tokens(2:))
+        allocate(value, source=newAttribute(tokens(2:)))
+      end if
+    end if
+
     deallocate(tokens)
 
-  contains
+  end subroutine parseLine
 
-    function readPair(key, tokens) result(pair)
-!@sum Helper function.  Creates a KeyValuePair from
-!@+ a key and list of tokens.
-      character(len=*), intent(in) :: key
-      character(len=*), intent(in) :: tokens(:)
-      type (KeyValuePair_type) :: pair
-
-      type (GenericType_type), pointer :: values(:)
-      integer :: numValues, i
-
-      numValues = size(tokens)
-      allocate(values(numValues))
-      do i = 1, numValues
-        values(i) = GenericType(tokens(i), getValueType(tokens))
-      end do
-      pair = KeyValuePair(key, values)
-      deallocate(values)
-
-    end function readPair
-
-  end function parseLine
-
-  function parse(this, unit, status) result(aDictionary)
+  function parse(this, unit, status) result(dictionary)
 !@sum Parses text from input unit to populate a Dictionary object.
 !@+ Skips header section at top.
-    use Dictionary_mod
+    use AttributeDictionary_mod
+    use AbstractAttribute_mod
+    use AttributeHashMap_mod, only: MAX_LEN => MAX_LEN_KEY
 
     type (Parser_type), intent(in) :: this
     integer, intent(in) :: unit
     integer, intent(out) :: status
+    type (AttributeDictionary) :: dictionary
 
-    type (Dictionary_type) :: aDictionary
     character(len=MAX_LEN_LINE) :: line
-    type (KeyValuePair_type) :: pair
+    character(len=MAX_LEN) :: attributeName
+    class (AbstractAttribute), pointer :: attributeValue
 
     status = 0 ! unless ...
-    aDictionary = Dictionary()
+    dictionary = newAttributeDictionary() ! TODO - fix memory leak here
 
     call skipHeader(this, unit, status)
     if (status /= 0) return
@@ -281,8 +292,9 @@ contains
       line = stripComment(this, line)
       if (len_trim(line) == 0) cycle ! skip
 
-      pair = parseLine(this, line)
-      call insert(aDictionary, pair)
+      call parseLine(this, line, attributeName, attributeValue)
+      call dictionary%insert(trim(attributeName), attributeValue)
+      deallocate(attributeValue)
 
     end do
 
@@ -413,66 +425,6 @@ contains
 
   end function isLogical
 
-  integer function getValueType_single(string) result(type)
-!@sum Returns integer which corresponds to the _type_ that this string
-!@+ can be converted to.  (INTEGER_TYPE, LOGICAL_TYPE, etc.)
-!@+ Priority is given to more restrictive types, which
-!@+ string being a catchall.
-    use Dictionary_mod
-    character(len=*), intent(in) :: string
-
-    real*8  :: real64Value
-    logical :: logicalValue
-    character(len=MAX_LEN_VALUE)  :: stringValue
-    integer :: status
-  
-    if (isInteger(string)) then
-      type = INTEGER_TYPE
-      return
-    else if (isReal64(string)) then
-      type = REAL64_TYPE
-      return
-    else if (isLogical(string)) then
-      type = LOGICAL_TYPE
-      return
-    else
-      type = STRING_TYPE
-    end if
-
-  end function getValueType_single
-
-  integer function getValueType_multi(tokens) result(type)
-!@sum Return the _type_ that a set of tokens can be converted to.  @+
-!@+ Note that type is the lowest common denominator. E.g. mixtures of
-!@+ integers and doubles will be processed as double values, and 
-!@+ if any token must be treated as a string, all will be.
-    use Dictionary_mod
-    character(len=*), intent(in) :: tokens(:)
-
-    integer :: numTokens
-    integer :: i
-    integer, allocatable :: types(:)
-
-    numTokens = size(tokens)
-    allocate(types(numTokens))
-    do i = 1, numTokens
-      types(i) = getValueType(tokens(i))
-    end do
-
-    if (all(types == types(1))) then ! simple case
-      type = types(1)
-    else ! mixed type
-      if (all((types == INTEGER_TYPE) .or. (types == REAL64_TYPE))) then
-        type = REAL64_TYPE ! integers treated as subset of reals
-      else
-        type = STRING_TYPE ! most general category
-      end if
-    end if
-
-    deallocate(types)
-
-  end function getValueType_multi
-
   function splitTokens(this, string) result(tokens)
 !@ Attempt to split a string into a set of independent tokens
 !@+ based upon separaters specified in the Parser object.
@@ -558,38 +510,32 @@ contains
     end if
   end function skipEmbeddedSeparators
     
-  subroutine writeFormatted_parser(this, unit, aDictionary)
+  subroutine writeFormatted_parser(this, unit, dictionary)
 !@sum Write dictionary as a text file.  Inverse of
 !@+ parse().
-    use Dictionary_mod
+    use AttributeDictionary_mod
+    use AttributeHashMap_mod
+    use AbstractAttribute_mod
     type (Parser_type), intent(in) :: this
-    type (Dictionary_type), intent(in) :: aDictionary
     integer, intent(in) :: unit
+    class (AttributeDictionary), intent(in) :: dictionary
 
     integer :: i, j
-    type (GenericType_type), pointer :: values(:)
     character(len=MAX_LEN_LINE) :: line
-    character(len=MAX_LEN_KEY), pointer :: keys(:)
+    type (AttributeHashMapIterator) :: iter
+    class (AbstractAttribute), pointer :: t
 
-    keys => getKeys(aDictionary)
     write(unit,'(a)') trim(this%beginData)
-    do i = 1, getNumEntries(aDictionary)
 
-      values =>lookup(aDictionary, keys(i))
-
-      select case (size(values))
-      case (1)
-        write(line,'(2x,a32," = ",a)') keys(i), trim(toString(values(1)))
-      case (2:)
-        write(line,'(2x,a32," = ",a)') keys(i), trim(toString(values(1)))
-        do j = 2, size(values)
-          line = trim(line) // ', ' // trim(toString(values(j)))
-        end do
-      end select
+    iter = dictionary%begin()
+    do while (iter /= dictionary%last())
+      t => iter%value()
+      line = trim(iter%key()) // ' = ' // trim(t%toString())
       write(unit,'(a)') trim(line)
+      call iter%next()
     end do
     write(unit,'(a)') trim(this%endData)
-
-  end subroutine writeFormatted_parser
+    
+ end subroutine writeFormatted_parser
 
 end module PARSER_MOD

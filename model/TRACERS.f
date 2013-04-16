@@ -9,15 +9,11 @@
 !@+      Gravitaional Settling: trgrav
 !@+      Check routine: checktr
 !@auth Jean Lerner/Gavin Schmidt
-
       MODULE apply3d
 !@sum apply3d is used simply so that I can get optional arguments
 !@+   to work. If anyone can some up with something neater, let me know.
-!@sum apply_tracer_3Dsource adds 3D sources to tracers
-!@auth Jean Lerner/Gavin Schmidt
       use TracerSource_mod, only: TracerSource3D
-      use TracerBundle_mod, only: getTracer
-      use Tracer_mod, only: Tracer_type
+      use Tracer_mod, only: Tracer
       use OldTracer_mod, only: trname
       USE TRACER_COM, only : NTM,trm,trmom,alter_sources,
      * ef_FACT3d,tracers
@@ -31,11 +27,14 @@
      *     ,ijts_3Dsource,taijs=>taijs_loc
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, am_i_root
       use EmissionRegion_mod, only: numRegions, regions
+
       IMPLICIT NONE
 
       CONTAINS
 
       SUBROUTINE apply_tracer_3Dsource( ns , n , momlog )
+!@sum apply_tracer_3Dsource adds 3D sources to tracers
+!@auth Jean Lerner/Gavin Schmidt
 !@var MOM true (default) if moments are to be modified
       logical, optional, intent(in) :: momlog
       integer, intent(in) :: n,ns
@@ -51,7 +50,7 @@
       real*8 :: coef(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
 
       type (TracerSource3D), pointer :: source
-      type (Tracer_type), pointer :: tracer
+      class (Tracer), pointer :: pTracer
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
@@ -73,8 +72,8 @@ C**** Modify tracer amount, moments, and diagnostics
       naij = ijts_3Dsource(ns,n)
 
 C**** apply tracer source alterations if requested in rundeck:
-      tracer => getTracer(tracers, n)
-      source => tracer%sources3D(ns)
+      pTracer => tracers%getReference(trname(n))
+      source => pTracer%sources3D(ns)
       if (alter_sources) then
         do kreg = 1, numRegions
           do j = j_0, j_1
@@ -651,7 +650,6 @@ c
       RETURN
       END SUBROUTINE set_generic_tracer_diags
 
-
       SUBROUTINE sum_prescribed_tracer_2Dsources(dtstep)
 !@sum apply_tracer_2Dsource adds surface sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
@@ -1170,6 +1168,7 @@ c**** Interpolate two months of data to current day
 
       subroutine checktr(subr)
 !@sum  CHECKTR Checks whether atmos tracer variables are reasonable
+!@vers 2013/03/26
 !@auth Gavin Schmidt
 #ifdef TRACERS_ON
       USE CONSTANT, only : teeny
@@ -1177,7 +1176,7 @@ c**** Interpolate two months of data to current day
       USE ATM_COM, only : q,wm
       USE GEOM, only : axyp,imaxj
       USE SOMTQ_COM, only : qmom
-      USE ATM_COM, only : am
+      USE ATM_COM, only : MA
       USE FLUXES, only : atmocn,atmice,atmgla,atmlnd
       use OldTracer_mod, only: trname, t_qlimit
       USE TRACER_COM, only: ntm, trmom, trm, nmom
@@ -1237,11 +1236,11 @@ C**** check whether air mass is conserved
           do l=1,lm
           do j=j_0,j_1
           do i=i_0,imaxj(j)
-            relerr=abs(trm(i,j,l,n)-am(l,i,j)*axyp(i,j))/
-     *           (am(l,i,j)*axyp(i,j))
+            relerr=abs(trm(i,j,l,n)-ma(l,i,j)*axyp(i,j))/
+     *           (ma(l,i,j)*axyp(i,j))
             if (relerr.gt.errmax) then
               lmax=l ; imax=i ; jmax=j ; errmax=relerr
-              tmax=trm(i,j,l,n) ; amax=am(l,i,j)*axyp(i,j)
+              tmax=trm(i,j,l,n) ; amax=ma(l,i,j)*axyp(i,j)
             end if
           end do
           end do
@@ -1258,26 +1257,26 @@ C**** check whether air mass is conserved
           do l=1,lm
           do j=j_0,j_1
           do i=i_0,imaxj(j)
-            errsc=(q(i,j,l)+sum(abs(qmom(:,i,j,l))))*am(l,i,j)*axyp(i,j)
+            errsc=(q(i,j,l)+sum(abs(qmom(:,i,j,l))))*ma(l,i,j)*axyp(i,j)
             if (errsc.eq.0.) errsc=1.
-            relerr=abs(trm(i,j,l,n)-q(i,j,l)*am(l,i,j)*axyp(i,j))/errsc
+            relerr=abs(trm(i,j,l,n)-q(i,j,l)*ma(l,i,j)*axyp(i,j))/errsc
             if (wm(i,j,l).gt.0 .and. trwm(i,j,l,n).gt.1.) relerr
-     *           =max(relerr,(trwm(i,j,l,n)-wm(i,j,l)*am(l,i,j)*axyp(i,j
-     *           ))/(wm(i,j,l)*am(l,i,j)*axyp(i,j)))
+     *           =max(relerr,(trwm(i,j,l,n)-wm(i,j,l)*ma(l,i,j)*axyp(i,j
+     *           ))/(wm(i,j,l)*ma(l,i,j)*axyp(i,j)))
             if ((wm(i,j,l).eq.0 .and.trwm(i,j,l,n).gt.1) .or. (wm(i,j,l)
      *           .gt.teeny .and.trwm(i,j,l,n).eq.0))
      *           print*,"Liquid water mismatch: ",subr,i,j,l,trwm(i,j,l
-     *           ,n),wm(i,j,l)*am(l,i,j)*axyp(i,j)
+     *           ,n),wm(i,j,l)*ma(l,i,j)*axyp(i,j)
             do m=1,nmom
-              relerr=max(relerr,(trmom(m,i,j,l,n)-qmom(m,i,j,l)*am(l,i,j
+              relerr=max(relerr,(trmom(m,i,j,l,n)-qmom(m,i,j,l)*ma(l,i,j
      *             )*axyp(i,j))/errsc)
             end do
             if (relerr.gt.errmax) then
               lmax=l ; imax=i ; jmax=j ; errmax=relerr
-              tmax=trm(i,j,l,n) ; qmax=q(i,j,l)*am(l,i,j)*axyp(i,j)
-              twmax=trwm(i,j,l,n) ; wmax=wm(i,j,l)*am(l,i,j)*axyp(i,j)
+              tmax=trm(i,j,l,n) ; qmax=q(i,j,l)*ma(l,i,j)*axyp(i,j)
+              twmax=trwm(i,j,l,n) ; wmax=wm(i,j,l)*ma(l,i,j)*axyp(i,j)
               tmomax(:)=trmom(:,i,j,l,n)
-              qmomax(:)=qmom(:,i,j,l)*am(l,i,j)*axyp(i,j)
+              qmomax(:)=qmom(:,i,j,l)*ma(l,i,j)*axyp(i,j)
             end if
           end do
           end do
@@ -2419,3 +2418,4 @@ c daily_z is currently only needed for CS
       endif
 
       end subroutine setup_emis_sectors_regions
+

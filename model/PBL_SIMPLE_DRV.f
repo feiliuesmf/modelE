@@ -21,6 +21,7 @@ ccc   then globally. hope they are not used ...
 
       subroutine pbl(i,j,itype,ptype)
 !@sum  simple replacement for PBL
+!@vers 2013/03/26
 !@auth I. Aleinov/G. Russell
 
 C    input: ZS1,TGV,TKV,QG_SAT,HEMI,DTSURF,POLE,UOCEAN,VOCEAN
@@ -41,7 +42,7 @@ C          ,UG,VG,WG,W2_1
      &     ,ug,vg,wg,zgs,w2_1,wint
       use pblcom
 ccc for simple model:
-      use atm_com, only : am,pedn,pek,pk
+      use atm_com, only : MA,pedn,pek,pk
       use QUSDEF, only : mz
       use SOMTQ_COM, only : tmom,qmom
       implicit none
@@ -82,7 +83,7 @@ ccc need for simple model: pg, ma1, t1, dtdz, q1, dqdz, u1, v1
       pg = pedn(1,i,j) * 100.d0
 
 !@var ps pressure at surface (Pa)
-      ps = pg - grav*am(1,i,j)*.5d0*(1.d0-S1byG1)
+      ps = pg - grav*MA(1,i,j)*.5d0*(1.d0-S1byG1)
 
       q1 = q(i,j,1)
       dqdz = qmom(mz,i,j,1)

@@ -32,9 +32,9 @@ contains
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
-  subroutine Quarzhem_InitMetadata(tracer)
+  subroutine Quarzhem_InitMetadata(pTracer)
 !------------------------------------------------------------------------------
-    type (Tracer_type), pointer :: tracer
+    class (Tracer), pointer :: pTracer
 
     call  Sil1quhe_setSpec('Sil1quhe')
     call  Sil2quhe_setSpec('Sil2quhe')

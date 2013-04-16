@@ -38,6 +38,8 @@ module GenericType_mod
     real*8  :: real64Value
     logical :: logicalvalue
     character(len=MAX_LEN_VALUE) :: stringValue
+  contains
+    procedure :: print
   end type GenericType_type
 
   ! Construct generic type from intrinsic data, read from
@@ -223,7 +225,6 @@ contains
 
     if (nonconforming(1, size(this))) return
     value = this(1)%integerValue
-
   end subroutine assignToInteger_sca_arr
 
   subroutine assignToInteger_arr_arr(values, this)
@@ -508,5 +509,19 @@ contains
     end select
 
   end subroutine writeUnformatted_generic
+
+  subroutine print(this)
+    class (GenericType_type), intent(in):: this
+    select case (this%type)
+    case (INTEGER_TYPE)
+      print*,__LINE__,__FILE__,' Integer: ', this%integerValue
+    case (LOGICAL_TYPE)
+      print*,__LINE__,__FILE__,' Logical: ', this%logicalValue
+    case (REAL64_TYPE)
+      print*,__LINE__,__FILE__,' Real64: ', this%real64Value
+    case (STRING_TYPE)
+      print*,__LINE__,__FILE__,' String: ', trim(this%stringValue)
+    end select
+  end subroutine print
 
 end module GenericType_mod

@@ -60,7 +60,7 @@ module AmpTracersMetadata_mod
   use OldTracer_mod, only: set_fq_aer
   use OldTracer_mod, only: set_tr_wd_type
   use OldTracer_mod, only: oldAddTracer
-  use Tracer_mod, only: Tracer_type
+  use Tracer_mod, only: Tracer
 
   implicit none
   private
@@ -436,9 +436,9 @@ contains
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
-  subroutine AMP_initMetadata(tracer)
+  subroutine AMP_initMetadata(pTracer)
 !------------------------------------------------------------------------------
-    type(Tracer_type), intent(in) :: tracer
+    class (Tracer), pointer :: pTracer
 
     !**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
     call  M_NO3_setSpec('M_NO3')

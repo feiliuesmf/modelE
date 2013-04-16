@@ -43,24 +43,29 @@ C
       use OldTracer_mod, only: ntisurfsrc
       use OldTracer_mod, only: trli0
       use OldTracer_mod, only: trsi0
+
 #ifdef TRACERS_AEROSOLS_VBS
       use TRACERS_VBS, only: vbs_bins
 #endif
 
-      use TracerBundle_mod, only: TracerBundle_type,
-     &  getNumTracers, ntsurfsrc, setNtsurfsrc
+      use TracerBundle_mod, only: TracerBundle, newTracerBundle
       use TracerSource_mod, only: N_MAX_SECT
 c     
       IMPLICIT NONE
       SAVE
 
-      type (TracerBundle_type) :: tracers
+      type (TracerBundle) :: tracers
+      type (TracerBundle) :: shindellTracers
+      type (TracerBundle) :: lernerTracers
+      type (TracerBundle) :: tomasTracers
+      type (TracerBundle) :: ampTracers
 
 !@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
       integer :: COUPLED_CHEM = 0
 
 C**** Each tracer has a variable name and a unique index
-!@param NTM number of tracers
+!@var NTM number of tracers
+      integer :: NTM
 
 !@var ntm_O18: Number of TRACERS_SPECIAL_O18 tracers.
 #ifdef TRACERS_SPECIAL_O18
@@ -273,9 +278,6 @@ C**** Each tracer has a variable name and a unique index
      *                               ntm_shindell_strat+
      *                               ntm_soa
 #ifdef TRACERS_AMP
-! This is kept seperate, as ntm_dust needs to be set 
-c          (in order to calculate dust emissions), but not added to ntm.
-      integer, parameter :: oldNTM=ntm_amp+ntm_chem
 #else
 #ifdef TRACERS_TOMAS
        !constants that have to do with the number of tracers
@@ -339,17 +341,8 @@ c          (in order to calculate dust emissions), but not added to ntm.
       integer, parameter :: oldNTM=non_aerosol+ntm_tomas !ntm_dust is excluded.      
 
 #else
-!@param ntm number of tracers
-      integer, parameter :: oldNTM=ntm_O18+ntm_gasexch+ntm_lerner+
-     *                          ntm_water+ntm_koch+ntm_vbs+ntm_dust+
-     *                          ntm_het+ntm_nitrate+ntm_cosmo+
-     *                          ntm_ocean+ntm_air+ntm_chem+
-     *                          ntm_shindell_extra+ntm_ococean
-
 #endif  /* TRACERS_TOMAS */
 #endif
-
-      integer :: NTM
 
 !@var N_XXX: variable names of indices for tracers (init = 0)
 #ifdef TRACERS_TOMAS
@@ -597,7 +590,42 @@ c note: not applying CPP when declaring counts/lists.
       subroutine initTracerCom()
       use TracerBundle_mod, only: TracerBundle
 
-      tracers = TracerBundle()
+      tracers = newTracerBundle()
+
+      call tracers%addDefault('mass2vol', 0.0d0)
+      call tracers%addDefault('dodrydep', .false.)
+      call tracers%addDefault('t_qlimit',.true.)
+      call tracers%addDefault('trpdens', 0.0d0)
+      call tracers%addDefault('needtrs', .false.)
+      call tracers%addDefault('trdecay', 0.0d0)
+
+      call tracers%addDefault('trsi0', 0.0d0)
+      call tracers%addDefault('trw0', 0.0d0)
+      call tracers%addDefault('vol2mass', 0.0d0)
+      call tracers%addDefault('F0', 0.0d0)
+      call tracers%addDefault('HSTAR', 0.0d0)
+      call tracers%addDefault('do_fire', .false.)
+      call tracers%addDefault('nBBsources', 0)
+
+      call tracers%addDefault('trradius', 0.0d0)
+      call tracers%addDefault('tr_wd_TYPE', nGas)
+      call tracers%addDefault('tr_RKD', 0.0d0)
+      call tracers%addDefault('tr_DHD', 0.0d0)
+      call tracers%addDefault('fq_aer', 0.0d0)
+      call tracers%addDefault('rc_washt', 1.d-1)
+      call tracers%addDefault('isDust', 0)
+      call tracers%addDefault('H2ObyCH4', 0.0d0)
+      call tracers%addDefault('dowetdep', .false.)
+      call tracers%addDefault('ntrocn', 0)
+      call tracers%addDefault('conc_from_fw', .true.)
+
+      call tracers%addDefault('ntisurfsrc', 0)
+      call tracers%addDefault('iso_index', 1)
+      call tracers%addDefault('om2oc', 1.4d0)
+      call tracers%addDefault('to_volume_MixRat', 0)
+      call tracers%addDefault('to_conc', 0)
+      call tracers%addDefault('TRLI0', 0.0d0)
+
       call initTracerMetadata()
 
       end subroutine initTracerCom
@@ -684,28 +712,43 @@ c note: not applying CPP when declaring counts/lists.
       end subroutine remake_tracer_lists
 
       integer function ntsurfsrc_1(index) result(n)
+      use OldTracer_mod, only: trname
       use Tracer_mod
       integer, intent(in) :: index
 
-      n = ntsurfsrc(tracers, index)
+      class (Tracer), pointer :: t
+
+      t => tracers%getReference(trname(index))
+      n = t%ntsurfsrc
       
       end function ntsurfsrc_1
 
-      function ntsurfsrc_all() result(n)
+      function ntsurfsrc_all() result(nSurf)
       use Tracer_mod
-      integer, pointer :: n(:)
+      integer, pointer :: nSurf(:)
 
-      allocate(n(getNumTracers(tracers)))
-      n = ntsurfsrc(tracers)
+      integer :: i, n
+
+      n = tracers%size()
+      allocate(nSurf(n))
+
+      do i = 1, n
+        nSurf(i) = ntsurfsrc(i)
+      end do
       
       end function ntsurfsrc_all
 
       subroutine set_ntsurfsrc(index, value)
+      use OldTracer_mod, only: trname
       use Tracer_mod
       integer, intent(in) :: index
       integer, intent(in) :: value
+      
+      class (Tracer), pointer :: t
 
-      call setNtsurfsrc(tracers, index, value)
+      t => tracers%getReference(trname(index))
+      t%ntSurfSrc = value
+
       end subroutine set_ntsurfsrc
 
       SUBROUTINE ALLOC_TRACER_COM(grid)
@@ -760,7 +803,7 @@ C****
       subroutine syncProperty(tracers, property, setValue, values)
       use Dictionary_mod, only: sync_param
       use TracerBundle_mod
-      type (TracerBundle_type), intent(inout) :: tracers
+      type (TracerBundle), intent(inout) :: tracers
       character(len=*) :: property
       interface
         subroutine setValue(n,value)
@@ -774,7 +817,7 @@ C****
       integer :: n 
       integer :: i
 
-      n = getNumTracers(tracers)
+      n = tracers%size()
       scratch = values
       call sync_param(property,scratch,n)
       do i = 1, n

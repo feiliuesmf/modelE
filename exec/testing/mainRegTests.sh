@@ -107,9 +107,13 @@ watchJob()
    if [ "$CREATE_DIFF" == "YES" ]; then
      echo "Run diffreport..."
      # Submit job to run diffreport.x
-     jobID=`qsub $MODELROOT/exec/testing/diffreport.j`
-     jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
-     watchJob $jobID
+     if [ -z "$MOCKMODELE" ]; then
+       jobID=`qsub $MODELROOT/exec/testing/diffreport.j`
+       jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
+       watchJob $jobID
+     else
+       $MODELROOT/exec/testing/diffreport.j
+     fi
    else
      echo "Skipped diffreport (CREATEDIFF=$CREATE_DIFF)"
      echo "Skipped diffreport (CREATEDIFF=$CREATE_DIFF)" > $CONFIG.diff

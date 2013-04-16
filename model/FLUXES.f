@@ -54,7 +54,6 @@
 !@var SOLAR absorbed solar radiation (J/m^2)
 !@var TRHEAT net LW flux accumulation (J/m^2)
      &      E0,SOLAR,TRHEAT
-C**** Momemtum stresses are calculated as if they were over whole box
 !@var DMUA,DMVA momentum flux from atmosphere (kg/m s)
 !@+   On atmospheric A grid (tracer point)
      &     ,DMUA, DMVA
@@ -1878,7 +1877,9 @@ C**** Ensure that no round off error effects land with ice and earth
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       ALLOCATE(pprec(I_0H:I_1H,J_0H:J_1H),STAT = IER)
+      pprec = 0
       ALLOCATE(pevap(I_0H:I_1H,J_0H:J_1H),STAT = IER)
+      pevap = 0
       ALLOCATE(dust_flux_glob(I_0H:I_1H,J_0H:J_1H,Ntm_dust),STAT = IER)
 #ifdef TRACERS_DRYDEP
       ALLOCATE(depo_turb_glob(I_0H:I_1H,J_0H:J_1H,Ntm)

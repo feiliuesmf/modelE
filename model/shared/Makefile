@@ -13,6 +13,10 @@ F90SRCS += SpecialFunctions.F90
 F90SRCS += TimeConstants.F90 BaseTime.F90 TimeAndCalendar.F90 Calendar.F90 Month.F90 Time.F90
 F90SRCS += ModelClock.F90 JulianCalendar_mod.F90
 
+F90SRCS += AbstractAttribute.F90 AttributeReference.F90
+F90SRCS += AttributeHashMap.F90
+F90SRCS += Attributes.F90 AttributeDictionary.F90
+
 ifndef GISSCLIM_DIR
        GISSCLIM_DIR := $(shell pwd)/../..
 endif

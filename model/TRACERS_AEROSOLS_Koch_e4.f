@@ -659,6 +659,7 @@ C TOMAS don't allow offline SS!
 
       SUBROUTINE aerosol_gas_chem
 !@sum aerosol gas phase chemistry
+!@vers 2013/03/27
 !@auth Dorothy Koch
       use OldTracer_mod, only: trname, tr_mm
       use TRACER_COM, only: ntm, oh_live, no3_live, trm
@@ -693,7 +694,7 @@ C TOMAS don't allow offline SS!
       use atm_com, only : t,q
       use model_com, only: modelEclock
       USE MODEL_COM, only: dtsrc
-      USE ATM_COM, only: pmid,am,pk,LTROPO,byam
+      USE ATM_COM, only: pmid,MA,pk,LTROPO,byMA
       USE PBLCOM, only : dclev
       USE GEOM, only: axyp,imaxj,BYAXYP
       USE FLUXES, only: tr3Dsource
@@ -897,7 +898,7 @@ c       maxl = ltropo(i,j)
 c     if(l.le.maxl) then
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
-      mm=am(l,i,j)*axyp(i,j)
+      mm = MA(l,i,j)*axyp(i,j)
       tt = 1.d0/te
 
 c DMM is number density of air in molecules/cm3
@@ -915,7 +916,7 @@ c    Aging of industrial carbonaceous aerosols
 #ifdef TRACERS_AEROSOLS_VBS
         case ('vbsAm2') ! This handles all VBS tracers
           kg2ugm3=1.d9*(1.d2*pmid(l,i,j))*mair/
-     &            (am(l,i,j)*axyp(i,j)*gasc*te)
+     &            (MA(l,i,j)*axyp(i,j)*gasc*te)
           vbs_cond%dt=dtsrc
           vbs_cond%OH=ohmc
           vbs_cond%temp=te
@@ -1084,15 +1085,15 @@ c     if(l.le.maxl) then
 
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
-      mm=am(l,i,j)*axyp(i,j)
+      mm = MA(l,i,j)*axyp(i,j)
       tt = 1.d0/te
       dmm=ppres/(.082d0*te)*6.02d20
       ohmc = oh(i,j,l)          !oh is alread in units of molecules/cm3
 #ifdef TRACERS_HETCHEM
       if (COUPLED_CHEM.ne.1) then
-      o3mc=o3_offline(i,j,l)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*BYAM(L,I,J)
+      o3mc=o3_offline(i,j,l)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*byMA(L,I,J)
       else
-        o3mc=trm(i,j,l,n_Ox)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*BYAM(L,I,J)
+        o3mc=trm(i,j,l,n_Ox)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*byMA(L,I,J)
       endif
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\

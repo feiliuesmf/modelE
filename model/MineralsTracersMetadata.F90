@@ -36,9 +36,9 @@ contains
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
-  subroutine Minerals_InitMetadata(tracer)
+  subroutine Minerals_InitMetadata(pTracer)
 !------------------------------------------------------------------------------
-    type (Tracer_type), pointer :: tracer
+    class (Tracer), pointer :: pTracer
 
     call  Clayilli_setSpec('Clayilli') ! http://webmineral.com/data/Illite.shtml
     call  Claykaol_setSpec('Claykaol') ! http://www.webmineral.com/data/Kaolinite.shtml

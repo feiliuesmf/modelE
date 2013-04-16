@@ -1522,11 +1522,14 @@ c*
       CALL INT_AG2OG(atm%COSZ1,ocnatm%COSZ1, aWEIGHT)
       CALL INT_AG2OG(atm%WSAVG,ocnatm%WSAVG, aWEIGHT)
 #endif
-      aWEIGHT(:,:) = 1.d0
-      
+
+      aWEIGHT(:,:) = 1.d0 - ice%RSI(:,:)      
       CALL INT_AG2OG(atm%DMUA,atm%DMVA,
      &     ocnatm%DMUA,ocnatm%DMVA,
      &     aWEIGHT,atm%FOCEAN,atm%SINI,atm%COSI)
+      ! ocean model still wants ice-masked wind stress
+      ocnatm%DMUA = ocnatm%DMUA*(1.d0-ocnice%RSI)
+      ocnatm%DMVA = ocnatm%DMVA*(1.d0-ocnice%RSI)
 
       deallocate(aweight,atmp,aFact)
 
