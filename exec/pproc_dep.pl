@@ -3,7 +3,7 @@
 # to skip dependencies on certan modules list them here
 # for example:
 # $skip_modules="domain_decomp.mod|model_com.mod|constant.mod";
-$skip_modules="";
+$skip_modules="iso_c_binding.mod";
 
 while(<>) {
 
