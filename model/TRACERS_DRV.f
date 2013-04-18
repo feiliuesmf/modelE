@@ -7200,12 +7200,14 @@ c**** landice
               trlndi(n,i,j,:)=trli0(n)*(ace1li+ace2li)	! calls trli0_s()
               trsnowli(n,i,j,:)=trli0(n)*snowli(i,j,:)
               do ipatch=1,ubound(atmglas,1)
+                atmglas_hp(ipatch)%gtracer(n,i,j)=trli0(n)
                 atmglas(ipatch)%gtracer(n,i,j)=trli0(n)
               enddo
             else
               trlndi(n,i,j,:)=0.
               trsnowli(n,i,j,:)=0.
               do ipatch=1,ubound(atmglas,1)
+                atmglas_hp(ipatch)%gtracer(n,i,j)=0.
                 atmglas(ipatch)%gtracer(n,i,j)=0.
               enddo
             end if

@@ -339,6 +339,7 @@ C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
          enddo
 #endif
       ! Part of PBL_DRV.f, uses atm/srf exchange variables
+      ! Initializes boundary layer calc each surface time step
       call loadbl
 
 #ifdef TRACERS_ON

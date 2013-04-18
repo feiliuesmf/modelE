@@ -1741,10 +1741,12 @@ C**** fluxes associated with variable lake fractions
       J_0 = grd_dum%J_STRT
       J_1 = grd_dum%J_STOP
 !      print *,'ALLOCATE atmglas', 1-min(nhc_local,2)/2, nhc_local
-      ALLOCATE(atmglas(1-min(nhc_local,2)/2:nhc_local), STAT=IER)
 #ifdef GLINT2
       ALLOCATE(atmglas_hp(1-min(nhc_local,2)/2:nhc_local), STAT=IER)
 #endif
+      ! nhc=1 --> lbound = 1
+      ! nhc>1 --> lbound = 0   (zeroth element is for sum)
+      ALLOCATE(atmglas(1-min(nhc_local,2)/2:nhc_local), STAT=IER)
       ALLOCATE(FLAND(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(FOCEAN(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(FLICE(I_0H:I_1H,J_0H:J_1H), STAT = IER)
@@ -1941,27 +1943,27 @@ C**** Ensure that no round off error effects land with ice and earth
 
       do k=lbound(atmglas,1),ubound(atmglas,1)
         write(c2,'(i2.2)') k
-        atmglas(k)%surf_name = 'gla'//c2
 #ifdef GLINT2
         atmglas_hp(k)%surf_name = 'gla'//c2
 #endif
+        atmglas(k)%surf_name = 'gla'//c2
 
 #ifdef TRACERS_ON
-        atmglas(k)%ntm = ntm
 #ifdef GLINT2
         atmglas_hp(k)%ntm = ntm
 #endif
+        atmglas(k)%ntm = ntm
 #endif
-        call alloc_xchng_vars(grid,atmglas(k))
 #ifdef GLINT2
         call alloc_xchng_vars(grid,atmglas_hp(k))
 #endif
-        atmglas(k)%grid => grd_dum
-        atmglas(k)%lat(:,:) = lat2d(:,:)
+        call alloc_xchng_vars(grid,atmglas(k))
 #ifdef GLINT2
         atmglas_hp(k)%grid => grd_dum
         atmglas_hp(k)%lat(:,:) = lat2d(:,:)
 #endif
+        atmglas(k)%grid => grd_dum
+        atmglas(k)%lat(:,:) = lat2d(:,:)
       enddo
 
       do k=lbound(atmlnds,1),ubound(atmlnds,1)
@@ -2012,12 +2014,12 @@ C**** Ensure that no round off error effects land with ice and earth
      &       atmices(1+k-p1ice)%atmsrf_xchng_vars,asflx(k))
       enddo
       do k=p1gla,p2gla
-        call alloc_xchng_vars(grid,
-     &       atmglas(1+k-p1gla)%atmsrf_xchng_vars,asflx(k))
 #ifdef GLINT2
         call alloc_xchng_vars(grid,
      &       atmglas_hp(1+k-p1gla)%atmsrf_xchng_vars,asflx(k))
 #endif
+        call alloc_xchng_vars(grid,
+     &       atmglas(1+k-p1gla)%atmsrf_xchng_vars,asflx(k))
       enddo
       do k=p1lnd,p2lnd
         call alloc_xchng_vars(grid,

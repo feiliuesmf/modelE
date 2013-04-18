@@ -85,9 +85,6 @@
       do ihc=1+lbound(atmglas,1),ubound(atmglas,1)
         do j=j_0,j_1
         do i=i_0,i_1
-          atmglas(ihc)%fhc(i,j) = fhc(i,j,ihc)
-          atmglas(ihc)%ftype(i,j) =
-     &         flice(i,j)*atmglas(ihc)%fhc(i,j)
 #ifdef GLINT2
           ! Set height point "area" equal to amount that total value
           ! will increase when we increase this height point value by
@@ -98,6 +95,9 @@
           atmglas_hp(ihc)%ftype(i,j) =
      &         flice(i,j)*atmglas_hp(ihc)%fhc(i,j)
 #endif
+          atmglas(ihc)%fhc(i,j) = fhc(i,j,ihc)
+          atmglas(ihc)%ftype(i,j) =
+     &         flice(i,j)*atmglas(ihc)%fhc(i,j)
         enddo
         enddo
       enddo

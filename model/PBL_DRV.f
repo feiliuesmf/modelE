@@ -1036,7 +1036,14 @@ c ----------------------------------------------------------------------
       USE MODEL_COM
       USE GEOM, only : imaxj
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
-      USE FLUXES, only : asflx,atmocns,atmices,atmglas,atmlnds
+      USE FLUXES, only : asflx,atmocns,atmices,atmlnds
+#ifdef GLINT2
+#define ATMGLAX atmglas_hp
+#else
+#define ATMGLAX atmglas
+#endif
+      USE FLUXES, only : ATMGLAX
+
       IMPLICIT NONE
       integer i,j,ip  !@var i,j,ip loop variable
       type(atmsrf_xchng_vars), pointer :: ain,aout
@@ -1088,9 +1095,10 @@ c ******* itype=2: Ocean ice
           enddo
 
 c ******* itype=3: Land ice
-
-          do ip=1,ubound(atmglas,1)
-            aout => atmglas(ip)%atmsrf_xchng_vars
+! We use atmglas_hp here because PBL() is run on
+! atmglas_hp, not atmglas
+          do ip=1,ubound(ATMGLAX,1)
+            aout => ATMGLAX(ip)%atmsrf_xchng_vars
             if (aout%ipbl(i,j).eq.0) then
               if (atmlnds(1)%ipbl(i,j).eq.1) then
                 ain => atmlnds(1)%atmsrf_xchng_vars
@@ -1104,8 +1112,8 @@ c ******* itype=4: Land
           do ip=1,ubound(atmlnds,1)
             aout => atmlnds(ip)%atmsrf_xchng_vars
             if (aout%ipbl(i,j).eq.0) then
-              if (atmglas(1)%ipbl(i,j).eq.1) then
-                ain => atmglas(1)%atmsrf_xchng_vars
+              if (ATMGLAX(1)%ipbl(i,j).eq.1) then
+                ain => ATMGLAX(1)%atmsrf_xchng_vars
                 call setbl(ain,aout,i,j)
               elseif (atmocns(1)%ipbl(i,j).eq.1) then
                 ain => atmocns(1)%atmsrf_xchng_vars
