@@ -235,7 +235,8 @@ C****
       do ihp=1,ubound(atmglas_hp,1)
         CALL PRECIP_LI(atmglas_hp(ihp),ihp)
       enddo
-      call bundle_hp_to_hc(bundle_precip_li,atmglas_hp, atmglas)
+      call bundle_hp_to_hc(bundle_precip_li,
+     &       atmglas_hp(1:), atmglas(1:))
 #else
       do ipatch=1,ubound(atmglas,1)
         CALL PRECIP_LI(atmglas(ipatch),ipatch)
@@ -337,7 +338,7 @@ C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
            asflx(ipatch)%trsrfflx(:,:,:) = 0.
          enddo
 #endif
-
+      ! Part of PBL_DRV.f, uses atm/srf exchange variables
       call loadbl
 
 #ifdef TRACERS_ON
@@ -785,7 +786,8 @@ C****
 
       ! Convert variables set in surface_landice from height point
       ! to height class space.
-      call bundle_hp_to_hc(bundle_surface_landice, atmglas_hp, atmglas)
+      call bundle_hp_to_hc(bundle_surface_landice,
+     &    atmglas_hp(1:), atmglas(1:))
 #else
       do ipatch=1,ubound(atmglas,1)
 !        print *,'SURFACE_LANDICE',ipatch
@@ -986,7 +988,8 @@ C**** APPLY SURFACE FLUXES TO LAND ICE (and modify fluxes as well)
 
       ! Convert variables set in surface_landice from height point
       ! to height class space.
-      call bundle_hp_to_hc(bundle_ground_li, atmglas_hp, atmglas)
+      call bundle_hp_to_hc(bundle_ground_li,
+     &     atmglas_hp(1:), atmglas(1:))
 #else
       do ipatch=1,ubound(atmglas,1)
         CALL GROUND_LI(atmglas(ipatch),ipatch)

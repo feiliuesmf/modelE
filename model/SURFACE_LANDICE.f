@@ -349,6 +349,8 @@ c      pbl_args%trhr0 = igla%flong(I,J)
 C**** Call pbl to calculate near surface profile
 ! NOTE: PTYPE is used here only to sum into diagnostics
 ! We atmgla%fhc with atmgla_hp%fhp (which is approximate)
+!      print *,'surface_landice: call pbl',i,j,ihc
+!      print *,'uab',igla%uabl(1,i,j)
       CALL PBL(I,J,ITYPE,PTYPE,pbl_args,igla)
 
       us = pbl_args%us

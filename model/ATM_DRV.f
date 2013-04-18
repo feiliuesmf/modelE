@@ -731,7 +731,9 @@ c set-up for MPI implementation
       use ghy_tracers, only: initGhyTracers
 #endif
       IMPLICIT NONE
+#ifdef GLINT2
       include 'mpif.h'      ! Needed for GLINT2
+#endif
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       call initTracerCom

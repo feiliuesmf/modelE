@@ -31,6 +31,7 @@ implicit none
 	integer :: ri, rj, rk
 	integer :: ci, cj, ck
 
+print *,'BEGIN multiply_by_bundle'
 	nvars = size(oval,1)
 	nhc = size(oval,2)
 	nmat = size(mat%vals)	! Number of non-zero elements in the matrix
@@ -46,19 +47,20 @@ implicit none
 	do i=1,nmat
 		! Index for height points (row in matrix)
 		ri = mat%rows_i(i)		! 1..im
-		rj = mat%rows_i(i)		! 1..jm
-		rk = mat%rows_i(i)		! Height class
+		rj = mat%rows_j(i)		! 1..jm
+		rk = mat%rows_k(i)		! Height class
 
 		! Index for height classes (column in matrix)
-		ci = mat%rows_i(i)
-		cj = mat%rows_i(i)
-		ck = mat%rows_i(i)		! Height class
+		ci = mat%cols_i(i)
+		cj = mat%cols_j(i)
+		ck = mat%cols_k(i)		! Height class
 
 		do j=1,nvars
 			oval(j,ck)%p(ci,cj) = oval(j,ck)%p(ci,cj) + &
 				mat%vals(i) * ival(j,rk)%p(ri,rj)
 		end do
 	end do
+print *,'END multiply_by_bundle'
 end subroutine multiply_by_bundle
 
 ! ----------------------------------------------------
@@ -74,12 +76,13 @@ USE EXCHANGE_TYPES, only : atmgla_xchng_vars
 	ntm = size(atmglas%gtracer,1)	! Or any variable with ntm dimension
 	nvars = nvars + 1 * ntm		! Must match below
 #endif
+	print *,'BEGIN bundle_init_li'
 	nhc = size(atmglas,1)
 
 	allocate(vars(nvars,nhc))
 
-	iv = 0
 	do ih=1,nhc
+		iv = 0
 		iv = iv + 1
 		vars(iv,ih)%p => atmglas(ih)%snow
 		iv = iv + 1
@@ -102,7 +105,7 @@ USE EXCHANGE_TYPES, only : atmgla_xchng_vars
 
 	! Now iv should equal nvars
 	if (iv /= nvars) then
-		write (6,*) 'bundle_init_li: nvars must be set to',iv
+		write (6,*) 'bundle_init_li: nvars = ',nvars,'must be set to',iv
 		call stop_model( 'bundle_init_li::nvars too big or small', 255 )
 	end if
 end subroutine bundle_init_li
@@ -123,11 +126,12 @@ USE EXCHANGE_TYPES, only : atmgla_xchng_vars
 #endif
 #endif
 	nhc = size(atmglas,1)
-
+	print *,'BEGIN bundle_precip_li nhc = ',nhc
 	allocate(vars(nvars,nhc))
 
 	iv = 0
 	do ih=1,nhc
+		iv = 0
 		iv = iv + 1
 		vars(iv,ih)%p => atmglas(ih)%runo
 		iv = iv + 1
@@ -160,7 +164,7 @@ USE EXCHANGE_TYPES, only : atmgla_xchng_vars
 
 	! Now iv should equal nvars
 	if (iv /= nvars) then
-		write (6,*) 'bundle_precip_li: nvars must be set to',iv
+		write (6,*) 'bundle_precip_li: nvars = ',nvars,'must be set to',iv
 		call stop_model( 'bundle_precip_li::nvars too big or small', 255 )
 	end if
 end subroutine bundle_precip_li
@@ -180,12 +184,14 @@ USE EXCHANGE_TYPES, only : atmgla_xchng_vars
 	nvars = nvars + 1 * ntm
 #endif
 #endif
+	print *,'BEGIN bundle_ground_li'
 	nhc = size(atmglas,1)
 
 	allocate(vars(nvars,nhc))
 
 	iv = 0
 	do ih=1,nhc
+		iv = 0
 		iv = iv + 1
 		vars(iv,ih)%p => atmglas(ih)%e1
 		iv = iv + 1
@@ -228,8 +234,8 @@ USE EXCHANGE_TYPES, only : atmgla_xchng_vars
 
 	! Now iv should equal nvars
 	if (iv /= nvars) then
-		write (6,*) 'bundle_precip_li: nvars must be set to',iv
-		call stop_model( 'bundle_precip_li::nvars too big or small', 255 )
+		write (6,*) 'bundle_ground_li: nvars = ',nvars,'must be set to',iv
+		call stop_model( 'bundle_ground_li::nvars too big or small', 255 )
 	end if
 end subroutine bundle_ground_li
 ! ---------------------------------------------------------
@@ -245,12 +251,14 @@ USE EXCHANGE_TYPES, only : atmgla_xchng_vars
 	ntm = size(atmglas%gtracer,1)	! Or any variable with ntm dimension
 	nvars = nvars + 2 * ntm		! Must match below
 #endif
+	print *,'BEGIN bundle_surface_landice'
 	nhc = size(atmglas,1)
 
 	allocate(vars(nvars,nhc))
 
 	iv = 0
 	do ih=1,nhc
+		iv = 0
 		iv = iv + 1
 		vars(iv,ih)%p => atmglas(ih)%dth1
 		iv = iv + 1
@@ -301,8 +309,8 @@ USE EXCHANGE_TYPES, only : atmgla_xchng_vars
 
 	! Now iv should equal nvars
 	if (iv /= nvars) then
-		write (6,*) 'bundle_precip_li: nvars must be set to',iv
-		call stop_model( 'bundle_precip_li::nvars too big or small', 255 )
+		write (6,*) 'bundle_surface_landice: nvars = ',nvars,'must be set to',iv
+		call stop_model( 'bundle_surface_landice::nvars too big or small', 255 )
 	end if
 end subroutine bundle_surface_landice
 ! ---------------------------------------------------------
@@ -310,8 +318,8 @@ subroutine bundle_hp_to_hc(bundler, atmglas_hp, atmglas)
 	USE EXCHANGE_TYPES, only : atmgla_xchng_vars
 	use hp2hc_types
 	implicit none
-	type(atmgla_xchng_vars), allocatable, dimension(:) :: atmglas_hp
-	type(atmgla_xchng_vars), allocatable, dimension(:) :: atmglas
+	type(atmgla_xchng_vars), dimension(:) :: atmglas_hp
+	type(atmgla_xchng_vars), dimension(:) :: atmglas
 	interface
 		subroutine bundler(atmglas, vars)
 			USE EXCHANGE_TYPES, only : atmgla_xchng_vars
@@ -323,10 +331,16 @@ subroutine bundle_hp_to_hc(bundler, atmglas_hp, atmglas)
 	! ----------------------------------------------
 	type(double_2_ptr), dimension(:,:), allocatable :: hp, hc
 
+	! Dummy: Just copy over
+	atmglas(:) = atmglas_hp(:)
+	return
+
+print *,'BEGIN bundle_hp_to_hc'
 	call bundler(atmglas_hp, hp)
 	call bundler(atmglas, hc)
 
 	call multiply_by_bundle(hp_to_hc, hp, hc)
+print *,'END bundle_hp_to_hc'
 end subroutine bundle_hp_to_hc
 ! ----------------------------------------------------
 

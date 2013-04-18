@@ -140,7 +140,8 @@ C**** set GTEMP array for landice
       END DO ! ihc
 #undef ATMGLAX
 #ifdef GLINT2
-      call bundle_hp_to_hc(bundle_init_li, atmglas_hp, atmglas)
+      call bundle_hp_to_hc(bundle_init_li,
+     &     atmglas_hp(1:), atmglas(1:))
 #endif
       call avg_patches_srfstate_exports(grid,
 c     &     atmglas,atmgla, ! gfortran prob. if passed as class() args
