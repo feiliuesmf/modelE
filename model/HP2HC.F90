@@ -36,6 +36,16 @@ print *,'BEGIN multiply_by_bundle'
 	nhc = size(oval,2)
 	nmat = size(mat%vals)	! Number of non-zero elements in the matrix
 
+! Dummy: just copy over
+do j=1,nvars
+	do k=1,nhc
+		oval(j,k)%p = ival(j,k)%p
+	end do
+end do
+return
+
+
+print *,'multiply_by_bundle: 1'
 	! Clear the arrays
 	do j=1,nvars
 		do k=1,nhc
@@ -43,6 +53,12 @@ print *,'BEGIN multiply_by_bundle'
 		end do
 	end do
 
+!do i=1,5
+!	print *,'hp2hc',i,mat%rows_i(i),mat%rows_j(i),mat%rows_k(i),mat%cols_i(i),mat%cols_j(i),mat%cols_k(i)
+!end do
+
+
+!print *,'multiply_by_bundle: 2'
 	! Do the sparse matrix multiply on our bundled values
 	do i=1,nmat
 		! Index for height points (row in matrix)
@@ -55,11 +71,26 @@ print *,'BEGIN multiply_by_bundle'
 		cj = mat%cols_j(i)
 		ck = mat%cols_k(i)		! Height class
 
+!print *,'multiply_by_bundle',i
+!print *,'row',ri,rj,rk
+!print *,'col',ci,cj,ck
 		do j=1,nvars
+!print *,'oval 1:', lbound(oval,1), ubound(oval,1)
+!print *,'oval 2:', lbound(oval,2), ubound(oval,2)
+!print *,'ival 1:', lbound(ival,1), ubound(ival,1)
+!print *,'ival 2:', lbound(ival,2), ubound(ival,2)
+!print *,'multiply_by_bundle',i,j,ci,cj,ri,rj,oval(j,ck)%p,ival(j,rk)%p
 			oval(j,ck)%p(ci,cj) = oval(j,ck)%p(ci,cj) + &
 				mat%vals(i) * ival(j,rk)%p(ri,rj)
 		end do
 	end do
+
+	! Copy HP=1 to HC=1
+	! (this is not explicitly encoded in the matrix)
+	do j=1,nvars
+		oval(j,1)%p = ival(j,1)%p
+	end do
+
 print *,'END multiply_by_bundle'
 end subroutine multiply_by_bundle
 
@@ -331,15 +362,17 @@ subroutine bundle_hp_to_hc(bundler, atmglas_hp, atmglas)
 	! ----------------------------------------------
 	type(double_2_ptr), dimension(:,:), allocatable :: hp, hc
 
-	! Dummy: Just copy over
-	atmglas(:) = atmglas_hp(:)
-	return
+!	! Dummy: Just copy over
+!	atmglas(:) = atmglas_hp(:)
+!	return
 
 print *,'BEGIN bundle_hp_to_hc'
 	call bundler(atmglas_hp, hp)
 	call bundler(atmglas, hc)
-
+	
+print *,'bundle_hp_to_hc: A'
 	call multiply_by_bundle(hp_to_hc, hp, hc)
+
 print *,'END bundle_hp_to_hc'
 end subroutine bundle_hp_to_hc
 ! ----------------------------------------------------

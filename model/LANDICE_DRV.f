@@ -110,7 +110,7 @@ C**** set GTEMP array for landice
             ATMGLAX(ihc)%SNOW(I,J)=SNOWLI(I,J,IHC)
             ATMGLAX(ihc)%GTEMP(I,J)=TLANDI(1,I,J,IHC)
             ATMGLAX(ihc)%GTEMP2(I,J)=TLANDI(2,I,J,IHC)
-            ATMGLAX(ihc)%GTEMPR(I,J)   =TLANDI(1,I,J,IHC)+TF
+            ATMGLAX(ihc)%GTEMPR(I,J)=TLANDI(1,I,J,IHC)+TF
 
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then

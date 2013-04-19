@@ -105,7 +105,7 @@ C****
 
       type (Timer_type), pointer :: aTimer
 ! ======================= MAIN BODY ======================================
-      print *, 'SURFACE_LANDICE begin'
+      print *, 'SURFACE_LANDICE begin   ihc =',ihc
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -351,7 +351,7 @@ C**** Call pbl to calculate near surface profile
 ! We atmgla%fhc with atmgla_hp%fhp (which is approximate)
 !      print *,'surface_landice: call pbl',i,j,ihc
 !      print *,'uab',igla%uabl(1,i,j)
-      CALL PBL(I,J,ITYPE,PTYPE,pbl_args,igla)
+      CALL PBL(I,J,IHC,ITYPE,PTYPE,pbl_args,igla)
 
       us = pbl_args%us
       vs = pbl_args%vs
@@ -606,7 +606,7 @@ C****
       use exchange_types, only : atmgla_xchng_vars
 
       ! Stuff needed for downscaling
-      use landice_com, only : elevhc, HC_T_LAPSE_RATE
+      use landice_com, only : elevhp, HC_T_LAPSE_RATE
       use constant, only : kapa, Grav
       use atm_com, only : zatmo
       USE GEOM, only : imaxj
@@ -662,7 +662,7 @@ c
           DO I=I_0,IMAXJ(J)
             ! Downscale Pressure
             ! See eq. 3.7: http://paoc.mit.edu/labweb/notes/chap3.pdf
-            zdiff = elevhc(i,j,ipatch) - zatmo(i,j)/Grav
+            zdiff = elevhp(i,j,ipatch) - zatmo(i,j)/Grav
             igla%SRFP(i,j) = atmgla%SRFP(i,j) * exp(-zdiff/H)
 
             ! Set other things that rely on downscaling
@@ -706,7 +706,7 @@ c
       use exchange_types, only : atmgla_xchng_vars
 
       ! Stuff needed for downscaling
-      use landice_com, only : elevhc, HC_T_LAPSE_RATE
+      use landice_com, only : elevhp, HC_T_LAPSE_RATE
       use constant, only : kapa, Grav
       use atm_com, only : zatmo
       USE GEOM, only : imaxj
@@ -766,7 +766,7 @@ c
            atmglaT_K = atmgla%TEMP1(i,j) * atmgla%SRFPK(i,j)
 
            ! Downscale temperature, 8K/km (.008 K/m)
-           zdiff = elevhc(i,j,ipatch) - zatmo(i,j)/Grav
+           zdiff = elevhp(i,j,ipatch) - zatmo(i,j)/Grav
            iglaT_K = atmglaT_K - zdiff * HC_T_LAPSE_RATE
 
            ! Convert back to potential temperature

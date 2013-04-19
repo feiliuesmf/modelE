@@ -20,6 +20,11 @@
 !      type(c_ptr) :: glint2   ! Handle to ice sheet coupler API
       integer :: nhc=1
       REAL*8 :: HC_T_LAPSE_RATE = .008		! Lapse rate to use in T downscaling, K/m
+
+!@usehp Integer-boolean array that tells whether height points are enabled
+!       in each grid cell.  (Generally they're only enabled for grid cells
+!       that overlap hi-res ice models)
+      INTEGER, ALLOCATABLE, DIMENSION(:,:,:) :: usehp
 !@fhc fraction of landice area in each height class (static for testing purposes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: fhc
 #ifdef GLINT2
@@ -27,10 +32,10 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: fhp_approx
 #endif
 
-!@var ELEVHC: surface elevation, per height class (m)
+!@var ELEVHP: surface elevation, per height class (m)
 ! ZATMO should be kept consistent with this.
 ! The value of this ONLY MATTERS for grid cells with landice
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: ELEVHC
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: ELEVHP
 
 !@var SNOWLI snow amount on land ice (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SNOWLI
@@ -85,12 +90,12 @@
       use  domain_decomp_atm, only : glint2
       use glint2_modele
       use hp2hc
-      use landice_com, only : fhp_approx
+      use landice_com, only : fhp_approx, usehp
 #endif
       USE RESOLUTION, ONLY : IM,JM,LM
       Use LANDICE_COM, Only: NHC,FHC,
      *   SNOWLI,TLANDI, MDWNIMP,EDWNIMP,
-     *   FSHGLM,FNHGLM, ELEVHC, HC_T_LAPSE_RATE
+     *   FSHGLM,FNHGLM, ELEVHP, HC_T_LAPSE_RATE
 #ifdef TRACERS_WATER
       USE LANDICE_COM, ONLY : TRSNOWLI, TRLNDI, TRDWNIMP
       USE TRACER_COM, only : NTM
@@ -122,10 +127,7 @@
 #endif
 
       ALLOCATE( FHC(I_0H:I_1H,J_0H:J_1H,NHC),
-#ifdef GLINT2
-     *          FHP_APPROX(I_0H:I_1H,J_0H:J_1H,NHC),
-#endif
-     *          ELEVHC(I_0H:I_1H,J_0H:J_1H,NHC),
+     *          ELEVHP(I_0H:I_1H,J_0H:J_1H,NHC),
      *          SNOWLI(I_0H:I_1H,J_0H:J_1H,NHC),
      *          TLANDI(2,I_0H:I_1H,J_0H:J_1H,NHC),
      *          MDWNIMP(I_0H:I_1H,J_0H:J_1H),
@@ -135,9 +137,13 @@
      *          STAT=IER)
       fhc(:,:,:) = 1d0/nhc
 #ifdef GLINT2
+      ALLOCATE(
+     *          USEHP(I_0H:I_1H,J_0H:J_1H,NHC),
+     *          FHP_APPROX(I_0H:I_1H,J_0H:J_1H,NHC))
+      usehp(:,:,:) = 0
       fhp_approx(:,:,:) = 1d0/nhc
 #endif
-      elevhc(:,:,:) = 0
+      elevhp(:,:,:) = 0
 #ifdef TRACERS_WATER
       ALLOCATE( TRSNOWLI(NTM,I_0H:I_1H,J_0H:J_1H,NHC),
      *          TRLNDI  (NTM,I_0H:I_1H,J_0H:J_1H,NHC),
@@ -162,9 +168,12 @@
       use pario, only : par_open,par_close
 #ifdef GLINT2
       use glint2_modele
-      use  domain_decomp_atm, only : glint2
+      use domain_decomp_atm, only : glint2
       use hp2hc, only : hp_to_hc
-      use landice_com, only : elevhc, fhp_approx, fhc
+      use landice_com, only : elevhp, fhp_approx, usehp, fhc
+      use fluxes, only : flice, flice_glint2
+      use constant, only : BYGRAV
+      use atm_com, only : zatmo
 #endif
       implicit none
       integer :: fid
@@ -176,7 +185,8 @@
       ! FHC was just read in new_io_landice().
       ! Fix up fhc, based on glint2 API
       call glint2_modele_init_landice_com(glint2,
-     &     fhc, elevhc, hp_to_hc, fhp_approx,
+     &     zatmo, BYGRAV, flice_glint2, flice,
+     &     usehp, fhc, elevhp, hp_to_hc, fhp_approx,
      &     grid%i_strt_halo, grid%j_strt_halo)
 #endif
 
@@ -196,9 +206,10 @@
       integer fid   !@var fid file id
       call defvar(grid,fid,fhc,'fhc(dist_im,dist_jm,nhc)')
 #ifdef GLINT2
+      call defvar(grid,fid,usehp,'usehp(dist_im,dist_jm,nhc)')
       call defvar(grid,fid,fhp_approx,'fhp_approx(dist_im,dist_jm,nhc)')
 #endif
-      call defvar(grid,fid,elevhc,'elevhc(dist_im,dist_jm,nhc)')
+      call defvar(grid,fid,elevhp,'elevhp(dist_im,dist_jm,nhc)')
       call defvar(grid,fid,snowli,'snowli(dist_im,dist_jm,nhc)')
       call defvar(grid,fid,tlandi,'tlandi(d2,dist_im,dist_jm,nhc)')
       call defvar(grid,fid,mdwnimp,'mdwnimp(dist_im,dist_jm)')
@@ -247,9 +258,10 @@ c      call defvar(grid,fid,tricbimp,'tricbimp(ntm,two)')
       case (iowrite)            ! output to restart file
         call write_dist_data(grid,fid,'fhc',fhc)
 #ifdef GLINT2
+        call write_dist_data(grid,fid,'usehp',usehp)
         call write_dist_data(grid,fid,'fhp_approx',fhp_approx)
 #endif
-        call write_dist_data(grid,fid,'elevhc',elevhc)
+        call write_dist_data(grid,fid,'elevhp',elevhp)
         call write_dist_data(grid,fid,'snowli',snowli)
         call write_dist_data(grid,fid,'tlandi',tlandi,jdim=3)
         call write_dist_data(grid,fid,'mdwnimp',mdwnimp)
@@ -277,9 +289,10 @@ c        call write_data(grid,fid,'tricbimp',tricbimp)
       case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'fhc',fhc)
 #ifdef GLINT2
+        call read_dist_data(grid,fid,'usehp',usehp)
         call read_dist_data(grid,fid,'fhp_approx',fhp_approx)
 #endif
-        call read_dist_data(grid,fid,'elevhc',elevhc)
+        call read_dist_data(grid,fid,'elevhp',elevhp)
         call read_dist_data(grid,fid,'snowli',snowli)
         call read_dist_data(grid,fid,'tlandi',tlandi,jdim=3)
 c set some defaults for quantities which may not be in the

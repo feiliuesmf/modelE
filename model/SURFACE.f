@@ -539,9 +539,9 @@ c      pbl_args%trhr0 = TRHR(0,I,J)
 !     PBL = "Planetary Boundary Layer"
 C**** Call pbl to calculate near surface profile
       if(itype == 1) then
-        CALL PBL(I,J,ITYPE,PTYPE,pbl_args,atmocn)
+        CALL PBL(I,J,1,ITYPE,PTYPE,pbl_args,atmocn)
       else
-        CALL PBL(I,J,ITYPE,PTYPE,pbl_args,atmice)
+        CALL PBL(I,J,1,ITYPE,PTYPE,pbl_args,atmice)
       endif
 c#ifdef TRACERS_ON
 c      trs(1:ntm) = pbl_args%trs(1:ntm)

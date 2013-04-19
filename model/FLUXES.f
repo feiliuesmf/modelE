@@ -1493,6 +1493,13 @@ c
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FEARTH0
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FLAKE0
 
+#ifdef GLINT2
+!@var FLICE_ICEMODEL Fraction of gridbox that's landice that
+!     comes from a GLINT2-related ice model.
+!     NOTE: FLICE_GLINT2 < FLICE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FLICE_GLINT2
+#endif
+
 !@param NSTYPE number of surface types for radiation purposes
       !INTEGER, PARAMETER :: NSTYPE=4
 
@@ -1750,6 +1757,9 @@ C**** fluxes associated with variable lake fractions
       ALLOCATE(FLAND(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(FOCEAN(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(FLICE(I_0H:I_1H,J_0H:J_1H), STAT = IER)
+#ifdef GLINT2
+      ALLOCATE(FLICE_GLINT2(I_0H:I_1H,J_0H:J_1H), STAT = IER)
+#endif
       ALLOCATE(FEARTH0(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(FLAKE0(I_0H:I_1H,J_0H:J_1H), STAT = IER)
 
@@ -1777,7 +1787,8 @@ C**** Actual array is set from restart file.
 
 #ifdef GLINT2
         ! Fix it up with GLINT2
-        call glint2_modele_compute_fgice(glint2,
+        call glint2_modele_compute_fgice(glint2, .true.,
+     &         FLICE_GLINT2,
      &         FLICE, FEARTH0, FOCEAN, FLAKE0,
      &     grid%i_strt_halo, grid%j_strt_halo)
 #endif

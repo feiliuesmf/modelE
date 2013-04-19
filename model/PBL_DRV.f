@@ -13,7 +13,7 @@
       public alloc_pbl_args, dealloc_pbl_args
       contains
 
-      SUBROUTINE PBL(I,J,ITYPE,PTYPE,pbl_args,atm)
+      SUBROUTINE PBL(I,J,IHC,ITYPE,PTYPE,pbl_args,atm)
 !@sum  PBL calculate pbl profiles for each surface type
 !@+        Contains code common for all surfaces
 !@auth Greg. Hartke/Ye Cheng
@@ -47,6 +47,7 @@
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: I,J  !@var I,J grid point
+      INTEGER, INTENT(IN) :: IHC  !@var Height class (or 1)
       INTEGER, INTENT(IN) :: ITYPE  !@var ITYPE surface type
       REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
       type (t_pbl_args) :: pbl_args
@@ -297,7 +298,7 @@ C        roughness lengths from Brutsaert for rough surfaces
       call advanc( pbl_args,coriol,utop,vtop,qtop,ztop,mdf
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
      &     ,dtdt_gcm,u1_after_aturb(i,j),v1_after_aturb(i,j)
-     &     ,i,j,itype
+     &     ,i,j,ihc,itype
      &     ,kms,kqs,z0m,z0h,z0q,w2_1,ufluxs,vfluxs,tfluxs,qfluxs
      &     ,upbl,vpbl,tpbl,qpbl,epbl
 #if defined(TRACERS_ON)

@@ -1075,7 +1075,7 @@ c**** call tracers stuff
 
       call get_canopy_temperaure(pbl_args%canopy_temperature, i, j)
 
-      call pbl(i,j,itype,ptype,pbl_args,atmlnd)
+      call pbl(i,j,1,itype,ptype,pbl_args,atmlnd)
 
 c****
       cdm = pbl_args%cm ! cmgs(itype,i,j)

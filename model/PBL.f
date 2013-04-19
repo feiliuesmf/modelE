@@ -278,7 +278,7 @@ CCC      real*8 :: bgrid
       subroutine advanc(pbl_args,coriol,utop,vtop,qtop,ztop,mdf
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
      &     ,dtdt_gcm,utop_old,vtop_old
-     &     ,ilong,jlat,itype
+     &     ,ilong,jlat,ihc,itype
      &     ,kms,kqs,z0m,z0h,z0q,w2_1,ufluxs,vfluxs,tfluxs,qfluxs
      &     ,u,v,t,q,e
 #if defined(TRACERS_ON)
@@ -307,6 +307,7 @@ c    input:
 !@var  dtime  time step
 !@var  ilong  longitude identifier
 !@var  jlat   latitude identifier
+!@var  ihc    Height class (for debugging printout)
 !@var  itype  1, ocean; 2, ocean ice; 3, land ice; 4, land
 !@var  psurf surface pressure
 !@var  trhr0 incident long wave radiation
@@ -413,7 +414,7 @@ c  internals:
       real*8, intent(in) :: coriol,utop,vtop,qtop,ztop
       real*8, intent(in) :: mdf
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
-      integer, intent(in) :: ilong,jlat,itype
+      integer, intent(in) :: ilong,jlat,ihc,itype
       real*8, intent(in) :: dtdt_gcm,utop_old,vtop_old
       !-- output:
       real*8, intent(out) :: kms,kqs,z0h,z0q,w2_1
@@ -518,7 +519,8 @@ c**** get input from pbl_args structure
 
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
-        print*,"advanc: i,j,itype=",ilong,jlat,itype,u(1),v(1),t(1),q(1)
+        print*,"advanc: i,j,ihc,itype=",ilong,jlat,ihc,
+     &       itype,u(1),v(1),t(1),q(1)
         call stop_model("PBL error in advanc",255)
       end if
 
