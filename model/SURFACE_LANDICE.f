@@ -53,6 +53,7 @@ C****
 
 #ifdef GLINT2
       use fluxes, only : flice
+      use landice_com, only : usedhp
 #endif
 
       IMPLICIT NONE
@@ -190,7 +191,7 @@ C****
       ! Model may expect that some things are zero
       ! call stop_model('Please double-check that model might expect some things to be defined for some boxes, even if there is no ice in that box.', -17)
 #ifdef GLINT2
-      if (FLICE(I,J) <= 0) cycle
+      if (usedhp(i,j,ihc) == 0) cycle
 #else
       if (igla%ftype(i,j) <= 0) cycle
 #endif

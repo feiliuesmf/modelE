@@ -21,10 +21,10 @@
       integer :: nhc=1
       REAL*8 :: HC_T_LAPSE_RATE = .008		! Lapse rate to use in T downscaling, K/m
 
-!@usehp Integer-boolean array that tells whether height points are enabled
+!@usedhp Integer-boolean array that tells whether height points are enabled
 !       in each grid cell.  (Generally they're only enabled for grid cells
 !       that overlap hi-res ice models)
-      INTEGER, ALLOCATABLE, DIMENSION(:,:,:) :: usehp
+      INTEGER, ALLOCATABLE, DIMENSION(:,:,:) :: usedhp
 !@fhc fraction of landice area in each height class (static for testing purposes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: fhc
 #ifdef GLINT2
@@ -90,7 +90,7 @@
       use  domain_decomp_atm, only : glint2
       use glint2_modele
       use hp2hc
-      use landice_com, only : fhp_approx, usehp
+      use landice_com, only : fhp_approx, usedhp
 #endif
       USE RESOLUTION, ONLY : IM,JM,LM
       Use LANDICE_COM, Only: NHC,FHC,
@@ -138,9 +138,9 @@
       fhc(:,:,:) = 1d0/nhc
 #ifdef GLINT2
       ALLOCATE(
-     *          USEHP(I_0H:I_1H,J_0H:J_1H,NHC),
+     *          USEDHP(I_0H:I_1H,J_0H:J_1H,NHC),
      *          FHP_APPROX(I_0H:I_1H,J_0H:J_1H,NHC))
-      usehp(:,:,:) = 0
+      usedhp(:,:,:) = 0
       fhp_approx(:,:,:) = 1d0/nhc
 #endif
       elevhp(:,:,:) = 0
@@ -170,7 +170,7 @@
       use glint2_modele
       use domain_decomp_atm, only : glint2
       use hp2hc, only : hp_to_hc
-      use landice_com, only : elevhp, fhp_approx, usehp, fhc
+      use landice_com, only : elevhp, fhp_approx, usedhp, fhc
       use fluxes, only : flice, flice_glint2
       use constant, only : BYGRAV
       use atm_com, only : zatmo
@@ -186,7 +186,7 @@
       ! Fix up fhc, based on glint2 API
       call glint2_modele_init_landice_com(glint2,
      &     zatmo, BYGRAV, flice_glint2, flice,
-     &     usehp, fhc, elevhp, hp_to_hc, fhp_approx,
+     &     usedhp, fhc, elevhp, hp_to_hc, fhp_approx,
      &     grid%i_strt_halo, grid%j_strt_halo)
 #endif
 
@@ -206,7 +206,7 @@
       integer fid   !@var fid file id
       call defvar(grid,fid,fhc,'fhc(dist_im,dist_jm,nhc)')
 #ifdef GLINT2
-      call defvar(grid,fid,usehp,'usehp(dist_im,dist_jm,nhc)')
+      call defvar(grid,fid,usedhp,'usedhp(dist_im,dist_jm,nhc)')
       call defvar(grid,fid,fhp_approx,'fhp_approx(dist_im,dist_jm,nhc)')
 #endif
       call defvar(grid,fid,elevhp,'elevhp(dist_im,dist_jm,nhc)')
@@ -258,7 +258,7 @@ c      call defvar(grid,fid,tricbimp,'tricbimp(ntm,two)')
       case (iowrite)            ! output to restart file
         call write_dist_data(grid,fid,'fhc',fhc)
 #ifdef GLINT2
-        call write_dist_data(grid,fid,'usehp',usehp)
+        call write_dist_data(grid,fid,'usedhp',usedhp)
         call write_dist_data(grid,fid,'fhp_approx',fhp_approx)
 #endif
         call write_dist_data(grid,fid,'elevhp',elevhp)
@@ -289,7 +289,7 @@ c        call write_data(grid,fid,'tricbimp',tricbimp)
       case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'fhc',fhc)
 #ifdef GLINT2
-        call read_dist_data(grid,fid,'usehp',usehp)
+        call read_dist_data(grid,fid,'usedhp',usedhp)
         call read_dist_data(grid,fid,'fhp_approx',fhp_approx)
 #endif
         call read_dist_data(grid,fid,'elevhp',elevhp)

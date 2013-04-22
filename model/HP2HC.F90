@@ -107,7 +107,7 @@ USE EXCHANGE_TYPES, only : atmgla_xchng_vars
 	ntm = size(atmglas%gtracer,1)	! Or any variable with ntm dimension
 	nvars = nvars + 1 * ntm		! Must match below
 #endif
-	print *,'BEGIN bundle_init_li'
+	print *,'bundle_init_li'
 	nhc = size(atmglas,1)
 
 	allocate(vars(nvars,nhc))
@@ -157,7 +157,7 @@ USE EXCHANGE_TYPES, only : atmgla_xchng_vars
 #endif
 #endif
 	nhc = size(atmglas,1)
-	print *,'BEGIN bundle_precip_li nhc = ',nhc
+	print *,'bundle_precip_li nhc = ',nhc
 	allocate(vars(nvars,nhc))
 
 	iv = 0
@@ -215,7 +215,7 @@ USE EXCHANGE_TYPES, only : atmgla_xchng_vars
 	nvars = nvars + 1 * ntm
 #endif
 #endif
-	print *,'BEGIN bundle_ground_li'
+	print *,'bundle_ground_li'
 	nhc = size(atmglas,1)
 
 	allocate(vars(nvars,nhc))
@@ -282,7 +282,7 @@ USE EXCHANGE_TYPES, only : atmgla_xchng_vars
 	ntm = size(atmglas%gtracer,1)	! Or any variable with ntm dimension
 	nvars = nvars + 2 * ntm		! Must match below
 #endif
-	print *,'BEGIN bundle_surface_landice'
+	print *,'bundle_surface_landice'
 	nhc = size(atmglas,1)
 
 	allocate(vars(nvars,nhc))
@@ -370,7 +370,6 @@ print *,'BEGIN bundle_hp_to_hc'
 	call bundler(atmglas_hp, hp)
 	call bundler(atmglas, hc)
 	
-print *,'bundle_hp_to_hc: A'
 	call multiply_by_bundle(hp_to_hc, hp, hc)
 
 print *,'END bundle_hp_to_hc'

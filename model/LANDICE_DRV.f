@@ -538,6 +538,7 @@ c
       USE LANDICE_COM, only : ijhc,ijhc_frac,IJHC_PRECLI,IJHC_RUNLI
 #ifdef GLINT2
       use fluxes, only : flice
+      use landice_com, only : usedhp
 #endif
       IMPLICIT NONE
       type(atmgla_xchng_vars) :: atmgla
@@ -584,7 +585,7 @@ C**** Get useful grid parameters
       ijhc(i,j,ihc,ijhc_frac) = ijhc(i,j,ihc,ijhc_frac) +
      &       atmgla%ftype(i,j)	! A bit bogus...
 #ifdef GLINT2
-      IF (FLICE(I,J) > 0 .and. PRCP.gt.0) THEN
+      IF (usedhp(i,j,ihc) /= 0 .and. PRCP.gt.0) THEN
 #else
       IF (atmgla%ftype(i,j).gt.0 .and. PRCP.gt.0) THEN
 #endif
@@ -686,6 +687,7 @@ C**** ACCUMULATE DIAGNOSTICS
       USE LANDICE_COM, only : IJHC_IMPMLI,IJHC_IMPHLI, IJHC_RUNLI
 #ifdef GLINT2
       use fluxes, only : flice
+      use landice_com, only : usedhp
 #endif
 
       IMPLICIT NONE
@@ -719,7 +721,7 @@ C**** ACCUMULATE DIAGNOSTICS
       DO I=I_0,IMAXJ(J)
       atmgla%RUNO(I,J)=0.
 #ifdef GLINT2
-      IF (FLICE(I,J) > 0) THEN
+      if (usedhp(i,j,ihc) /= 0) then
 #else
       if (atmgla%ftype(i,j) > 0) then
 #endif
