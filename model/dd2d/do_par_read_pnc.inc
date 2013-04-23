@@ -18,12 +18,12 @@
         jd=2
       endif
       nd = size(shape(arr))
-      cnt(1:nd) = shape(arr)
-      srt(1:nd) = 1
+      cnt(1:nd) = shape(arr)     ! Count
+      srt(1:nd) = 1              ! Start
       srt(jd) = grid%js
       srt(jd-1:jd) = (/ grid%is, grid%js /)
       cnt(jd-1:jd) = 1+(/ grid%ie-grid%is, grid%je-grid%js /)
-      srt(nd+1) = grid%tile
+      srt(nd+1) = grid%tile      ! Cube sphere?
       cnt(nd+1) = 1
       if(grid%have_domain) then
         call get_nlnk(arr,jd,nl,nk)

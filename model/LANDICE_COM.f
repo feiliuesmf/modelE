@@ -171,14 +171,35 @@
       use domain_decomp_atm, only : glint2
       use hp2hc, only : hp_to_hc
       use landice_com, only : elevhp, fhp_approx, usedhp, fhc
+      use landice_com, only : snowli, tlandi, nhc
+      use pario, only : read_dist_data
       use fluxes, only : flice, flice_glint2
       use constant, only : BYGRAV
       use atm_com, only : zatmo
 #endif
       implicit none
-      integer :: fid
+      integer :: fid,i
+      print *,'BEGIN read_landice_ic'
       fid = par_open(grid,'GIC','read')
       call new_io_landice(fid,ioread)
+
+#ifdef GLINT2
+      ! Stuff above didn't read any of tlandi or snowli because
+      ! Only the first (non-model) level can be expected in the GIC
+      ! file.  Read the first level now.
+      ! (And we'll write all HP's into the restart files).
+      call read_dist_data(grid,fid,'snowli',snowli(:,:,1))
+      call read_dist_data(grid,fid,'tlandi',tlandi(:,:,:,1),jdim=3)
+
+      ! TLANDI and SNOWLI for the rest of the HP's should
+      ! come out of the GLINT2 (or related) config file at
+      ! some point.  For now, just copy it over and
+      ! be done with it.
+      do i=1,nhc
+        snowli(:,:,i) = snowli(:,:,1)
+        tlandi(:,:,:,i) = tlandi(:,:,:,1)
+      end do
+#endif
       call par_close(grid,fid)
 
 #ifdef GLINT2
@@ -190,7 +211,7 @@
      &     grid%i_strt_halo, grid%j_strt_halo)
 #endif
 
-      return
+      print *,'END read_landice_ic'
       end subroutine read_landice_ic
 
       subroutine def_rsf_landice(fid)
