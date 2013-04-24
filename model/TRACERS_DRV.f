@@ -6671,6 +6671,9 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE Dictionary_mod, only : get_param, is_set_param
 #ifdef TRACERS_ON
       USE FLUXES, only : atmocn,atmice,atmglas,atmlnd,atmsrf,asflx
+#ifdef GLINT2
+      USE FLUXES, only : atmglas_hp
+#endif
       USE CONSTANT, only: mair,rhow,sday,grav,tf,avog,rgas
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE resolution,ONLY : Im,Jm,Lm,Ls1,ptop
@@ -7200,14 +7203,18 @@ c**** landice
               trlndi(n,i,j,:)=trli0(n)*(ace1li+ace2li)	! calls trli0_s()
               trsnowli(n,i,j,:)=trli0(n)*snowli(i,j,:)
               do ipatch=1,ubound(atmglas,1)
+#ifdef GLINT2
                 atmglas_hp(ipatch)%gtracer(n,i,j)=trli0(n)
+#endif
                 atmglas(ipatch)%gtracer(n,i,j)=trli0(n)
               enddo
             else
               trlndi(n,i,j,:)=0.
               trsnowli(n,i,j,:)=0.
               do ipatch=1,ubound(atmglas,1)
+#ifdef GLINT2
                 atmglas_hp(ipatch)%gtracer(n,i,j)=0.
+#endif
                 atmglas(ipatch)%gtracer(n,i,j)=0.
               enddo
             end if
