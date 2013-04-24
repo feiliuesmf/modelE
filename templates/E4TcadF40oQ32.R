@@ -94,9 +94,9 @@ OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 Data input files:
 #include "IC_144x90_input_files"
 #include "dynamic_ocn_288x180_input_files"
-TOPO=Z2HX2fromZ1QX1N            ! atm-grid surface fractions and topography
-RVR=RD_Fb.RVR.bin               ! river direction file
-
+TOPO=Z2HX2fromZ1QX1N.nc  ! atm-grid surface fractions and topography
+RVR=RD_Fb.nc             ! river direction file
+NAMERVR=RD_Fb.names      ! named river outlets
 VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculations
 
 #include "land144x90_input_files"

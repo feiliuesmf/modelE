@@ -50,10 +50,11 @@ OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
-#include "IC_144x90_input_files_nc"
+#include "IC_144x90_input_files"
 #include "static_ocn_1880_144x90_input_files"
 
-RVR=RD_Fb.RVR.bin          ! river direction file
+RVR=RD_Fb.nc             ! river direction file
+NAMERVR=RD_Fb.names      ! named river outlets
 
 IRRIG=IRRIG_1850_V144X90.bi
 

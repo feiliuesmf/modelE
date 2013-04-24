@@ -64,13 +64,13 @@ OPTS_Ent = ONLINE=YES PS_MODEL=FBB
 OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
-AIC=AIC.RES_F40.D771201         ! observed init cond (atm. only) ISTART=2
+AIC=AIC.RES_F40.D771201.nc         ! observed init cond (atm. only) ISTART=2
 !!! AIC=1JAN1931.rsfE8F40o32        ! Larissa's restart              ISTART=8
 !!! AIC=1JAN1918.rsfE31F40o32       ! XXXXXXXXX dont use this AIC, just for test purposess
-GIC=GIC.144X90.DEC01.1.ext.nc   ! initial ground conditions      ISTART=2
+GIC=GIC.144X90.DEC01.1.ext_1.nc   ! initial ground conditions      ISTART=2
 
 OIC=OIC.E2HX2.L32.D1201         ! Levitus ocean intial conditions
-TOPO=Z144X90N_nocasp.1          ! surface fractions and topography
+TOPO=Z144X90N_nocasp.1.nc          ! surface fractions and topography
 TOPO_OC=Z144X90N_nocasp.1       ! ocean fraction and topography
 
 !OIC=OIC_compatible_with_TOPO_OC ! Levitus ocean intial conditions
@@ -80,12 +80,13 @@ TOPO_OC=Z144X90N_nocasp.1       ! ocean fraction and topography
 OFTAB=OFTABLE_NEW               ! ocean function table
 AVR=OPF.E2HX2.L32               ! ocean filter
 KBASIN=KB144X90.modelE          ! ocean basin designations
-CDN=CD144X90.ext                ! neutral drag coefficient
-VEG=V144X90_no_crops.ext        ! vegatation file
+CDN=CD144X90.ext.nc             ! neutral drag coefficient
+VEG=V144X90_no_crops.ext.nc     ! vegatation file
 CROPS=CROPS_144X90N_nocasp.ext  ! crops
-SOIL=S144X900098M.ext           ! soil properties
+SOIL=S144X900098M.ext.nc        ! soil properties
 REG=REG2X2.5                    ! special regions-diag
-RVR=RD_modelE_F.RVR.bin         ! river direction file
+RVR=RD_modelE_F.nc             ! river direction file
+NAMERVR=RD_modelE_F.names.txt  ! named river outlets
 
 #include "rad_input_files"
 
@@ -107,13 +108,13 @@ O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
 O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
 O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
-TOP_INDEX=top_index_144x90_a.ij.ext
-ZVAR=ZVAR2X25A             ! topographic variation for gwdrag
+TOP_INDEX=top_index_144x90_a.ij.ext.nc
+ZVAR=ZVAR2X25A.nc             ! topographic variation for gwdrag
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_144X90_gas.OCN   ! glacial melt distribution
+GLMELT=GLMELT_144X90_gas.OCN.nc   ! glacial melt distribution
 ! probably need these (should convert to 144x90)
 soil_textures=soil_textures_top30cm_2x2.5
-SOILCARB_global=soilcarb_top30cm_nmaps_2x2.5bin.dat
+SOILCARB_global=soilcarb_top30cm_2x2.5.nc
 !!!!!!!!!!!!!!!!!!! obio  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 cfle1=abw25b.dat                         ! seawater spectral absorp.
                                          ! and scatt. coefs

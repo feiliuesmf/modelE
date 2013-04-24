@@ -54,8 +54,8 @@ Data input files:
     ! start up from restart file of earlier run
 ! AIC=1DECxxxx.rsfEyyyy           ! initial conditions (atm./ground), no GIC, ISTART=8
     ! or start up from observed conditions
-AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
-GIC=GIC.E046D3M20A.1DEC1955.ext.nc ! initial conditions (ground)
+AIC=AIC.RES_M20A.D771201.nc          ! initial conditions (atm.)      needs GIC, ISTART=2
+GIC=GIC.E046D3M20A.1DEC1955.ext_1.nc ! initial conditions (ground)
     ! ocean data for "prescribed ocean" runs : climatological ocean
 OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
@@ -64,15 +64,16 @@ SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
 !                                             (end of section 1 of data input files)
     ! resolution dependent files
-TOPO=Z72X46N.cor4_nocasp          ! topography
-SOIL=S4X50093.ext                 ! soil bdy.conds
+TOPO=Z72X46N.cor4_nocasp.nc       ! topography
+SOIL=S4X50093.ext.nc              ! soil bdy.conds
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
-VEG=V72X46.1.cor2_no_crops.ext    ! veg. fractions
+VEG=V72X46.1.cor2_no_crops.ext.nc ! veg. fractions
 CROPS=CROPS2007_72X46N.cor4_nocasp       ! crops history
-CDN=CD4X500S.ext                  ! surf.drag coefficient
+CDN=CD4X500S.ext.nc               ! surf.drag coefficient
 REG=REG4X5                        ! special regions-diag
-RVR=RD_modelE_M.RVR.bin           ! river direction file
-TOP_INDEX=top_index_72x46_a.ij.ext  ! only used if #define DO_TOPMODEL_RUNOFF
+RVR=RD_modelE_M.nc                ! river direction file
+NAMERVR=RD_modelE_M.names.txt     ! named river outlets
+TOP_INDEX=top_index_72x46_a.ij.ext.nc  ! only used if #define DO_TOPMODEL_RUNOFF
 !                                             (end of section 2 of data input files)
 #include "rad_input_files"
 !GHG=GHG.Mar2004.txt
@@ -94,7 +95,7 @@ O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
 O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
+GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
 
 Label and Namelist:
 E1M20 (ModelE1 4x5, 20 lyrs, 1850 atm/ocn)

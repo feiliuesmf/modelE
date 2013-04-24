@@ -58,14 +58,18 @@ Components:
 MPI_Support shared dd2d
 
 Data input files:
-AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
-GIC=GIC.144X90.DEC01.1.ext.nc   ! initial ground conditions      ISTART=2
+AIC=AIC.RES_F40.D771201.nc  ! observed init cond (atm. only) ISTART=2
+GIC=GIC.144X90.DEC01.1.ext_1.nc   ! initial ground conditions      ISTART=2
 OSST=OST_144x90.B.1975-1984avg.Hadl1 ! prescr. climatological ocean (1 yr data)
 SICE=SICE_144x90.B.1975-1984avg.Hadl1 ! prescr. climatological sea ice
-CDN=CD144X90 VEG=V144X90_no_crops CROPS=CROPS2007_144X90N_nocasp
-SOIL=S144X900098M TOPO=Z144X90N_nocasp ! bdy.cond
+CDN=CD144X90.ext.nc
+VEG=V144X90_no_crops.ext.nc
+CROPS=CROPS2007_144X90N_nocasp
+SOIL=S144X900098M.ext.nc
+TOPO=Z144X90N_nocasp.nc ! bdy.cond
 REG=REG2X2.5          ! special regions-diag
-RVR=RD_modelE_F.RVR.bin      ! river direction file
+RVR=RD_modelE_F.nc             ! river direction file
+NAMERVR=RD_modelE_F.names.txt  ! named river outlets
 
 #include "rad_input_files"
 
@@ -75,9 +79,9 @@ RVR=RD_modelE_F.RVR.bin      ! river direction file
 
 
 GHG=GHG.Mar2004.txt
-TOP_INDEX=top_index_144x90_a.ij.ext
+TOP_INDEX=top_index_144x90_a.ij.ext.nc
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_144X90_gas.OCN   ! glacial melt distribution
+GLMELT=GLMELT_144X90_gas.OCN.nc   ! glacial melt distribution
 SCMSRF=scm_sgpcont_0001_surface.dat
 SCMLAY=scm_sgpcont_0001_layer.dat
 

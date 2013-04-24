@@ -46,12 +46,15 @@ Data input files:
 AIC=1JAN1951.rsfE001.frc ! just 3 label records + radia-record (use fcop1)
 OSST=OST4X5.B.1975-84avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological sea ice
-CDN=CD4X500S    ! surf.drag coefficient
+CDN=CD4X500S.ext.nc    ! surf.drag coefficient
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
-VEG=V72X46.1.cor2_no_crops CROPS=CROPS2007_72X46N.cor4_nocasp  ! veg. fractions, crops history
-SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp   ! soil/topography bdy.conds
+VEG=V72X46.1.cor2_no_crops.ext.nc
+CROPS=CROPS2007_72X46N.cor4_nocasp  ! veg. fractions, crops history
+SOIL=S4X50093.ext.nc
+TOPO=Z72X46N.cor4_nocasp.nc   ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
-RVR=RD_modelE_M.RVR.bin                   ! river direction file
+RVR=RD_modelE_M.nc                ! river direction file
+NAMERVR=RD_modelE_M.names.txt     ! named river outlets
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files
 RADN4=LWTables33k.1b              ! rad.tables and history files
@@ -87,8 +90,8 @@ O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
-TOP_INDEX=top_index_72x46_a.ij.ext
-GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
+TOP_INDEX=top_index_72x46_a.ij.ext.nc
+GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
 RADJAN=E001/RADJAN1950    ! replace E001 by the control run
 RADFEB=E001/RADFEB1950    ! assuming that the saved data are
 RADMAR=E001/RADMAR1950    ! still in the original directory

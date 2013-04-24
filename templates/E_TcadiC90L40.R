@@ -87,7 +87,8 @@ Data input files:
 #include "static_ocn_1880_CS90_input_files"
 !#include "static_ocn_2000_CS90_input_files"
 
-RVR=RDdistocean_CS90_EM.bin         ! river direction file
+RVR=RDdistocean_CS90_EM.nc             ! river direction file
+NAMERVR=RDdistocean_CS90_EM.names.txt  ! named river outlets
 
 ! OFF VEG_DENSE=veg_dense_C90_from_2x2.5
 

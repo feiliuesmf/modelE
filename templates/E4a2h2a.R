@@ -86,13 +86,13 @@ OPTS_Ent = ONLINE=YES PS_MODEL=FBB
 OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
-AIC=AIC.RES_F40.D771201           ! observed init cond (atm. only) ISTART=2
-GIC=GIC.144X90.DEC01.1.ext        ! initial ground conditions      ISTART=2
+AIC=AIC.RES_F40.D771201.nc           ! observed init cond (atm. only) ISTART=2
+GIC=GIC.144X90.DEC01.1.ext_1.nc        ! initial ground conditions      ISTART=2
 TOPO=Z144X90N.2deghycom           ! 2deg hycom
-CDN=CD144X90.ext                  ! neutral drag coefficient
-VEG=V144X90_no_crops.ext          ! vegatation file 
+CDN=CD144X90.ext.nc               ! neutral drag coefficient
+VEG=V144X90_no_crops.ext.nc       ! vegatation file 
 CROPS=CROPS2007_144X90N_nocasp    ! crops
-SOIL=S144X900098M.ext             ! soil properties
+SOIL=S144X900098M.ext.nc          ! soil properties
 REG=REG2X2.5                      ! special regions-diag
 RVR=rvr_atm2x2h_hycom2deg.bin     ! 2deg hycom
 RADN1=sgpgxg.table8               ! rad.tables and history files
@@ -128,8 +128,8 @@ O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
-TOP_INDEX=top_index_144x90_a.ij.ext
-ZVAR=ZVAR2X25A               ! topographic variation for gwdrag
+TOP_INDEX=top_index_144x90_a.ij.ext.nc
+ZVAR=ZVAR2X25A.nc               ! topographic variation for gwdrag
 MSU_wts=MSU.RSS.weights.data
 GLMELT=GLMELT_144X90.OCN     ! glacial melt distribution
 latlonij=latlon195x180.4bin  ! lat & lon at each i,j
@@ -148,7 +148,7 @@ kpar=seawifs_kpar_195x180.tbin        !monthly/annual seawifs_kpar data
 
 ! probably need these (should convert to 144x90)
 soil_textures=soil_textures_top30cm_2x2.5
-SOILCARB_global=soilcarb_top30cm_nmaps_2x2.5bin.dat
+SOILCARB_global=soilcarb_top30cm_2x2.5.nc
 
 Label and Namelist:
 E4a2h2a (2x2.5x40, 1850 atm.;  26 layer 2deg HYCOM ocean)

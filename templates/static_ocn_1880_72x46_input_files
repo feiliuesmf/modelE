@@ -4,4 +4,4 @@ SICE=SICE4X5.B.1876-85avg.Hadl1.1        ! prescr. climatological sea ice
 !! OHT=OTSPEC.E4F40.MXL65m.1956-1960            ! ocean horizontal heat transports
 !! OCNML is not used if KOCEAN=0, but needed in and to prepare for q-flux model
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
-TOPO=Z72X46N.cor4_nocasp          ! topography
+TOPO=Z72X46N.cor4_nocasp.nc       ! topography

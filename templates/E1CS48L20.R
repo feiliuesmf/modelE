@@ -73,12 +73,14 @@ SICE=SICE_CS48.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
 !                                             (end of section 1 of data input files)
     ! resolution dependent files
-TOPO=Z_CS48 SOIL=SOIL_CS48.ext ! soil/topography bdy.conds
+TOPO=Z_CS48
+SOIL=SOIL_CS48.ext ! soil/topography bdy.conds
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
 VEG=V_CS48.1.cor2_no_crops.ext CROPS=CROPS_CS48.cor4.ext 
 CDN=CD_CS48.ext                      ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
-RVR=RD_modelE_M.RVR.bin               ! river direction file
+RVR=RD_modelE_M.nc                ! river direction file
+NAMERVR=RD_modelE_M.names.txt     ! named river outlets
 TOP_INDEX=top_index_CS48.ext      ! only used if #define DO_TOPMODEL_RUNOFF
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files
@@ -116,7 +118,7 @@ GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
+GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
 
 Label and Namelist:
 E1CS48L20 (ModelE1 Cubed Sphere C48, 20 lyrs, 1880 atm/ocn;

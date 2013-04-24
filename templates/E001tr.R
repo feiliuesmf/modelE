@@ -74,8 +74,8 @@ tracers MPI_Support shared dd2d
 
 Data input files:
     ! the first 4 files are specific to prescribed ocean runs
-AIC=AIC.RES_M23.D771201           ! initial conditions (atm.)
-GIC=GIC.E046D3M20A.1DEC1955.ext.nc ! initial conditions (ground)
+AIC=AIC.RES_M23.D771201.nc           ! initial conditions (atm.)
+GIC=GIC.E046D3M20A.1DEC1955.ext_1.nc ! initial conditions (ground)
 OSST=OST4X5.B.1975-84avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological sea ice
     ! if the prescr. ocean varies from year to year use instead:
@@ -86,11 +86,14 @@ SICE=SICE4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological sea ice
 ! OHT=E001/OTSPEC.E001.M250D.1951-1955 ! horizontal ocean heat transport
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (use for post processing)
     ! files needed for all models
-CDN=CD4X500S VEG=V72X46.1.cor2    ! surf.drag - vegetation fractions
-SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp   ! soil/topography bdy.conds
+CDN=CD4X500S.ext.nc
+VEG=V72X46.1.cor2_no_crops.ext.nc    ! vegetation fractions
+SOIL=S4X50093.ext.nc
+TOPO=Z72X46N.cor4_nocasp.nc   ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
-RVR=RD_modelE_M.RVR.bin                   ! river direction file
-ZVAR=ZVAR4X5         ! topographic variation for gwdrag
+RVR=RD_modelE_M.nc                ! river direction file
+NAMERVR=RD_modelE_M.names.txt     ! named river outlets
+ZVAR=ZVAR4X5.nc         ! topographic variation for gwdrag
 #include "rad_input_files"
 TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
 TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
@@ -107,9 +110,9 @@ O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
 O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
 O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
-TOP_INDEX=top_index_72x46_a.ij.ext
+TOP_INDEX=top_index_72x46_a.ij.ext.nc
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
+GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
 CO2_IC=CO2ijl_IC_Jan1_scale334_M23  !wofsy+B140TQaM9
 CO2_FOS_FUEL=CO2_sources/gcm_data/CO2FOS_MRL_4X5
 CO2_FERT=CO2_sources/gcm_data/CO2fert01_4X5

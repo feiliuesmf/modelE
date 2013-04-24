@@ -56,26 +56,26 @@ OPTS_Ent = ONLINE=YES PS_MODEL=FBB
 OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
-AIC=AIC.RES_F40.D771201      ! observed init cond (atm. only) ISTART=2
-GIC=GIC.144X90.DEC01.1.ext.nc ! initial ground conditions      ISTART=2
-TOPO=Z144X90N.1deghycom_1
-CDN=CD144X90.ext                 ! neutral drag coefficient
-VEG=V144X90_no_crops.ext         ! vegatation file 
+AIC=AIC.RES_F40.D771201.nc      ! observed init cond (atm. only) ISTART=2
+GIC=GIC.144X90.DEC01.1.ext_1.nc ! initial ground conditions      ISTART=2
+TOPO=Z144X90N.1deghycom_1.nc
+CDN=CD144X90.ext.nc              ! neutral drag coefficient
+VEG=V144X90_no_crops.ext.nc      ! vegatation file 
 CROPS=CROPS_144X90N_nocasp.ext   ! crops
-SOIL=S144X900098M.ext            ! soil properties
+SOIL=S144X900098M.ext.nc         ! soil properties
 REG=REG2X2.5                     ! special regions-diag
-RVR=RD_modelE_Fa.RVR_1deghycom_1.bin
-
+RVR=RD_modelE_Fa_1deghycom.nc             ! river direction file
+NAMERVR=RD_modelE_Fa_1deghycom.names.txt  ! named river outlets
 #include "rad_input_files"
 
 #include "TAero2008_input_files"
 
 #include "O3_2005_input_files"
 
-TOP_INDEX=top_index_144x90_a.ij.ext
-ZVAR=ZVAR2X25A             ! topographic variation for gwdrag
+TOP_INDEX=top_index_144x90_a.ij.ext.nc
+ZVAR=ZVAR2X25A.nc             ! topographic variation for gwdrag
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_144X90_gas.OCN   ! glacial melt distribution
+GLMELT=GLMELT_144X90_gas.OCN.nc   ! glacial melt distribution
 latlonij=latlon387x360.4bin             ! lat & lon at each i,j
 hycomtopo=depth387x360.4bin_1  ! topography used in ocean model, NO Baltic
 temp_ini=temp387x360x26jan_hv_z1.txt ! 3-d temperature as initial condition
@@ -93,7 +93,7 @@ cososino=cososino387x360.8bin           ! cos/sin of i,j axis angle on ocean gri
 kpar=seawifs_kpar_387x360.tbin          ! monthly/annual seawifs_kpar data
 ! probably need these (should convert to 144x90)
 soil_textures=soil_textures_top30cm_2x2.5
-SOILCARB_global=soilcarb_top30cm_nmaps_2x2.5bin.dat
+SOILCARB_global=soilcarb_top30cm_2x2.5.nc
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 OCMIP_cfc=OCMIP_cfc.dat
 cfle1=abw25b.dat                         ! seawater spectral absorp. and scatt.

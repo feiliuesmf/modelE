@@ -44,20 +44,23 @@ Components:
 MPI_Support shared
 
 Data input files:
-! AIC=AIC.RES_M23.D771201
+! AIC=AIC.RES_M23.D771201.nc
 ! GIC=GIC.E046D3M20A.1DEC1955.ext
 AIC=1JAN1881.rsfE001M23
 OSST=OST4X5.B.1876-85avg.Hadl1.1
 SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! ocn
 OCNML=Z1O.B4X5.cor   ! needed only for postprocessing
 !                                             (end of section 1 of data input files)
-TOPO=Z72X46N.cor4_nocasp SOIL=S4X50093.ext                 ! bdy.cond
-VEG=V72X46.1.cor2_no_crops.ext CROPS=CROPS2007_72X46N.cor4_nocasp
-CDN=CD4X500S.ext
+TOPO=Z72X46N.cor4_nocasp.nc
+SOIL=S4X50093.ext.nc              ! bdy.cond
+VEG=V72X46.1.cor2_no_crops.ext.nc
+CROPS=CROPS2007_72X46N.cor4_nocasp
+CDN=CD4X500S.ext.nc
 REG=REG4X5           ! special regions-diag
-RVR=RD_modelE_M.RVR.bin      ! river direction file
-TOP_INDEX=top_index_72x46_a.ij.ext
-ZVAR=ZVAR4X5         ! topographic variation for gwdrag
+RVR=RD_modelE_M.nc                ! river direction file
+NAMERVR=RD_modelE_M.names.txt     ! named river outlets
+TOP_INDEX=top_index_72x46_a.ij.ext.nc
+ZVAR=ZVAR4X5.nc         ! topographic variation for gwdrag
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=LWTables33k.1a              ! rad.tables and history files
@@ -95,7 +98,7 @@ GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
+GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
 
 Label and Namelist:
 E001M23 (ModelE1 (3.0) based on B402A - strat. version - 1880 conditions)

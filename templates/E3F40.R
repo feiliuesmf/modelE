@@ -52,19 +52,20 @@ Components:
 MPI_Support shared
 
 Data input files:
-AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
-GIC=GIC.144X90.DEC01.1   ! initial ground conditions      ISTART=2
+AIC=AIC.RES_F40.D771201.nc  ! observed init cond (atm. only) ISTART=2
+GIC=GIC.144X90.DEC01.1.ext_1.nc   ! initial ground conditions      ISTART=2
 OSST=OST_144x90.B.1975-1984avg.Hadl1  ! prescr. climatological ocean (1 yr data)
 SICE=SICE_144x90.B.1975-1984avg.Hadl1 ! prescr. climatological sea ice
 ! OSST=OST_144x90.1876-1885avg.HadISST1.1    ! prescr. climatological ocean (1 yr data)
 ! SICE=SICE_144x90.1876-1885avg.HadISST1.1   ! prescr. climatological sea ice
-CDN=CD144X90                    ! surf.drag coefficient
-VEG=V144X90_no_crops            ! veg. fractions
+CDN=CD144X90.ext.nc             ! surf.drag coefficient
+VEG=V144X90_no_crops.ext.nc     ! veg. fractions
 CROPS=CROPS2007_144X90N_nocasp  ! crops history
-SOIL=S144X900098M               ! soil bdy.conds
-TOPO=Z144X90N_nocasp            ! topography
+SOIL=S144X900098M.ext.nc        ! soil bdy.conds
+TOPO=Z144X90N_nocasp.nc            ! topography
 REG=REG2X2.5                    ! special regions-diag
-RVR=RD_modelE_F.RVR.bin         ! river direction file
+RVR=RD_modelE_F.nc             ! river direction file
+NAMERVR=RD_modelE_F.names.txt  ! named river outlets
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files
 RADN4=LWTables33k.1b              ! rad.tables and history files
@@ -102,9 +103,9 @@ O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
-TOP_INDEX=top_index_144x90_a.ij.ext
+TOP_INDEX=top_index_144x90_a.ij.ext.nc
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_144X90_gas.OCN   ! glacial melt distribution
+GLMELT=GLMELT_144X90_gas.OCN.nc   ! glacial melt distribution
 
 Label and Namelist:
 E3F40 (ModelE 2x2.5, 40 lyrs, 1979 atm/ocn)

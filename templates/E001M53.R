@@ -47,16 +47,19 @@ Components:
 MPI_Support shared
 
 Data input files:
-AIC=AIC.RES_M53.D771201
-GIC=GIC.E046D3M20A.1DEC1955       ! initial conditions (ground)
+AIC=AIC.RES_M53.D771201.nc
+GIC=GIC.E046D3M20A.1DEC1955.ext_1.nc       ! initial conditions (ground)
 ! OHT=OTSPEC.RB399AM12.M250D ! not needed if KOCEAN=0
 OCNML=Z1O.B4X5.cor   ! needed only for postprocessing
 OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
-CDN=CD4X500S VEG=V72X46.1.cor2
-SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp ! bdy.cond
+CDN=CD4X500S.ext.nc
+VEG=V72X46.1.cor2_no_crops.ext.nc
+SOIL=S4X50093.ext.nc
+TOPO=Z72X46N.cor4_nocasp.nc ! bdy.cond
 REG=REG4X5           ! special regions-diag
-RVR=RD_modelE_M.RVR.bin      ! river direction file
-ZVAR=ZVAR4X5         ! topographic variation for gwdrag
+RVR=RD_modelE_M.nc                ! river direction file
+NAMERVR=RD_modelE_M.names.txt     ! named river outlets
+ZVAR=ZVAR4X5.nc         ! topographic variation for gwdrag
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=LWTables33k.1a              ! rad.tables and history files
 RADN4=LWTables33k.1b              ! rad.tables and history files
@@ -92,9 +95,9 @@ O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
-TOP_INDEX=top_index_72x46_a.ij.ext
+TOP_INDEX=top_index_72x46_a.ij.ext.nc
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
+GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
 
 Label and Namelist:
 E001M53 (4x5, 53 layer model)

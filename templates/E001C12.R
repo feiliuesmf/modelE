@@ -47,16 +47,19 @@ MPI_Support shared
 
 Data input files:
 ! AIC=DEC1958.rsfB394M12.modelE.16 ! model init cond (atm. and ground) ISTART=7
-AIC=AIC.RES_C12.D771201   ! observed init cond   (atm. only)       ISTART=2
-GIC=GIC.8X10.modelE.1       ! initial ground conditions              ISTART=2
+AIC=AIC.RES_C12.D771201.nc   ! observed init cond   (atm. only)       ISTART=2
+GIC=GIC.8X10.modelE_1.nc     ! initial ground conditions              ISTART=2
 ! OHT=OTSPEC.RunIDM12.M250D ! hor.heat transp.  for q-flux ocean only
 ! OCNML=Z1O.B4X5.cor        ! mixed layer depth,needed for post-processing only
 OSST=OST8X10.B.1946-55avg.Hadl1.1 ! prescr. climatological ocean (1 yr of data)
 SICE=SICE8X10.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
-CDN=CD8X10.modelE VEG=V8X10.modelE
-SOIL=S8X10.modelE TOPO=Z8X10.modelE ! bdy.cond
+CDN=CD8X10.modelE.nc
+VEG=V8X10.modelE.nc
+SOIL=S8X10.modelE.nc
+TOPO=Z8X10.modelE.nc ! bdy.cond
 REG=REG8X10          ! special regions-diag
-RVR=RD8X10.RVR.bin       ! river direction file
+RVR=RD8X10.nc                       ! river direction file
+NAMERVR=RD8X10.names.txt            ! named river outlets
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=LWTables33k.1a              ! rad.tables and history files
 RADN4=LWTables33k.1b              ! rad.tables and history files
@@ -92,7 +95,7 @@ O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
-TOP_INDEX=top_index_8x10.ij
+TOP_INDEX=top_index_8x10.ij.nc
 MSU_wts=MSU.RSS.weights.data
 
 Label and Namelist:

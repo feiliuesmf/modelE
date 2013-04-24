@@ -54,13 +54,14 @@ Components:
 MPI_Support shared
 
 Data input files:
-AIC=AIC.RES_M20A.D771201    !initial conditions (atm.) needs GIC,OIC ISTART=2
-GIC=GIC.E046D3M20A.1DEC1955 ! initial conditions (ground) and 300 year spin-up
-CDN=CD4X500S.ext
+AIC=AIC.RES_M20A.D771201.nc    !initial conditions (atm.) needs GIC,OIC ISTART=2
+GIC=GIC.E046D3M20A.1DEC1955.ext_1.nc ! initial conditions (ground) and 300 year spin-up
+CDN=CD4X500S.ext.nc
   ! VEG=V72X46.1.cor2.ext
-VEG=V72X46.1.cor2_no_crops.ext
+VEG=V72X46.1.cor2_no_crops.ext.nc
 CROPS=CROPS2007_72X46N.cor4_nocasp  ! veg. fractions, crops history
-SOIL=S4X50093.ext TOPO=Z72X46N.2deg_rfn              !!! hycom
+SOIL=S4X50093.ext.nc
+TOPO=Z72X46N.2deg_rfn              !!! hycom
 REG=REG4X5           ! special regions-diag
 RVR=RD4X525.RVR.2deghycom.bin         !!! hycom
 RADN1=sgpgxg.table8               ! rad.tables and history files
@@ -97,9 +98,9 @@ O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
-TOP_INDEX=top_index_72x46_a.ij.ext
+TOP_INDEX=top_index_72x46_a.ij.ext.nc
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
+GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
 
 Label and Namelist:
 E3p20_0 (E3AoM20A + 20 layer hycom_kpp w. tracers+refinement, PreIndust)

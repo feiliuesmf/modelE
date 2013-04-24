@@ -64,20 +64,23 @@ Components:
 MPI_Support shared
 
 Data input files:
-AIC=AIC.RES_M20A.D771201           ! initial conditions (atm.)     needs GIC,OIC ISTART=2
-GIC=GIC.E046D3M20A.1DEC1955        ! initial conditions (ground)         and 300 year spin-up
+AIC=AIC.RES_M20A.D771201.nc           ! initial conditions (atm.)     needs GIC,OIC ISTART=2
+GIC=GIC.E046D3M20A.1DEC1955.ext_1.nc  ! initial conditions (ground)         and 300 year spin-up
 OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01 ! ocean initial conditions
 ! AIC=1JAN2012.rsfE051oM20A            ! full IC (GIC,OIC not needed) ISTART=8 (spun up 380 yrs)
 OFTAB=OFTABLE_NEW                    ! ocean function table
 AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
 KBASIN=KB4X513.OCN.gas1              ! ocean basin designations
 TOPO_OC=Z72X46N_gas.1_nocasp ! ocean bdy.cond
-CDN=CD4X500S.ext
+CDN=CD4X500S.ext.nc
   ! VEG=V72X46.1.cor2.ext
-VEG=V72X46.1.cor2_no_crops.ext CROPS=CROPS2007_72X46N.cor4_nocasp  ! veg. fractions, crops history
-SOIL=S4X50093.ext TOPO=Z72X46N_gas.1_nocasp ! bdy.cond
+VEG=V72X46.1.cor2_no_crops.ext.nc
+CROPS=CROPS2007_72X46N.cor4_nocasp  ! veg. fractions, crops history
+SOIL=S4X50093.ext.nc
+TOPO=Z72X46N_gas.1_nocasp.nc ! bdy.cond
 REG=REG4X5           ! special regions-diag
-RVR=RD_modelE_M.RVR.bin      ! river direction file
+RVR=RD_modelE_M.nc                ! river direction file
+NAMERVR=RD_modelE_M.names.txt     ! named river outlets
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files
 RADN4=LWTables33k.1b              ! rad.tables and history files
@@ -112,9 +115,9 @@ O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
-TOP_INDEX=top_index_72x46_a.ij.ext
+TOP_INDEX=top_index_72x46_a.ij.ext.nc
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
+GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
 
 Label and Namelist:
 E1M20o13 (1880 atm.,the current modelE version)

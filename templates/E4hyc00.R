@@ -55,7 +55,8 @@ Data input files:
 #include "IC_144x90_input_files"
 #include "hycom_387x360_input_files"
 
-RVR=RD_modelE_Fa.RVR_1deghycom_may10.bin ! river direction file
+RVR=RD_modelE_Fa_1deghycom_may10.nc            ! river direction file
+NAMERVR=RD_modelE_Fa_1deghycom_may10.names.txt ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"

@@ -92,10 +92,12 @@ OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
-#include "IC_144x90_input_files_nc"
+#include "IC_144x90_input_files"
 #include "static_ocn_2000_144x90_input_files"
 VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculations
-RVR=RD_modelE_Fa.RVR.bin          ! river direction file
+
+RVR=RD_modelE_Fa.nc             ! river direction file
+NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"

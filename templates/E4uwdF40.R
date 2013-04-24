@@ -44,27 +44,28 @@ Data input files:
     ! start up from the restart file of an earlier run ...
 ! AIC=1....rsfE... ! initial conditions, no GIC needed, use ISTART=8
     ! ... or from observed conditions AIC and model ground data GIC
-AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
-GIC=GIC.144X90.DEC01.1   ! initial ground conditions      ISTART=2
+AIC=AIC.RES_F40.D771201.nc  ! observed init cond (atm. only) ISTART=2
+GIC=GIC.144X90.DEC01.1.ext_1.nc   ! initial ground conditions      ISTART=2
 OSST=OST_144x90.1876-1885avg.HadISST1.1    ! prescr. climatological ocean
 SICE=SICE_144x90.1876-1885avg.HadISST1.1   ! prescr. climatological sea ice
 ! For q-flux ocean, replace all the above by the next 2 lines, set KOCEAN=1, ISTART=8
 !! AIC=1JAN1961.rsfE4F40.MXL65m        ! end of preliminary run with KOCEAN=0
 !! OHT=OTSPEC.E4F40.MXL65m.1956-1960   ! ocean horizontal heat transports
 OCNML=Z1O.B144x90                    ! mixed layer depth (not used if KOCEAN=0)
-CDN=CD144X90.ext
-VEG=V144X90_no_crops.ext
+CDN=CD144X90.ext.nc
+VEG=V144X90_no_crops.ext.nc
 CROPS=CROPS2007_144X90N_nocasp
-SOIL=S144X900098M.ext
-TOPO=Z144X90N_nocasp              ! bdy.cond
+SOIL=S144X900098M.ext.nc
+TOPO=Z144X90N_nocasp.nc              ! bdy.cond
 REG=REG2X2.5                      ! special regions-diag
-RVR=RD_modelE_Fa.RVR.bin          ! river direction file
-TOP_INDEX=top_index_144x90_a.ij.ext
+RVR=RD_modelE_Fa.nc             ! river direction file
+NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
+TOP_INDEX=top_index_144x90_a.ij.ext.nc
 Z4var=Z4var144x89                 ! topographic variances multiplied by four
-GLMELT=GLMELT_144X90_gas.OCN   ! glacial melt distribution
+GLMELT=GLMELT_144X90_gas.OCN.nc   ! glacial melt distribution
 ! probably need these (should convert to 144x90)
 soil_textures=soil_textures_top30cm_2x2.5
-SOILCARB_global=soilcarb_top30cm_nmaps_2x2.5bin.dat
+SOILCARB_global=soilcarb_top30cm_2x2.5.nc
     ! resolution independent files
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files

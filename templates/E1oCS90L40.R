@@ -75,20 +75,23 @@ Components:
 MPI_Support shared dd2d CS_Support
 
 Data input files:
-AIC=AIC_CS90         ! initial conditions (atm.)      needs GIC, ISTART=2
-GIC=GIC_CS90.nc      ! initial conditions (ground)
+AIC=AIC_CS90.nc      ! initial conditions (atm.)      needs GIC, ISTART=2
+GIC=GIC_CS90_1.nc      ! initial conditions (ground)
 OIC=OIC288X180.D1201         ! Levitus ocean intial conditions
 TOPO_OC=Z288X180N            ! ocean fraction and topography
 OFTAB=OFTABLE_NEW               ! ocean function table
 AVR=OPF.E1QX1.L32            ! ocean filter
 KBASIN=KB288X180.modelE      ! ocean basin designations
-TOPO=Z_CS90 SOIL=SOIL_CS90 ! soil/topography bdy.conds
-VEG=V_CS90 CROPS=CROPS_CS90 
-CDN=CD_CS90                      ! surf.drag coefficient
+TOPO=Z_C90fromZ1QX1N.nc
+SOIL=SOIL_CS90.nc ! soil/topography bdy.conds
+VEG=V_CS90_144X90_5percent.nc
+CROPS=CROPS_CS90 
+CDN=CD_CS90.nc                     ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
-RVR=RDdistocean_CS90_EM.bin           ! river direction file
-TOP_INDEX=top_index_CS90      ! only used if #define DO_TOPMODEL_RUNOFF
-GLMELT=GLMELT_CS90  ! glacial melt distribution
+RVR=RDdistocean_CS90_EM.nc             ! river direction file
+NAMERVR=RDdistocean_CS90_EM.names.txt  ! named river outlets
+TOP_INDEX=top_index_CS90.nc      ! only used if #define DO_TOPMODEL_RUNOFF
+GLMELT=GLMELT_CS90.nc  ! glacial melt distribution
 REMAP=remap288-180C90-90.nc
 RADN1=sgpgxg.table8             ! rad.tables and history files
 RADN2=LWTables33k.1a            ! rad.tables and history files

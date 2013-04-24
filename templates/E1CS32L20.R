@@ -61,22 +61,25 @@ Data input files:
 ! AICfv=1DECxxxx.fvEyyyy          ! initial conditions (fv internal) only for ISTART=9
 ! AICdfv=1DECxxxx.dfvEyyyy        ! tendencies                       only for ISTART=9
     ! or start up from observed conditions
-AIC=AIC_CS32         ! initial conditions (atm.)      needs GIC, ISTART=2
-GIC=GIC_CS32.nc      ! initial conditions (ground)
+AIC=AIC_CS32.nc      ! initial conditions (atm.)      needs GIC, ISTART=2
+GIC=GIC_CS32_1.nc      ! initial conditions (ground)
     ! ocean data for "prescribed ocean" runs : climatological ocean
 OSST=OST_CS32  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE_CS32 ! prescr. climatological sea ice
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
 !                                             (end of section 1 of data input files)
     ! resolution dependent files
-TOPO=Z_CS32 SOIL=SOIL_CS32 ! soil/topography bdy.conds
+TOPO=Z_CS32_4X5.nc
+SOIL=SOIL_CS32.nc ! soil/topography bdy.conds
 ! VEG=V72X46.1.cor2   ! or:      ! vegetation fractions  (sum=1), need crops_yr=-1
-VEG=V_CS32 CROPS=CROPS_CS32 
-CDN=CD_CS32                      ! surf.drag coefficient
+VEG=V_CS32_144X90_1percent.nc
+CROPS=CROPS_CS32 
+CDN=CD_CS32.nc                   ! surf.drag coefficient
 REG=REG.txt                      ! special regions-diag
-RVR=RDdistocean_CS32.bin         ! river direction file
-TOP_INDEX=top_index_CS32      ! only used if #define DO_TOPMODEL_RUNOFF
-GLMELT=GLMELT_CS32   ! glacial melt distribution
+RVR=RDdistocean_CS32.nc             ! river direction file
+NAMERVR=RDdistocean_CS32.names.txt  ! named river outlets
+TOP_INDEX=top_index_CS32.nc      ! only used if #define DO_TOPMODEL_RUNOFF
+GLMELT=GLMELT_CS32.nc   ! glacial melt distribution
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files

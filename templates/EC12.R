@@ -33,10 +33,11 @@ OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
-#include "IC_36x24_input_files.nc"
+#include "IC_36x24_input_files"
 #include "static_ocn_1950_36x24_input_files"  /* 1880 for 8x10 needs to be made */
 
-RVR=RD8X10.RVR.bin           ! river direction file
+RVR=RD8X10.nc            ! river direction file
+NAMERVR=RD8X10.names.txt ! named river outlets
 
 #include "land36x24_input_files"
 #include "rad_input_files"

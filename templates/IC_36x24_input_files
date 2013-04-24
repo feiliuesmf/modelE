@@ -3,5 +3,5 @@
 !! AIC=1JAN1961.rsfE4F40.MXL65m  ! end of run with KOCEAN=0
 
     ! start from observed conditions AIC(,OIC), model ground data GIC   ISTART=2
-AIC=AIC.RES_F40.D771201         ! observed init cond (atm. only)
-GIC=GIC.144X90.DEC01.1.ext.nc   ! initial ground conditions
+AIC=AIC.RES_C12.D771201.nc      ! observed init cond (atm. only)
+GIC=GIC.8X10.modelE_1.nc        ! initial ground conditions

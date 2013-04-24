@@ -51,7 +51,8 @@ Data input files:
 #include "IC_144x90_input_files"
 #include "dynamic_ocn_144x90_input_files"
 
-RVR=RD_modelE_Fa.RVR.bin          ! river direction file
+RVR=RD_modelE_Fa.nc             ! river direction file
+NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"

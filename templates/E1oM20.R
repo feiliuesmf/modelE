@@ -59,15 +59,16 @@ OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
-#include "IC_72x46_input_files.nc"
+#include "IC_72x46_input_files"
 OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01 ! ocean initial conditions
 OFTAB=OFTABLE_NEW                    ! ocean function table
 AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
 KBASIN=KB4X513.OCN.gas1              ! ocean basin designations
-TOPO=Z72X46N.cor4_nocasp          ! topography
+TOPO=Z72X46N.cor4_nocasp.nc          ! topography
 TOPO_OC=Z72X46N_gas.1_nocasp ! ocean bdy.cond
 
-RVR=RD_modelE_M.RVR.bin      ! river direction file
+RVR=RD_modelE_M.nc                ! river direction file
+NAMERVR=RD_modelE_M.names.txt     ! named river outlets
 
 #include "land72x46_input_files"
 #include "rad_input_files"
