@@ -30,7 +30,8 @@ c these routines are only needed when running on multiple CPUs
 c
 c i/o interfaces
 c
-      public :: par_open,par_close,par_enddef
+      public :: par_open,par_close,par_enddef,variable_exists
+     &     ,get_record_dimlen,get_dimlen,get_dimlens,get_record_dimname
 
       public :: write_dist_data,read_dist_data
       interface write_dist_data
@@ -244,6 +245,120 @@ c        rc = nfmpi_sync(fid)
       return
       end subroutine par_enddef
 
+      function variable_exists(grid,fid,varname)
+      type(dist_grid), intent(in) :: grid
+      integer :: fid
+      character(len=*) :: varname
+      logical :: variable_exists
+      integer :: vid
+      variable_exists =
+     &     nfmpi_inq_varid(fid,trim(varname),vid) == nf_noerr
+      return
+      end function variable_exists
+
+      subroutine get_record_dimname(grid,fid,dname)
+      type(dist_grid), intent(in) :: grid
+      integer :: fid
+      character(len=*) :: dname
+c
+      integer :: rc,unlim_did
+      character(len=64) :: dname_
+c
+      rc = nfmpi_inq_unlimdim(fid,unlim_did)
+      rc = nfmpi_inq_dimname(fid,unlim_did,dname_)
+      dname = trim(dname_)
+      return
+      end subroutine get_record_dimname
+
+      function get_record_dimlen(grid,fid,checkvar)
+      type(dist_grid), intent(in) :: grid
+      integer :: fid
+      character(len=*), optional :: checkvar
+      integer :: get_record_dimlen
+      integer*8 :: i8
+c
+      integer :: rc,vid,unlim_did,ndims,dids(7)
+      rc = nfmpi_inq_unlimdim(fid,unlim_did)
+      rc = nfmpi_inq_dimlen(fid,unlim_did,i8)
+      if(rc.ne.nf_noerr) then
+        if(grid%am_i_globalroot)
+     &       write(6,*) 'get_record_dimlen: input file has no record '//
+     &       ' dimension - stopping'
+        call stoprc(0,1)
+      endif
+      if(present(checkvar)) then
+        rc = nfmpi_inq_varid(fid,trim(checkvar),vid)
+        if(rc.ne.nf_noerr) then
+          if(grid%am_i_globalroot)
+     &         write(6,*) 'get_record_dimlen: variable ',
+     &         trim(checkvar),' not found in input file - stopping'
+          call stoprc(0,1)
+        endif
+        rc = nfmpi_inq_varndims(fid,vid,ndims)
+        rc = nfmpi_inq_vardimid(fid,vid,dids)
+        if(dids(ndims).ne.unlim_did) then
+          if(grid%am_i_globalroot)
+     &         write(6,*) 'get_record_dimlen: variable ',
+     &         trim(checkvar),' has no record dim - stopping'
+          call stoprc(0,1)
+        endif
+      endif
+      get_record_dimlen = i8
+      return
+      end function get_record_dimlen
+
+      function get_dimlen(grid,fid,dname)
+      type(dist_grid), intent(in) :: grid
+      integer :: fid
+      character(len=*) :: dname
+      integer :: get_dimlen
+c
+      integer*8 :: i8
+      integer :: rc,vid,ndims,dids(7)
+c
+      rc = nfmpi_inq_dimid(fid,trim(dname),dids(1))
+      if(rc.ne.nf_noerr) then
+        if(grid%am_i_globalroot)
+     &       write(6,*) 'get_dimlen: dimension ',
+     &       trim(dname),' not found in input file - stopping'
+        call stoprc(0,1)
+      endif
+      rc = nfmpi_inq_dimlen(fid,dids(1),i8)
+      get_dimlen = i8
+      return
+      end function get_dimlen
+
+      subroutine get_dimlens(grid,fid,vname,ndims,dlens)
+      type(dist_grid), intent(in) :: grid
+      integer :: fid
+      character(len=*) :: vname
+      integer :: ndims,dlens(:)
+c
+      integer*8 :: i8
+      integer :: idim,rc,vid,dids(7),unlim_did
+
+      rc = nfmpi_inq_varid(fid,trim(vname),vid)
+      if(rc.ne.nf_noerr) then
+        if(grid%am_i_globalroot)
+     &       write(6,*) 'get_dimlen: variable ',
+     &       trim(vname),' not found in input file - stopping'
+        call stoprc(0,1)
+      endif
+      rc = nfmpi_inq_varndims(fid,vid,ndims)
+      rc = nfmpi_inq_vardimid(fid,vid,dids)
+      do idim=1,ndims
+        rc = nfmpi_inq_dimlen(fid,dids(idim),i8)
+        dlens(idim) = i8
+      enddo
+      if(ndims.ge.3 .and. grid%ntiles.eq.6) then
+        ! tile dimension is either the last or next to last
+        rc = nfmpi_inq_unlimdim(fid,unlim_did)
+        if(dids(ndims).eq.unlim_did) dlens(ndims-1) = dlens(ndims)
+        ndims = ndims - 1
+      endif
+      return
+      end subroutine get_dimlens
+
       subroutine par_write_nc_2D(grid,fid,varname,arr,jdim,record)
       real*8 :: arr(:,:)
 #include "do_par_write_pnc.inc"
@@ -277,19 +392,23 @@ c        rc = nfmpi_sync(fid)
 #include "do_par_write_bundle.inc"
       end subroutine par_write_nc_5D_bundle
 
-      subroutine par_read_nc_2D(grid,fid,varname,arr,jdim)
+      subroutine par_read_nc_2D(grid,fid,varname,arr,jdim,
+     &     record,record1)
       real*8 :: arr(:,:)
 #include "do_par_read_pnc.inc"
       end subroutine par_read_nc_2D
-      subroutine par_read_nc_3D(grid,fid,varname,arr,jdim)
+      subroutine par_read_nc_3D(grid,fid,varname,arr,jdim,
+     &     record,record1)
       real*8 :: arr(:,:,:)
 #include "do_par_read_pnc.inc"
       end subroutine par_read_nc_3D
-      subroutine par_read_nc_4D(grid,fid,varname,arr,jdim)
+      subroutine par_read_nc_4D(grid,fid,varname,arr,jdim,
+     &     record,record1)
       real*8 :: arr(:,:,:,:)
 #include "do_par_read_pnc.inc"
       end subroutine par_read_nc_4D
-      subroutine par_read_nc_5D(grid,fid,varname,arr,jdim)
+      subroutine par_read_nc_5D(grid,fid,varname,arr,jdim,
+     &     record,record1)
       real*8 :: arr(:,:,:,:,:)
 #include "do_par_read_pnc.inc"
       end subroutine par_read_nc_5D

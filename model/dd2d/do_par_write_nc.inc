@@ -7,6 +7,9 @@
       integer, dimension(7) :: srt,cnt
       real*8, dimension(:), allocatable :: arr1d
 #ifndef SERIAL_MODE
+      logical :: snglwrite
+      integer :: i,j,k,l,m,tile
+      real*8, dimension(:,:,:,:,:), allocatable :: arr5d
       integer :: nl,nk,nsend,ierr,src_pe,tag,modpe
       integer :: mpi_status(mpi_status_size)
       logical :: has_xdim
@@ -37,11 +40,11 @@
       endif
 c if latlon model, call routines better suited for very thin
 c zonal strips if they are available
-      if(grid%ntiles.eq.1 .and. has_xdim .and. jd.ne.4 .and.
-     &     (jd.eq.2 .or. jd.lt.nd)) then
-        call par_write_jdecomp_optimized(grid,fid,vid,arr,jd)
-        return
-      endif
+c      if(grid%ntiles.eq.1 .and. has_xdim .and. jd.ne.4 .and.
+c     &     (jd.eq.2 .or. jd.lt.nd)) then
+c        call par_write_jdecomp_optimized(grid,fid,vid,arr,jd)
+c        return
+c      endif
       if(grid%am_i_rowroot) then
         call get_nlnk(arr,jd,nl,nk)
         nsend = nl*nk*grid%maxnj
@@ -60,6 +63,12 @@ c zonal strips if they are available
         call pack_row_no_xdim(grid,arr,arr1d,jd)
       endif
       if(grid%am_i_globalroot) then
+        ! change snglwrite back to false if memory on root node is an issue
+        snglwrite = .true.
+        if(snglwrite) then  ! writing tne entire variable in 1 shot
+          allocate(
+     &       arr5d(nl,nsend/(nl*nk*grid%maxnj),grid%npy,nk,grid%ntiles))
+        endif
         do src_pe=0,grid%nproc-grid%nprocx,grid%nprocx
           if(src_pe.gt.0) then
             call mpi_recv(arr1d,nsend,MPI_DOUBLE_PRECISION,src_pe,
@@ -69,13 +78,37 @@ c zonal strips if they are available
           srt(jd) = grid%jsr(modpe)
           cnt(jd) = 1+grid%jer(modpe)-grid%jsr(modpe)
           srt(nd+1) = 1 + src_pe/grid%nproc_tile
-          rc = nf_put_vara_double(fid,vid,srt,cnt,arr1d)
+          if(snglwrite) then
+            tile = srt(nd+1)
+            m = 0
+            do k=1,size(arr5d,4)
+            do j=grid%jsr(modpe),grid%jer(modpe)
+            do i=1,size(arr5d,2)
+            do l=1,size(arr5d,1)
+              m = m + 1
+              arr5d(l,i,j,k,tile) = arr1d(m)
+            enddo
+            enddo
+            enddo
+            enddo
+          else
+            rc = nf_put_vara_double(fid,vid,srt,cnt,arr1d)
+          endif
         enddo
       elseif(grid%am_i_rowroot) then
         call mpi_send(arr1d,nsend,MPI_DOUBLE_PRECISION,0,
      &       tag,MPI_COMM_WORLD,ierr)
       endif
       if(grid%am_i_rowroot) deallocate(arr1d)
+      if(grid%am_i_globalroot .and. snglwrite) then
+        !srt(jd) = 1
+        !cnt(jd) = grid%npy
+        !srt(nd+1) = 1
+        !cnt(nd+1) = grid%ntiles
+        !rc = nf_put_vara_double(fid,vid,srt,cnt,arr5d)
+        rc = nf_put_var_double(fid,vid,arr5d)
+        deallocate(arr5d)
+      endif
       call mpi_barrier(MPI_COMM_WORLD, ierr)
 #else
       if(size(arr,jd).eq.jm .or. size(arr,jd).eq.1) then

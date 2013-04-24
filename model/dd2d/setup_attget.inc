@@ -26,7 +26,9 @@
      &           ' not found for variable ',trim(varname)
           endif
         endif
-        call stoprc(rc,nf_noerr)
+        call broadcast(rc)
+        if(rc.ne.nf_noerr) return
+        !call stoprc(rc,nf_noerr)
       endif
 
 c
