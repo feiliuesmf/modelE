@@ -13,7 +13,6 @@
 !@auth Original Development Team
       USE CONSTANT, only : lhm,tf
       use TimeConstants_mod, only: SECONDS_PER_DAY,EARTH_DAYS_PER_YEAR
-      USE FILEMANAGER
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : dtsrc
       USE FLUXES, only : flice,focean
@@ -51,9 +50,9 @@
      *     ,icon_MICB,icon_HICB
       USE Dictionary_mod
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds, 
-     &     GLOBALSUM, READT_PARALLEL
-     &     ,AM_I_ROOT
+     &     GLOBALSUM,AM_I_ROOT
       USE EXCHANGE_TYPES, only : avg_patches_srfstate_exports
+      use pario, only : par_open,par_close,read_dist_data
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER, INTENT(IN) :: istart
@@ -64,11 +63,9 @@
      *                    GRID%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     LOC_GLM  !  mask for GLMELT around Antarctica and Greenland
       LOGICAL :: do_glmelt = .false.
-      INTEGER I,J,N, IHC, iu_GL, I72
+      INTEGER I,J,N, IHC, fid
       INTEGER :: I_0,I_1, J_0,J_1
       Real*8  :: DTSRCzY,byoarea
-      CHARACTER*1, DIMENSION(IM,JM) :: CGLM   ! global array
-      CHARACTER*72 :: TITLE
 
 ! Change the variable we'll initialize depending on GLINT2 existence
 #ifdef GLINT2
@@ -153,45 +150,14 @@ C**** Calculate (fixed) iceberg melt terms from Antarctica and Greenland
       call sync_param("glmelt_fac_nh",glmelt_fac_nh)
       call sync_param("glmelt_fac_sh",glmelt_fac_sh)
 
-C**** Note these parameters are highly resolution dependent!
-C**** Around Antarctica, fresh water is added from 78S to 62S
-C**** and from 0-60W and 135W to 165E
-C**** Around Greenland the freshwater is added to both the east and
-C**** west coasts in the one grid box closest to the coast which is
-C**** determined by the direction in the river flow file.
-C**** This information is now read in from the GLMELT file.
-
-C**** Read in GLMELT file to distribute glacial melt (CGLM is global)
-      IF (JM.gt.24) THEN ! for finer that old 8x10
+C**** Read in GLMELT file to distribute glacial melt
+      IF (JM.gt.24) THEN ! for finer than old 8x10
          do_glmelt=.true.
 
-#ifdef CUBED_SPHERE
-c read a binary version of GLMELT
-      call openunit("GLMELT",iu_GL,.true.,.true.)
-      call readt_parallel(grid,iu_gl,nameunit(iu_gl),r8mask,1)
+      fid = par_open(grid,'GLMELT','read')
+      call read_dist_data(grid,fid,'mask',r8mask)
+      call par_close(grid,fid)
       loc_glm(i_0:i_1,j_0:j_1) = r8mask(i_0:i_1,j_0:j_1).eq.1d0
-#else
-c every PE reads the ascii version of GLMELT
-      call openunit("GLMELT",iu_GL,.false.,.true.)
-      READ  (iu_GL,'(A72)') TITLE
-      IF(AM_I_ROOT())
-     &     WRITE (6,*) 'Read on unit ',iu_GL,': ',TITLE
-      READ  (iu_GL,*)
-C**** assumes a 72-column width slab - will need adjusting for CS
-      DO I72=1,1+(IM-1)/72
-        DO J=JM,1,-1
-          READ (iu_GL,'(72A1)')
-     *         (CGLM(I,J),I=72*(I72-1)+1,MIN(IM,I72*72))
-        END DO
-      END DO
-      DO J=J_0,J_1
-        DO I=I_0,I_1
-          LOC_GLM(I,J)=CGLM(I,J).eq."1"
-        ENDDO
-      ENDDO
-C****
-#endif
-      call closeunit(iu_GL)
 
 C**** Calculate hemispheric fractions (weighted by area and landmask)
 C**** This could be extended by a different number in GLMELT to

@@ -1751,10 +1751,8 @@ ccc                               currently using only topography part
 
       subroutine init_gh(dtsurf,istart)
 c**** modifications needed for split of bare soils into 2 types
-      use filemanager, only : openunit, closeunit, nameunit
       use Dictionary_mod, only : sync_param, get_param
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
-      use DOMAIN_DECOMP_ATM, only : DREAD_PARALLEL, READT_PARALLEL
       use fluxes, only : focean
 #ifdef SCM
       use SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
@@ -1764,24 +1762,17 @@ c**** modifications needed for split of bare soils into 2 types
       use ghy_com
       use snow_drvm, only : snow_cover_coef2=>snow_cover_coef
      &     ,snow_cover_same_as_rad
-
+      use pario, only : par_open,par_close,read_dist_data
       implicit none
 
       real*8, intent(in) :: dtsurf
       integer, intent(in) :: istart
-      integer iu_soil,iu_top_index
+      integer fid
       logical :: qcon(npts)
       integer i, j
       logical ghy_data_missing
       character conpt(npts)*10
 c****
-cgsfc      REAL*8::TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,11*NGM+1)
-      REAL*8, Allocatable, DIMENSION(:,:,:) :: TEMP_LOCAL
-c**** contents of TEMP_LOCAL used for reading the following in a block:
-c****       1 -   ngm   dz(ngm)
-c****   ngm+1 - 6*ngm   q(is,ngm)
-c**** 6*ngm+1 - 11*ngm   qk(is,ngm)
-c**** 11*ngm+1           sl
 !@dbparam ghy_default_data if == 1 reset all GHY data to defaults
 !@+ (do not read it from files)
       integer :: ghy_default_data = 0
@@ -1834,27 +1825,19 @@ c**** read land surface parameters or use defaults
       if ( ghy_default_data == 0 ) then ! read from files
 
 c**** read soils parameters
-        call openunit("SOIL",iu_SOIL,.true.,.true.)
-        ALLOCATE(TEMP_LOCAL(I_0H:I_1H,J_0H:J_1H,11*NGM+1))
-        call DREAD_PARALLEL(grid,iu_SOIL,NAMEUNIT(iu_SOIL),TEMP_LOCAL)
-        DZ_IJ(:,:,:)   = TEMP_LOCAL(:,:,1:NGM)
-         Q_IJ(I_0:I_1,J_0:J_1,:,:) =
-     &       RESHAPE( TEMP_LOCAL(I_0:I_1,J_0:J_1,1+NGM:) ,
-     *                   (/I_1-I_0+1,J_1-J_0+1,imt,ngm/) )
-        QK_IJ(I_0:I_1,J_0:J_1,:,:) =
-     *        RESHAPE( TEMP_LOCAL(I_0:I_1,J_0:J_1,1+NGM+NGM*IMT:) ,
-     *                   (/I_1-I_0+1,J_1-J_0+1,imt,ngm/) )
-        SL_IJ(I_0:I_1,J_0:J_1)  =
-     &       TEMP_LOCAL(I_0:I_1,J_0:J_1,1+NGM+NGM*IMT+NGM*IMT)
-        DEALLOCATE(TEMP_LOCAL)
-        call closeunit (iu_SOIL)
+        fid = par_open(grid,'SOIL','read')
+        call read_dist_data(grid,fid,'dz',dz_ij)
+        call read_dist_data(grid,fid,'q',q_ij)
+        call read_dist_data(grid,fid,'qk',qk_ij)
+        call read_dist_data(grid,fid,'sl',sl_ij)
+        call par_close(grid,fid)
+
 c**** read topmodel parameters
-        call openunit("TOP_INDEX",iu_TOP_INDEX,.true.,.true.)
-        call READT_PARALLEL
-     *    (grid,iu_TOP_INDEX,NAMEUNIT(iu_TOP_INDEX),top_index_ij,1)
-        call READT_PARALLEL
-     *    (grid,iu_TOP_INDEX,NAMEUNIT(iu_TOP_INDEX),top_dev_ij  ,1)
-        call closeunit (iu_TOP_INDEX)
+        fid = par_open(grid,'TOP_INDEX','read')
+        call read_dist_data(grid,fid,'top_index',top_index_ij)
+        call read_dist_data(grid,fid,'top_dev',top_dev_ij)
+        call par_close(grid,fid)
+
       else  ! reset to default data
         if ( istart>0 .and. istart<8 ) then ! reset all
           call reset_gh_to_defaults( .true. )

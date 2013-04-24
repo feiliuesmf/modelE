@@ -414,12 +414,8 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 #ifdef SCM
       USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
-      USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,readt_parallel
+      USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL
       USE DOMAIN_DECOMP_ATM, only : getDomainBounds,HALO_UPDATE
-#ifdef GLINT2
-      USE DOMAIN_DECOMP_ATM, only : glint2
-      use glint2_modele
-#endif
       USE DOMAIN_DECOMP_ATM, only : am_i_root
       USE GEOM, only : axyp,imaxj,lonlat_to_ij,lon2d_dg,lat2d_dg
 #ifdef TRACERS_WATER
@@ -432,7 +428,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE LAKES_COM
       USE DIAG_COM, only : npts,conpt0,icon_LKM,icon_LKE
       USE Dictionary_mod
-      USE pario
+      use pario, only : par_open,par_close,read_dist_data
 
       IMPLICIT NONE
       INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0,I_1,I_0H,I_1H
@@ -444,8 +440,9 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       INTEGER, INTENT(IN) :: ISTART
 !@var I,J,IU,JU,ID,JD loop variables
       INTEGER I,J,IU,JU,ID,JD,INM
+      integer :: fid,ios
+      character(len=80) :: fmtstr
       INTEGER iu_RVR  !@var iu_RVR unit number for river direction file
-      INTEGER iu_SILL  !@var iu_TOPO unit number for sill depth file
       CHARACTER TITLEI*80, CONPT(NPTS)*10
       REAL*8 SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1,MLK1,fac,fac1
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
@@ -465,7 +462,6 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(:,:,:), POINTER :: GTRACER
 #endif
-      INTEGER :: NHC_LOCAL = 1
 
       GTEMP => ATMOCN%GTEMP
       GTEMP2 => ATMOCN%GTEMP2
@@ -504,22 +500,9 @@ C**** Get parameters from rundeck
       call sync_param("lake_rise_max",lake_rise_max)
 
 C**** Read Lake Depths
-#ifdef GLINT2
-      nhc_local = glint2_modele_nhc(glint2)
-#else
-      call sync_param("NHC", NHC_LOCAL)
-#endif
-      if (nhc_local.eq.1) then
-        call openunit("TOPO",iu_SILL,.true.,.true.)
-        CALL READT_PARALLEL(grid,iu_SILL,NAMEUNIT(iu_SILL),HLAKE ,7)
-        call closeunit(iu_SILL)
-      else
-        iu_SILL = par_open(grid,"TOPO","read")
-        call read_dist_data(grid,iu_SILL,'hlake',HLAKE)
-        call par_close(grid,iu_SILL)
-      end if
-
-
+      fid = par_open(grid,'TOPO','read')
+      call read_dist_data(grid,fid,'hlake',hlake)
+      call par_close(grid,fid)
 
 C**** initialise FLAKE if requested (i.e. from older restart files)
       if (INILAKE) THEN
@@ -670,25 +653,34 @@ C**** setting river directions
       KDIREC=0 ; KD911=0
       RATE=0.  ; nrvr=0
 
-C**** Read in down stream lat/lon positions
       allocate(down_lat_loc(I_0H:I_1H,J_0H:J_1H),
      *     down_lon_loc(I_0H:I_1H,J_0H:J_1H),
      *     down_lat_911_loc(I_0H:I_1H,J_0H:J_1H),
      *     down_lon_911_loc(I_0H:I_1H,J_0H:J_1H) )
 
-      call openunit("RVR",iu_RVR,.true.,.true.)
-      read(iu_RVR) titlei
-      WRITE (out_line,*) 'River Direction file read: ',TITLEI
-      read(iu_RVR) titlei,nrvr,namervr(1:nrvr),lat_rvr(1:nrvr)
-     *     ,lon_rvr(1:nrvr)
-      CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
-      CALL READT_PARALLEL(grid,iu_RVR,NAMEUNIT(iu_RVR),down_lat_loc,1)
-      CALL READT_PARALLEL(grid,iu_RVR,NAMEUNIT(iu_RVR),down_lon_loc,1)
-      CALL READT_PARALLEL(grid,iu_RVR,NAMEUNIT(iu_RVR),down_lat_911_loc
-     *     ,1)
-      CALL READT_PARALLEL(grid,iu_RVR,NAMEUNIT(iu_RVR),down_lon_911_loc
-     *     ,1)
+C**** Read named river mouth positions
+      call openunit("NAMERVR",iu_RVR,.false.,.true.)
+      read(iu_RVR,*)
+      read(iu_RVR,'(a)') fmtstr
+      nrvr = 0
+      do
+        read(iu_RVR,trim(fmtstr),iostat=ios)
+     &       namervr(nrvr+1),lat_rvr(nrvr+1),lon_rvr(nrvr+1)
+        if(ios.ne.0) exit
+        nrvr = nrvr + 1
+      enddo
       call closeunit(iu_RVR)
+
+      WRITE (out_line,*) 'Named river file read '
+      CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
+
+C**** Read in down stream lat/lon positions
+      fid = par_open(grid,'RVR','read')
+      call read_dist_data(grid,fid,'down_lat',down_lat_loc)
+      call read_dist_data(grid,fid,'down_lon',down_lon_loc)
+      call read_dist_data(grid,fid,'down_lat_911',down_lat_911_loc)
+      call read_dist_data(grid,fid,'down_lon_911',down_lon_911_loc)
+      call par_close(grid,fid)
 
       CALL HALO_UPDATE(GRID, down_lat_loc)
       CALL HALO_UPDATE(GRID, down_lon_loc)

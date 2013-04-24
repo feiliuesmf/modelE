@@ -1693,9 +1693,8 @@ C**** fluxes associated with variable lake fractions
       SUBROUTINE ALLOC_FLUXES !(grd_dum)
 !@sum   Initializes FLUXES''s arrays
 !@auth  Rosalinda de Fainchtein
-      USE FILEMANAGER
       USE EXCHANGE_TYPES, only : alloc_xchng_vars
-      USE DOMAIN_DECOMP_ATM, ONLY : GRD_DUM=>GRID,READT_PARALLEL,
+      USE DOMAIN_DECOMP_ATM, ONLY : GRD_DUM=>GRID,
      &     HALO_UPDATE,HASSOUTHPOLE,HASNORTHPOLE
 #ifdef GLINT2
       USE DOMAIN_DECOMP_ATM, ONLY : glint2
@@ -1719,11 +1718,11 @@ C**** fluxes associated with variable lake fractions
 #endif
       USE ATM_COM, only : temperature_istart1
       USE Dictionary_mod
-      USE pario
+      use pario, only : par_open,par_close,read_dist_data
 
       IMPLICIT NONE
       !TYPE (DIST_GRID), INTENT(IN) :: grd_dum
-      INTEGER :: iu_TOPO
+      INTEGER :: fid
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: I, J, I_0, I_1, J_1, J_0
       INTEGER :: IER,K
@@ -1766,24 +1765,12 @@ C**** fluxes associated with variable lake fractions
 C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
 C**** Note that FLAKE0 is read in only to provide initial values
 C**** Actual array is set from restart file.
-      if (NHC_LOCAL.eq.1) then		! Read old-format TOPO file
-        call openunit("TOPO",iu_TOPO,.true.,.true.)
-
-        CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FOCEAN,1) ! Ocean fraction
-
-        CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FLAKE0,1) ! Orig. Lake fraction
-        CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FEARTH0,1) ! Earth frac. (no LI)
-
-        CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FLICE ,1) ! Land ice fraction
-        call closeunit(iu_TOPO)
-      else
-        ! Read new-format TOPO.nc file (allows for height classes)
-        iu_TOPO = par_open(grid,"TOPO","read")
-        call read_dist_data(grid,iu_TOPO,'focean',FOCEAN)
-        call read_dist_data(grid,iu_TOPO,'flake',FLAKE0)
-        call read_dist_data(grid,iu_TOPO,'fgrnd',FEARTH0)
-        call read_dist_data(grid,iu_TOPO,'fgice',FLICE)
-        call par_close(grid,iu_TOPO)
+      fid = par_open(grid,'TOPO','read')
+      call read_dist_data(grid,fid,'focean',FOCEAN)
+      call read_dist_data(grid,fid,'flake',FLAKE0)
+      call read_dist_data(grid,fid,'fgrnd',FEARTH0)
+      call read_dist_data(grid,fid,'fgice',FLICE)
+      call par_close(grid,fid)
 
 #ifdef GLINT2
         ! Fix it up with GLINT2
@@ -1792,8 +1779,6 @@ C**** Actual array is set from restart file.
      &         FLICE, FEARTH0, FOCEAN, FLAKE0,
      &     grid%i_strt_halo, grid%j_strt_halo)
 #endif
-      end if
-
 
       CALL HALO_UPDATE(GRD_DUM, FOCEAN)
       CALL HALO_UPDATE(GRD_DUM, FEARTH0)

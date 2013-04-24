@@ -131,13 +131,8 @@ C**** module should own dynam variables used by other routines
 !@+    run time
 !@auth NCCS (Goddard) Development Team
       USE CONSTANT, only : GRAV
-      USE FILEMANAGER
-      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,HALO_UPDATE,READT_PARALLEL
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,HALO_UPDATE
      &     ,hassouthpole,hasnorthpole
-#ifdef GLINT2
-      USE DOMAIN_DECOMP_ATM, ONLY : glint2
-      use glint2_modele
-#endif
       USE RESOLUTION, ONLY : IM,JM,LM,PSFMPT
       USE ATM_COM, ONLY : temperature_istart1
       USE ATM_COM, ONLY : ZATMO,P,U,V,T,Q,WM
@@ -159,16 +154,15 @@ C**** module should own dynam variables used by other routines
 #else
        USE GEOM, only : geom_b
 #endif
-      USE pario
+      use pario, only : par_open,par_close,read_dist_data
       use Dictionary_mod, only : sync_param, get_param
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
-      INTEGER :: iu_TOPO
+      INTEGER :: fid
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: I, J, I_0, I_1, J_1, J_0
       INTEGER :: IER
-      INTEGER :: nhc_local = 1
 
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
@@ -217,21 +211,9 @@ C****
       WMICE (:,:,:)=0.
 #endif
 
-#ifdef GLINT2
-      nhc_local = glint2_modele_nhc(glint2)
-#else
-      call sync_param("NHC", nhc_local)
-#endif
-      if (nhc_local.eq.1) then
-        call openunit("TOPO",iu_TOPO,.true.,.true.)
-        CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),ZATMO ,5) ! Topography
-        call closeunit(iu_TOPO)
-      else
-        ! New-format netCDF file
-        iu_TOPO = par_open(grid,"TOPO","read")
-        call read_dist_data(grid,iu_TOPO,'zatmo',zatmo)
-        call par_close(grid,iu_TOPO)
-      end if
+      fid = par_open(grid,'TOPO','read')
+      call read_dist_data(grid,fid,'zatmo',zatmo)
+      call par_close(grid,fid)
 
       ZATMO(I_0:I_1,J_0:J_1) = ZATMO(I_0:I_1,J_0:J_1)*GRAV   ! Geopotential
       CALL HALO_UPDATE(GRID, ZATMO)

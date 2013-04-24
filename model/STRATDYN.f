@@ -517,14 +517,12 @@ C****
 !@auth Jean Lerner
 C**** DO_GWDRAG=true activates the printing of the diagnostics
 C**** accumulated in the routines contained herein
-      USE FILEMANAGER
       USE Dictionary_mod
       USE CONSTANT, only : twopi,kapa
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : pednl00,pmidl00
       USE DYNAMICS, only : do_gwdrag
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, READT_PARALLEL,
-     &     getDomainBounds, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds, AM_I_ROOT
       USE GEOM, only : areag
 #ifdef CUBED_SPHERE
       USE STRAT, only : EK_globavg,dfm_type
@@ -536,12 +534,11 @@ C**** accumulated in the routines contained herein
       USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,lbreak
      *     ,ld2,lshr,ldef,zvarx,zvary,zvart,zwt,nm,ekofj, cmtn,Cshear
      *     ,cdef,cmc,pbreak,pbreaktop,defthresh,pconpen,ang_gwd,LPCNV  
+      use pario, only : par_open,par_close,read_dist_data
       IMPLICIT NONE
       REAL*8 PLEV,PLEVE,EKS,EK1,EK2,EKX
-      REAL*8 :: TEMP_LOCAL(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                     GRID%J_STRT_HALO:GRID%J_STOP_HALO,4)
       REAL*8 :: EK_GLOB(JM)
-      INTEGER I,J,L,iu_zvar
+      INTEGER I,J,L,fid
 
       INTEGER :: I_0,I_1,J_0,J_1,  I_0H,I_1H,J_0H,J_1H
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
@@ -603,13 +600,12 @@ c        IF (PLEV.GE.200.) LDEFM=L
 C****
 C**** TOPOGRAPHY VARIANCE FOR MOUNTAIN WAVES
 C****
-      call openunit("ZVAR",iu_ZVAR,.true.,.true.)
-      CALL READT_PARALLEL(grid,iu_ZVAR,NAMEUNIT(iu_ZVAR),TEMP_LOCAL,1)
-      ZVART(:,:) = TEMP_LOCAL(:,:,1)
-      ZVARX(:,:) = TEMP_LOCAL(:,:,2)
-      ZVARY(:,:) = TEMP_LOCAL(:,:,3)
-        ZWT(:,:) = TEMP_LOCAL(:,:,4)
-      call closeunit(iu_ZVAR)
+      fid = par_open(grid,'ZVAR','read')
+      call read_dist_data(grid,fid,'zvart',zvart)
+      call read_dist_data(grid,fid,'zvarx',zvarx)
+      call read_dist_data(grid,fid,'zvary',zvary)
+      call read_dist_data(grid,fid,'zwt',zwt)
+      call par_close(grid,fid)
 
 #ifndef CUBED_SPHERE
       CALL HALO_UPDATE(GRID, ZVART, from=SOUTH)

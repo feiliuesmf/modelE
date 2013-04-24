@@ -709,17 +709,14 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
       end module PBL_DRV
       
       subroutine read_pbl_tsurf_from_nmcfile
-      USE FILEMANAGER
-      USE DOMAIN_DECOMP_ATM, only : GRID, READT_PARALLEL
-      use resolution, only : lm
+      USE DOMAIN_DECOMP_ATM, only : GRID
       use fluxes, only : atmsrf
+      use pario, only : par_open,par_close,read_dist_data
       implicit none
-      integer :: iu_NMC,tsurf_record
-      call openunit("AIC",iu_NMC,.true.,.true.)
-      tsurf_record = 1+4*lm +1  ! skip over psrf,u,v,t,q
-      CALL READT_PARALLEL(grid,iu_NMC,NAMEUNIT(iu_NMC),atmsrf%TSAVG,
-     &     tsurf_record)
-      call closeunit(iu_NMC)
+      integer :: fid
+      fid = par_open(grid,'AIC','read')
+      call read_dist_data(grid,fid,'tsurf',atmsrf%tsavg)
+      call par_close(grid,fid)
       atmsrf%tgvavg(:,:) = atmsrf%tsavg(:,:) ! not used for init. set anyway.
       return
       end subroutine read_pbl_tsurf_from_nmcfile
@@ -734,7 +731,6 @@ c  fields are obtained by solving the static equations of the
 c  Level 2 model. This is used when starting from a restart
 c  file that does not have this data stored.
 c -------------------------------------------------------------
-      USE FILEMANAGER
       USE Dictionary_mod
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
       USE ATM_COM, only : u,v,p,t,q
@@ -748,7 +744,7 @@ c -------------------------------------------------------------
      &     ,xdelt, maxNTM
       USE GHY_COM, only : fearth
       USE PBLCOM
-      USE DOMAIN_DECOMP_ATM, only : GRID, READT_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_1D, only : WRITET_PARALLEL, getDomainBounds
       USE ATM_COM, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
@@ -760,7 +756,7 @@ c -------------------------------------------------------------
       use ent_mod, only: ent_get_exports
       use ent_com, only : entcells
 #endif
-
+      use pario, only : par_open,par_close,read_dist_data
 
       IMPLICIT NONE
 C**** ignore ocean currents for initialisation.
@@ -770,8 +766,8 @@ C**** ignore ocean currents for initialisation.
 !@var istart what kind of (re)start is being done
       integer, intent(in) :: istart
 
-!@var iu_CDN unit number for roughness length input file
-      integer :: iu_CDN
+!@var fid unit number for roughness length input file
+      integer :: fid
       integer :: ilong  !@var ilong  longitude identifier
       integer :: jlat   !@var jlat  latitude identifier
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -853,9 +849,10 @@ C things to be done regardless of inipbl
 !!#if ( ! defined ROUGHL_HACK ) || ( ! defined USE_ENT )
       if ( roughl_from_file .ne. 0 ) then
         allocate ( buf(I_0H:I_1H, J_0H:J_1H) )
-        call openunit("CDN",iu_CDN,.TRUE.,.true.)
-        CALL READT_PARALLEL(grid,iu_CDN,NAMEUNIT(iu_CDN),buf,1)
-        call closeunit(iu_CDN)
+        buf = 0.
+        fid = par_open(grid,'CDN','read')
+        call read_dist_data(grid,fid,'al30rl',buf)
+        call par_close(grid,fid)
         roughl(:,:)=30./(10.**buf(:,:))
         deallocate ( buf )
       endif

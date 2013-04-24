@@ -175,33 +175,38 @@
       Use CONSTANT,   Only: mb2kg
       Use RESOLUTION, Only: IM,JM,LM, MTOP,MFIX,MFIXs,MFRAC, PTOP
       Use ATM_COM,    Only: MA,U,V,T,P,Q, PK,PMID,PEDN,UALIJ,VALIJ
-      Use DOMAIN_DECOMP_ATM, Only: GRID, GetDomainBounds,READT_PARALLEL
-      Use filemanager
+      Use DOMAIN_DECOMP_ATM, Only: GRID, GetDomainBounds
+      use pario, only : par_open,par_close,read_dist_data
       Implicit none
-      Integer :: I,J,L,IU_AIC, I1,IN,J1,JN
+      Integer :: I,J,L,fid, I1,IN,J1,JN
       Logical :: QSP,QNP
       Real*8  :: MVAR
 
       Call GetDomainBounds (GRID, I_STRT=I1, I_STOP=IN, J_STRT=J1, J_STOP=JN, &
                                   HAVE_SOUTH_POLE=QSP, HAVE_NORTH_POLE=QNP)
 
-      Call OpenUnit ("AIC",IU_AIC,.True.,.True.)
-      Call READT_PARALLEL (GRID,IU_AIC,NAMEUNIT(IU_AIC),P,1)  !  Psurf
-      Do J=J1,JN  ;  Do I=I1,IN
+
+      fid = par_open(grid,'AIC','read')
+      call read_dist_data(grid,fid,'p',p)
+      call read_dist_data(grid,fid,'u',u)
+      call read_dist_data(grid,fid,'v',v)
+      call read_dist_data(grid,fid,'t',t)
+      call read_dist_data(grid,fid,'q',q)
+      call par_close(grid,fid)
+
+      Do J=J1,JN
+      Do I=I1,IN
          MVAR = P(I,J)*mb2kg - MFIXs - MTOP
          MA(:,I,J) = MFIX(:) + MVAR*MFRAC(:)
-         P(I,J) = P(I,J) - PTOP  ;  EndDo  ;  EndDo  !  Psurf -> P
+         P(I,J) = P(I,J) - PTOP  !  Psurf -> P
+      EndDo
+      EndDo
       Call CALC_AMPK (LM)
+
+!**** Convert Temperature to Potential Temperature
       Do L=1,LM
-         Call READT_PARALLEL (GRID,IU_AIC,NAMEUNIT(IU_AIC),U(:,:,L),1)  ;  EndDo
-      Do L=1,LM
-         Call READT_PARALLEL (GRID,IU_AIC,NAMEUNIT(IU_AIC),V(:,:,L),1)  ;  EndDo
-      Do L=1,LM
-         Call READT_PARALLEL (GRID,IU_AIC,NAMEUNIT(IU_AIC),T(:,:,L),1)      !  Temperature
-         T(I1:IN,J1:JN,L) = T(I1:IN,J1:JN,L) / PK(L,I1:IN,J1:JN)  ;  EndDo  !  Potential Temperature
-      Do L=1,LM  !  alternatively, only read in L=1,LS1, skip rest
-         Call READT_PARALLEL (GRID,IU_AIC,NAMEUNIT(IU_AIC),Q(:,:,L),1)  ;  EndDo
-      Call CloseUnit (IU_AIC)
+        T(I1:IN,J1:JN,L) = T(I1:IN,J1:JN,L) / PK(L,I1:IN,J1:JN)
+      EndDo
 
 !**** INITIALIZE VERTICAL SLOPES OF T,Q
       Call TQ_ZMOM_INIT (T,Q,PMID,PEDN)
