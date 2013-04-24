@@ -5,6 +5,6 @@ SOIL=S144X900098M.ext.nc
 TOP_INDEX=top_index_144x90_a.ij.ext.nc
 ZVAR=ZVAR2X25A.nc             ! topographic variation for gwdrag
 ! probably need these (should convert to 144x90)
-soil_textures=soil_textures_top30cm_2x2.5.nc
+soil_textures=soil_textures_top30cm_2x2.5
 SOILCARB_global=soilcarb_top30cm_2x2.5.nc
 GLMELT=GLMELT_144X90_gas.OCN.nc
