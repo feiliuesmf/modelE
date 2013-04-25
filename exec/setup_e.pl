@@ -235,7 +235,7 @@ foreach $_ ( @data_files ) {
 	$flag_missing_data_files = 1;
 	next;
     }
-    print RUNIDLN "ln -fs $full_dest $name\n";
+    print RUNIDLN "ln -fsn $full_dest $name\n";
     print RUNIDULN "rm $name\n";
 }
 
