@@ -56,7 +56,7 @@ ZSIFAC=SICE_144x90.1876-1885avg.HadISST1.1.nc
 ! For q-flux ocean, replace all the above by the next 2 lines, set KOCEAN=1, ISTART=8
 !! AIC=1JAN1961.rsfE4F40.MXL65m        ! end of preliminary run with KOCEAN=0
 !! OHT=OTSPEC.E4F40.MXL65m.1956-1960   ! ocean horizontal heat transports
-OCNML=Z1O.B144x90                    ! mixed layer depth (not used if KOCEAN=0)
+OCNML=Z1O.B144x90.nc                    ! mixed layer depth (not used if KOCEAN=0)
 CDN=CD144X90.ext.nc
 VEG=V144X90_no_crops.ext.nc
 CROPS=CROPS2007_144X90N_nocasp

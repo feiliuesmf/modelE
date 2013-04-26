@@ -66,7 +66,7 @@ SICE_eom=SICE4X5.B.1876-85avg.Hadl1.1.nc
 ZSIFAC=SICE4X5.B.1876-85avg.Hadl1.1.nc
 !? for 1979 OSST=OST4X5.B.1975-84avg.Hadl1.1
 !? for 1979 SICE=SICE4X5.B.1975-84avg.Hadl1.1
-OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
+OCNML=Z1O.B4X5.cor.nc                ! mixed layer depth (needed for post processing)
 !                                             (end of section 1 of data input files)
     ! resolution dependent files
 TOPO=Z72X46N.cor4_nocasp.nc       ! topography

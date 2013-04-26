@@ -56,7 +56,7 @@ ZSIFAC=SICE4X5.B.1876-85avg.Hadl1.1.nc
 ! For q-flux ocean, replace lines above by the next 2 lines & set KOCEAN=1, ISTART=8
 !! AIC=1JAN1961.rsfE4M20.MXL65m   ! = end of preliminary run with KOCEAN=0,Kvflxo=1
 !! OHT=OTSPEC.E4M20.MXL65m.1956-1960 ! ocean horizontal heat transport
-OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
+OCNML=Z1O.B4X5.cor.nc                ! mixed layer depth (needed for post processing)
 TOPO=Z72X46N.cor4_nocasp.nc       ! topography
 SOIL=S4X50093.ext.nc              ! soil bdy.conds
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1

@@ -89,7 +89,7 @@ ZSIFAC=SICE4X5.B.1975-84avg.Hadl1.1.nc
     ! the next 3 files are specific to q-flux ocean runs
 ! AIC=E001/1JAN1956.rsfE001.O250D      ! AIC/OHT made by aux/mkOTSPEC.E001.M250D
 ! OHT=E001/OTSPEC.E001.M250D.1951-1955 ! horizontal ocean heat transport
-OCNML=Z1O.B4X5.cor                ! mixed layer depth (use for post processing)
+OCNML=Z1O.B4X5.cor.nc                ! mixed layer depth (use for post processing)
     ! files needed for all models
 CDN=CD4X500S.ext.nc
 VEG=V72X46.1.cor2_no_crops.ext.nc    ! vegetation fractions

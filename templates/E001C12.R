@@ -50,7 +50,7 @@ Data input files:
 AIC=AIC.RES_C12.D771201.nc   ! observed init cond   (atm. only)       ISTART=2
 GIC=GIC.8X10.modelE_1.nc     ! initial ground conditions              ISTART=2
 ! OHT=OTSPEC.RunIDM12.M250D ! hor.heat transp.  for q-flux ocean only
-! OCNML=Z1O.B4X5.cor        ! mixed layer depth,needed for post-processing only
+! OCNML=Z1O.B4X5.cor.nc        ! mixed layer depth,needed for post-processing only
 ! prescr. climatological ocean (1 yr of data)
 OSST=OST8X10.B.1946-55avg.Hadl1.1.nc
 OSST_eom=OST8X10.B.1946-55avg.Hadl1.1.nc

@@ -52,7 +52,7 @@ OSST_eom=OST4X5.B.1876-85avg.Hadl1.1.nc
 SICE=SICE4X5.B.1876-85avg.Hadl1.1.nc
 SICE_eom=SICE4X5.B.1876-85avg.Hadl1.1.nc
 ZSIFAC=SICE4X5.B.1876-85avg.Hadl1.1.nc
-OCNML=Z1O.B4X5.cor   ! needed only for postprocessing
+OCNML=Z1O.B4X5.cor.nc   ! needed only for postprocessing
 !                                             (end of section 1 of data input files)
 TOPO=Z72X46N.cor4_nocasp.nc
 SOIL=S4X50093.ext.nc              ! bdy.cond
