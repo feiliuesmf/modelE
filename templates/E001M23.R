@@ -47,8 +47,11 @@ Data input files:
 ! AIC=AIC.RES_M23.D771201.nc
 ! GIC=GIC.E046D3M20A.1DEC1955.ext
 AIC=1JAN1881.rsfE001M23
-OSST=OST4X5.B.1876-85avg.Hadl1.1
-SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! ocn
+OSST=OST4X5.B.1876-85avg.Hadl1.1.nc
+OSST_eom=OST4X5.B.1876-85avg.Hadl1.1.nc
+SICE=SICE4X5.B.1876-85avg.Hadl1.1.nc
+SICE_eom=SICE4X5.B.1876-85avg.Hadl1.1.nc
+ZSIFAC=SICE4X5.B.1876-85avg.Hadl1.1.nc
 OCNML=Z1O.B4X5.cor   ! needed only for postprocessing
 !                                             (end of section 1 of data input files)
 TOPO=Z72X46N.cor4_nocasp.nc

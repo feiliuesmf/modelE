@@ -58,8 +58,11 @@ tracers MPI_Support shared
 Data input files:
 AIC=1OCT1951.rsfE464jalTM23_noTrace
 GIC=GIC.E046D3M20A.1DEC1955.ext_1.nc
-OSST=OST4X5.B.1876-85avg.Hadl1.1
-SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! ocn
+OSST=OST4X5.B.1876-85avg.Hadl1.1.nc
+OSST_eom=OST4X5.B.1876-85avg.Hadl1.1.nc
+SICE=SICE4X5.B.1876-85avg.Hadl1.1.nc
+SICE_eom=SICE4X5.B.1876-85avg.Hadl1.1.nc
+ZSIFAC=SICE4X5.B.1876-85avg.Hadl1.1.nc
 OCNML=Z1O.B4X5.cor   ! needed only for postprocessing
 !                                             (end of section 1 of data input files)
 TOPO=Z72X46N.cor4_nocasp.nc

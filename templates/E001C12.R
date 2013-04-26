@@ -51,8 +51,14 @@ AIC=AIC.RES_C12.D771201.nc   ! observed init cond   (atm. only)       ISTART=2
 GIC=GIC.8X10.modelE_1.nc     ! initial ground conditions              ISTART=2
 ! OHT=OTSPEC.RunIDM12.M250D ! hor.heat transp.  for q-flux ocean only
 ! OCNML=Z1O.B4X5.cor        ! mixed layer depth,needed for post-processing only
-OSST=OST8X10.B.1946-55avg.Hadl1.1 ! prescr. climatological ocean (1 yr of data)
-SICE=SICE8X10.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
+! prescr. climatological ocean (1 yr of data)
+OSST=OST8X10.B.1946-55avg.Hadl1.1.nc
+OSST_eom=OST8X10.B.1946-55avg.Hadl1.1.nc
+! prescr. climatological sea ice
+SICE=SICE8X10.B.1946-55avg.Hadl1.1.nc
+SICE_eom=SICE8X10.B.1946-55avg.Hadl1.1.nc
+ZSIFAC=SICE8X10.B.1946-55avg.Hadl1.1.nc
+!
 CDN=CD8X10.modelE.nc
 VEG=V8X10.modelE.nc
 SOIL=S8X10.modelE.nc

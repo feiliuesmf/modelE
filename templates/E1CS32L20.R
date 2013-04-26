@@ -64,8 +64,13 @@ Data input files:
 AIC=AIC_CS32.nc      ! initial conditions (atm.)      needs GIC, ISTART=2
 GIC=GIC_CS32_1.nc      ! initial conditions (ground)
     ! ocean data for "prescribed ocean" runs : climatological ocean
-OSST=OST_CS32  ! prescr. climatological ocean (1 yr of data)
-SICE=SICE_CS32 ! prescr. climatological sea ice
+! prescr. climatological ocean (1 yr of data)
+OSST=OST_CS32.nc
+OSST_eom=OST_CS32.nc
+! prescr. climatological sea ice
+SICE=SICE_CS32.nc
+SICE_eom=SICE_CS32.nc
+ZSIFAC=SICE_CS32.nc
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
 !                                             (end of section 1 of data input files)
     ! resolution dependent files

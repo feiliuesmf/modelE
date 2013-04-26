@@ -54,8 +54,13 @@ MPI_Support shared
 Data input files:
 AIC=AIC.RES_F40.D771201.nc  ! observed init cond (atm. only) ISTART=2
 GIC=GIC.144X90.DEC01.1.ext_1.nc   ! initial ground conditions      ISTART=2
-OSST=OST_144x90.B.1975-1984avg.Hadl1  ! prescr. climatological ocean (1 yr data)
-SICE=SICE_144x90.B.1975-1984avg.Hadl1 ! prescr. climatological sea ice
+! prescr. climatological ocean (1 yr of data)
+OSST=OST_144x90.B.1975-1984avg.Hadl1.nc
+OSST_eom=OST_144x90.B.1975-1984avg.Hadl1.nc
+! prescr. climatological sea ice
+SICE=SICE_144x90.B.1975-1984avg.Hadl1.nc
+SICE_eom=SICE_144x90.B.1975-1984avg.Hadl1.nc
+ZSIFAC=SICE_144x90.B.1975-1984avg.Hadl1.nc
 ! OSST=OST_144x90.1876-1885avg.HadISST1.1    ! prescr. climatological ocean (1 yr data)
 ! SICE=SICE_144x90.1876-1885avg.HadISST1.1   ! prescr. climatological sea ice
 CDN=CD144X90.ext.nc             ! surf.drag coefficient

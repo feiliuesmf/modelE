@@ -57,8 +57,13 @@ Data input files:
 AIC=AIC.RES_M20A.D771201.nc          ! initial conditions (atm.)      needs GIC, ISTART=2
 GIC=GIC.E046D3M20A.1DEC1955.ext_1.nc ! initial conditions (ground)
     ! ocean data for "prescribed ocean" runs : climatological ocean
-OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
-SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
+! prescr. climatological ocean (1 yr of data)
+OSST=OST4X5.B.1876-85avg.Hadl1.1.nc
+OSST_eom=OST4X5.B.1876-85avg.Hadl1.1.nc
+! prescr. climatological sea ice
+SICE=SICE4X5.B.1876-85avg.Hadl1.1.nc
+SICE_eom=SICE4X5.B.1876-85avg.Hadl1.1.nc
+ZSIFAC=SICE4X5.B.1876-85avg.Hadl1.1.nc
 !? for 1979 OSST=OST4X5.B.1975-84avg.Hadl1.1
 !? for 1979 SICE=SICE4X5.B.1975-84avg.Hadl1.1
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)

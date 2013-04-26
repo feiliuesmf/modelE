@@ -72,8 +72,13 @@ Data input files:
     ! or start up from observed conditions
 AIC=AIC.RES_M20A.D771201.nc          ! initial conditions (atm.)      needs GIC, ISTART=2
 GIC=GIC.E046D3M20A.1DEC1955.ext_1.nc   ! initial conditions (ground)
-OSST=OST4X5.B.1993-2002avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
-SICE=SICE4X5.B.1993-2002avg.Hadl1.1 ! prescr. climatological sea ice
+! prescr. climatological ocean (1 yr of data)
+OSST=OST4X5.B.1993-2002avg.Hadl1.1.nc
+OSST_eom=OST4X5.B.1993-2002avg.Hadl1.1.nc
+! prescr. climatological sea ice
+SICE=SICE4X5.B.1993-2002avg.Hadl1.1.nc
+SICE_eom=SICE4X5.B.1993-2002avg.Hadl1.1.nc
+ZSIFAC=SICE4X5.B.1993-2002avg.Hadl1.1.nc
 ! For q-flux ocean, replace lines above by the next 2 lines & set KOCEAN=1, ISTART=8 
 !! AIC=1JAN1961.rsfE4M20.MXL65m   ! = end of preliminary run with KOCEAN=0,Kvflxo=1
 !! OHT=OTSPEC.E4M20.MXL65m.1956-1960 ! ocean horizontal heat transport

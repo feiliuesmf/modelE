@@ -57,7 +57,11 @@ AIC=AIC.RES_M53.D771201.nc
 GIC=GIC.E046D3M20A.1DEC1955.ext_1.nc       ! initial conditions (ground)
 ! OHT=OTSPEC.RB399AM12.M250D ! not needed if KOCEAN=0
 OCNML=Z1O.B4X5.cor   ! needed only for postprocessing
-OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
+OSST=OST4X5.B.1946-55avg.Hadl1.1.nc
+OSST_eom=OST4X5.B.1946-55avg.Hadl1.1.nc
+SICE=SICE4X5.B.1946-55avg.Hadl1.1.nc
+SICE_eom=SICE4X5.B.1946-55avg.Hadl1.1.nc
+ZSIFAC=SICE4X5.B.1946-55avg.Hadl1.1.nc
 CDN=CD4X500S.ext.nc
 VEG=V72X46.1.cor2_no_crops.ext.nc
 SOIL=S4X50093.ext.nc
