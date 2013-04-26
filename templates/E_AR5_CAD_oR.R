@@ -93,7 +93,7 @@ Data input files:
 #include "dynamic_ocn_288x180_input_files_AR5"
 TOPO=Z2HX2fromZ1QX1N.BS1.nc     ! atm-grid surface fractions and topography
 RVR=RD_Fb.nc             ! river direction file
-NAMERVR=RD_Fb.names      ! named river outlets
+NAMERVR=RD_Fb.names.txt  ! named river outlets
 VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculations
 
 #include "land144x90_input_files"

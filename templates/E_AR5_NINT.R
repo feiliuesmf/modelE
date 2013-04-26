@@ -54,7 +54,7 @@ Data input files:
 #include "static_ocn_1880_144x90_input_files"
 
 RVR=RD_Fb.nc             ! river direction file
-NAMERVR=RD_Fb.names      ! named river outlets
+NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"

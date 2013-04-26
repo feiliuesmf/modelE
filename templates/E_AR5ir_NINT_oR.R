@@ -59,7 +59,7 @@ Data input files:
 TOPO=Z2HX2fromZ1QX1N.BS1.nc          ! surface fractions and topography (1 cell Bering Strait)
 
 RVR=RD_Fb.nc             ! river direction file
-NAMERVR=RD_Fb.names      ! named river outlets
+NAMERVR=RD_Fb.names.txt  ! named river outlets
 IRRIG=IRRIG_1850_V144X90.bi
 
 #include "land144x90_input_files"

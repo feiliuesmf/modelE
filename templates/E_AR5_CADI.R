@@ -92,7 +92,7 @@ Data input files:
 #include "static_ocn_1880_144x90_input_files"
 VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculations
 RVR=RD_Fb.nc             ! river direction file
-NAMERVR=RD_Fb.names      ! named river outlets
+NAMERVR=RD_Fb.names.txt  ! named river outlets
 #include "land144x90_input_files"
 #include "rad_input_files"
 #include "TAero2008_input_files"
