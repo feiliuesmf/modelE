@@ -2245,6 +2245,7 @@ c        Em= 0.
       USE SEAICE, only : lmi
       USE EXCHANGE_TYPES, only : iceocn_xchng_vars
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
+      USE TIMESTREAM_MOD, only : timestream
       IMPLICIT NONE
 
       type icestate
@@ -2299,6 +2300,27 @@ C**** albedo calculations
       type(iceocn_xchng_vars) :: iceocn
 
       type(dist_grid), pointer :: sigrid
+
+!@var RSIstream,ZSIstream interfaces for reading and time-interpolating
+!@+   ice cover and ice thickness files when kocean=0
+!@+   See general usage notes in timestream_mod.
+!@+   Note regarding comparison of results to runs that use traditional I/O:
+!@+   if SICE datafiles contain monthly means and the piecewise parabolic
+!@+   method is used for monthly->daily interpolation, the presence of OSST_eom
+!@+   in the rundeck will prompt read_stream to read end-of-month values from
+!@+   OSST_eom rather than computing them on the fly.  SICE and SICE_eom may
+!@+   refer to the same file or directory.  The on-the-fly result will differ
+!@+   due to roundoff effects.
+      type(timestream) :: RSIstream,ZSIstream
+!@var ZSI_exists flag indicating availability of an input file ZSI containing
+!@+   ice thickness (only applicable to kocean=0 netcdf-input case).
+!@var dm empirical factor relating ice thickness and ice fraction for kocean=0
+!@+   (only applicable when ZSI_exists=.false.)
+!@+   The presence of ZSIFAC in a rundeck indicates that the factor dm should
+!@+   be read from that file and used; otherwise ZSI must be present in the
+!@+   rundeck.
+      logical :: ZSI_exists=.true.
+      real*8, allocatable, dimension(:,:) :: dm
 
       CONTAINS
 
@@ -2385,6 +2407,7 @@ C**** albedo calculations
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
       USE SEAICE_COM, ONLY : iceocn, si_ocn, alloc_icestate_type
       USE EXCHANGE_TYPES, only : alloc_xchng_vars
+      use seaice_com, only : dm
       IMPLICIT NONE
       TYPE(DIST_GRID), INTENT(IN) :: GRID
       !INTEGER, INTENT(IN) :: IM_in,JM_in
@@ -2398,6 +2421,9 @@ C**** albedo calculations
 #endif
       call alloc_xchng_vars(grid,iceocn)
       deallocate(iceocn%rsi); iceocn%rsi => si_ocn%rsi
+
+      allocate(dm(grid%i_strt_halo:grid%i_stop_halo,
+     &            grid%j_strt_halo:grid%j_stop_halo))
 
       RETURN
       END SUBROUTINE ALLOC_SEAICE_COM

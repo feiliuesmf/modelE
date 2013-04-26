@@ -5334,8 +5334,12 @@ C****
       RETURN
       END SUBROUTINE io_oda
 
-      SUBROUTINE ADVSI_DIAG
+      SUBROUTINE ADVSI_DIAG(atmocn,atmice)
 !@sum ADVSI_DIAG dummy routine for consistency with qflux model
+      use exchange_types, only : atmocn_xchng_vars,atmice_xchng_vars
+      implicit none
+      type(atmocn_xchng_vars) :: atmocn
+      type(atmice_xchng_vars) :: atmice
       RETURN
       END SUBROUTINE ADVSI_DIAG
 

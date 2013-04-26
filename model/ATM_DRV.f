@@ -391,7 +391,7 @@ c
       USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,
      &    iu_scm_prt,iu_scm_diag
 #endif
-      USE FLUXES, only : atmice
+      USE FLUXES, only : atmocn,atmice
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
       use SystemTimers_mod
@@ -400,7 +400,7 @@ c
       REAL*8 start,now
 
       call seaice_to_atmgrid(atmice)
-      CALL ADVSI_DIAG ! needed to update qflux model, dummy otherwise
+      CALL ADVSI_DIAG(atmocn,atmice) ! needed to update qflux model, dummy otherwise
 C**** SAVE some noon GMT ice quantities
       IF (MOD(Itime+1,NDAY).ne.0 .and. MOD(Itime+1,NDAY/2).eq.0)
      &        call vflx_OCEAN
