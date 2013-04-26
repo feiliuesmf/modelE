@@ -1891,10 +1891,10 @@ C**** adjust enthalpy and salt so temperature/salinity remain constant
         TRSI(:,3:4,I,J)=TRSI(:,3:4,I,J)*MSIrat
 #endif
 C**** adjust some radiative fluxes for changes in ice fraction
-        if (rsi(i,j).gt.rsiold(i,j)) ! ice from ocean
-     *       call RESET_SURF_FLUXES(I,J,1,2,RSIold(I,J),RSI(I,J))
-        if (rsi(i,j).lt.rsiold(i,j)) ! ocean from ice
-     *       call RESET_SURF_FLUXES(I,J,2,1,1.-RSIold(I,J),1.-RSI(I,J))
+c        if (rsi(i,j).gt.rsiold(i,j)) ! ice from ocean
+c     *       call RESET_SURF_FLUXES(I,J,1,2,RSIold(I,J),RSI(I,J))
+c        if (rsi(i,j).lt.rsiold(i,j)) ! ocean from ice
+c     *       call RESET_SURF_FLUXES(I,J,2,1,1.-RSIold(I,J),1.-RSI(I,J))
 C****
         TFO=tfrez(sss(i,j))
 C**** SET DEFAULTS IF NO OCEAN ICE
