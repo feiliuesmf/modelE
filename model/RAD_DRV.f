@@ -67,7 +67,7 @@ C****
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
      *     ,cloud_rad_forc,aer_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
-     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990, nradfrc
+     *     ,albsn_yr,dALBsnX,nradfrc
      *     ,rad_interact_aer,clim_interact_chem,rad_forc_lev,ntrix,wttr
      *     ,nrad_clay,variable_orb_par,orb_par_year_bp,orb_par,nrad
 #ifdef TRACERS_ON
@@ -113,7 +113,8 @@ C****
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only: icomp
 #endif
-      use IndirectAerParam_mod, only: dCDNC_est, aermix
+      use AerParam_mod, only : aermix
+      use AerParam_mod, only: depoBC,depoBC_1990
       IMPLICIT NONE
 
       integer, intent(in) :: istart
@@ -716,6 +717,7 @@ C**** set up unit numbers for 14 more radiation input files
       DO IU=1,14
         IF (IU==12.OR.IU==13) CYCLE                    ! not used in GCM
         IF (IU==10.OR.IU==11) CYCLE                   ! obsolete O3 data
+        IF (IU==6) CYCLE                      ! dust read externally now
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
       END DO
 
@@ -734,6 +736,7 @@ C***********************************************************************
       DO IU=1,14
         IF (IU==12.OR.IU==13) CYCLE                    ! not used in GCM
         IF (IU==10.OR.IU==11) CYCLE                   ! obsolete O3 data
+        IF (IU==6) CYCLE                      ! dust read externally now
         call closeunit(NRFUN(IU))
       END DO
 C**** Save initial (currently permanent and global) Q in rad.layers
@@ -1135,7 +1138,7 @@ C**** Add water to relevant tracers as well
      &  , only :  ! routines
      &           lx  ! for threadprivate copyin common block
      &          ,tauwc0,tauic0 ! set in radpar block data
-     &          ,writer,rcompx,updghg, table
+     &          ,writer,rcompx,updghg
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY,FULGAS
      &          ,use_tracer_chem,FS8OPX,FT8OPX,use_o3_ref,KYEARG,KJDAYG
@@ -1143,7 +1146,8 @@ C     INPUT DATA         ! not (i,j) dependent
      &          ,FS8OPX_orig,FT8OPX_orig,FULGAS_orig
 #endif
 C     INPUT DATA  (i,j) dependent
-     &             ,JLAT,ILON, L1,LMR=>NL, PLB ,TLB,TLM ,SHL,RHL
+     &             ,JLAT46=>JLAT,ILON72=>ILON,JGCM,IGCM
+     &             ,L1,LMR=>NL, PLB ,TLB,TLM ,SHL,RHL
      &             ,ltopcl,TAUWC ,TAUIC ,SIZEWC ,SIZEIC, kdeliq
      &             ,POCEAN,PEARTH,POICE,PLICE,PLAKE,COSZ,PVT
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
@@ -1171,7 +1175,7 @@ C     OUTPUT DATA
      *     ,chem_tracer_save,rad_interact_aer,kliq,RHfix,CLDx
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
-     *     ,dALBsnX,depoBC,depoBC_1990,rad_to_chem,trsurf,dirvis
+     *     ,dALBsnX,rad_to_chem,trsurf,dirvis
      *     ,FSRDIF,DIRNIR,DIFNIR,aer_rad_forc,clim_interact_chem
      *     ,TAUSUMW,TAUSUMI
 #ifdef mjo_subdd
@@ -1310,7 +1314,8 @@ c          use TRACER_COM, only: SNFST0,TNFST0
 #ifdef RAD_O3_GCM_HRES
       use RAD_native_O3, only: O3JDAY_native,O3JREF_native
 #endif
-      use IndirectAerParam_mod, only: dCDNC_est
+      use AerParam_mod, only: dCDNC_est
+      use AerParam_mod, only: depoBC,depoBC_1990
       USE TimerPackage_mod, only: startTimer => start, stopTimer => stop
       USE Dictionary_mod, only : get_param, is_set_param
       IMPLICIT NONE
@@ -1385,7 +1390,7 @@ C  GHG Effective forcing relative to 1850
      *     TRHRA,SRHRA ! for adj.frc
       REAL*8, DIMENSION(LM) :: TOTCLD,dcc_cdncl,dod_cdncl
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff_aer
-     *     ,onoff_chem,LFRC,JTIME,n1,tmpS(8),tmpT(8),moddrf
+     *     ,onoff_chem,LFRC,JTIME,n1,moddrf
       REAL*8 ROT1,ROT2,PLAND,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,X,OPNSKY,CSZ2,tauup,taudn,ptype4(4)
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign_aer
@@ -1394,6 +1399,7 @@ C  GHG Effective forcing relative to 1850
      &            grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,CLDinfo(LM,3,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                   grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8 tmpS(8),tmpT(8)
       REAL*8 RANDXX ! temporary
       REAL*8 QSAT
 #ifdef BC_ALB
@@ -1552,20 +1558,20 @@ c**** find scaling factors for surface albedo reduction
       End If
       do j=J_0S,J_1S
       do i=I_0,I_1
-c ilon, jlat are indices w.r.t 72x46 grid
-c      JLAT=INT(1.+(J-1.)*0.25*DLAT_DG+.5)   ! slightly more general
-c      ILON=INT(.5+(I-.5)*72./IM+.5)
-        ilon = 1 + int( 72d0*lon2d(i,j)/twopi )
-        jlat = 1 + int( 45d0*(lat2d(i,j)+92d0*radian)/pi )
+c ilon72, jlat46 are indices w.r.t 72x46 grid
+c      JLAT46=INT(1.+(J-1.)*0.25*DLAT_DG+.5)   ! slightly more general
+c      ILON72=INT(.5+(I-.5)*72./IM+.5)
+        ilon72 = 1 + int( 72d0*lon2d(i,j)/twopi )
+        jlat46 = 1 + int( 45d0*(lat2d(i,j)+92d0*radian)/pi )
         fsnow = flice(i,j) + rsi(i,j)*(1-fland(i,j))
         if(SNOWE_COM(I,J).gt.0.) fsnow = fsnow+fearth(i,j)
         sumda_psum(i,j) = axyp(i,j)*fsnow
-        tauda_psum(i,j) = axyp(i,j)*fsnow*depobc_1990(ilon,jlat)
+        tauda_psum(i,j) = axyp(i,j)*fsnow*depobc_1990(i,j)
       end do
       end do
       IF (HAVE_NORTH_POLE) THEN
          sumda_psum(:,JM)=axyp(1,jm)*rsi(1,jm)
-         tauda_psum(:,JM)=axyp(1,jm)*rsi(1,jm)*depobc_1990(1,46)
+         tauda_psum(:,JM)=axyp(1,jm)*rsi(1,jm)*depobc_1990(1,jm)
       END IF
       CALL GLOBALSUM(grid, sumda_psum,sumda,all=.true.)
       CALL GLOBALSUM(grid, tauda_psum,tauda,all=.true.)
@@ -1700,16 +1706,18 @@ C**** MAIN I LOOP
 C****
       DO I=I_0,IMAXJ(J)
 C**** Radiation input files use a 72x46 grid independent of IM and JM
-C**** (ilon,jlat) is the 4x5 box containing the center of box (i,j)
-c      JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)  !  lat_index w.r.to 72x46 grid
-c      JLAT=INT(1.+(J-1.)*0.25*DLAT_DG+.5) ! slightly more general
-c      ILON=INT(.5+(I-.5)*72./IM+.5)  ! lon_index w.r.to 72x46 grid
-      ilon = 1 + int( 72d0*lon2d(i,j)/twopi )
-      jlat = 1 + int( 45d0*(lat2d(i,j)+92d0*radian)/pi )
+C**** (ilon72,jlat46) is the 4x5 box containing the center of box (i,j)
+c      JLAT46=INT(1.+(J-1.)*45./(JM-1.)+.5)  !  lat_index w.r.to 72x46 grid
+c      JLAT46=INT(1.+(J-1.)*0.25*DLAT_DG+.5) ! slightly more general
+c      ILON72=INT(.5+(I-.5)*72./IM+.5)  ! lon_index w.r.to 72x46 grid
+      igcm = i
+      jgcm = j
+      ilon72 = 1 + int( 72d0*lon2d(i,j)/twopi )
+      jlat46 = 1 + int( 45d0*(lat2d(i,j)+92d0*radian)/pi )
 #ifdef ALTER_RADF_BY_LAT
-      FULGAS(:)=FULGAS_orig(:)*FULGAS_lat(:,JLAT)
-      FS8OPX(:)=FS8OPX_orig(:)*FS8OPX_lat(:,JLAT)
-      FT8OPX(:)=FT8OPX_orig(:)*FT8OPX_lat(:,JLAT)
+      FULGAS(:)=FULGAS_orig(:)*FULGAS_lat(:,JLAT46)
+      FS8OPX(:)=FS8OPX_orig(:)*FS8OPX_lat(:,JLAT46)
+      FT8OPX(:)=FT8OPX_orig(:)*FT8OPX_lat(:,JLAT46)
 #endif
       L1 = 1                         ! lowest layer above ground
       LMR=LM+LM_REQ                  ! radiation allows var. # of layers
@@ -1768,7 +1776,7 @@ C****
 C**** DETERMINE CLOUDS (AND THEIR OPTICAL DEPTHS) SEEN BY RADIATION
 C****
       CSS=0. ; CMC=0. ; CLDCV=0. ; DEPTH=0. ; OPTDW=0. ; OPTDI=0.
-      call dCDNC_EST(ilon,jlat,pland, dCDNC, table)
+      call dCDNC_EST(i,j,pland, dCDNC)
       dCC_CDNCL = CC_cdncx*dCDNC*CDNCL
       dOD_CDNCL = OD_cdncx*dCDNC*CDNCL
       DO L=1,LM
@@ -2065,7 +2073,7 @@ C**** Zenith angle and GROUND/SURFACE parameters
 c      print*,"snowage",i,j,SNOAGE(1,I,J)
 C**** set up parameters for new sea ice and snow albedo
       zsnwoi=snowoi/rhos
-      dALBsn = xdalbs*depobc(ilon,jlat)
+      dALBsn = xdalbs*depobc(i,j)
 c to use on-line tracer albedo impact, set dALBsnX=0. in rundeck
 #if (defined BC_ALB) &&\
     ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
@@ -4118,70 +4126,6 @@ C****
       RETURN
       END SUBROUTINE ORBIT
 
-      subroutine updBCd (year)
-!@sum  reads appropriate Black Carbon deposition data if necessary
-!@auth R. Ruedy
-      USE FILEMANAGER
-      USE RAD_COM, only : depoBC
-      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-      implicit none
-      integer, intent(in)   :: year
-
-      integer,parameter :: imr=72,jmr=46
-      real*8  BCdep1(imr,jmr),BCdep2(imr,jmr),wt   ! to limit i/o
-
-      integer :: iu,year1,year2,year0,yearL=-2,year_old=-1
-      save       iu,year1,year2,year0,yearL,   year_old,BCdep1,BCdep2
-
-      character*80 title
-      real*4 BCdep4(imr,jmr)
-
-C**** check whether update is needed
-      if (year.eq.year_old) return
-      if (year_old.eq.yearL.and.year.gt.yearL) return
-      if (year_old.eq.year0.and.year.lt.year0) return
-
-      call openunit('BC_dep',iu,.true.,.true.)
-
-      if (year_old.lt.0) then
-C****   read whole input file and find range: year0->yearL
-   10   read(iu,end=20) title
-        read(title,*) yearL
-        go to 10
-      end if
-
-   20 rewind (iu)
-      read(iu) title,BCdep4
-      read(title,*) year0
-      BCdep1=BCdep4 ; BCdep2=BCdep4 ; year2=year0 ; year1=year0
-      if (year.le.year1)              year2=year+1
-
-      do while (year2.lt.year .and. year2.ne.yearL)
-         year1 = year2 ; BCdep1 = BCdep2
-         read (iu) title,BCdep4
-         read(title,*) year2
-         BCdep2 = BCdep4
-      end do
-
-      if(year.le.year1) then
-        wt = 0.
-      else if (year.ge.yearL) then
-        wt = 1.
-      else
-        wt = (year-year1)/(real(year2-year1,kind=8))
-      end if
-
-      if (AM_I_ROOT())  write(6,*)
-     &     'Using BCdep data from year',year1+wt*(year2-year1)
-      call closeunit(iu)
-
-C**** Set the Black Carbon deposition array
-      depoBC(:,:) = BCdep1(:,:) + wt*(BCdep2(:,:)-BCdep1(:,:))
-
-      year_old = year
-
-      return
-      end subroutine updBCd
 #ifdef HEALY_LM_DIAGS
       real*8 function Fe(M,N)
       real*8 M,N

@@ -68,7 +68,7 @@ RVR=RD_modelE_Fa_1deghycom.nc             ! river direction file
 NAMERVR=RD_modelE_Fa_1deghycom.names.txt  ! named river outlets
 #include "rad_input_files"
 
-#include "TAero2008_input_files"
+#include "rad_144x90_input_files"
 
 #include "O3_2005_input_files"
 

@@ -53,7 +53,7 @@ LANDICE LANDICE_COM LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 OCEAN OCNML                         ! ocean modules
 RAD_COM RAD_DRV RADIATION           ! radiation modules
-RAD_UTILS ALBEDO                    ! radiation and albedo
+RAD_UTILS ALBEDO READ_AERO          ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 POUT_netcdf                         ! post-processing output
@@ -109,7 +109,7 @@ RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 RADN3=miescatpar.abcdv2
 
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
+DUSTaer=dust_mass_CakmurMillerJGR06_72x46x20x7x12.nc
 RADN7=STRATAER.VOL.1850-1999.Apr02_hdr
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux_hdr      ! need KSOLAR=2
@@ -155,13 +155,13 @@ LAI12=chem_files/lai12.global
 !TAero_OCI=sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial organic carbons
 !TAero_BCI=sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial black carbons
 ! updated aerosols need MADAER=3
-TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_SSA=SSA_Koch2008_kg_m2_72x46x20h
-TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000h
-TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
-BC_dep=BC.Dry+Wet.depositions.ann
+TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000h.nc
+TAero_SSA=SSA_Koch2008_kg_m2_72x46x20h.nc
+TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000h.nc
+TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h.nc
+TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h.nc
+TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h.nc
+BC_dep=BC.Dry+Wet.depositions.ann.nc
 
 ! files for dust tracers
 VTRSH=vtr-mod-o0.mean-pb       ! threshold wind speeds for old emission scheme

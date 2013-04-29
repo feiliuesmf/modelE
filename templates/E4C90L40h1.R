@@ -56,7 +56,7 @@ NAMERVR=RDdistocean_C90.1deghycom.names.txt ! named river outlets
 
 #include "landCS90_input_files"
 #include "rad_input_files"
-#include "TAero2008_input_files"
+#include "rad_C90_input_files"
 #include "O3_2005_input_files"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag

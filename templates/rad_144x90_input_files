@@ -1,0 +1,3 @@
+DUSTaer=dust_mass_CakmurMillerJGR06_144x90x20x7x12.nc
+BC_dep=BC.Dry+Wet.depositions.ann_144x90.nc
+#include "TAero2008_144x90_input_files"

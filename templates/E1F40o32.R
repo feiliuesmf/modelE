@@ -56,7 +56,7 @@ ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                              ! ocean function look up table
 SNOW_DRV SNOW                          ! snow model
 RAD_COM RAD_DRV RADIATION              ! radiation modules
-RAD_UTILS ALBEDO                       ! radiation and albedo
+RAD_UTILS ALBEDO READ_AERO             ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT          ! diagnostics
 DIAG_ZONAL GCDIAGb                     ! grid-dependent code for lat-circle diags
 DIAG_RES_F                             ! diagnostics (resolution dependent)
@@ -89,14 +89,14 @@ RADN4=LWTables33k.1b            ! rad.tables and history files
 RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 RADN3=miescatpar.abcdv2
 ! updated aerosols need MADAER=3
-TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_SSA=SSA_Koch2008_kg_m2_72x46x20h
-TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000h
-TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
+TAero_SUL=SUL_Koch2008_kg_m2_144x90x20_1890-2000h.nc
+TAero_SSA=SSA_Koch2008_kg_m2_144x90x20h.nc
+TAero_NIT=NIT_Bauer2008_kg_m2_144x90x20_1890-2000h.nc
+TAero_OCA=OCA_Koch2008_kg_m2_144x90x20_1890-2000h.nc
+TAero_BCA=BCA_Koch2008_kg_m2_144x90x20_1890-2000h.nc
+TAero_BCB=BCB_Koch2008_kg_m2_144x90x20_1890-2000h.nc
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
+DUSTaer=dust_mass_CakmurMillerJGR06_144x90x20x7x12.nc
 RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux_hdr     ! need KSOLAR=2
@@ -115,7 +115,7 @@ O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
-BC_dep=BC.Dry+Wet.depositions.ann
+BC_dep=BC.Dry+Wet.depositions.ann_144x90.nc
 TOP_INDEX=top_index_144x90_a.ij.ext.nc
 MSU_wts=MSU.RSS.weights.data
 GLMELT=GLMELT_144X90_gas.OCN.nc   ! glacial melt distribution

@@ -48,7 +48,7 @@ ICEDYN_DUM                          ! ice dynamics modules
 OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
-RAD_UTILS ALBEDO                    ! radiation and albedo
+RAD_UTILS ALBEDO READ_AERO          ! radiation and albedo
 DIAG_COM DEFACC DIAG                ! diagnostics (diag, diag_prt dummies in scm_diag) 
 DIAG_RES_F                          ! diagnostics (resolution dependent)
 SCM_DIAG_COM SCM_DIAG               ! SCM diagnostics
