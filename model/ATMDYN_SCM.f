@@ -181,7 +181,7 @@ c     want to fill SD (IDUM,JDUM)  check out
       USE SCMCOM,     only: iu_scm_prt,I_TARG,J_TARG 
       USE GEOM,       only: imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp,acor,acor2
       USE DYNAMICS,   only: sig,bydsig,do_polefix,
-     *     dsig,sige,pu,pit,spa,dut,dvt,mrch
+     *     dsig,sige,pu,spa,dut,dvt,mrch
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D,  only: GET, HALO_UPDATE
       USE DOMAIN_DECOMP_1D,  only: NORTH, SOUTH

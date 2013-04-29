@@ -37,7 +37,7 @@
       USE DOMAIN_DECOMP_1D, only : haveLatitude, getDomainBounds
       USE GEOM, only : fcor,dxyv,dxyn,dxys,dxv,ravpn,ravps
      &     ,sini=>siniv,cosi=>cosiv,acor,polwt
-      USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt,conv,dsig
+      USE DYNAMICS, only : pu,pv,sd,spa,dut,dvt,conv,dsig
       USE DYNAMICS, only : do_polefix,mrch
 c      USE DIAG, only : diagcd
       IMPLICIT NONE
@@ -424,7 +424,7 @@ C 310 I=IP1
       END DO
 C**** CALL DIAGNOSTICS
          IF(MODD5K.LT.MRCH) CALL DIAG5D (4,MRCH,DUT,DVT)
-         IF(MRCH.GT.0) CALL DIAGCD (grid,1,U,V,DUT,DVT,DT1)!,PIT)
+         IF(MRCH.GT.0) CALL DIAGCD (grid,1,U,V,DUT,DVT,DT1)
       DO L=1,LM
       DO J=J_0S,J_1
       DO I=1,IM
