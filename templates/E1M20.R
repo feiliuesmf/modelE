@@ -81,13 +81,8 @@ NAMERVR=RD_modelE_M.names.txt     ! named river outlets
 TOP_INDEX=top_index_72x46_a.ij.ext.nc  ! only used if #define DO_TOPMODEL_RUNOFF
 !                                             (end of section 2 of data input files)
 #include "rad_input_files"
+#include "rad_72x46_input_files"
 !GHG=GHG.Mar2004.txt
-TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000h.nc
-TAero_SSA=SSA_Koch2008_kg_m2_72x46x20h.nc
-TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000h.nc
-TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h.nc
-TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h.nc
-TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h.nc
 ! ozone files (minimum 1, maximum 9 files + 1 trend file)
 O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
 O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890

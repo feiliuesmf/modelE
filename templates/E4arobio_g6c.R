@@ -89,14 +89,8 @@ RVR=RD_modelE_F.nc             ! river direction file
 NAMERVR=RD_modelE_F.names.txt  ! named river outlets
 
 #include "rad_input_files"
+#include "rad_144x90_input_files"
 
-! updated aerosols need MADAER=3
-TAero_SUL=SUL_Koch2008_kg_m2_144x90x20_1890-2000h.nc
-TAero_SSA=SSA_Koch2008_kg_m2_144x90x20h.nc
-TAero_NIT=NIT_Bauer2008_kg_m2_144x90x20_1890-2000h.nc
-TAero_OCA=OCA_Koch2008_kg_m2_144x90x20_1890-2000h.nc
-TAero_BCA=BCA_Koch2008_kg_m2_144x90x20_1890-2000h.nc
-TAero_BCB=BCB_Koch2008_kg_m2_144x90x20_1890-2000h.nc
 ! ozone files (minimum 1, maximum 9 files + 1 trend file)
 O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
 O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
