@@ -375,10 +375,8 @@ c apply north-south filter to U and V once per physics timestep
       USE DYNAMICS, only : pit,sd,conv,pu,pv,spa,do_polefix
      &     ,dsig,bydsig,sige
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : getDomainBounds
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
-      USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
-      USE DOMAIN_DECOMP_1D, only : haveLatitude
+      USE DOMAIN_DECOMP_1D,  Only: GetDomainBounds,HALO_UPDATE,
+     &                             SOUTH,NORTH
       IMPLICIT NONE
 C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
 !@var U,V input velocities (m/s)
@@ -391,193 +389,115 @@ C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
       Integer :: NS
 
 !**** Local variables
-      REAL*8, DIMENSION(IM) :: DUMMYS,DUMMYN
-      INTEGER I,J,L,IP1,IM1,IPOLE
-      REAL*8 PUS,PUN,PVS,PVN,PBS,PBN
-      REAL*8 WT,DXDSIG,DYDSIG,PVSA(LM),PVNA(LM),xx,twoby3
-      real*8, dimension(im,2,LM) :: usv0,vsv0
-      integer :: jvs,jvn,jv
-      real*8 :: wts
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
-     &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
-     &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      Real*8,Parameter :: TWOby3 = 2/3d0
+      Integer :: I,J,L,Ip1,Im1, J1,J1XP,J1H,J1V, JN,JNXP,JNH,JNV
+      Logical :: QSP,QNP
+      Real*8  :: DUMMYS(IM),DUMMYN(IM), PUS,PUN,PVS,PVN,PBS,PBN,
+     *           WT,WTS,DXDSIG,DYDSIG,PVSA(LM),PVNA(LM),XX,
+     *           USV0(IM,2,LM),VSV0(IM,2,LM)
 
-C****
-C**** BEGINNING OF LAYER LOOP
-C****
+!****
+!**** COMPUTATION OF MASS FLUXES    MA,T  MU     PRIMARY GRID ROW
+!**** ARAKAWA'S SCHEME B             MV   U,V    VELOCITY GRID ROW
+!****
+      Call GetDomainBounds (GRID,
+     &   J_STRT      = J1  , J_STOP      = JN  , !  primary row limits
+     &   J_STRT_SKP  = J1XP, J_STOP_SKP  = JNXP, !  primary row limits excluding poles
+     &   J_STRT_HALO = J1H , J_STOP_HALO = JNH , !  halo primary row limits
+     &   J_STRT_STGR = J1V , J_STOP_STGR = JNV , !  velocity row limits
+     &   HAVE_SOUTH_POLE = QSP, HAVE_NORTH_POLE = QNP)
+
       CALL HALO_UPDATE(grid, U,FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, V,FROM=NORTH+SOUTH)
 
-c
-c interpolate polar velocities to the appropriate latitude
-c
-      do ipole=1,2
-        if (haveLatitude(grid, J=2) .and. ipole == 1) then
-          jv  = 2
-          jvs = 2          ! jvs is the southernmost velocity row
-          jvn = jvs+1      ! jvs is the northernmost velocity row
-          wts = polwt
-        else if(haveLatitude(grid,JM) .and. ipole == 2) then
-          jv = JM
-          jvs = jv - 1
-          jvn = jvs + 1
-          wts = 1.-polwt
-        else
-          cycle
-        endif
+!**** Use interpolated velocity values at poles
+      If (J1V==2)  Then
+         USV0(:,1,:) = U(:,2,:)
+         VSV0(:,1,:) = V(:,2,:)
+         U(:,2,:) = POLWT*U(:,2,:) + (1-POLWT)*U(:,3,:)
+         V(:,2,:) = POLWT*V(:,2,:) + (1-POLWT)*V(:,3,:)  ;  EndIf
+      If (JNV==JM)  Then
+         USV0(:,2,:) = U(:,JM,:)
+         VSV0(:,2,:) = V(:,JM,:)
+         U(:,JM,:) = POLWT*U(:,JM,:) + (1-POLWT)*U(:,JM-1,:)
+         V(:,JM,:) = POLWT*V(:,JM,:) + (1-POLWT)*V(:,JM-1,:)  ;  EndIf
 
-        do L = 1, LM
-          usv0(:,ipole,l) = u(:,jv,l)
-          vsv0(:,ipole,l) = v(:,jv,l)
-          u(:,jv,l) = wts*u(:,jvs,l) + (1.-wts)*u(:,jvn,l)
-          v(:,jv,l) = wts*v(:,jvs,l) + (1.-wts)*v(:,jvn,l)
-        end do
-      enddo
-
-C****
-C**** COMPUTATION OF MASS FLUXES     P,T  PU     PRIMARY GRID ROW
-C**** ARAKAWA'S SCHEME B             PV   U,V    SECONDARY GRID ROW
-C****
 C**** COMPUTE PU, THE WEST-EAST MASS FLUX, AT NON-POLAR POINTS
-      do L = 1, LM
-      DO 2154 J=J_0S,J_1S
+      Do 2166 L=1,LM
+      Do 2154 J=J1XP,JNXP
       DO 2154 I=1,IM
  2154 SPA(I,J,L)=U(I,J,L)+U(I,J+1,L)
-      CALL AVRX (SPA(1,J_0H,L))
+      CALL AVRX (SPA(1,J1H,L))
       I=IM
-      DO 2166 J=J_0S,J_1S
+      Do 2166 J=J1XP,JNXP
       DYDSIG = 0.25D0*DYP(J)*DSIG(L)
       DO 2165 IP1=1,IM
       PU(I,J,L)=DYDSIG*SPA(I,J,L)*(PIJL(I,J,L)+PIJL(IP1,J,L))
  2165 I=IP1
  2166 CONTINUE
-      end do
 C**** COMPUTE PV, THE SOUTH-NORTH MASS FLUX
       CALL HALO_UPDATE(grid, PIJL, FROM=SOUTH)
-      do L = 1, LM
+      Do 2172 L=1,LM
       IM1=IM
-      DO 2172 J=J_0STG, J_1STG
+      DO 2172 J=J1V,JNV
       DXDSIG = 0.25D0*DXV(J)*DSIG(L)
       DO 2170 I=1,IM
       PV(I,J,L)=DXDSIG*(V(I,J,L)+V(IM1,J,L))*(PIJL(I,J,L)+PIJL(I,J-1,L))
-
  2170 IM1=I
  2172 CONTINUE
-      end do
 
-c restore uninterpolated values of u,v at the pole
-      do ipole=1,2
-        if (haveLatitude(grid, J=2) .and. ipole == 1) then
-          jv = 2           ! why not staggered grid
-        else if(haveLatitude(grid, J=JM) .and. ipole.eq.2) then
-          jv = JM            ! why not staggered grid
-        else
-          cycle
-        endif
-        do L = 1, LM
-          u(:,jv,l) = usv0(:,ipole,l)
-          v(:,jv,l) = vsv0(:,ipole,l)
-        end do
-      enddo
+!**** Restore uninterpolated values of U,V at poles
+      If (J1V==2)  Then
+         U(:,2,:) = USV0(:,1,:)
+         V(:,2,:) = VSV0(:,1,:)  ;  EndIf
+      If (JNV==JM)  Then
+         U(:,JM,:) = USV0(:,2,:)
+         V(:,JM,:) = VSV0(:,2,:)  ;  EndIf
 
 C**** COMPUTE PU*3 AT THE POLES
-      IF (haveLatitude(grid, J=1)) Then
-        do L = 1, LM
-        PUS=0.
-        PVS=0.
-        DO I=1,IM
-          PUS=PUS+U(I,2,L)
-          PVS=PVS+PV(I,2,L)
-        END DO
-        PUS=.25*DYP(2)*PUS*PIJL(1,1,L)*BYIM
-        PVS=PVS*BYIM
-        PVSA(L)=PVS
-        DUMMYS(1)=0.
-        DO I=2,IM
-          DUMMYS(I)=DUMMYS(I-1)+(PV(I,2,L) -PVS)*BYDSIG(L)
-        END DO
-        PBS=0.
-        PBN=0.
-        DO I=1,IM
-          PBS=PBS+DUMMYS(I)
-        END DO
-        PBS=PBS*BYIM
-        DO I=1,IM
-          SPA(I,1,L)=4.*(PBS-DUMMYS(I)+PUS)/(DYP(2)*PIJL(1,1,L))
-          PU(I,1,L)=3.*(PBS-DUMMYS(I)+PUS)*DSIG(L)
-        END DO
-        end do
-      END IF
-
-      IF (haveLatitude(grid, J=JM)) THEN
-        do L = 1,LM
-        PUN=0.
-        PVN=0.
-        DO I=1,IM
-          PUN=PUN+U(I,JM,L)
-          PVN=PVN+PV(I,JM,L)
-        END DO
-        PUN=.25*DYP(JM-1)*PUN*PIJL(1,JM,L)*BYIM
-        PVN=PVN*BYIM
-        PVNA(L)=PVN
-        DUMMYN(1)=0.
-        DO I=2,IM
-          DUMMYN(I)=DUMMYN(I-1)+(PV(I,JM,L)-PVN)*BYDSIG(L)
-        END DO
-        PBN=0.
-        DO I=1,IM
-          PBN=PBN+DUMMYN(I)
-        END DO
-        PBN=PBN*BYIM
-        DO  I=1,IM
-          SPA(I,JM,L)=4.*(DUMMYN(I)-PBN+PUN)/(DYP(JM-1)*PIJL(1,JM,L))
-          PU(I,JM,L)=3.*(DUMMYN(I)-PBN+PUN)*DSIG(L)
-        END DO
-        END DO
-      END IF
-C****
-C**** CONTINUITY EQUATION
-C****
-C**** COMPUTE CONV, THE HORIZONTAL MASS CONVERGENCE
-c     CALL HALO_UPDATE(grid, PV, FROM=NORTH)
-c     DO 1510 J=J_0S,J_1S
-c     IM1=IM
-c     DO 1510 I=1,IM
-c     CONV(I,J,L)=(PU(IM1,J,L)-PU(I,J,L)+PV(I,J,L)-PV(I,J+1,L))
-c1510 IM1=I
-c     IF (HAVE_SOUTH_POLE) CONV(1,1,L)=-PVS
-c     IF (HAVE_NORTH_POLE) CONV(1,JM,L)=PVN
+      If (QSP)  Then
+         Do L=1,LM
+            PUS=0;PVS=0;DO I=1,IM;PUS=PUS+U(I,2,L);PVS=PVS+PV(I,2,L)
+            ENDDO;PUS=.25*DYP(2)*PUS*PIJL(1,1,L)*BYIM;PVS=PVS*BYIM
+!!!         PUS = Sum( U(:,2,L))*byIM*.25*DYP(2)*PIJL(1,1,L)
+!!!         PVS = Sum(PV(:,2,L))*byIM
+            PVSA(L) = PVS
+            DUMMYS(1) = 0
+            Do I=2,IM
+               DUMMYS(I) = DUMMYS(I-1) + (PV(I,2,L) -PVS)*BYDSIG(L)
+               EndDo
+            PBS=0;DO I=1,IM;PBS=PBS+DUMMYS(I);ENDDO;PBS=PBS*BYIM
+!!!         PBS = Sum(DUMMYS(:))*byIM
+            SPA(:,1,L) = 4*(PBS-DUMMYS(:)+PUS) / (DYP(2)*PIJL(1,1,L))
+             PU(:,1,L) = 3*(PBS-DUMMYS(:)+PUS)*DSIG(L)  ;  EndDo ; EndIf
+      If (QNP)  Then
+         Do L=1,LM
+            PUN=0;PVN=0;DO I=1,IM;PUN=PUN+U(I,JM,L);PVN=PVN+PV(I,JM,L)
+            ENDDO;PUN=.25*DYP(JM-1)*PUN*PIJL(1,JM,L)*BYIM;PVN=PVN*BYIM
+!!!         PUN = Sum( U(:,JM,L))*byIM*.25*DYP(JM-1)*PIJL(1,JM,L)
+!!!         PVN = Sum(PV(:,JM,L))*byIM
+            PVNA(L) = PVN
+            DUMMYN(1) = 0
+            Do I=2,IM
+               DUMMYN(I) = DUMMYN(I-1) + (PV(I,JM,L)-PVN)*BYDSIG(L)
+               EndDo
+            PBN=0;DO I=1,IM;PBN=PBN+DUMMYN(I);END DO;PBN=PBN*BYIM
+            PBN = Sum(DUMMYN(:))*byIM   
+            SPA(:,JM,L) = 4*(DUMMYN(:)-PBN+PUN)/(DYP(JM-1)*PIJL(1,JM,L))
+             PU(:,JM,L) = 3*(DUMMYN(:)-PBN+PUN)*DSIG(L) ; EndDo ; EndIf
 
       if(do_polefix.eq.1) then
 c To maintain consistency with subroutine ADVECV,
 c adjust pu at the pole if no corner fluxes are used there
 c in ADVECV.
-      do ipole=1,2
-        if(haveLatitude(grid,J=1) .and. ipole.eq.1) then
-          j = 1
-        else if(haveLatitude(grid,J=JM) .and. ipole.eq.2) then
-          j = JM
-        else
-          cycle
-        endif
-        twoby3 = 2d0/3d0
-        do l=1,lm
-           pu(:,j,l) = pu(:,j,l)*twoby3
-        enddo
-      enddo
-      endif
+         If (QSP)  PU(:,1 ,:) = PU(:,1 ,:)*TWOby3
+         If (QNP)  PU(:,JM,:) = PU(:,JM,:)*TWOby3  ;  EndIf
 C****
 C**** END OF HORIZONTAL ADVECTION LAYER LOOP
 C****
 c
 c modify uphill air mass fluxes around steep topography
-      do 2015 j=J_0S,J_1S
+      Do 2015 J=J1XP,JNXP
       i = im
       do 2010 ip1=1,im
          xx = zatmo(ip1,j)-zatmo(i,j)
@@ -605,7 +525,7 @@ ccc         if((zatmo(ip1,j)-zatmo(i,j))*pu(i,j,l).gt.0.) then
 
 ccc   do j=2,jm
 c**** Exceptional J loop boundaries
-      do 2035 j=max(J_0S,3), J_1S
+      Do 2035 J=Max(J1XP,3),JNXP
       do 2035 i=1,im
          xx = zatmo(i,j)-zatmo(i,j-1)
          if(xx.eq.0.0)  go to 2035
@@ -627,58 +547,49 @@ ccc         if((zatmo(i,j)-zatmo(i,j-1))*pv(i,j,l).gt.0.) then
  2020    CONTINUE
  2035 CONTINUE
 C
-C     Now Really Do  CONTINUITY EQUATION
-C
 C     COMPUTE CONV, THE HORIZONTAL MASS CONVERGENCE
 C
       CALL HALO_UPDATE(GRID,PU ,FROM=SOUTH+NORTH) ! full halos needed later
       CALL HALO_UPDATE(GRID,PV ,FROM=SOUTH+NORTH)
       DO 2400 L=1,LM
-      DO 1510 J=J_0S,J_1S
+      Do 1510 J=J1XP,JNXP
       IM1=IM
       DO 1510 I=1,IM
       CONV(I,J,L)=(PU(IM1,J,L)-PU(I,J,L)+PV(I,J,L)-PV(I,J+1,L))
  1510 IM1=I
-      IF (haveLatitude(grid,J=1)) CONV(1,1,L)=-PVSA(L)
-      If (haveLatitude(grid,J=JM)) CONV(1,JM,L)=PVNA(L)
+      If (QSP)  CONV(1,1,L) = -PVSA(L)
+      If (QNP)  CONV(1,JM,L) = PVNA(L)
  2400 CONTINUE
 C
 C**** COMPUTE PIT, THE PRESSURE TENDENCY
-      PIT(:,J_0:J_1) = CONV(:,J_0:J_1,1)
-      SD(:,J_0:J_1,1:LM-1) = CONV(:,J_0:J_1,2:LM)
-      DO 2420 J=J_0,J_1
+      PIT(:,J1:JN) = CONV(:,J1:JN,1)
+      SD(:,J1:JN,1:LM-1) = CONV(:,J1:JN,2:LM)
+      DO 2420 J=J1,JN
          DO 2410 I=1,IMAXJ(J)
          DO 2410 L=LM-1,1,-1
-           PIT(I,J) = PIT(I,J) + SD(I,J,L)
- 2410    CONTINUE
+ 2410       PIT(I,J) = PIT(I,J) + SD(I,J,L)
  2420 CONTINUE
 C**** COMPUTE SD, SIGMA DOT                                             -------
-      DO 2435 J=J_0,J_1
+      DO 2435 J=J1,JN
          DO 2430 I=1,IMAXJ(J)
          DO 2430 L=LM-2,LS1-1,-1
-            SD(I,J,L)=SD(I,J,L+1)+SD(I,J,L)
- 2430    CONTINUE
+ 2430       SD(I,J,L) = SD(I,J,L+1) + SD(I,J,L)
  2435 CONTINUE
-      DO 2440 J=J_0,J_1
+      DO 2440 J=J1,JN
          DO 2438 I=1,IMAXJ(J)
          DO 2438 L=LS1-2,1,-1
-           SD(I,J,L)=SD(I,J,L+1)+SD(I,J,L)-
-     &           DSIG(L+1)*PIT(I,J)
- 2438    CONTINUE
+ 2438       SD(I,J,L) = SD(I,J,L+1) + SD(I,J,L) - DSIG(L+1)*PIT(I,J)
  2440 CONTINUE
-      DO 2450 L=1,LM-1
-      DO 2450 I=2,IM
-        IF (haveLatitude(grid,J=1))
-     *     SD(I,1,L)=SD(1,1,L)
- 2450   IF (haveLatitude(grid,J=JM))
-     *       SD(I,JM,L)=SD(1,JM,L)
+      Do L=1,LM-1
+         If (QSP)  SD(2:IM,1 ,L) = SD(1,1 ,L)
+         If (QNP)  SD(2:IM,JM,L) = SD(1,JM,L)  ;  EndDo
 
         ! Recopy into CONV to support prior usage
-      CONV(:,J_0:J_1,1) = PIT(:,J_0:J_1)
-      CONV(:,J_0:J_1,2:LM) = SD(:,J_0:J_1,1:LM-1)
+      CONV(:,J1:JN,1)   = PIT(:,J1:JN)
+      CONV(:,J1:JN,2:LM) = SD(:,J1:JN,1:LM-1)
 
       RETURN
-      END SUBROUTINE AFLUX
+      EndSubroutine AFLUX
 
 
       SUBROUTINE ADVECM (P,PA,DT1)
