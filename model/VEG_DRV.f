@@ -708,59 +708,40 @@ c**** zero-out vdata(11) until it is properly read in
 
       end subroutine get_vdata
 
-
+      module cropdata_mod
+      use timestream_mod, only : timestream
+      implicit none
+!@var CROPstream interface for reading and time-interpolating the crop file
+!@+   See usage notes in timestream_mod
+      type(timestream) :: CROPstream
+      end module cropdata_mod
       subroutine get_cropdata(year, cropdata)
-      !* This version reads in crop distribution from prescr data set.
-      !* And calculates crop fraction for given year.
-      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
-      use DOMAIN_DECOMP_ATM, only : READT_PARALLEL, broadcast
-      use FILEMANAGER, only : openunit,closeunit,nameunit
+!@sum get_cropdata reads timeseries file for crop fraction and
+!@+   interpolates to requested year.
+
+      use domain_decomp_atm, only : grid
+      use timestream_mod, only : init_stream,read_stream
+      use cropdata_mod
+      implicit none
       integer, intent(in) :: year
-      real*8, intent(out) :: cropdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &     grid%J_STRT_HALO:grid%J_STOP_HALO)
-      integer i
-      !----------
-      integer :: iu_CROPS, rc
-      integer :: year1, year2
-      real*8 wt
-      real*8, allocatable :: crop1(:,:), crop2(:,:)
-      character*80 title
-      INTEGER :: J_1H, J_0H, I_1H, I_0H
+      real*8 :: cropdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                   grid%J_STRT_HALO:grid%J_STOP_HALO)
+c
+      logical, save :: init = .false.
+      integer :: day
 
-      call getDomainBounds(grid,
-     &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
-     &     I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
+      day = 1 ! to pass a required argument
 
-      allocate( crop1(I_0H:I_1H, J_0H:J_1H) )
-      allocate( crop2(I_0H:I_1H, J_0H:J_1H) )
+      if (.not. init) then
+        init = .true.
+        call init_stream(grid,CROPstream,'CROPS','crops',
+     &       0d0,1d30,'none',year,day)
+      endif
 
-      !* Calculate fraction for given gcmtime:  interpolate between years*/
-      year1 = -32768 ; crop1(:,:) = 0.d0
-      year2 = -32767 ; crop2(:,:) = 0.d0
-      wt = 1.d0
+      call read_stream(grid,CROPstream,year,day,cropdata)
 
-      call openunit("CROPS",iu_CROPS,.true.,.true.)
-      do while( year2 < year )
-        year1 = year2
-        crop1(:,:) = crop2(:,:)
-        if ( AM_I_ROOT() ) then
-          year2 = 32768
-          read (iu_CROPS, END=10, IOSTAT=rc) title
-          if ( rc .ne. 0 ) call stop_model("error reading CROPS",255)
-          read(title,*) year2
- 10       continue
-          backspace iu_CROPS
-        endif
-        call broadcast(grid, year2)
-        if ( year2 == 32768 ) exit  ! end of record
-        CALL READT_PARALLEL
-     *    (grid,iu_CROPS,NAMEUNIT(iu_CROPS),crop2(:,:),1)
-      enddo
-      call closeunit(iu_CROPS)
-
-      wt = (year-year1)/(real(year2-year1,kind=8))
-      cropdata(:,:) = max(0.d0, crop1(:,:)
-     &     + wt * (crop2(:,:) - crop1(:,:)))  !Set min to zero, since no land mask yet -nyk 1/22/08
+      !Set min to zero, since no land mask yet -nyk 1/22/08
+      cropdata = max(0d0, cropdata)
 
       end subroutine get_cropdata
 

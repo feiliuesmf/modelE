@@ -54,7 +54,7 @@ ZSIFAC=SICE4X5.B.1975-84avg.Hadl1.1.nc
 CDN=CD4X500S.ext.nc    ! surf.drag coefficient
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
 VEG=V72X46.1.cor2_no_crops.ext.nc
-CROPS=CROPS2007_72X46N.cor4_nocasp  ! veg. fractions, crops history
+CROPS=CROPS2007_72X46N.cor4_nocasp.nc  ! veg. fractions, crops history
 SOIL=S4X50093.ext.nc
 TOPO=Z72X46N.cor4_nocasp.nc   ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag

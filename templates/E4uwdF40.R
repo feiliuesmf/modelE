@@ -59,7 +59,7 @@ ZSIFAC=SICE_144x90.1876-1885avg.HadISST1.1.nc
 OCNML=Z1O.B144x90.nc                    ! mixed layer depth (not used if KOCEAN=0)
 CDN=CD144X90.ext.nc
 VEG=V144X90_no_crops.ext.nc
-CROPS=CROPS2007_144X90N_nocasp
+CROPS=CROPS2007_144X90N_nocasp.nc
 SOIL=S144X900098M.ext.nc
 TOPO=Z144X90N_nocasp.nc              ! bdy.cond
 REG=REG2X2.5                      ! special regions-diag

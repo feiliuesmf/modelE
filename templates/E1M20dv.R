@@ -82,7 +82,7 @@ TOPO=Z72X46N.cor4_nocasp.nc
 SOIL=S4X50093.ext.nc ! soil/topography bdy.conds
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
 VEG=V72X46.1.cor2_no_crops.ext.nc
-CROPS=CROPS2007_72X46N.cor4_nocasp  ! veg. fractions, crops history
+CROPS=CROPS2007_72X46N.cor4_nocasp.nc  ! veg. fractions, crops history
 CDN=CD4X500S.ext.nc                 ! surf.drag coefficient
 REG=REG4X5                        ! special regions-diag
 RVR=RD_modelE_M.nc                ! river direction file

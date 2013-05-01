@@ -61,7 +61,7 @@ GIC=GIC.144X90.DEC01.1.ext_1.nc ! initial ground conditions      ISTART=2
 TOPO=Z144X90N.1deghycom_1.nc
 CDN=CD144X90.ext.nc              ! neutral drag coefficient
 VEG=V144X90_no_crops.ext.nc      ! vegatation file 
-CROPS=CROPS_144X90N_nocasp.ext   ! crops
+CROPS=CROPS_144X90N_nocasp.ext.nc ! crops
 SOIL=S144X900098M.ext.nc         ! soil properties
 REG=REG2X2.5                     ! special regions-diag
 RVR=RD_modelE_Fa_1deghycom.nc             ! river direction file

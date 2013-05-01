@@ -91,7 +91,7 @@ GIC=GIC.144X90.DEC01.1.ext_1.nc        ! initial ground conditions      ISTART=2
 TOPO=Z144X90N.2deghycom           ! 2deg hycom
 CDN=CD144X90.ext.nc               ! neutral drag coefficient
 VEG=V144X90_no_crops.ext.nc       ! vegatation file 
-CROPS=CROPS2007_144X90N_nocasp    ! crops
+CROPS=CROPS2007_144X90N_nocasp.nc ! crops
 SOIL=S144X900098M.ext.nc          ! soil properties
 REG=REG2X2.5                      ! special regions-diag
 RVR=rvr_atm2x2h_hycom2deg.bin     ! 2deg hycom

@@ -78,7 +78,7 @@ TOPO=Z_C90fromZ1QX1N.nc
 SOIL=SOIL_CS90.nc ! soil/topography bdy.conds
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
 VEG=V_CS90_144X90_5percent.nc
-CROPS=CROPS_CS90 
+CROPS=CROPS_CS90.nc 
 CDN=CD_CS90.nc                     ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
 RVR=RDdistocean_CS90_EM.nc             ! river direction file

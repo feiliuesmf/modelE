@@ -59,7 +59,7 @@ Data input files:
 AIC=1JAN1800.rsfE3hy091      ! full IC (GIC,OIC not needed) ISTART=8
 CDN=CD4X500S.ext.nc
 VEG=V72X46.1.cor2_no_crops.ext.nc
-CROPS=CROPS2007_72X46N.cor4_nocasp  ! veg. fractions, crops history
+CROPS=CROPS2007_72X46N.cor4_nocasp.nc  ! veg. fractions, crops history
 SOIL=S4X50093.ext.nc
 TOPO=Z72X46N.2deghycom.lake              !!! hycom
 REG=REG4X5           ! special regions-diag
