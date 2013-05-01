@@ -80,8 +80,8 @@ rundeck: linkNonProduction
 	@echo '---- Regenerating Rundeck $(RUNDECK) from default ($(RUNDECKSRC)) ----'
 	@if [ $(RUNDECK) != $(RUNDECKSRC) ]; then  \
 	sed 's/^'$(RUNSRC)'\([:\. ]\)/'$(RUN)'\1/g' $(RUNDECKSRC) \
-	| $(SCRIPTS_DIR)/protect_ccp_options.pl | $(CPP) -I$(TEMPLATES_DIR) \
-	| $(SCRIPTS_DIR)/protect_ccp_options.pl -u \
+	| $(SCRIPTS_DIR)/protect_ccp_options.pl -c | $(CPP) -I$(TEMPLATES_DIR) \
+	| $(SCRIPTS_DIR)/protect_ccp_options.pl -c -u \
 	> $(RUNDECK); \
 	fi;
 	@echo '---------             Rundeck  created               ---------' 

@@ -6,15 +6,22 @@
 #
 # when used with -u restores original CPP options
 #
+# when used with -c also retains the original CPP statement
+# (so that it has effect on the rest of the rundeck)
+#
 # also removes empty lines at the start of rundeck (CPP creates
 # extra lines there)
 
 use Getopt::Long;
 
-GetOptions("u") || die "problem in GetOptions";
+GetOptions("u","c") || die "problem in GetOptions";
 
 if ($opt_u ) {
     $unprotect = 1;
+}
+
+if ($opt_c ) {
+    $keep_copy = 1;
 }
 
 $start_of_file = 1;
@@ -34,9 +41,13 @@ while(<>){
 
     if( $inside_cpp_options ) {
 	if ( (! $unprotect) && /^\#/ ) {
+	    my $s = $_; 
 	    s/^\#/_/;
+	    $s =~ s/^(\#\s*define\s+)/$1_/;
+	    if ( $keep_copy ) { $_ .= $s; }
 	}
-	if ( $unprotect && /^_/ ) {
+	if ( $unprotect ) {
+	    if ( /^\s*$/ ) { next; } # remove empty lines lef by #define ...
 	    s/^_/\#/;
 	}
     }
