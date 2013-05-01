@@ -76,7 +76,6 @@ REMAP=remap72-46C32-32.nc            ! weights for atm-ocean coupling
 
 #include "rad_input_files"
 #include "rad_C32_input_files"
-#include "O3_2005_input_files"
 
 MSU_wts=MSU.RSS.weights.data
 

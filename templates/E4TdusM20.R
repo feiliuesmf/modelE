@@ -109,7 +109,6 @@ RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 RADN3=miescatpar.abcdv2
 
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-DUSTaer=dust_mass_CakmurMillerJGR06_72x46x20x7x12.nc
 RADN7=STRATAER.VOL.1850-1999.Apr02_hdr
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux_hdr      ! need KSOLAR=2
@@ -119,17 +118,7 @@ GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 MSU_wts=MSU.RSS.weights.data
 
-! ozone files (minimum 1, maximum 9 files + 1 trend file)
-O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
-O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
-O3file_03=mar2004_o3_shindelltrop_72x46x49x12_1910
-O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
-O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
-O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
-O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
-O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
-O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
-O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
+#include "rad_72x46_input_files"
 
 !------- Needed for dry deposition ---------
 VEGTYPE=chem_files/vegtype.global
@@ -161,7 +150,6 @@ TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000h.nc
 TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h.nc
 TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h.nc
 TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h.nc
-BC_dep=BC.Dry+Wet.depositions.ann.nc
 
 ! files for dust tracers
 VTRSH=vtr-mod-o0.mean-pb       ! threshold wind speeds for old emission scheme

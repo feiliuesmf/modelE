@@ -25,7 +25,7 @@ Preprocessor Options
 #define TRACERS_DUST_Silt4       ! include 4th silt size class of dust
 #define TRACERS_DRYDEP           ! default dry deposition
 #define TRDIAG_WETDEPO           ! additional wet deposition diags for tracers
-#define RAD_O3_GCM_HRES          ! Use GCM horiz resl to input rad code clim Ozone
+#define RAD_O3_2010              ! 2010 ozone dataset
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 End Preprocessor Options
 
@@ -49,7 +49,6 @@ TRDIAG
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
-RAD_native_O3                       ! for reading ozone to rad code at native GCM horiz res.
 #include "static_ocn_source_files"
 
 NUDGE                               ! code for nudging winds
@@ -74,7 +73,6 @@ NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
 #include "nudging_144x89_input_files"
 #include "rad_input_files"
 #include "rad_144x90_input_files"
-#include "O3_2010_144x90_input_files"
 
 #include "dust_tracer_144x90_input_files"
 

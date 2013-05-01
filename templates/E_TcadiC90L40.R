@@ -21,7 +21,7 @@ Preprocessor Options
 #define TRDIAG_WETDEPO           ! additional wet deposition diags for tracers
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
-#define RAD_O3_GCM_HRES     ! Use GCM horiz resl to input rad code clim Ozone
+#define RAD_O3_2010              ! 2010 ozone dataset
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
@@ -62,9 +62,7 @@ TRDIAG                              ! for offline postprocessing
 
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "modelE4_source_files"
-RAD_native_O3                       ! for reading ozone to rad code at native GCM horiz res.
 CLD_AEROSOLS_Menon_MBLK_MAT_E29q BLK_DRV ! aerosol-cloud interactions
-RAD_native_O3                            ! for reading ozone to rad code at native GCM horiz res.
 lightning                                ! Colin Price lightning model
 ! flammability_drv flammability       ! Olga's fire model
 
@@ -101,8 +99,6 @@ NAMERVR=RDdistocean_CS90_EM.names.txt  ! named river outlets
 #include "landCS90_input_files"
 #include "rad_input_files"
 #include "rad_C90_input_files"
-#include "O3_2010_C90_input_files"
-!#include "O3_2005_input_files"
 
 #include "chemistry_input_files"
 #include "chemistry_C90_input_files"

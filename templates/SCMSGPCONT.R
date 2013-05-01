@@ -80,7 +80,7 @@ NAMERVR=RD_modelE_F.names.txt  ! named river outlets
 
 #include "TAero2003_input_files"
 
-#include "O3_2005_input_files"
+#include "rad_144x90_input_files"
 
 
 GHG=GHG.Mar2004.txt

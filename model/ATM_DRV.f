@@ -772,9 +772,6 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call alloc_diag_loc(grid)
       call alloc_strat_com(grid)
       call alloc_rad_com(grid)
-#ifdef RAD_O3_GCM_HRES
-      call alloc_RAD_native_O3(grid)
-#endif
       call alloc_lakes(grid)
       call alloc_lakes_com(grid)
       call alloc_landice_com(grid)

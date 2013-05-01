@@ -154,8 +154,6 @@ C----------------
 !@var FSTOPX,FTTOPX switches on/off aerosol for diagnostics (solar,thermal component)
 !@var FSTASC,FTASC scales optional aerosols (solar,thermal component)
       REAL*8    :: FSTOPX(ITRMAX),FTTOPX(ITRMAX)
-      INTEGER, PARAMETER :: NLO3=49 !  # of layers in ozone data files
-      REAL*8, dimension(NLO3) :: O3natL,O3natLref
 !@var chem_IN column variable for importing ozone(1) and methane(2)
 !@+   fields from rest of model
 !@var use_tracer_chem:set U0GAS(L, )=chem_IN( ,L), L=L1,use_tracer_chem( )
@@ -352,22 +350,7 @@ C--------------------------------------   have to handle 1 point in time
      *          ,KYEARO=0,KJDAYO=0, KYEARA=0,KJDAYA=0, KYEARD=0,KJDAYD=0
      *          ,KYEARV=0,KJDAYV=0, KYEARE=0,KJDAYE=0, KYEARR=0,KJDAYR=0
 
-!@var O3YR_max last year before O3 data repeat last ann. cycle
-#ifdef RAD_O3_GCM_HRES
-      INTEGER :: O3YR_max=2000
-#else
-      INTEGER :: O3YR_max=1997
-      REAL*8, dimension(NLO3,MLON72,MLAT46) :: O3JDAY,O3JREF
-#endif
-C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
-      REAL*8 :: PLBO3(NLO3+1) = (/ ! plbo3(1) depends on plb0  ! ??
-     *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
-     *       150d0, 125d0, 100d0,  80d0,  60d0,  55d0,  50d0,
-     *        45d0,  40d0,  35d0,  30d0,  25d0,  20d0,  15d0,
-     *       10.d0,  7.d0,  5.d0,  4.d0,  3.d0,  2.d0,  1.5d0,
-     *        1.d0,  7d-1,  5d-1,  4d-1,  3d-1,  2d-1,  1.5d-1,
-     *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2,
-     *        1d-2,  7d-3,  5d-3,  4d-3,  3d-3,  1d-3,  1d-7/)
+      REAL*8, dimension(:,:,:), pointer :: o3jday,o3jref
 
 !@var PLBA21 Vert. Layering for tropospheric aerosols (reference)
       REAL*8, PARAMETER :: PLBA20(21)=(/
@@ -1523,6 +1506,7 @@ C--------------------------------
       SUBROUTINE RCOMPT
       use SURF_ALBEDO, only : UPDSUR
       use AerParam_mod, only : updateAerosol,updateAerosol2
+      use O3mod, only : updO3d,updO3d_solar,plbo3,nlo3
       IMPLICIT NONE
 C-----------------------------------------------------------------------
 C
@@ -1591,11 +1575,8 @@ C----------------------------------------------
       IF(KJDAYO.ne.0)             JJDAYO=KJDAYO
       IF(KYEARO.ne.0)             JYEARO=KYEARO
 C----------------------------------------------
-#ifdef RAD_O3_GCM_HRES
-               CALL native_UPDO3D(JYEARO,JJDAYO)
-#else
-                      CALL UPDO3D(JYEARO,JJDAYO)
-#endif
+      CALL UPDO3D(JYEARO,JJDAYO,O3JDAY,O3JREF)
+      CALL UPDO3D_solar(JJDAYO,S00WM2*RATLS0,O3JDAY)
 C----------------------------------------------
 
       JJDAYA=JDAY
@@ -1647,6 +1628,7 @@ C----------------------------------------------
 
       SUBROUTINE RCOMPX
       use SURF_ALBEDO, only : getsur
+      use O3mod, only : plbo3,nlo3
       IMPLICIT NONE
 C     ------------------------------------------------------------------
 C     MADVEL  Model Add-on Data of Extended Climatology Enable Parameter
@@ -1683,22 +1665,12 @@ C      -----------------------------------------------------------------
 C--------------------------------
 !!!                   CALL GETO3D(ILON,JLAT) ! may have to be changed ??
       if(use_o3_ref > 0 )then
-#ifdef RAD_O3_GCM_HRES
-        CALL REPART (O3natLref          ,PLBO3,NLO3+1, ! in
+        CALL REPART (O3JREF(1,IGCM,JGCM),PLBO3,NLO3+1, ! in
      *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
-#else
-        CALL REPART (O3JREF(1,ILON,JLAT),PLBO3,NLO3+1, ! in
-     *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
-#endif
         FULGAS(3)=1.d0
       else
-#ifdef RAD_O3_GCM_HRES
-        CALL REPART (O3natL             ,PLBO3,NLO3+1, ! in
+        CALL REPART (O3JDAY(1,IGCM,JGCM),PLBO3,NLO3+1, ! in
      *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
-#else
-        CALL REPART (O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1, ! in
-     *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
-#endif
         ! considering this move to here from setgas:
         ! chem_out(:,1)=U0GAS(:,3)*FULGAS(3) ! save climatology O3 for chem
         ! and might then need something like:
@@ -2146,408 +2118,6 @@ C
 C
       RETURN
       end subroutine UPDGHG
-
-
-#ifndef RAD_O3_GCM_HRES /* note NOT defined */
-
-      SUBROUTINE UPDO3D(JYEARO,JJDAYO)
-
-!!!   use RADPAR, only : MLON72,MLAT46,NL,PLB0,U0GAS,MADO3M
-      USE FILEMANAGER, only : openunit,closeunit
-      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-#ifndef USE_RAD_OFFLINE
-      USE Dictionary_mod
-#endif
-      IMPLICIT NONE
-
-!     In 2003, 9 decadal files and an ozone trend data file have been
-!     defined using 49-layer PLB pressure levels. Because of strange
-!     discontinuities in the stratosphere, they were replaced in 2004
-
-      INTEGER, PARAMETER ::
-     *     NFO3x=9,      !  max. number of decadal ozone files used
-!!!  *     NLO3=49,      !  number of layers of ozone data files
-     *     IYIO3=1850, IYEO3=2050, ! beg & end year of O3 trend file
-     *     LMONTR=12*(IYEO3-IYIO3+1) ! length of O3 trend file
-
-      REAL*4 O3YEAR(MLON72,MLAT46,NLO3,0:12),OTREND(MLAT46,NLO3,LMONTR)
-      REAL*4 O3ICMA(MLON72,MLAT46,NLO3,12),O3JCMA(MLON72,MLAT46,NLO3,12)
-      INTEGER LJTTRO(MLAT46)
-      real*4, dimension(MLON72,MLAT46,NLO3,0:12) :: delta_O3_max_min
-      real*4, dimension(NLO3) :: delta_O3_now
-
-C     UPDO3D CALLs GTREND to get CH4 to interpolate tropospheric O3
-C     -----------------------------------------------------------------
-
-      CHARACTER*80 TITLE
-      logical qexist
-!@dbparam use_sol_Ox_cycle if =1, a cycle of ozone is appled to
-!@+ o3year, as a function of the solar constant cycle.
-!@var add_sol is [S00WM2(now)-1/2(S00WM2min+S00WM2max)]/
-!@+ [S00WM2max-S00WM2min] so that O3(altered) = O3(default) +
-!@+ add_sol*delta_O3_max_min
-      integer :: use_sol_Ox_cycle = 0
-      save use_sol_Ox_cycle
-      real*8 :: add_sol
-      real*8 :: S0min, S0max
-
-C**** The data statements below are only used if  MADO3M > -1
-      CHARACTER*40, DIMENSION(NFO3X) :: DDFILE = (/
-     1            'aug2003_o3_shindelltrop_72x46x49x12_1850'
-     2           ,'aug2003_o3_shindelltrop_72x46x49x12_1890'
-     3           ,'aug2003_o3_shindelltrop_72x46x49x12_1910'
-     4           ,'aug2003_o3_shindelltrop_72x46x49x12_1930'
-     5           ,'aug2003_o3_shindelltrop_72x46x49x12_1950'
-     6           ,'aug2003_o3_shindelltrop_72x46x49x12_1960'
-     7           ,'aug2003_o3_shindelltrop_72x46x49x12_1970'
-     8           ,'aug2003_o3_shindelltrop_72x46x49x12_1980'
-     9           ,'aug2003_o3_shindelltrop_72x46x49x12_1990'/)
-      INTEGER, DIMENSION(NFO3X) :: IYEAR =
-     *     (/1850,1890,1910,1930,1950,1960,1970,1980,1990/)
-      INTEGER :: NFO3 = NFO3X
-      CHARACTER*40 :: OTFILE ='aug2003_o3timetrend_46x49x2412_1850_2050'
-      INTEGER :: IFILE=11            ! not used in GCM runs
-      integer :: idfile
-
-!!!   REAL*8 :: PLBO3(NLO3+1) = (/ ! could be read off the titles
-!!!  *      1010d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
-!!!  *       150d0, 125d0, 100d0,  80d0,  60d0,  55d0,  50d0,
-!!!  *        45d0,  40d0,  35d0,  30d0,  25d0,  20d0,  15d0,
-!!!  *       10.d0,  7.d0,  5.d0,  4.d0,  3.d0,  2.d0,  1.5d0,
-!!!  *        1.d0,  7d-1,  5d-1,  4d-1,  3d-1,  2d-1,  1.5d-1,
-!!!  *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2,
-!!!  *        1d-2,  7d-3,  5d-3,  4d-3,  3d-3,  1d-3,  1d-7/)
-C**** LJTTRO(MLAT46) below layer 1+LJTTRO,  O3-interp is based on CH4
-      DATA LJTTRO/9*0,4*7,20*8,7*7,6*6/ ! does not work well near S.Pole
-      INTEGER, SAVE :: IYR=0, JYRNOW=0, IYRDEC=0, IFIRST=1, JYR
-
-      save nfo3,iyear,ljttro,otrend,o3year,delta_O3_max_min
-!!!   save plbo3
-      save ddfile,ifile,idfile,S0min,S0max
-
-      INTEGER :: JYEARO,JJDAYO
-      INTEGER I,J,L,M,N,IY,JY,MI,MJ,MN,NLT,JYEARX  !! ,ILON,JLAT
-      REAL*8 WTTI,WTTJ, WTSI,WTSJ,WTMJ,WTMI, XMI,DSO3
-
-C**** Deal with out-of-range years (incl. starts before 1850)
-      if(abs(jyearo) < abs(jyrnow)) jyearo=-jyrnow ! keep cycling
-      if(abs(jyearo) > O3YR_max) jyearo=-O3YR_max ! cycle thru O3YR_max
-
-      IF(IFIRST==1) THEN
-
-#ifndef USE_RAD_OFFLINE
-      call sync_param("use_sol_Ox_cycle",use_sol_Ox_cycle)
-
-      if(use_sol_Ox_cycle==1)then
-        call openunit ("delta_O3",idfile,.true.,.true.)
-        read(idfile)S0min,S0max
-        do m=1,12; do L=1,NLO3
-          read(idfile)TITLE,delta_O3_max_min(:,:,L,M)
-        enddo    ; enddo
-        delta_O3_max_min(:,:,:,0)=delta_O3_max_min(:,:,:,12)
-        call closeunit (idfile)
-      endif
-#endif
-      if(plbo3(1) < plb0(1)) plbo3(1)=plb0(1)                  ! ??
-      IF(MADO3M < 0) then
-C****   Find O3 data files and fill array IYEAR from title(1:4)
-        nfo3=0
-        if (AM_I_ROOT()) write(6,'(/a)') ' List of O3 files used:'
-        do n=1,nfo3X    !  files have the generic names O3file_01,....
-          ddfile(n)=' '
-          write (ddfile(n),'(a7,i2.2)') 'O3file_',n
-          inquire (file=trim(ddfile(n)),exist=qexist)
-          if(.not.qexist) go to 10 !  exit
-          call openunit (ddfile(n),ifile,.true.,.true.)
-          read(ifile) title
-          call closeunit (ifile)
-          if (AM_I_ROOT())
-     *         write(6,'(a,a)') ' read O3 file, record 1: ',title
-          read(title(1:4),*) IYEAR(n)
-          nfo3=nfo3+1
-        end do
-
-   10   continue
-        if(nfo3==1) JYEARO=-IYEAR(1)
-        if(nfo3==0) call stop_model('updo3d: no Ozone files',255)
-        OTFILE='O3trend '
-      END IF
-
-C**** Prior to first year of data, cycle through first year of data
-      if(abs(jyearo) < IYEAR(1)) jyearo=-IYEAR(1)
-
-      IY=0
-      IF(JYEARO < 0) THEN ! 1 year of O3 data is used in a cyclical way
-        do n=1,nfo3        ! check whether we need the O3 trend array
-           if(IYEAR(n)==-JYEARO) IY=n
-        end do
-      end if
-
-      if(IY <= 1.and.nfo3 > 1) then
-                       ! READ strat O3 time trend for strat O3 interpol.
-        call openunit (OTFILE,ifile,.true.,.true.)
-        READ (IFILE) OTREND
-        call closeunit (ifile)
-        if (AM_I_ROOT()) then
-           if(MADO3M < 0) write(6,'(a,a)') ' read ',OTfile
-        end if
-      end if
-
-      if(IY > 0) then
-        call openunit (ddfile(IY),ifile,.true.,.true.)
-        DO 30 M=1,12
-        DO 30 L=1,NLO3
-   30   READ (IFILE) TITLE,O3YEAR(:,:,L,M)
-        O3YEAR(:,:,:,0)=O3YEAR(:,:,:,12)
-        call closeunit (ifile)
-        JYRNOW=-JYEARO  ! insures that O3YEAR is no longer changed
-      end if
-
-#ifdef TRACERS_SPECIAL_Shindell
-! read the 3D field for O3 RCOMPX reference calls
-      call openunit ('Ox_ref',ifile,.true.,.true.)
-      if (AM_I_ROOT()) print *, 'Reading ozone reference field file:'
-      do L=1,NLO3
-        read(ifile)title,O3JREF(L,:,:)
-        if (AM_I_ROOT()) print *, trim(title)
-      end do
-      call closeunit(ifile)
-#endif
-
-      IFIRST=0
-      ENDIF
-
-C     To time input data READs, JYEARX is set ahead of JYEARO by 15 days
-C     ------------------------------------------------------------------
-      IF(JYEARO < 0) THEN    !              ... except in cyclical case
-        JYEARX=-JYEARO        ! Use fixed-year decadal climatology
-      ELSE
-        JYEARX=MIN(JYEARO+(JJDAYO+15)/366,IYEO3+1) ! +1 for continuity
-      END IF                                       !         at Dec 15
-
-      IF(JYEARX==JYRNOW) GO TO 500    ! Get O3JDAY from current O3YEAR
-      IF(JYRNOW > O3YR_max) GO TO 500  ! cyclical case
-
-C****
-C**** Get 13 months of O3 data O3YEAR starting with the leading December
-C****
-      do jy=1,nfo3                  ! nfo3 is at least 2, if we get here
-        if(iyear(jy) > JYEARx) go to 100
-      end do
-      jy=nfo3
-  100 if(jy <= 1) jy=2
-      iy=jy-1
-      IYR=IYEAR(IY)
-      JYR=IYEAR(JY)
-
-C**** Get first decadal file
-      call openunit (ddfile(IY),ifile,.true.,.true.)               ! IYR
-      DO 110 M=1,12
-      DO 110 L=1,NLO3
-  110 READ (IFILE) TITLE,O3ICMA(:,:,L,M)
-      call closeunit (ifile)
-
-      IF(JYEARX == IYR.and.IYRDEC.ne.JYEARX-1 .and. IY > 1 .and.
-     *   JYEARO > 0.and.JYEARX <= O3YR_max) THEN
-C        READ and use prior decadal file to define prior year December
-C        (only when starting up with JYEARO=1890,1910,1930,...1980
-C         and only for non-cyclical cases)
-      call openunit (ddfile(IY-1),ifile,.true.,.true.)             ! KYR
-      DO 210 M=1,12
-      DO 210 L=1,NLO3
-  210 READ(IFILE) TITLE,O3JCMA(:,:,L,M)
-      call closeunit (ifile)
-
-C     Tropospheric & stratospheric ozone timetrend interpolation weights
-C       Tropospheric ozone time variability is proportional to CH4 trend
-C          Stratospheric ozone (above level LJTTRO(J)) is linear in time
-C     ------------------------------------------------------------------
-
-      CALL O3_WTS (IYIO3,LMONTR, IYR,IYEAR(IY-1), JYEARX-1,12,     ! in
-     *             WTTI,WTTJ, WTSI,WTSJ, MI,MJ,MN)                 ! out
-
-      DO 290 J=1,MLAT46
-      NLT=LJTTRO(J)     !      NLT=LJTTRO(J) is top layer of troposphere
-      DO 250 L=1,NLT
-      DO 250 I=1,MLON72
-      O3YEAR(I,J,L,0)=WTTI*O3ICMA(I,J,L,12)+WTTJ*O3JCMA(I,J,L,12)
-      IF(O3YEAR(I,J,L,0) < 0.) O3YEAR(I,J,L,0)=0.
-  250 CONTINUE
-
-C     DSO3 = add-on residual intra-decadal stratospheric O3 variability
-C     ------------------------------------------------------------------
-      DO 270 L=NLT+1,NLO3
-      DSO3=OTREND(J,L,MN)-WTSI*OTREND(J,L,MI)-WTSJ*OTREND(J,L,MJ)
-      DO 270 I=1,MLON72
-      O3YEAR(I,J,L,0)=WTSI*O3ICMA(I,J,L,12)+WTSJ*O3JCMA(I,J,L,12)+ DSO3
-      IF(O3YEAR(I,J,L,0) < 0.) O3YEAR(I,J,L,0)=0.
-  270 CONTINUE
-
-  290 CONTINUE
-      IYRDEC=JYEARX    !   Set flag to indicate December data is current
-      ENDIF
-
-C**** Get next  decadal file
-      call openunit (ddfile(JY),ifile,.true.,.true.)               ! JYR
-      DO 310 M=1,12
-      DO 310 L=1,NLO3
-  310 READ(IFILE) TITLE,O3JCMA(:,:,L,M)
-      call closeunit (ifile)
-
-      IF(JYEARX==IYRDEC) GO TO 410    ! done with prior December
-
-      IF(JYEARX==IYRDEC+1) THEN      ! copy data from M=12 -> M=0
-        O3YEAR(:,:,:,0)=O3YEAR(:,:,:,12)      !     DEC from prior year
-        IF(JYEARX > O3YR_max) JYEARX=O3YR_max
-        IYRDEC=JYEARX   !  Set flag to indicate December data is current
-      ELSE IF(JYEARO > IYEAR(1)) THEN
-C       Interpolate prior December from the decadal files - start-up
-        CALL O3_WTS (IYIO3,LMONTR, IYR,JYR, JYEARX-1,12,        ! in
-     *               WTTI,WTTJ, WTSI,WTSJ, MI,MJ,MN)            ! out
-
-        DO 400 J=1,MLAT46
-        NLT=LJTTRO(J)     !    NLT=LJTTRO(J) is top layer of troposphere
-        DO 360 L=1,NLT
-        DO 360 I=1,MLON72
-        O3YEAR(I,J,L,0)=WTTI*O3ICMA(I,J,L,12)+WTTJ*O3JCMA(I,J,L,12)
-        IF(O3YEAR(I,J,L,0) < 0.) O3YEAR(I,J,L,0)=0.
-  360   CONTINUE
-
-        DO 370 L=NLT+1,NLO3
-        DSO3=OTREND(J,L,MN)-WTSI*OTREND(J,L,MI)-WTSJ*OTREND(J,L,MJ)
-        DO 370 I=1,MLON72
-        O3YEAR(I,J,L,0)=WTSI*O3ICMA(I,J,L,12)+WTSJ*O3JCMA(I,J,L,12)+DSO3
-        IF(O3YEAR(I,J,L,0) < 0.) O3YEAR(I,J,L,0)=0.
-  370   CONTINUE
-
-  400   CONTINUE
-        IYRDEC=JYEARX  !   Set flag to indicate December data is current
-      END IF
-
-C            Fill in a full year of O3 data by interpolation
-C            -----------------------------------------------
-  410 CONTINUE
-      IF(JYEARX > O3YR_max) JYEARX=O3YR_max
-      CALL O3_WTS (IYIO3,LMONTR, IYR,JYR, JYEARX,0,           ! in
-     *             WTTI,WTTJ, WTSI,WTSJ, MI,MJ,MN)            ! out
-
-C            Tropospheric O3 interpolation is in proportion to CH4 trend
-C                         ----------------------------------------------
-      DO 490 M=1,12
-      DO 490 J=1,MLAT46
-      NLT=LJTTRO(J)     !      NLT=LJTTRO(J) is top layer of troposphere
-      DO 440 L=1,NLT
-      DO 440 I=1,MLON72
-      O3YEAR(I,J,L,M)=WTTI*O3ICMA(I,J,L,M)+WTTJ*O3JCMA(I,J,L,M)
-      IF(O3YEAR(I,J,L,M) < 0.) O3YEAR(I,J,L,M)=0.
-  440 CONTINUE
-
-C     DSO3 = add-on residual intra-decadal stratospheric O3 variability
-C     ------------------------------------------------------------------
-      DO 460 L=NLT+1,NLO3
-      DSO3=OTREND(J,L,M+MN)-WTSI*OTREND(J,L,M+MI)-WTSJ*OTREND(J,L,M+MJ)
-      DO 460 I=1,MLON72
-      O3YEAR(I,J,L,M)=WTSI*O3ICMA(I,J,L,M)+WTSJ*O3JCMA(I,J,L,M) + DSO3
-      IF(O3YEAR(I,J,L,M) < 0.) O3YEAR(I,J,L,M)=0.
-  460 CONTINUE
-
-  490 CONTINUE
-
-      IF(JYEARX.ne.IYRDEC) THEN               ! cyclical start-up case
-        O3YEAR(:,:,:,0)=O3YEAR(:,:,:,12)      ! DEC from current year
-        IYRDEC=JYEARX   !  Set flag to indicate December data is current
-      END IF
-      JYRNOW=JYEARX
-
-C****
-C**** O3JDAY is interpolated daily from O3YEAR seasonal data via JJDAYO
-C****
-
-  500 CONTINUE
-C     the formula below yields M near the middle of month M
-      XMI=(JJDAYO+JJDAYO+31-(JJDAYO+15)/61+(JJDAYO+14)/61)/61.D0
-      MI=XMI
-      WTMJ=XMI-MI       !   Intra-year interpolation is linear in JJDAYO
-      WTMI=1.D0-WTMJ
-      IF(MI > 11) MI=0
-      MJ=MI+1
-      if(use_sol_Ox_cycle==1)then
-        add_sol = (S00WM2*RATLS0-0.5d0*(S0min+S0max))/(S0max-S0min)
-        write(6,661)JJDAYO,S00WM2*RATLS0,S0min,S0max,add_sol
-      endif
-  661 format('JJDAYO,S00WM2*RATLS0,S0min,S0max,frac=',I4,3F9.2,F7.3)
-      DO 510 J=1,MLAT46
-      DO 510 I=1,MLON72
-      O3JDAY(:,I,J)=WTMI*O3YEAR(I,J,:,MI)+WTMJ*O3YEAR(I,J,:,MJ)
-      if(use_sol_Ox_cycle==1) then
-        delta_O3_now(:) = WTMI*delta_O3_max_min(I,J,:,MI) +
-     &                    WTMJ*delta_O3_max_min(I,J,:,MJ)
-        O3JDAY(:,I,J) = O3JDAY(:,I,J) + add_sol*delta_O3_now(:)
-      endif
-  510 CONTINUE
-      RETURN
-
-!!    ENTRY GETO3D (ILON,JLAT)
-C
-
-!!    CALL REPART(O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1,U0GAS(1,3),PLB0,NL+1)
-
-!!    RETURN
-      END SUBROUTINE UPDO3D
-
-      SUBROUTINE O3_WTS (IYI,MONTHS, IY1,IY2, IYX,MON,        !  input
-     *                   WTTI,WTTJ, WTSI,WTSJ, MI,MJ,MN)      ! output
-!@sum O3_WTS finds the weights needed for Ozone interpolation
-!@auth A. Lacis/R. Ruedy
-      implicit none
-      INTEGER IYI,MONTHS  ! first year, length of O3-trend data - input
-      INTEGER IY1,IY2     ! 2 distinct years with O3 data       - input
-      INTEGER IYX,MON     ! current year and month              - input
-      INTEGER MI, MJ, MN  ! indices for ozone trend array       - output
-      REAL*8  WTTI,WTTJ   ! tropospheric weights                - output
-      REAL*8  WTSI,WTSJ   ! stratospheric weights               - output
-
-      REAL*8  GHGAS(6)     ! greenhouse gas conentrations (3=CH4)
-      REAL*8  dYEAR,CH4IY1,CH4IY2,CH4NOW  ! dummies
-
-C     Tropospheric O3 interpolation is in proportion to CH4 trend
-C                    GTREND returns mid-year (annual mean) values
-C     -----------------------------------------------------------
-      CALL GTREND(GHGAS,IY1+.5d0)
-      CH4IY1=GHGAS(3)
-
-      CALL GTREND(GHGAS,IY2+.5d0)
-      CH4IY2=GHGAS(3)
-
-      CALL GTREND(GHGAS,IYX+.5d0)
-      CH4NOW=GHGAS(3)
-
-      WTTI=(CH4IY2-CH4NOW)/(CH4IY2-CH4IY1)      !  Trop O3 varies as CH4
-      WTTJ=1.D0-WTTI
-
-C     Strat O3 interpolation uses relative monthly variability in OTREND
-C     ------------------------------------------------------------------
-      DYEAR=IY2-IY1
-      WTSI=(IY2-IYX)/DYEAR                      ! Strat O3 = time linear
-      IF(WTSI < 0.D0) WTSI=0.D0
-      IF(WTSI > 1.D0) WTSI=1.D0
-      WTSJ=1.d0-WTSI
-
-      MI=    (IY1-IYI)*12 + MON
-      MJ=    (IY2-IYI)*12 + MON
-      MN=MAX((IYX-IYI)*12,0)
-      IF(MN > MONTHS-12) MN=MONTHS-12
-      MN=MN+MON
-c     write(0,*) 'IYI,MON,IY1,IY2,IYX,MON',IYI,MONTHS,IY1,IY2,IYX,MON
-c     write(0,*) 'MI,MJ,MN',MI,MJ,MN
-c     write(0,*) 'WTTI,WTTJ, WTSI,WTSJ',WTTI,WTTJ, WTSI,WTSJ
-
-
-      RETURN
-      END SUBROUTINE O3_WTS
-
-#endif  /* RAD_O3_GCM_HRES NOT defined */
-
 
       subroutine GETGAS
       call SETGAS(1)
@@ -8069,6 +7639,7 @@ C
 
       SUBROUTINE WRITET(KWRU,INDEX,JYRREF,JYRNOW,JMONTH,KLIMIT)
       use AerParam_mod, only : updateAerosol,updateAerosol2
+      use O3mod, only : updO3d,updO3d_solar,plbo3,nlo3
       IMPLICIT NONE
 C
 C
@@ -8317,10 +7888,10 @@ C-------------
   400 CONTINUE
 C-------------
 C
-#ifndef RAD_O3_GCM_HRES
       JJDAYO=JMONTH*30-15
       IF(JMONTH < 1) JJDAYO=JDAY
-      CALL UPDO3D(JYRREF,JJDAYO)
+      CALL UPDO3D(JYRREF,JJDAYO,O3JDAY,O3JREF)
+      CALL UPDO3D_solar(JJDAYO,S00WM2*RATLS0,O3JDAY)
       DO 450 J=1,46
       DO 410 L=1,NL
       O3(J,L)=0.D0
@@ -8329,7 +7900,7 @@ C
       DO 430 I=1,72
       ILON=I
 !!!   CALL GETO3D(ILON,JLAT)
-      CALL REPART(O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1,U0GAS(1,3),PLB0,NL+1)
+      CALL REPART(O3JDAY(1,IGCM,JGCM),PLBO3,NLO3+1,U0GAS(1,3),PLB0,NL+1)
       DO 420 L=1,NL
       O3(J,L)=O3(J,L)+U0GAS(L,3)/72.D0
   420 CONTINUE
@@ -8389,7 +7960,6 @@ C
       IF(KLIMIT < 1) WRITE(KW,6402)
       WRITE(KW,6405) O3COL(49),(O3(49,L),L=1,NL)
  6405 FORMAT( 7X,'GLOBAL',F9.5,4X,15(1x,F6.5)/26X,15(1x,F6.5))
-#endif /* skipping this for now for RAD_O3_GCM_HRES */
       GO TO 9999
 C
 C
@@ -8397,10 +7967,10 @@ C-------------
   500 CONTINUE
 C-------------
 C
-#ifndef RAD_O3_GCM_HRES
       JJDAYO=JMONTH*30-15
       IF(JMONTH < 1) JJDAYO=JDAY
-      CALL UPDO3D(JYRREF,JJDAYO)
+      CALL UPDO3D(JYRREF,JJDAYO,O3JDAY,O3JREF)
+      CALL UPDO3D_solar(JJDAYO,S00WM2*RATLS0,O3JDAY)
       DO 590 N=1,3
       N1=1
       N2=8
@@ -8411,7 +7981,7 @@ C
       DO 520 I=1,72
       ILON=I
 !!!   CALL GETO3D(ILON,JLAT)
-      CALL REPART(O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1,U0GAS(1,3),PLB0,NL+1)
+      CALL REPART(O3JDAY(1,IGCM,JGCM),PLBO3,NLO3+1,U0GAS(1,3),PLB0,NL+1)
       SUMO3=0.D0
       DO 510 L=N1,N2
       SUMO3=SUMO3+U0GAS(L,3)
@@ -8466,7 +8036,6 @@ C
  6501 FORMAT(I4,1X,36I4)
   580 CONTINUE
   590 CONTINUE
-#endif /* skipping this for now for RAD_O3_GCM_HRES */
 C
       GO TO 9999
 C

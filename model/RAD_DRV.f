@@ -48,7 +48,7 @@ C****
      &      PTLISO ,KTREND ,LMR=>NL, PLB, LS1_loc
      *     ,KCLDEM,KSIALB,KSOLAR, SHL, snoage_fac_max, KZSNOW
      *     ,KYEARS,KJDAYS,MADLUV, KYEARG,KJDAYG,MADGHG
-     *     ,KYEARO,KJDAYO,MADO3M, KYEARA,KJDAYA,MADAER , O3YR_max
+     *     ,KYEARO,KJDAYO,MADO3M, KYEARA,KJDAYA,MADAER
      *     ,KYEARD,KJDAYD,MADDST, KYEARV,KJDAYV,MADVOL
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
 !g95     *     ,FSXAER,FTXAER    ! scaling (on/off) for default aerosols
@@ -211,7 +211,6 @@ C**** sync radiation parameters from input
       call sync_param( "OD_cdncx", OD_cdncx )
       call get_param( "O3_yr", O3_yr, default=master_yr )
       call sync_param( "PTLISO", PTLISO )
-      call sync_param( "O3YR_max", O3YR_max )
       call sync_param( "KSOLAR", KSOLAR )
       call sync_param( "KSIALB", KSIALB )
       call sync_param( "KZSNOW", KZSNOW )
@@ -1153,7 +1152,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI,dALBsn, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
-     *             ,TRACER,NTRACE,FSTOPX,FTTOPX,chem_IN,O3natL,O3natLref
+     *             ,TRACER,NTRACE,FSTOPX,FTTOPX,chem_IN
      *             ,FTAUC,LOC_CHL,FSTASC,FTTASC
 #ifdef HEALY_LM_DIAGS
      *             ,VTAULAT
@@ -1310,9 +1309,6 @@ c          use TRACER_COM, only: SNFST0,TNFST0
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only: icomp,TOMAS_DIAG_FC
       USE TRACER_COM, only : n_ANUM
-#endif
-#ifdef RAD_O3_GCM_HRES
-      use RAD_native_O3, only: O3JDAY_native,O3JREF_native
 #endif
       use AerParam_mod, only: dCDNC_est
       use AerParam_mod, only: depoBC,depoBC_1990
@@ -2145,10 +2141,6 @@ C**** or not.
       if (clim_interact_chem > 0) onoff_chem=1
       use_o3_ref=0
 
-#ifdef RAD_O3_GCM_HRES
-      O3natL(:)=O3JDAY_native(:,I,J)
-      O3natLref(:)=O3JREF_native(:,I,J)
-#endif
 C YUNHA LEE - took the shindell outside of the Koch/dust directives.
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Ozone and Methane:

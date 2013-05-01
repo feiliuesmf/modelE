@@ -57,7 +57,6 @@ RVR=RD2HX2.OFrac.RVR.bin          ! river direction file (frac. ocean)
 #include "land144x90_input_files"
 #include "rad_input_files"
 #include "rad_144x90_input_files"
-#include "O3_2005_input_files"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag

@@ -70,8 +70,6 @@ NAMERVR=RD_modelE_Fa_1deghycom.names.txt  ! named river outlets
 
 #include "rad_144x90_input_files"
 
-#include "O3_2005_input_files"
-
 TOP_INDEX=top_index_144x90_a.ij.ext.nc
 ZVAR=ZVAR2X25A.nc             ! topographic variation for gwdrag
 MSU_wts=MSU.RSS.weights.data
