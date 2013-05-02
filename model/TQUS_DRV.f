@@ -44,7 +44,7 @@ c****
       REAL*8, dimension(nmom,im,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: rmom
       logical, intent(in) :: qlimit
-      character*8 tname          !tracer name
+      character(len=*) :: tname          !tracer name
       integer :: I,J,L,n,nx
       real*8 :: fim
       INTEGER :: I_0, I_1, J_1, J_0
@@ -403,7 +403,7 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       REAL*8  AM(IM), F_I(IM), FMOM_I(NMOM,IM)
       REAL*8, intent(inout),
      *        dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: safv
-      character*8 tname
+      character(len=*) :: tname
       integer :: nstep(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm)
       integer :: i,j,l,ierr,nerr,ns,ICKERR,ICKERR_LOC
 
@@ -494,7 +494,7 @@ ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
      &                                         sfbm,sbm,sbf
       REAL*8, intent(inout),
      *        dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: sbfv
-      character*8 tname
+      character(len=*) tname
       integer :: i,j,l,ierr,ns,nstep(lm),ICKERR, ICKERR_LOC
       integer :: err_loc(3)
       REAL*8, DIMENSION(LM) :: m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,
@@ -679,7 +679,7 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
      &                                         sfcm,scm,scf
       logical ::  qlimit
       REAL*8, dimension(lm) :: fqw
-      character*8 tname
+      character(len=*) tname
       REAL*8  CM(LM),F_L(LM),FMOM_L(NMOM,LM)
       integer :: i,j,l,ierr,nerr,ns,ICKERR,ICKERR_LOC
 
