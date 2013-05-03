@@ -726,7 +726,7 @@ contains
     !  Create the dynamics component, using same layout as application
     !  ------------------------------------------------------------------
     fv % gc = ESMF_GridCompCreate ( name=gridCompName, &
-         & grid=grid,
+         & grid=grid, &
          & config=cf, rc=rc)
     VERIFY_(rc)
 
