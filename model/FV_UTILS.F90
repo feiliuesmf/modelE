@@ -2,7 +2,7 @@
 
 module FV_UTILS
 
-  USE ESMF_MOD
+  USE ESMF
   USE CONSTANT, only: KAPA
 
   implicit none
@@ -158,15 +158,16 @@ contains
   End Function reverse_3d_r4
 
   function EdgePressure_GISS() Result(PE)
-    USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only : SIG, SIGE, Ptop, PSFMPT, P
-    use domain_decomp_atm, only: grid, get
+    USE RESOLUTION, only: IM, LM, LS1, Ptop, PSFMPT
+    Use DYNAMICS, only : SIG, SIGE
+    use atm_com, only : P
+    use domain_decomp_atm, only: grid, getDomainBounds
 
     REAL*8 :: PE(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM+1)
 
     INTEGER :: L, i_0, i_1, j_0, j_1
 
-    call get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+    call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
     Do L = 1, LM+1
 
@@ -183,8 +184,8 @@ contains
   ! Compute Delta-pressure for GISS model
   function DeltPressure_GISS() Result(dP)
     USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only: T
-    USE DOMAIN_DECOMP_ATM, only: grid, GET
+    Use ATM_COM, only: T
+    USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
 
     REAL*8 :: dP(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
     REAL*8 :: PE(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM+1)
@@ -201,15 +202,15 @@ contains
   ! Convert Potential Temperature into (dry) Temperature
   function DeltPressure_DryTemp_GISS() Result(dPT)
     USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only: T
-    USE DOMAIN_DECOMP_ATM, only: grid, GET
+    Use ATM_COM, only: T
+    USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
 
     REAL*8 :: dPT(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
     REAL*8 :: PE(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM+1)
     REAL*8 :: T_dry(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
 
     INTEGER :: J_0,J_1,k
-    Call Get(grid, J_STRT=J_0, J_STOP=J_1)
+    Call GetDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
     T_dry = DryTemp_GISS()
     PE = EdgePressure_GISS()
@@ -222,14 +223,14 @@ contains
   ! Convert Potential Temperature into (dry) Temperature
   function DryTemp_GISS() Result(T_dry)
     USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only: T
-    USE DOMAIN_DECOMP_ATM, only: grid, GET
+    Use ATM_COM, only: T
+    USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
 
     REAL*8 :: T_dry(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
     REAL*8 :: PKZ(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
 
     INTEGER :: I_0, I_1, J_0,J_1
-    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+    Call GetDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
     PKZ = PKZ_GISS()
     T_dry = PKZ * T(I_0:I_1,J_0:J_1,:)
@@ -237,15 +238,16 @@ contains
   end function DryTemp_GISS
 
   function PKZ_GISS() Result(PKZ)
-    USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only : SIG, Ptop, PSFMPT, P
-    use domain_decomp_atm, only: grid, get
+    USE RESOLUTION, only: IM, LM, LS1, Ptop, PSFMPT
+    Use DYNAMICS, only : SIG
+    use atm_com, only : P
+    use domain_decomp_atm, only: grid, getDomainBounds
 
     REAL*8 :: PKZ(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
 
     INTEGER :: L
     INTEGER :: I_0, I_1, J_0,J_1
-    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+    Call GetDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
     Do L = 1, LM
 
@@ -325,9 +327,9 @@ contains
 
   function compute_phi(P, T, SZ, zatmo) result(phi)
     USE CONSTANT, only : rgas,bykapa,bykapap1,bykapap2
-    USE MODEL_COM, only: LS1, LM, DSIG, SIG, SIGE, PTOP, PSFMPT
-    USE MODEL_COM, only: IM, JM, LM
-    USE DOMAIN_DECOMP_ATM, Only: grid, Get
+    USE DYNAMICS, only: DSIG, SIG, SIGE
+    USE RESOLUTION, only: IM, JM, LM, LS1, LM, PTOP, PSFMPT
+    USE DOMAIN_DECOMP_ATM, Only: grid, getDomainBounds
     implicit none
 
     real*8, intent(in), dimension(grid%i_strt_halo:grid%i_stop_halo, &
@@ -347,7 +349,7 @@ contains
     INTEGER :: I_0, I_1, J_0, J_1
     LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
-    call get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1, &
+    call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1, &
          & HAVE_NORTH_POLE = HAVE_NORTH_POLE, &
          & HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
 
@@ -433,8 +435,11 @@ contains
     type (esmf_calendar) :: gregorianCalendar
 
     ! initialize calendar to be Gregorian type
-    gregorianCalendar = esmf_calendarcreate("GregorianCalendar", ESMF_CAL_GREGORIAN, rc)
+    gregorianCalendar = esmf_calendarcreate(ESMF_CALKIND_GREGORIAN, name="ApplicationCalendar", rc=rc)
     VERIFY_(rc)
+
+    call ESMF_CalendarSetDefault(ESMF_CALKIND_GREGORIAN, rc=rc)
+    VERIFY_(rc)   
 
     ! initialize start time
     write(*,*)'Time Set Start: ',START_TIME
@@ -458,7 +463,10 @@ contains
     VERIFY_(rc)
 
     ! initialize the clock with the above values
-    clock = esmf_clockcreate("ApplClock", timeStep, startTime, stopTime, rc=rc)
+    clock = esmf_clockcreate(timeStep, startTime, stoptime=stopTime, name="ApplClock",rc=rc)
+    VERIFY_(rc)
+
+    call ESMF_ClockSet ( clock, CurrTime=startTime, rc=rc)
     VERIFY_(rc)
 
   end function init_app_clock
@@ -480,7 +488,7 @@ contains
     logical       :: alloc
 
     alloc = .true.
-    call ESMFL_StateGetPointerToData ( state, ptr , name , alloc , status )
+    call ESMFL_StateGetPointerToData ( state, ptr , name , alloc , rc=status )
     VERIFY_(status)
 
   end subroutine AllocateFvExport3D
@@ -491,35 +499,38 @@ contains
 #ifdef USE_MAPL
   subroutine DumpState(fv, clock, fv_fname, fv_dfname, suffix, isFinalize)
     use MAPL_mod, only: MAPL_MetaComp
-    use MAPL_mod, only: MAPL_InternalStateGet
     use MAPL_mod, only: MAPL_Get
-    use MAPL_mod, only: MAPL_ESMFStateWriteToFile
+    use MAPL_mod, only: MAPL_GetResource
+    use MAPL_mod, only: MAPL_GetObjectFromGC
     use MAPL_mod, only: MAPL_GetResource
     use domain_decomp_atm, only: AM_I_ROOT
 
     Type (FV_CORE),    intent(inout) :: fv
-    type (esmf_clock), intent(in) :: clock
+    type (esmf_clock) :: clock
     character(len=*), intent(in) :: fv_fname, fv_dfname, suffix
     logical, intent(in) :: isFinalize
 
     type (MAPL_MetaComp), pointer :: internalState
     type (ESMF_State) :: esmfInternalState
-    integer :: hdr
+    integer :: hdr,rc
 
     call SaveTendencies(fv, FVCORE_IMPORT_RESTART)
 
     if(isFinalize) then
-       call ESMF_GridCompFinalize( fv % gc, fv%import, fv%export, clock, rc=rc)
+       call ESMF_GridCompFinalize( fv % gc, importstate=fv%import, exportstate=fv%export, clock=clock, rc=rc)
     else
-       ! workaround for RecordPhase since modelE is not using MAPL interface for alarms
-       call MAPL_InternalStateGet( fv % gc, internalSTate, rc=rc)
-       call MAPL_Get(internalState, internal_esmf_state=esmfInternalState, rc=rc)
+       call MAPL_GetObjectFromGC( fv%gc, internalSTate)
+       call MAPL_Get(internalState, internal_ESMF_state=ESMFInternalState, rc=rc)
+       VERIFY_(rc)
        call MAPL_GetResource( internalState   , hdr,         &
                                default=0, &
                                LABEL="INTERNAL_HEADER:", &
                                RC=rc)
-       call MAPL_ESMFStateWriteToFile(esmfInternalState, clock, FVCORE_INTERNAL_RESTART // suffix, &
-            & 'binary',internalState,hdr==1, rc=rc)
+       VERIFY_(rc)
+       call StateWriteToFile(ESMFInternalState, clock, &
+            & FVCORE_INTERNAL_RESTART // suffix,       &
+            & 'binary',internalState, hdr==1, rc=rc)
+       VERIFY_(rc)
     endif
 
     ! Now move the file into a more useful name
@@ -528,6 +539,105 @@ contains
     end if
 
   end subroutine DumpState
+
+!-------------------------------------------------------------------------------
+  subroutine StateWriteToFile(STATE,CLOCK,FILENAME,FILETYPE,MPL,HDR,RC)
+!-------------------------------------------------------------------------------
+    use MAPL_mod, only: MAPL_MetaComp
+    Use MAPL_IOMod, only: GETFILE, Free_file, MAPL_VarWrite, Write_parallel
+    USE RESOLUTION, only: IM, JM, LM
+    type(ESMF_State),                 intent(INOUT) :: STATE
+    type(ESMF_Clock),                 intent(IN   ) :: CLOCK
+    character(len=*),                 intent(IN   ) :: FILENAME
+    character(LEN=*),                 intent(IN   ) :: FILETYPE
+    type(MAPL_MetaComp),              intent(INOUT) :: MPL
+    logical,                          intent(IN   ) :: HDR
+    integer, optional,                intent(  OUT) :: RC
+
+    character(len=ESMF_MAXSTR), parameter :: IAm="StateWriteToFile"
+
+    type (ESMF_StateItem_Flag), pointer   :: ITEMTYPES(:)
+    character(len=ESMF_MAXSTR ), pointer  :: ITEMNAMES(:)
+    integer                               :: ITEMCOUNT
+    integer                               :: UNIT
+    integer                               :: I, J, K, L, N
+    integer                               :: YYYY, MM, DD, H, M, S
+    type(ESMF_Time)                       :: currentTime
+    integer                               :: HEADER(6)
+
+! Get information from state
+!---------------------------
+
+    call ESMF_StateGet(STATE,ITEMCOUNT=ITEMCOUNT,RC=rc)
+    VERIFY_(rc)
+
+    allocate(ITEMNAMES(ITEMCOUNT),STAT=rc)
+    VERIFY_(rc)
+    allocate(ITEMTYPES(ITEMCOUNT),STAT=rc)
+    VERIFY_(rc)
+
+    call ESMF_StateGet(STATE,ITEMNAMELIST=ITEMNAMES, &
+         & ITEMTYPELIST=ITEMTYPES,RC=rc)
+    VERIFY_(rc)
+
+! Open file
+!----------
+
+    if (filetype == 'binary' .or. filetype == 'BINARY') then
+       UNIT = GETFILE(FILENAME, form="unformatted", rc=rc)
+       VERIFY_(rc)
+    elseif(filetype=="formatted".or.filetype=="FORMATTED") then
+       UNIT = GETFILE(FILENAME, form="formatted", rc=rc)
+       VERIFY_(rc)
+    else
+       UNIT=0
+    end if
+
+! Write data
+!-----------
+
+    call ESMF_ClockGet (clock, currTime=currentTime, rc=rc)
+    VERIFY_(rc)
+    call ESMF_TimeGet(CurrentTime, &
+      &   YY=YYYY, MM=MM, DD=DD,   &
+      &   H=H, M=M, S=S, rc=rc)
+    VERIFY_(rc)
+
+    HEADER(1) = YYYY
+    HEADER(2) = MM
+    HEADER(3) = DD
+    HEADER(4) = H
+    HEADER(5) = M
+    HEADER(6) = S
+    
+    call Write_Parallel(HEADER, UNIT, RC=rc)
+    VERIFY_(rc)
+    
+    HEADER(1) = IM
+    HEADER(2) = JM
+    HEADER(3) = LM
+    HEADER(4) = 0
+    HEADER(5) = 0
+    
+    call Write_Parallel(HEADER(1:5), UNIT, RC=rc)
+    VERIFY_(rc)
+
+    if(UNIT/=0) then
+       do J = 1, ITEMCOUNT
+          call MAPL_VarWrite(UNIT=UNIT, STATE=STATE, NAME=ITEMNAMES(J), rc=rc)
+          VERIFY_(rc)
+       end do
+       call FREE_FILE(UNIT)
+    else
+       rc = -1  ! not yet
+       VERIFY_(rc)
+    endif
+    
+    deallocate(ITEMNAMES) 
+    deallocate(ITEMTYPES)
+
+  end subroutine StateWriteToFile
+
 #else
 
   subroutine DumpState(fv, clock, fv_fname, fv_dfname, suffix, isFinalize)
@@ -557,9 +667,9 @@ contains
 #endif
 
   function load_configuration(config_file) result( config )
-    use ESMF_mod
+    use ESMF
     use FILEMANAGER
-    Use MODEL_COM,  only: DT
+    Use MODEL_COM,  only: DT=>DTsrc
     character(len=*), parameter :: Iam="FV_INTERFACE::loadconfiguration"
     character(len=*), intent(in) :: config_file
     type (esmf_config)           :: config
@@ -579,8 +689,8 @@ contains
     write(iunit,*)'RUN_DT:                           ', DT
     call closeUnit(iunit)
 
-    Call ESMF_VMGetGlobal(vm, rc)
-    call esmF_VMbarrier(vm, rc)
+    Call ESMF_VMGetGlobal(vm, rc=rc)
+    call esmF_VMbarrier(vm, rc=rc)
     call esmf_configloadfile(config, config_file, rc=rc)
     VERIFY_(rc)
 
@@ -596,7 +706,7 @@ contains
 
     Type(FV_CORE), intent(inout) :: fv
     type (esmf_vm),   intent(in) :: vm
-    type (esmf_grid), intent(in) :: grid
+    type (esmf_grid) :: grid
     type (esmf_config), intent(inout) :: cf
     character(len=*),  intent(in) :: config_file ! filename for resource file
 
@@ -615,21 +725,21 @@ contains
 
     !  Create the dynamics component, using same layout as application
     !  ------------------------------------------------------------------
-    fv % gc = ESMF_GridCompCreate ( vm=vm, name=gridCompName, &
-         & grid=grid, gridcomptype=ESMF_ATM,              &
+    fv % gc = ESMF_GridCompCreate ( name=gridCompName, &
+         & grid=grid,
          & config=cf, rc=rc)
     VERIFY_(rc)
 
     ! Create couplings
-    fv % import = ESMF_StateCreate ( 'fv dycore imports', ESMF_STATE_IMPORT, rc=rc )
+    fv % import = ESMF_StateCreate ( name='fv dycore imports', stateintent=ESMF_STATEINTENT_IMPORT, rc=rc )
     VERIFY_(rc)
-    fv % export = ESMF_StateCreate ( 'fv dycore exports', ESMF_STATE_EXPORT, rc=rc )
+    fv % export = ESMF_StateCreate ( name='fv dycore exports', stateintent=ESMF_STATEINTENT_EXPORT, rc=rc )
     VERIFY_(rc)
 
     !  Register services for components
     !  --------------------------------
     !   print*,'calling set services'
-    call ESMF_GridCompSetServices ( fv % gc, SetServices, rc )
+    call ESMF_GridCompSetServices ( fv % gc, SetServices, rc=rc )
     VERIFY_(rc)
 
     ! 1) Create layout resource file - independent of actual restart file.
@@ -647,20 +757,17 @@ contains
 #endif
 
       USE RESOLUTION, only: IM, JM, LM, LS1
-      Use MODEL_COM,  only: DT
+      Use MODEL_COM,  only: DT=>DTsrc
+      USE DOMAIN_DECOMP_ATM, only : grid
       character(len=*), intent(in) :: fname
       type (fv_core), intent(in)   :: fv
 
-      Type (esmf_axisindex), pointer :: AI(:,:)
       Integer :: unit
       Integer :: npes
       Integer :: mppnx, mppny
 
-      call esmf_vmget(fv % vm, petcount = npes, rc=rc)
-      Allocate(AI(npes,3))
-      call esmf_gridgetallaxisindex(fv % grid, globalai=ai, horzrelloc=ESMF_CELL_CENTER,  &
-           &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
 
+      npes = grid%nproc
       unit = GetFile(fname, form="formatted", rc=rc)
 
       mppnx = 0
@@ -679,8 +786,8 @@ contains
       Write(unit,*)'    dt: ',DT
       Write(unit,*)' ntotq: ',1
       Write(unit,*)'  imxy: ',IM
-      Write(unit,'(a,100(1x,I3))')'  jmxy: ',AI(:,2) % MAX-AI(:,2) % MIN+1
-      Write(unit,'(a,100(1x,I3))')'  jmyz: ',AI(:,2) % MAX-AI(:,2) % MIN+1
+      Write(unit,'(a,100(1x,I3))')'  jmxy: ',1+grid%jer(:)-grid%jsr(:) ! the original code is wrong.
+      Write(unit,'(a,100(1x,I3))')'  jmyz: ',1+grid%jer(:)-grid%jsr(:) ! why are we even writing this.
       Write(unit,*)'   kmyz: ',LM
 
       ! Common parameters
@@ -699,57 +806,49 @@ contains
 
       Call Free_File(unit)
 
-      Deallocate(AI)
-
     End Subroutine write_layout
 
   end subroutine SetupForESMF
 
-  subroutine HumidityInit(fv, grid)
+  subroutine HumidityInit(fv)
     use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
-    use domain_decomp_atm, only : get
 
     Type(FV_CORE), intent(inout) :: fv
-    Type(ESMF_GRID), intent(inout) :: grid
 
-    type (ESMF_Bundle)               :: bundle
-    type (ESMF_Field)                :: Qfield
-    type (ESMF_Array)                :: Qarray
-    type (ESMF_FieldDataMap)         :: datamap
+    type (ESMF_FieldBundle)        :: bundle
+    type (ESMF_Field)              :: Qfield
 
     ! Specific Humidity - need to reserve space in FV import state
-    call ESMFL_StateGetPointerToData ( fv % export,fv % q,'Q',rc=rc)
+    call ESMFL_StateGetPointerToData (fv%export, fv%q, 'Q', rc=rc)
     VERIFY_(rc)
     fv%q = 0.0
-!!$    Allocate(fv % Qtr(IM,J_0:J_1,LM))
 
-    Qarray = ESMF_ArrayCreate(fv % q, ESMF_DATA_REF, RC=rc)
+    Qfield = ESMF_FieldCreate( fv%grid, fv%q, name='Q', rc=rc)
     VERIFY_(rc)
-        call ESMF_FieldDataMapSetDefault(datamap, dataRank=3, rc=rc)
-    Qfield = ESMF_FieldCreate( grid, Qarray, horzRelloc=ESMF_CELL_CENTER, &
-         datamap=datamap, name="Q", rc=rc)
-    VERIFY_(rc)
+
+    !call stop_model('HumidityInit: use TRADV string?',255)
 
     ! First obtain a reference field from the state (avoids tedious details)
-    call ESMF_StateGetBundle (fv % import, 'QTR'  , bundle, rc=rc)
+    call ESMF_StateGet(fv%import, 'TRADV'  , bundle, rc=rc)
     VERIFY_(rc)
-    Call ESMF_BundleAddField(bundle, Qfield, rc=rc)
+
+    Call ESMF_FieldBundleAdd(bundle, (/Qfield/), rc=rc)
     VERIFY_(rc)
 
   end subroutine HumidityInit
 
   Subroutine Copy_modelE_to_FV_import(fv)
-    USE MODEL_COM, only:  Q     ! Secific Humidity
-    USE MODEL_COM, only:  ZATMO ! Geopotential Height?
-    USE MODEL_COM, Only : U, V, T
-    Use Domain_decomp_atm, Only: grid, Get
+    USE ATM_COM, only:  Q     ! Secific Humidity
+    USE ATM_COM, only:  ZATMO ! Geopotential Height?
+    USE ATM_COM, Only : U, V, T
+    Use Domain_decomp_atm, Only: grid, getDomainBounds
     Type (FV_CORE) :: fv
 
     Integer :: nq
 
     Integer :: I_0, I_1, j_0, j_1
 
-    Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1)
+    Call GetDomainBounds(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1)
 
     ! 1) Link/copy modelE data to import state
     fv % phis=ZATMO(I_0:I_1,j_0:j_1)
@@ -812,14 +911,14 @@ contains
   contains
 
     subroutine SaveArr(iunit, arr)
-      use domain_decomp_atm, only: grid, dwrite8_parallel, get
+      use domain_decomp_atm, only: grid, dwrite8_parallel, getDomainBounds
       integer, intent(in) :: iunit
       real*8, intent(in) :: arr(:,:,:)
       real*8, allocatable :: padArr(:,:,:)
       integer :: I_0,  I_1,  J_0,  J_1
       integer :: I_0H, I_1H, J_0H, J_1H
 
-      Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=J_0, j_stop=J_1, &
+      Call GetDomainBounds(grid, i_strt=I_0, i_stop=I_1, j_strt=J_0, j_stop=J_1, &
            & i_strt_halo = I_0H, i_stop_halo = I_1H, &
            & j_strt_halo = J_0H, j_stop_halo = J_1H)
       allocate(padArr(I_0H:I_1H,J_0H:J_1H, size(arr,3)))
@@ -834,13 +933,12 @@ contains
   end subroutine SaveTendencies
 
   subroutine clear_accumulated_mass_fluxes()
-    USE DYNAMICS, ONLY: PUA,PVA,SDA
+    USE ATM_COM, ONLY: MUS,MVs,MWs
 
-    PUA(:,:,:) = 0.0
-    PVA(:,:,:) = 0.0
-    SDA(:,:,:) = 0.0
+    MUs(:,:,:) = 0.0
+    MVs(:,:,:) = 0.0
+    MWs(:,:,:) = 0.0
 
   end subroutine clear_accumulated_mass_fluxes
 
 end module FV_UTILS
-

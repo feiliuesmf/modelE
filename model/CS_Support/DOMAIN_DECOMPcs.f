@@ -9,7 +9,7 @@
 c get grid-independent procedures from domain_decomp_1d
       use domain_decomp_1d, only : am_i_root, sumxpe,
      &     read_parallel,write_parallel,broadcast,
-     &     load_cap_config,globalmax, setMpiCommunicator,
+     &     globalmax, setMpiCommunicator,
      &     hasSouthPole, hasNorthPole, getDomainBounds
 
 c get dist_grid, halo_update, globalsum, etc. from the dd2d_utils module
@@ -27,22 +27,24 @@ c get i/o routines for netcdf format
 c get procedures from the MPP package as they become compatible with
 c model E or vice versa
 c      use mpp_domains_mod
-       use iso_c_binding
+
+      USE ESMF, only : ESMF_VM,ESMF_Grid
 
       implicit none
       save
 
 c declare an instance of dist_grid for the atmosphere
       type(dist_grid), target :: grid
-#ifdef GLINT2
-      type(c_ptr) :: glint2
-#endif
+
+c declare requisite instances of these types for the atmosphere
+      Type (ESMF_VM) :: modelE_vm
+      TYPE (ESMF_Grid) :: ESMF_GRID_ATM
+
       contains
 
       SUBROUTINE INIT_GRID(grd_dum, IM,JM,LM,
-     &     width,vm,J_SCM,bc_periodic,CREATE_CAP) ! optional arguments
-      USE ESMF_MOD
-      USE DIST_GRID_MOD, Only : modelE_vm
+     &     width,J_SCM,bc_periodic,CREATE_CAP) ! optional arguments
+      USE ESMF
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(INOUT) :: grd_dum
       INTEGER, INTENT(IN) :: IM,JM,LM
@@ -50,12 +52,10 @@ c declare an instance of dist_grid for the atmosphere
       INTEGER, OPTIONAL, INTENT(IN) :: J_SCM       ! ignored here
       LOGICAL, OPTIONAL, INTENT(IN) :: bc_periodic ! ignored here
       LOGICAL, OPTIONAL, INTENT(IN) :: CREATE_CAP  ! always true for FVcubed
-      TYPE (ESMF_VM), INTENT(IN), Target, Optional :: vm ! never present
 c local variables:
       integer :: rc,width_
       TYPE(ESMF_Grid), external :: AppGridCreateF
       TYPE(ESMF_Config) :: cf
-      TYPE(ESMF_VM), Pointer :: vm_
       Type (ESMF_DELayout)::layout
       integer :: npes,npesx,npesy,  rank_glob,rank_tile,rank_i,rank_j
       integer, parameter :: npesx_max=100
@@ -77,6 +77,9 @@ c sanity checks
       grd_dum%private%hasNorthPole = .false.
       grd_dum%private%hasEquator = .false.
 
+      Call ESMF_Initialize(vm=modelE_vm,
+!     &     logkindflag=ESMF_LOGKIND_NONE,
+     &     rc=rc)
       Call ESMF_VMGet(modelE_vm, petCount=NPES, localPET=rank_glob)
 
       npesx = int(floor(sqrt(real(NPES/6))))
@@ -149,11 +152,11 @@ c
 c create the configuration file needed by the FVcubed core
 c
       cf = load_cap_config('cap.rc',IM,JM*6,LM,npesx,npesy)
-      vm_ => modelE_vm
-      If (Present(vm)) vm_ => vm
-      print*, 'Creating grid for FVcubed core...'
-      grd_dum%ESMF_GRID = AppGridCreateF(IM, JM*6, LM, npesx, npesy, rc)
-      print*, 'Done creating grid for FVcubed core'
+      print*, 'Started AppGridCreateF'
+      ESMF_GRID_ATM = AppGridCreateF(cf, modelE_vm, rc)
+c is this needed?
+      !call ESMF_GridGet(ESMF_GRID_ATM, delayout=layout, rc=rc)
+      print*, 'Finished AppGridCreateF'
 
       return
       END SUBROUTINE INIT_GRID
@@ -191,5 +194,36 @@ c ndiv odd: the middle interval
       endif
       return
       end subroutine mimic_mpp_division_of_points
+
+! ----------------------------------------------------------------------
+      function load_cap_config(config_file,IM,JM,LM,NP_X,NP_Y)
+     &     result( config )
+! ----------------------------------------------------------------------
+      use ESMF
+      use FILEMANAGER    
+      include 'mpif.h' ! temporary to see MPI_Barrier
+      character(len=*), parameter :: Iam=
+     &     "DOMAIN_DECOMP::load_cap_config"
+      character(len=*), intent(in) :: config_file
+      integer,          intent(in) :: IM,JM,LM,NP_X,NP_Y
+      type (esmf_config)           :: config
+    
+      integer :: rc, iunit
+    
+      config = ESMF_ConfigCreate(rc=rc)
+      call openunit(config_file, iunit, qbin=.false., qold=.false.)
+      if(am_i_root()) then
+        write(iunit,*)'IM:  ', IM
+        write(iunit,*)'JM:  ', JM
+        write(iunit,*)'LM:  ', LM
+        write(iunit,*)'NX:  ', NP_X
+        write(iunit,*)'NY:  ', NP_Y
+      endif
+      call closeUnit(iunit)
+     
+      call MPI_Barrier(mpi_comm_world, rc)
+      call ESMF_ConfigLoadFile(config, config_file, rc=rc)
+
+      end function load_cap_config
 
       end module domain_decomp_atm

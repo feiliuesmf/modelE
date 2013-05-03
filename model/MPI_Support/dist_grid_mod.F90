@@ -15,6 +15,7 @@
 #ifdef CUBED_SPHERE
 #define USE_DD2D_UTILS
 #undef CUBED_SPHERE
+#undef USE_ESMF /* this is handled elsewhere for the moment */
 #endif
 
 MODULE dist_grid_mod
@@ -27,7 +28,7 @@ MODULE dist_grid_mod
 ! is also implied. However MPI=YES excludes ESMF.
 
 #ifdef USE_ESMF
-   use ESMF_Mod
+   use ESMF
 #endif
    use MpiSupport_mod, only: am_i_root
    use Domain_mod
@@ -261,7 +262,7 @@ MODULE dist_grid_mod
      rank = 0        ! default rank = root PE for serial run
      NPES_WORLD = 1    ! default NPES = 1 for serial run
 #ifdef USE_ESMF
-   call ESMF_Initialize(vm=modelE_vm, defaultLogType=ESMF_LOG_NONE, rc=rc)
+   call ESMF_Initialize(vm=modelE_vm, logkindflag=ESMF_LOGKIND_NONE, rc=rc)
    VERIFY_(rc)
    call ESMF_VMGet(modelE_vm, localPET=rank, petCount=NPES_WORLD, &
     &     mpiCommunicator=comm, rc=rc)
@@ -362,7 +363,7 @@ MODULE dist_grid_mod
 #endif !USE_MPI
 
 #ifdef USE_ESMF
-     distGrid%ESMF_GRID = ESMF_GridCreateShapeTile(    &
+     distGrid%ESMF_GRID = ESMF_GridCreate( &
             name="modelE grid",            &
             countsPerDEDim1=ims,           &
             countsPerDEDim2=jms,           &
@@ -667,7 +668,7 @@ MODULE dist_grid_mod
      allocate (AL(gridRank,0:nDEs-1),  stat=status)
      allocate (AU(gridRank,0:nDEs-1),  stat=status)
      
-     call ESMF_DistGridGet(distgrid, minIndexPDimPDe=AL, maxIndexPDimPDe=AU, &
+     call ESMF_DistGridGet(distgrid, minIndexPDe=AL, maxIndexPDe=AU, &
           rc=status)
      VERIFY_(status)
     
@@ -695,7 +696,7 @@ MODULE dist_grid_mod
    function load_cap_config(config_file,IM,JM,LM,NP_X,NP_Y)  &
   &         result( config )
 ! ----------------------------------------------------------------------
-     use ESMF_mod
+     use ESMF
      use FILEMANAGER    
      character(len=*), parameter :: Iam= &
     &               "DOMAIN_DECOMP::load_cap_config"
@@ -2163,7 +2164,7 @@ MODULE dist_grid_mod
 ! ----------------------------------------------------------------------
         integer :: rc
 #ifdef USE_ESMF
-        call ESMF_VMbarrier(modelE_vm, rc)
+        call ESMF_VMbarrier(modelE_vm, rc=rc)
 #else
 #ifdef USE_MPI
         call MPI_Barrier(communicator, rc)

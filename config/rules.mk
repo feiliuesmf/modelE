@@ -127,7 +127,7 @@ ifeq ($(FVCUBED),YES)
   
   # Cubed-sphere requires FVCORE and MPP enabled
   FVCORE=YES
-  MPP=YES
+  #MPP=YES but current FVcubed has its own MPP already
 
   # Testing options: ADIABATIC
   ADIABATIC=YES
@@ -144,7 +144,7 @@ ifeq ($(FVCUBED),YES)
   else
     SYSTEM_MOD_DIRS = $(FVINCSx)
   endif
-  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lMAPL_Base_stubs2 -lGEOS_Shared -lMAPL_cfio -lMAPL_Base -lGMAO_mpeu -lFVdycoreCubed_GridComp -lfvdycore
+  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lMAPL_cfio -lMAPL_Base -lFVdycoreCubed_GridComp -lfvdycore -lGMAO_mpeu
   # this extra -lesmf would not be needed if the ESMF stuff came after this section
   LIBS += $(ESMFLIBDIR)/libesmf.a
   ifdef NETCDFHOME

@@ -516,6 +516,9 @@ C****
 #ifdef IRRIGATION_ON
       use irrigate_crop, only : init_irrigate
 #endif
+#ifdef USE_ESMF
+      use ATM_COM, only : atmclock
+#endif
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: fvstate,initialize
 #endif
@@ -570,6 +573,10 @@ C****
       call set_param("PLBOT",Plbot,LM+1,'o')
 
       if(istart.eq.2) call read_nmc()
+
+#ifdef USE_ESMF
+      call init_esmf_clock_for_modelE( int(dtsrc), atmclock )
+#endif
 
 C****
 C**** IRANDI seed for random perturbation of current state (if/=0)

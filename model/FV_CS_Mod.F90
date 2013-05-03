@@ -2,7 +2,7 @@
 
 module FV_CS_Mod
 
-  use ESMF_MOD
+  use ESMF
   use FV_UTILS
 
   implicit none
@@ -20,11 +20,12 @@ module FV_CS_Mod
   contains
 
   Subroutine Create_Restart_File(fv, istart, cf, clock)
-    USE DOMAIN_DECOMP_ATM, ONLY: GRID, GET, AM_I_ROOT
+    USE DOMAIN_DECOMP_ATM, ONLY: GRID, getDomainBounds, AM_I_ROOT, ESMF_GRID_ATM
     Use MAPL_IOMod, only: GETFILE, Free_file, GEOS_VarWrite=>MAPL_VarWrite, Write_parallel
-    USE RESOLUTION, only: IM, JM, LM, LS1
-    Use MODEL_COM, only: sige, sig, Ptop, DT, PMTOP
-    Use MODEL_COM, only: U, V, T, P, PSFMPT, Q
+    USE RESOLUTION, only: IM, JM, LM, LS1, PMTOP, PTOP, PSFMPT
+    Use DYNAMICS, only: sige,sig
+    USE MODEL_COM, only: DT=>DTsrc
+    Use ATM_COM, only: U, V, T, P, Q
     Use Constant, only: omega, radius, grav, rgas, kapa, deltx
 
     Type (FV_Core), Intent(InOut) :: fv
@@ -80,7 +81,7 @@ module FV_CS_Mod
     Call WRITE_PARALLEL( ak, unit)
     Call WRITE_PARALLEL( bk, unit)
 
-    Call GET(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, j_strt_halo=j_0h, j_stop_halo=j_1h)
+    Call GetDomainBounds(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, j_strt_halo=j_0h, j_stop_halo=j_1h)
 
     ! 4) 3D fields velocities
     Allocate(U_d(I_0:I_1, J_0:J_1, LM))
@@ -91,28 +92,29 @@ module FV_CS_Mod
 
 !!$      call set_zonal_flow(U_d, V_d, j_0, j_1)
 
-    Call GEOS_VarWrite(unit, grid % ESMF_GRID, U_d(I_0:I_1,J_0:J_1,:))
-    Call GEOS_VarWrite(unit, grid % ESMF_GRID, V_d(I_0:I_1,J_0:J_1,:))
-
-    Deallocate(V_d)
-    Deallocate(U_d)
-
     ! Compute potential temperature from modelE (1 mb -> 1 pa ref)
     Allocate(PT(I_0:I_1, J_0:J_1, LM))
     Call ConvertPotTemp_GISS2FV(VirtualTemp(T(I_0:I_1,J_0:J_1,:), Q(I_0:I_1,J_0:J_1,:)), PT)
-    Call GEOS_VarWrite(unit, grid % ESMF_GRID, PT)
-    Deallocate(PT)
 
     ! Compute PE, PKZ from modelE
     Allocate(PKZ(I_0:I_1, J_0:J_1, LM))
     Allocate(PE(I_0:I_1, J_0:J_1, LM+1))
     Call ComputePressureLevels(unit, grid, VirtualTemp(T, Q), P, SIG, SIGE, Ptop, KAPA, PE, PKZ )
 
-    Call GEOS_VarWrite(unit, grid % ESMF_GRID, PE)
-    Call GEOS_VarWrite(unit, grid % ESMF_GRID, PKZ)
+    ! ESMF5 seems to register variables in alphabetical order, so we write them that way.
+    ! note AK and BK have already been written.
+    Call GEOS_VarWrite(unit, ESMF_GRID_ATM, PE)
+    Call GEOS_VarWrite(unit, ESMF_GRID_ATM, PKZ)
+    Call GEOS_VarWrite(unit, ESMF_GRID_ATM, PT)
+    Call GEOS_VarWrite(unit, ESMF_GRID_ATM, U_d(I_0:I_1,J_0:J_1,:))
+    Call GEOS_VarWrite(unit, ESMF_GRID_ATM, V_d(I_0:I_1,J_0:J_1,:))
 
     Deallocate(PE)
     Deallocate(PKZ)
+    Deallocate(V_d)
+    Deallocate(U_d)
+    Deallocate(PT)
+
 
     Call Free_File(unit)
 
@@ -131,7 +133,7 @@ module FV_CS_Mod
     End Function VirtualTemp
 
     Subroutine ComputePressureLevels(unit, grid, T_virt, P, sig, sige, ptop, kapa, PE, PKZ)
-      USE DOMAIN_DECOMP_ATM, only: dist_grid, get
+      USE DOMAIN_DECOMP_ATM, only: dist_grid, getDomainBounds
       USE RESOLUTION, only: IM, LM
       Integer, intent(in) :: unit
       type (dist_grid) :: grid
@@ -147,7 +149,7 @@ module FV_CS_Mod
       Real*8, Allocatable :: PK(:,:,:), PELN(:,:,:), PE_trans(:,:,:)
 
       !    Request local bounds from modelE grid.
-      Call GET(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
+      Call GetDomainBounds(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
             & i_strt_halo=i_0h, i_stop_halo=i_1h, j_strt_halo=j_0h, j_stop_halo=j_1h)
 
       PE = -99999
@@ -225,10 +227,11 @@ module FV_CS_Mod
     use CONSTANT, only: pi, omega, sha, radius, rvap, grav, lhe, rgas, kapa
 
     Type(FV_CORE), intent(inout) :: fv
-    type (esmf_clock), intent(in) :: clock
+    type (esmf_clock) :: clock
 
     call ESMF_GridCompInitialize ( fv % gc, importState=fv % import, exportState=fv % export, clock=clock, &
-         & phase=ESMF_SINGLEPHASE, rc=rc )
+!         & phase=ESMF_SINGLEPHASE, rc=rc )  ! todo: figure out what happened to ESMF_SINGLEPHASE
+         & phase=1, rc=rc )
     VERIFY_(rc)
 
 ! z_tracer=.false. is necessary to get correct mass flux exports.
@@ -260,11 +263,9 @@ module FV_CS_Mod
 
   Subroutine Copy_FV_export_to_modelE(fv)
     use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
-    Use Resolution, only: IM,JM,LM,LS1
-    USE DYNAMICS, ONLY: PUA,PVA,SDA, PU, PV, SD
-    Use MODEL_COM, only: U, V, T, P, PSFMPT, Q
-    Use MODEL_COM, only : Ptop, P
-    USE DOMAIN_DECOMP_ATM, only: grid, GET
+    Use Resolution, only: IM,JM,LM,LS1,Ptop
+    Use ATM_COM, only: U, V, T, P, Q
+    USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
     USE GEOM
 
     Type (FV_CORE) :: fv
@@ -275,7 +276,7 @@ module FV_CS_Mod
     Integer :: i,j,k
     Integer :: i_0, i_1, j_0, j_1
 
-    Call Get(grid, i_strt=i_0, i_stop=i_1, j_strt=j_0, j_stop=j_1)
+    Call GetDomainBounds(grid, i_strt=i_0, i_stop=i_1, j_strt=j_0, j_stop=j_1)
 
     ! First compute updated values for modelE.  Then capture the
     ! new state in fv % *_old for computing tendencies.
@@ -319,14 +320,14 @@ module FV_CS_Mod
   subroutine ConvertUV_GISS2FV(U_orig, V_orig, U_d, V_d)
 ! Cubed-sphere modelE works with native-grid winds, so this routine is trivial.
     Use Resolution, only : LM
-    Use Domain_decomp_atm, only : grid, get
+    Use Domain_decomp_atm, only : grid, getDomainBounds
     Real*8, intent(in), Dimension(grid % I_STRT:,grid % J_STRT:,:) :: U_orig, V_orig
     Real*4, intent(out), Dimension(grid % I_STRT:,grid % J_STRT:,:) :: U_d, V_d
 
     Integer :: i,j,k
     integer :: I_0, I_1, j_0, j_1
 
-    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+    Call GetDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
     Do k = 1, LM
        Do j = j_0,j_1
@@ -342,10 +343,10 @@ module FV_CS_Mod
     use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
     Use Resolution, only: LM
     USE GEOM, ONLY: AXYP
-    USE DYNAMICS, ONLY: PUA,PVA,SDA
+    USE ATM_COM, ONLY: MUs,MVs,MWs
     USE DYNAMICS, ONLY: PU,PV,CONV,SD,PIT
-    USE MODEL_COM, only: DT
-    USE DOMAIN_DECOMP_ATM, only: get, grid
+    Use MODEL_COM, only: DT=>DTsrc
+    USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
     Use Constant, only: grav
     implicit none
     type (FV_core) :: fv
@@ -357,7 +358,7 @@ module FV_CS_Mod
 
     DTfac = DT
 
-    Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1)
+    Call GetDomainBounds(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1)
 
     ! Horizontal and Vertical mass fluxes
     !---------------
@@ -406,11 +407,10 @@ module FV_CS_Mod
     CONV(I_0:I_1,J_0:J_1,1) = PIT(I_0:I_1,J_0:J_1)
     CONV(I_0:I_1,J_0:J_1,2:LM) = SD(I_0:I_1,J_0:J_1,1:LM-1)
 
-    PUA(I_0:I_1,J_0:J_1,:) = PUA(I_0:I_1,J_0:J_1,:) + PU(I_0:I_1,J_0:J_1,:)*DTfac
-    PVA(I_0:I_1,J_0:J_1,:) = PVA(I_0:I_1,J_0:J_1,:) + PV(I_0:I_1,J_0:J_1,:)*DTfac
-    SDA(I_0:I_1,J_0:J_1,1:LM-1) = SDA(I_0:I_1,J_0:J_1,1:LM-1) + SD(I_0:I_1,J_0:J_1,1:LM-1)*DTfac
+    MUs(I_0:I_1,J_0:J_1,:) = MUs(I_0:I_1,J_0:J_1,:) + PU(I_0:I_1,J_0:J_1,:)*DTfac
+    MVs(I_0:I_1,J_0:J_1,:) = MVs(I_0:I_1,J_0:J_1,:) + PV(I_0:I_1,J_0:J_1,:)*DTfac
+    MWs(I_0:I_1,J_0:J_1,1:LM-1) = MWs(I_0:I_1,J_0:J_1,1:LM-1) + SD(I_0:I_1,J_0:J_1,1:LM-1)*DTfac
 
   end subroutine accumulate_mass_fluxes
 
 end module FV_CS_Mod
-

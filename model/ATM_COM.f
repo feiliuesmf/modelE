@@ -5,7 +5,7 @@
 !@auth Original Development Team
       USE RESOLUTION, only : LM
 #ifdef USE_ESMF
-      USE ESMF_MOD, only: ESMF_Clock
+      USE ESMF, only: ESMF_Clock
 #endif
       IMPLICIT NONE
       SAVE

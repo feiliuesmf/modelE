@@ -395,3 +395,85 @@ C****
       RETURN
       END SUBROUTINE DAILY_cal
 
+#ifdef USE_ESMF
+!-------------------------------------------------------------------------------
+      subroutine init_esmf_clock_for_modelE(interval, clock)
+!-------------------------------------------------------------------------------
+      use constant, only : hrday
+      use MODEL_COM, only : itimei,itimee,nday,iyear1
+      use ESMF
+      implicit none
+      integer :: interval ! timestep in seconds
+      type (ESMF_clock)              :: clock
+
+      type (ESMF_time) :: startTime
+      type (ESMF_time) :: stopTime
+      type (ESMF_timeinterval) :: timeStep
+      type (ESMF_calendar) :: gregorianCalendar
+
+      integer :: rc
+      integer :: jday
+      integer :: YEARI,MONTHI,DATEI,HOURI,MINTI
+      integer :: YEARE,MONTHE,DATEE,HOURE,MINTE
+      CHARACTER*4 :: cmon
+
+      call getdte(itimei,nday,iyear1,YEARI,MONTHI,jday,DATEI,HOURI,cmon)
+      MINTI = nint(mod( mod(Itimei*hrday/Nday,hrday) * 60d0, 60d0))
+      call getdte(itimee,nday,iyear1,YEARE,MONTHE,jday,DATEE,HOURE,cmon)
+      MINTE = nint(mod( mod(Itimee*hrday/Nday,hrday) * 60d0, 60d0))
+
+    ! initialize calendar to be Gregorian type
+      gregorianCalendar = esmf_calendarcreate(ESMF_CALKIND_GREGORIAN,
+     &     name="GregorianCalendar", rc=rc)
+      call stop_if_error(rc,'creating calendar')
+
+      call ESMF_CalendarSetDefault(ESMF_CALKIND_GREGORIAN, rc=rc)
+      call stop_if_error(rc,'creating calendar')
+
+    ! initialize start time
+      call ESMF_timeset(startTime,
+     &     YY=YEARI,
+     &     MM=MONTHI,
+     &     DD=DATEI,
+     &      H=HOURI,
+     &      M=MINTI,
+     &      S=0,
+     &     calendar=gregorianCalendar, rc=rc)
+      call stop_if_error(rc,'setting initial time')
+!      write(*,*)'Time Set Start: ',STARTTIME
+
+    ! initialize stop time
+      call ESMF_timeset(stopTime,
+     &     YY=YEARE,
+     &     MM=MONTHE,
+     &     DD=DATEE,
+     &      H=HOURE,
+     &      M=MINTE,
+     &      S=0,
+     &     calendar=gregorianCalendar, rc=rc)
+      call stop_if_error(rc,'setting final time')
+!      write(*,*)'Time Set End: ',ENDTIME
+
+    ! initialize time interval
+      call ESMF_timeintervalset(timeStep, S=INT(interval), rc=rc)
+      call stop_if_error(rc,'setting time interval')
+
+    ! initialize the clock with the above values
+      clock = esmf_clockcreate(timeStep, startTime, stoptime=stopTime,
+     &     name="ApplClock",rc=rc)
+      call stop_if_error(rc,'creating clock')
+
+      call ESMF_ClockSet ( clock, CurrTime=startTime, rc=rc)
+      call stop_if_error(rc,'setting clock')
+
+      contains
+
+      subroutine stop_if_error(retcode,errmsg)
+      integer :: retcode
+      character(len=*) :: errmsg
+      If (retcode /= ESMF_SUCCESS) call stop_model(
+     &     'init_esmf_clock_for_modelE: '//trim(errmsg), 255)
+      end subroutine stop_if_error
+
+      end subroutine init_esmf_clock_for_modelE
+#endif

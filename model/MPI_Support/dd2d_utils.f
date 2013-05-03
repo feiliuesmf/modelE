@@ -106,9 +106,9 @@ c see whether model E is running in serial mode
 #endif
 #endif
 
-#ifdef USE_ESMF
-      use ESMF_Mod
-#endif
+c#ifdef USE_ESMF
+c      use ESMF
+c#endif
       use Hidden_mod, only: Hidden_type
 
       implicit none
@@ -221,9 +221,9 @@ c
         integer :: npes_comm   ! number of PEs having this domain
         integer :: mpi_tag     ! for MPI book-keeping
 
-#ifdef USE_ESMF
-        TYPE (ESMF_Grid) :: ESMF_GRID
-#endif
+c#ifdef USE_ESMF
+c        TYPE (ESMF_Grid) :: ESMF_GRID
+c#endif
         INTEGER :: NPES_WORLD
         INTEGER :: RANK
         INTEGER :: NPES_USED
