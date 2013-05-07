@@ -584,10 +584,6 @@ C**** COMPUTE SD, SIGMA DOT                                             -------
          If (QSP)  SD(2:IM,1 ,L) = SD(1,1 ,L)
          If (QNP)  SD(2:IM,JM,L) = SD(1,JM,L)  ;  EndDo
 
-        ! Recopy into CONV to support prior usage
-      CONV(:,J1:JN,1)   = PIT(:,J1:JN)
-      CONV(:,J1:JN,2:LM) = SD(:,J1:JN,1:LM-1)
-
       RETURN
       EndSubroutine AFLUX
 

@@ -7,7 +7,7 @@
       USE MODEL_COM
       USE ATM_COM, only : p,wm
       USE ATM_COM, only : MUs,MVs,sd_clouds,ptold,ps,kea
-      USE DYNAMICS, only : nstep,nidyn,nfiltr,mfiltr,dt,conv
+      Use DYNAMICS,   Only: nstep,nidyn,nfiltr,mfiltr,dt
       USE DOMAIN_DECOMP_ATM, only: grid
       use domain_decomp_atm, only: writei8_parallel
       USE RANDOM
@@ -126,12 +126,11 @@ C**** Currently energy is put in uniformly weighted by mass
 #ifndef CUBED_SPHERE
       call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(MUs, MVs, DT)
 #endif
+
 #ifdef SCM
-       do L=1,LM
-          CONV(I_TARG,J_TARG,L) = SG_CONV(L)
-       enddo
+      Do L=1,LM  ;  SD_CLOUDS(:,:,L) = SG_CONV(L)  ;  EndDo
 #endif
-      SD_CLOUDS(:,:,:) = CONV(:,:,:)
+
       call COMPUTE_WSAVE
 C**** Scale WM mixing ratios to conserve liquid water
       DO L=1,LS1-1

@@ -45,14 +45,16 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE RESOLUTION, only : im,jm
       USE GEOM, only : dxv,rapvn,rapvs,fcor,dxyv,cosv,cosp
-      USE DYNAMICS, only : w=>conv     ! I think this is right....?
+      Use DYNAMICS,  Only: SD
       USE DIAG_COM, only : byim
 #endif
       USE DIAG_COM, only : agc=>agc_loc,kagc,kep,pl=>plm
       USE ATM_COM, only : pdsigl00
       IMPLICIT NONE
+
+      Real*8,Dimension(:,:,:),Allocatable :: W
 #ifdef CUBED_SPHERE
-      real*8, dimension(:,:,:), allocatable :: u,v,t,w, uijl,vijl,wcs
+      real*8, dimension(:,:,:), allocatable :: u,v,t, uijl,vijl,wcs
       real*8, dimension(:,:), allocatable :: p
       integer :: I_0cs,I_1cs,J_0cs,J_1cs, I_0Hcs,I_1Hcs,J_0Hcs,J_1Hcs
 #else
@@ -114,6 +116,7 @@ C****
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 
+      Allocate (W(IM,J_0H:J_1H,LM))
 #ifdef CUBED_SPHERE
       call getDomainBounds(grid_cs,
      &     I_STRT=I_0cs,I_STOP=I_1cs,
@@ -125,7 +128,7 @@ C****
      &         vijl(I_0Hcs:I_1Hcs,J_0Hcs:J_1Hcs,lm),
      &         wcs(I_0Hcs:I_1Hcs,J_0Hcs:J_1Hcs,lm) )
       allocate(u(im,j_0h:j_1h,lm),v(im,j_0h:j_1h,lm))
-      allocate(t(im,j_0h:j_1h,lm),w(im,j_0h:j_1h,lm))
+      allocate(t(im,j_0h:j_1h,lm))
       allocate(p(im,j_0h:j_1h))
       do l=1,lm
         do j=j_0cs,j_1cs
@@ -158,6 +161,10 @@ C****
           w(:,j,l) = w(:,j,l)*dxyp(j)
         enddo
       enddo
+
+#else
+      W(:,:,1) = 0
+      W(:,:,2:LM) = SD(:,:,1:LM-1)
 #endif
 
 
@@ -572,9 +579,10 @@ c        AEP(J,L,N)=AEP(J,L,N)+XEP(J,L,N)
       END DO
       END DO
 
+      Deallocate (W)
 #ifdef CUBED_SPHERE
       endif have_domain
-      deallocate(u,v,t,w,p, uijl,vijl,wcs)
+      deallocate(u,v,t,p, uijl,vijl,wcs)
 #endif
 
       RETURN
