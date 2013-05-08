@@ -85,14 +85,14 @@ OPTS_giss_LSM = USE_ENT=YES
 OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
-#include "IC_36x24_input_files.nc"
+#include "IC_36x24_input_files"
 #include "static_ocn_1950_36x24_input_files"  /* 1880 for 8x10 needs to be made */
-RVR=RD8X10.RVR.bin           ! river direction file
+RVR=RD8X10.nc            ! river direction file
+NAMERVR=RD8X10.names.txt ! named river outlets
 
-#include "land_36x24_input_files"
+#include "land36x24_input_files"
 #include "rad_input_files"
-#include "TAero2008_input_files"
-#include "O3_2005_input_files"
+#include "rad_36x24_input_files"
 
 #include "chemistry_input_files"
 #include "chemistry_36x24_input_files"
@@ -100,7 +100,6 @@ RVR=RD8X10.RVR.bin           ! river direction file
 #include "dry_depos_36x24_input_files"
 #include "chem_emiss_36x24_input_files"
 #include "aerosol_36x24_input_files"
-Ox_ref=gsin/zeroReferenceOzone_72x46x49 ! for radiative forcing reference
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG8X10                      ! special regions-diag
