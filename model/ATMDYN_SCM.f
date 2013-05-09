@@ -183,7 +183,7 @@ c     want to fill SD (IDUM,JDUM)  check out
       USE DYNAMICS,   only: sig,bydsig,do_polefix,
      *     dsig,sige,pu,spa,dut,dvt,mrch
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D,  only: GET, HALO_UPDATE
+      USE DOMAIN_DECOMP_1D,  only: getDomainBounds, HALO_UPDATE
       USE DOMAIN_DECOMP_1D,  only: NORTH, SOUTH
       USE DOMAIN_DECOMP_1D,  only: haveLatitude
       IMPLICIT NONE
@@ -373,8 +373,8 @@ c     dummy of subroutine
       USE DYNAMICS,   only: dsig
       USE ATM_COM,    only: p,u,v
       USE DOMAIN_DECOMP_ATM, only: GRID
-      USE DOMAIN_DECOMP_1D,  only: GET, CHECKSUM, HALO_UPDATE
-      USE DOMAIN_DECOMP_1D,  only: SOUTH
+      USE DOMAIN_DECOMP_1D,  only: CHECKSUM, HALO_UPDATE
+      USE DOMAIN_DECOMP_1D,  only: getDomainBounds, SOUTH
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RKE
@@ -447,9 +447,9 @@ C****
       USE ATM_COM,    only: ua=>ualij,va=>valij
       USE GEOM,       only : imaxj,idij,idjj,kmaxj,rapj,cosiv,siniv
       USE DOMAIN_DECOMP_ATM, only: GRID
-      USE DOMAIN_DECOMP_1D,  only: GET, NORTH, HALO_UPDATE_COLUMN
+      USE DOMAIN_DECOMP_1D,  only: NORTH, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP_1D,  only: HALO_UPDATE
-      USE DOMAIN_DECOMP_1D,  only: NORTH
+      USE DOMAIN_DECOMP_1D,  only: getDomainBounds, NORTH
       implicit none
       real*8, dimension(im) :: ra
       integer, dimension(im) :: idj
@@ -882,7 +882,7 @@ c regrids scalar x_bgrid*dxyv -> x_agrid*dxyp
       USE RESOLUTION, only: im,jm
       USE GEOM,       only: byim,rapvs,rapvn,dxyp,dxyv
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D,  only: GET, HALO_UPDATE, NORTH
+      USE DOMAIN_DECOMP_1D,  only: getDomainBounds, HALO_UPDATE, NORTH
       use Domain_Decomp_1d,  only: hasNorthPole, hasSouthPole
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: X

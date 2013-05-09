@@ -721,12 +721,14 @@ C**** final fluxes
 #ifdef SCM
 cccccc for SCM use ARM provided fluxes for designated box
       if ((I.eq.I_TARG.and.J.eq.J_TARG).and.SCM_SURFACE_FLAG.eq.1) then
-           DTH1(I,J)=DTH1(I,J)
-     &              +ash*DTSURF*ptype/(SHA*MA1)
-           DQ1(I,J)=DQ1(I,J) + ALH*DTSURF*ptype/(MA1*LHE)
+           asflx(itype)%DTH1(I,J)=asflx(itype)%DTH1(I,J) +
+     &        ash*DTSURF*ptype/(SHA*MA1)
+           asflx(itype)%DQ1(I,J)=asflx(itype)%DQ1(I,J) + 
+     &        ALH*DTSURF*ptype/(MA1*LHE)
            SHFLX = SHFLX + ASH*ptype
            EVPFLX = EVPFLX + ALH*ptype
-           write(iu_scm_prt,980) I,PTYPE,DTH1(I,J),DQ1(I,J),
+           write(iu_scm_prt,980) I,PTYPE,asflx(itype)%DTH1(I,J),
+     &           asflx(itype)%DQ1(I,J),
      &           EVPFLX,SHFLX
  980       format(1x,'SURFACE ARM   I PTYPE DTH1 DQ1 evpflx shflx',
      &            i5,f9.4,f9.5,f9.6,f9.5,f9.5)
@@ -737,7 +739,8 @@ cccccc for SCM use ARM provided fluxes for designated box
       asflx(itype)%DQ1(I,J) = -DQ1X
 #ifdef SCM
       if (i.eq.I_TARG.and.j.eq.J_TARG) then
-          write(iu_scm_prt,988) I,PTYPE,DTH1(I,J),DQ1(I,J),SHDT,dLWDT
+          write(iu_scm_prt,988) I,PTYPE,asflx(itype)%DTH1(I,J),
+     &          asflx(itype)%DQ1(I,J),SHDT,dLWDT
  988      format(1x,'988 SURFACE GCM  I PTYPE DTH1 DQ1 SHDT dLWDT ',
      &           i5,f9.4,f9.5,f9.6,f12.4,f10.4)
       endif

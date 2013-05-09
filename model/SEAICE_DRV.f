@@ -1958,7 +1958,7 @@ C**** SET DEFAULTS IF NO OCEAN ICE
       USE SEAICE_COM, only : si_ocn
       USE SEAICE, only : tfrez
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,atmice_xchng_vars
@@ -1982,7 +1982,7 @@ c
 #ifdef SCM
           if (I.eq.I_TARG.and.J.eq.J_TARG) then
             if (SCM_SURFACE_FLAG.ge.1) then
-              GTEMP(1:2,2,I,J) = ATSKIN
+              atmice%GTEMP(I,J) = ATSKIN
               atmice%GTEMPR(I,J) = ATSKIN + TF
             endif
           endif

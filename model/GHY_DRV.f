@@ -1339,25 +1339,27 @@ c     if SCM use sensible and latent heat fluxes provided by ARM
 c        values
       if (i.eq.I_TARG.and.j.eq.J_TARG) then
           if (SCM_SURFACE_FLAG.eq.1) then
-             dth1(i,j)=dth1(i,j)
+             atmlnd%dth1(i,j)=atmlnd%dth1(i,j)
      &             +ash*pbl_args%dtsurf*ptype/(sha*ma1)
-             dq1(i,j) =dq1(i,j)
+             atmlnd%dq1(i,j) =atmlnd%dq1(i,j)
      &             +alh*pbl_args%dtsurf*ptype/(ma1*lhe)
              EVPFLX = EVPFLX + ALH*ptype
              SHFLX = SHFLX + ASH*ptype
-             write(iu_scm_prt,981) i,ptype,dth1(i,j),dq1(i,j),
+             write(iu_scm_prt,981) i,ptype,atmlnd%dth1(i,j),
+     &                  atmlnd%dq1(i,j),
      &                  EVPFLX,SHFLX
  981         format(1x,'EARTH ARM   i ptype dth1 dq1 evpflx shflx ',
      &            i5,f9.4,f9.4,f9.5,f11.5,f11.5)
           elseif (SCM_SURFACE_FLAG.eq.2) then
-             dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1)
-             dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
-c            write(iu_scm_prt,982) i,ptype,dth1(i,j),dq1(i,j)
+             atmlnd%dth1(i,j)=atmlnd%dth1(i,j)-(SHDT+dLWDT)*
+     &       ptype/(sha*ma1)
+             atmlnd%dq1(i,j) =atmlnd%dq1(i,j)+aevap*ptype/ma1
+c            write(iu_scm_prt,982) i,ptype,atmlnd%dth1(i,j),dq1(i,j)
 c982         format(1x,'EARTH GCM    i ptype dth1 dq1 ',i5,f9.4,f9.4,f9.5)
           endif
       else
-          dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1)
-          dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
+          atmlnd%dth1(i,j)=atmlnd%dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1)
+          atmlnd%dq1(i,j) =atmlnd%dq1(i,j)+aevap*ptype/ma1
           atmlnd%sensht(i,j) = atmlnd%sensht(i,j)+SHDT
           atmlnd%latht(i,j) = atmlnd%latht(i,j) + EVHDT
       endif

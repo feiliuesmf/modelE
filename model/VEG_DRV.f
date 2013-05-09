@@ -62,10 +62,13 @@
       real*8 :: vc4
       integer :: read_c4_grass = 0
       integer variable_lk
+      integer jyear
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
+      call modelEclock%getDate(year=jyear)
+
       call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,

@@ -9,7 +9,7 @@
 !
       use GEOM, only: DXYP, AREAG
       use DOMAIN_DECOMP_ATM, only: grid
-      use DOMAIN_DECOMP_1D, only: GLOBALSUM, get
+      use DOMAIN_DECOMP_1D, only: GLOBALSUM, getDomainBounds
       USE DOMAIN_DECOMP_1D, only : haveLatitude
       REAL*8 :: totalEnergy
 
@@ -42,7 +42,7 @@ C***** Add in dissipiated KE as heat locally
 !@sum  addEnergyAsLocalHeat Dummy
 !@auth Tom Clune (SIVO)
       use DOMAIN_DECOMP_ATM, only: grid
-      use DOMAIN_DECOMP_1D, only: get
+      use DOMAIN_DECOMP_1D, only: getDomainBounds
       implicit none
       real*8 :: deltaKE(:,grid%j_strt_halo:,:)
       real*8 :: T(:,grid%j_strt_halo:,:)

@@ -18,6 +18,7 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 #include "latlon_source_files"
+#include "static_ocn_source_files"
 
 ATM_COM
 RES_F40                             ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
@@ -45,7 +46,6 @@ LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_COM LANDICE_DRV                 ! land ice modules
 ICEDYN_DUM                          ! ice dynamics modules
-OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS ALBEDO READ_AERO          ! radiation and albedo
@@ -55,38 +55,30 @@ SCM_DIAG_COM SCM_DIAG               ! SCM diagnostics
       FFT144                        ! utilities
 
 Components:
-MPI_Support shared dd2d
+#include "E4_components_nc"    /* without "Ent" */
+!MPI_Support shared dd2d
 
 Data input files:
-AIC=AIC.RES_F40.D771201.nc  ! observed init cond (atm. only) ISTART=2
-GIC=GIC.144X90.DEC01.1.ext_1.nc   ! initial ground conditions      ISTART=2
-! prescr. climatological ocean (1 yr of data)
-OSST=OST_144x90.B.1975-1984avg.Hadl1.nc
-OSST_eom=OST_144x90.B.1975-1984avg.Hadl1.nc
-! prescr. climatological sea ice
-SICE=SICE_144x90.B.1975-1984avg.Hadl1.nc
-SICE_eom=SICE_144x90.B.1975-1984avg.Hadl1.nc
-ZSIFAC=SICE_144x90.B.1975-1984avg.Hadl1.nc
-CDN=CD144X90.ext.nc
-VEG=V144X90_no_crops.ext.nc
-CROPS=CROPS2007_144X90N_nocasp.nc
-SOIL=S144X900098M.ext.nc
-TOPO=Z144X90N_nocasp.nc ! bdy.cond
+#include "IC_144x90_input_files"
+#include "static_ocn_2000_144x90_input_files"
+#include "land144x90_input_files"
+
+!CROPS=CROPS2007_144X90N_nocasp.nc
+!TOPO=Z144X90N_nocasp.nc ! bdy.cond
 REG=REG2X2.5          ! special regions-diag
-RVR=RD_modelE_F.nc             ! river direction file
-NAMERVR=RD_modelE_F.names.txt  ! named river outlets
+
+RVR=RD_modelE_Fa.nc             ! river direction file
+NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
 
 #include "rad_input_files"
-
 #include "TAero2003_input_files"
-
 #include "rad_144x90_input_files"
 
 
-GHG=GHG.Mar2004.txt
-TOP_INDEX=top_index_144x90_a.ij.ext.nc
+!GHG=GHG.Mar2004.txt
+!TOP_INDEX=top_index_144x90_a.ij.ext.nc
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_144X90_gas.OCN.nc   ! glacial melt distribution
+!GLMELT=GLMELT_144X90_gas.OCN.nc   ! glacial melt distribution
 SCMSRF=scm_sgpcont_0001_surface.dat
 SCMLAY=scm_sgpcont_0001_layer.dat
 
@@ -131,19 +123,20 @@ KSOLAR=2
 
 ! parameters that control the atmospheric/boundary conditions
 ! if set to 0, the current (day/) year is used: transient run
-crops_yr=1979  ! if -1, crops in VEG-file is used
-s0_yr=1979
-s0_day=182
-ghg_yr=1979
-ghg_day=182
-volc_yr=1979
-volc_day=182
-aero_yr=1979
+master_yr=1980
+!crops_yr=1979  ! if -1, crops in VEG-file is used
+!s0_yr=1979
+!s0_day=182
+!ghg_yr=1979
+!ghg_day=182
+!volc_yr=1979
+!volc_day=182
+!aero_yr=1979
 od_cdncx=0.        ! don't include 1st indirect effect
 cc_cdncx=0.0036    ! include 2nd indirect effect
-albsn_yr=1979
+!albsn_yr=1979
 dalbsnX=.024
-o3_yr=-1979
+!o3_yr=-1979
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=225. ! Shapiro filter on U in E-W direction; usually same as DT (below)

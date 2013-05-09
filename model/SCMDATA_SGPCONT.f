@@ -19,8 +19,7 @@ C-------------------------------------------------------------------------------
       USE GHY_COM, only : FEARTH
       USE LAKES_COM, only : FLAKE 
       USE CONSTANT , only : KAPA,TF   
-      USE PBLCOM , only : TSAVG,WSAVG,QSAVG,USAVG,VSAVG       
-      USE FLUXES, only : atmocn,atmlnd
+      USE FLUXES, only : atmocn,atmlnd,atmsrf
       USE FILEMANAGER
       USE Dictionary_mod
       IMPLICIT NONE
@@ -104,9 +103,9 @@ c
 cccc
 c     set surface variables - - - find new variable names
 c 
-      WSAVG(I_TARG,J_TARG)  = ASWINDSPD        !BLDATA(1)  
-      USAVG(I_TARG,J_TARG) = AUS
-      VSAVG(I_TARG,J_TARG) = AVS
+      atmsrf%WSAVG(I_TARG,J_TARG)  = ASWINDSPD        !BLDATA(1)  
+      atmsrf%USAVG(I_TARG,J_TARG) = AUS
+      atmsrf%VSAVG(I_TARG,J_TARG) = AVS
 
       atmlnd%GTEMP(I_TARG,J_TARG) = ATSKIN        !GDATA(4)    
       atmocn%GTEMP(I_TARG,J_TARG) = ATSKIN 
@@ -763,8 +762,7 @@ c     enddo
       use fluxes, only : FLAND,FOCEAN,FLICE,FLAKE0,FEARTH0
       USE GHY_COM, only : FEARTH
       USE LAKES_COM, only : FLAKE
-      USE PBLCOM , only : TSAVG,WSAVG,QSAVG,USAVG,VSAVG       
-      USE FLUXES, only : atmocn,atmlnd
+      USE FLUXES, only : atmocn,atmlnd,atmsrf
       USE CONSTANT, only : tf,KAPA 
       USE SCMCOM
 C     
@@ -846,9 +844,9 @@ c
 c     set surface variables 
 c    
 
-      WSAVG(I_TARG,J_TARG)  = ASWINDSPD        !BLDATA(1)
-      USAVG(I_TARG,J_TARG) = AUS
-      VSAVG(I_TARG,J_TARG) = AVS
+      atmsrf%WSAVG(I_TARG,J_TARG)  = ASWINDSPD        !BLDATA(1)
+      atmsrf%USAVG(I_TARG,J_TARG) = AUS
+      atmsrf%VSAVG(I_TARG,J_TARG) = AVS
       if (SCM_SURFACE_FLAG.eq.1) then
           atmlnd%GTEMP(I_TARG,J_TARG) = ATSKIN        !GDATA(4)
           atmocn%GTEMP(I_TARG,J_TARG) = ATSKIN   

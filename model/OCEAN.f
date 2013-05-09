@@ -66,7 +66,7 @@
       use constant, only : tf
       use domain_decomp_atm, only : grid,getDomainBounds
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       use exchange_types, only : atmocn_xchng_vars
