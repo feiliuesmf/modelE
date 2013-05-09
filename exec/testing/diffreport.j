@@ -135,7 +135,7 @@ deckDiff()
     report=( "${report[@]}" "$deck [$comp] :" )
     echo "  --- DECK = $deck ---"
     # Don't do serial comparisons of C90 and AR5 rundecks
-    if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ AR5 ]] || [[ "$deck" =~ tomas ]] || [[ "$deck" =~ amp ]]; then
+    if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ AR5_CAD ]] || [[ "$deck" =~ tomas ]] || [[ "$deck" =~ amp ]]; then
       echo "    Skip SERIAL comparison"
     else
 # compare SERIAL restart reproducibility
@@ -287,7 +287,7 @@ ir=0
 is=0
 for deck in ${DECKS[@]}
 do
-      if [[ "$deck" =~ EM20 || "$deck" =~ E1oM20 ]]; then
+      if [[ "$deck" =~ EM20 || "$deck" =~ E1oM20  || "$deck" =~ C12 ]]; then
         LowResDecks[$ia]="$deck"
         ia=$(($ia+1))
       elif [[ "$deck" =~ obio || "$deck" =~ cadF40  ]]; then
@@ -296,7 +296,7 @@ do
       elif [[ "$deck" =~ C90  ]]; then
         CSDecks[$ic]="$deck"
         ic=$(($ic+1))
-      elif [[ "$deck" =~ AR5  ]]; then
+      elif [[ "$deck" =~ AR5_CAD ]]; then
         AR5Decks[$ir]="$deck"
         ir=$(($ir+1))
       else
@@ -368,11 +368,11 @@ else
 fi
 
 #chmod g+rw $MODELROOT/exec/testing/${CONFIG}.diff
-cp $MODELROOT/exec/testing/${CONFIG}.diff $WORKSPACE
-cp $MODELROOT/exec/testing/${CONFIG}.unit $WORKSPACE
+cp -f $MODELROOT/exec/testing/${CONFIG}.diff $WORKSPACE
+cp -f $MODELROOT/exec/testing/${CONFIG}.unit $WORKSPACE
 
 # Archive full difference reports
-cp $MODELROOT/exec/testing/${CONFIG}.diff $MODELEBASELINE/reports/${CONFIG}.diff.`date +%F`
+cp -f $MODELROOT/exec/testing/${CONFIG}.diff $MODELEBASELINE/reports/${CONFIG}.diff.`date +%F`
 
 # Check for errors in report
 cat $MODELROOT/exec/testing/${CONFIG}.diff | grep -i "NOT_REPRODUCIBLE" > /dev/null
@@ -385,7 +385,7 @@ if [ $rc1 -eq 0 ] || [ $rc2 -eq 0 ]; then
    exit $EXIT_ERR
 else 
 # Create modelE snapshot iff no ERRORs in ${CONFIG}.diff (WARNINGs are OK)
-   if [ $writeOK -eq 1 ]; then touch $WORKSPACE/.success; fi
+   if [ "$writeOK" -eq 1 ]; then touch $WORKSPACE/.success; fi
    echo "Will create modelE snapshot"
    # Create modelE snapshot
    if [ -d "$REGSCRATCH/$BRANCH" ]; then

@@ -112,7 +112,7 @@ watchJob()
        jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
        watchJob $jobID
      else
-       $MODELROOT/exec/testing/diffreport.j
+       $MODELROOT/exec/testing/diffreport.j > $CONFIG.diff
      fi
    else
      echo "Skipped diffreport (CREATEDIFF=$CREATE_DIFF)"

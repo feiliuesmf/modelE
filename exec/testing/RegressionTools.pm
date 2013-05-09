@@ -51,6 +51,10 @@ sub compileRundeck
   if (@_) {$expName = shift}
   else {$expName = "$rundeck.$configuration.$compiler"};
 
+  if ($expName =~ m/^(nonProduction)/i) {
+     $expName = substr $expName, 14;
+  }
+
   my $branch   = $env->{BRANCH};
   my $debugFlags = $env -> {DEBUGFLAGS};
 
@@ -128,9 +132,14 @@ sub runConfiguration
   my $duration = $env -> {DURATION};
   my $resultsDir = $env->{RESULTS_DIRECTORY};
   $resultsDir .="/$compiler";
-  my $expName = "$rundeck.$configuration.$compiler";
   my $MODELERC;
   my $onEC2 = $ENV{RUNONEC2};
+
+  if ($rundeck =~ m/^(nonProduction)/i) {
+     $rundeck = substr $rundeck, 14;
+  }
+  my $expName = "$rundeck.$configuration.$compiler";
+
   if ($onEC2) {
      $MODELERC = $ENV{MODELERC}
   }
@@ -286,6 +295,11 @@ sub createMakeCommand
 
   my $deck = $env->{RUNDECK};
   my $rc = $env->{MODELERC};
+
+  if ($exp =~ m/^(nonProduction)/i) {
+     $exp = substr $exp, 14;
+  }
+
   if ($time == 2 || $time == 48 ) 
   {
     if ($deck =~ m/^(E_AR5)/i)

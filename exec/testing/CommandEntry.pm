@@ -143,12 +143,20 @@ sub runInBatch
   print " runInBatch: doMock=$doMock, onEC2=$onEC2, COMPILER=$compiler\n";
   print " runInBatch: jobname=$jobname, walltime=$walltime, nodes=$nodes\n";
 
+  # since nonProduction rundeck names can be quite long, extract the 
+  # nonProduction_ part...
+  if ($jobname =~ m/^(nonProduction)/i) {
+     $jobname = substr $jobname, 14;
+  }
+  # ...then make use PBS job name is only 15 characters long
+  my $validPBSname = substr $jobname, 0, 14;
+
   my $script = <<EOF;
 #!/bin/bash
 #PBS -l select=$nodes:ncpus=12
 #PBS -l walltime=$walltime
 #PBS -W group_list=s1001
-#PBS -N $jobname
+#PBS -N $validPBSname
 #PBS -j oe
 #PBS $queueString
 #PBS -V
@@ -187,7 +195,7 @@ EOF
     if ($compiler eq "intel") 
     {
       $script .= <<EOF;
-module load comp/intel-13.0.0.079 mpi/impi-3.2.2.006
+module load comp/intel-13.1.1.163 mpi/impi-3.2.2.006
 EOF
     } 
     elsif ($compiler eq "gfortran")  
@@ -199,7 +207,7 @@ EOF
     elsif ($compiler eq "nag")  
     {
       $script .= <<EOF;
-module load comp/nag-5.3-886 other/mpi/mvapich2-1.8a2/nag-5.3-886
+module load comp/nag-5.3-907 other/mpi/mvapich2-1.8.1/nag-5.3-907
 EOF
     }
     else 
@@ -277,7 +285,7 @@ sub setModuleEnvironment
 
       if ($compiler eq "intel")
       {
-        module (load, "comp/intel-13.0.0.079",  "mpi/impi-3.2.2.006");
+        module (load, "comp/intel-13.1.1.163",  "mpi/impi-3.2.2.006");
       }
       elsif ($compiler eq "gfortran")
       {
@@ -285,7 +293,7 @@ sub setModuleEnvironment
       }
       elsif ($compiler eq "nag") 
       {
-        module (load, "comp/nag-5.3-886", "other/mpi/mvapich2-1.8a2/nag-5.3-886");
+        module (load, "comp/nag-5.3-907", "other/mpi/mvapich2-1.8.1/nag-5.3-907");
       } 
       else 
       {

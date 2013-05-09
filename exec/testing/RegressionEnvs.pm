@@ -122,7 +122,7 @@ sub getNagEnvironment
   else 
   {
     $env->{MPIDISTR}="mvapich2";
-    $env->{MPIDIR}="/usr/local/other/SLES11/mvapich2/1.8a2/nag-5.3-886";
+    $env->{MPIDIR}="/usr/local/other/SLES11.1/mvapich2/1.8.1/nag-5.3-907";
     $env->{BASELIBDIR5}="";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/nag-5.3-886_mvapich2-1.8";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_nag-5.3";
@@ -155,8 +155,8 @@ sub setupENVvariables
    else {
       $env->{NOBACKUP}=$ENV{NOBACKUP};
    }
-   if (defined $ENV{MODELEGIT}) {
-     $env->{GIT_REPOSITORY} = $ENV{MODELEGIT};
+   if (defined $ENV{GIT_REPOSITORY}) {
+     $env->{GIT_REPOSITORY} = $ENV{GIT_REPOSITORY};
    }
    else {
      if (defined $ENV{MOCKMODELE}) {
@@ -184,6 +184,9 @@ sub saveForDiffreport()
    }
 # Loop over configurations to get rundecks
   foreach my $deck ( keys %configurations )  {
+    if ($deck =~ m/^(nonProduction)/i) {
+       $deck = substr $deck, 14;
+    }
     push (@rundecks, $deck);
   }
 
