@@ -1173,9 +1173,9 @@ C**** Levels for angular momentum restoration
         if (pl(l).lt.400.) lp2040 = l
         if (pl(l).lt.200.) lpshr = l
       end do
-      if (pl(lpshr)-ple(lpshr-1).lt.pl(lpshr)-200.) lpshr=lpshr-1
-      if (pl(lp2040)-ple(lp2040-1).lt.pl(lp2040)-400.) lp2040=lp2040-1
-      if (pl(lp10)-ple(lp10-1).lt.pl(lp10)-500.) lp10=lp10-1
+      lpshr  = lpshr -1
+      lp2040 = lp2040-1
+      lp10   = lp10  -1
       lmax_angm(1) = lpshr  !Mountain
       lmax_angm(9) = lpshr  !Deformation
       lmax_angm(2) = lpshr  !Shear
