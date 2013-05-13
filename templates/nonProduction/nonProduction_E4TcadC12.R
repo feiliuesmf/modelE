@@ -99,7 +99,7 @@ NAMERVR=RD8X10.names.txt ! named river outlets
 #include "dry_depos_36x24_input_files"
 #include "chem_emiss_36x24_input_files"
 #include "aerosol_36x24_input_files"
-Ox_ref=o3_2005_shindelltrop_36x24x49_1850-1997.nc
+Ox_ref=o3_zeros_36x24x49.nc
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG8X10                      ! special regions-diag
