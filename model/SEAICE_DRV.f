@@ -1423,7 +1423,7 @@ C**** Accumulate regional diagnostics
 !@sum  init_ice initialises ice arrays
 !@auth Original Development Team
       USE CONSTANT, only : rhows,omega
-      USE MODEL_COM, only : kocean
+      USE MODEL_COM, only : kocean, master_yr
       USE SEAICE, only : oi_ustar0,silmfac,snow_ice,seaice_thermo
       USE SEAICE_COM, only : si_ocn,iceocn
       USE Dictionary_mod
@@ -1440,7 +1440,8 @@ C**** Accumulate regional diagnostics
 c
       INTEGER I,J
       integer :: I_0, I_1, J_0, J_1
-      integer :: fid,jyear,jday
+      integer :: fid,jyear,jday,seaice_yr
+      logical :: cyclic
       logical :: exists
 
       I_0 = iceocn%I_0
@@ -1496,9 +1497,20 @@ C**** Set conservation diagnostics for ice mass, energy, salt
 #endif
 
       if(kocean.eq.0) then
+        if(is_set_param('seaice_yr')) then
+          ! If parameter seaice_yr exists, ice data from that year is
+          ! selected (only relevant if SICE is a multi-year dataset).
+          call get_param( 'seaice_yr', seaice_yr )
+        else
+          ! Otherwise, seaice_yr is set to ocean_yr or master_yr.
+          call get_param( 'ocean_yr', seaice_yr, default=master_yr )
+        endif
+        cyclic = seaice_yr /= 0 ! seaice_yr==0 implies transient mode.
+        seaice_yr = abs(seaice_yr)
         call modelEclock%getDate(year=jyear, dayOfYear=jday)
+        if(cyclic) jyear = seaice_yr
         call init_stream(grid,RSIstream,'SICE','rsi',0d0,1d0,'ppm',
-     &       jyear,jday,msk=atmocn%focean)
+     &       jyear,jday,msk=atmocn%focean,cyclic=cyclic)
         inquire(file='ZSIFAC',exist=exists)
         if(exists) then
           zsi_exists = .false.
@@ -1510,7 +1522,7 @@ C**** Set conservation diagnostics for ice mass, energy, salt
         endif
         if(zsi_exists) then
           call init_stream(grid,ZSIstream,'ZSI','ZSI',0d0,100d0,'ppm',
-     &         jyear,jday,msk=atmocn%focean)
+     &         jyear,jday,msk=atmocn%focean,cyclic=cyclic)
         endif
       endif
 

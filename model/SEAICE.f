@@ -2304,6 +2304,8 @@ C**** albedo calculations
 !@var RSIstream,ZSIstream interfaces for reading and time-interpolating
 !@+   ice cover and ice thickness files when kocean=0
 !@+   See general usage notes in timestream_mod.
+!@+   Selection of time period occurs as per the comments concerning
+!@+   seaice_yr in init_oceanice.
 !@+   Note regarding comparison of results to runs that use traditional I/O:
 !@+   if SICE datafiles contain monthly means and the piecewise parabolic
 !@+   method is used for monthly->daily interpolation, the presence of OSST_eom

@@ -8,6 +8,8 @@
 
 !@sum  Module sstmod contains the arrays/subroutines needed to prescribe
 !@+    ocean surface temperature from input files.
+!@+    Selection of time period occurs as per the comments concerning sst_yr
+!@+    in init_sstmod.
 !@auth Original Development Team
 !@auth M. Kelley restructuring and netcdf-based input options
 
@@ -51,14 +53,28 @@
 !@sum init_sstmod initializes the SSTstream object
       use domain_decomp_atm, only : grid
       use timestream_mod, only : init_stream
-      use model_com, only :  modelEclock
+      use model_com, only :  modelEclock, master_yr
       use exchange_types, only : atmocn_xchng_vars
+      use dictionary_mod, only : get_param,is_set_param
       implicit none
       type(atmocn_xchng_vars) :: atmocn
-      integer :: jyear,jday
+      integer :: jyear,jday,sst_yr
+      logical :: cyclic
+
+      if(is_set_param('sst_yr')) then
+        ! If parameter sst_yr exists, SST data from that year is
+        ! selected (only relevant if OSST is a multi-year dataset).
+        call get_param( 'sst_yr', sst_yr )
+      else
+        ! Otherwise, sst_yr is set to ocean_yr or master_yr.
+        call get_param( 'ocean_yr', sst_yr, default=master_yr )
+      endif
+      cyclic = sst_yr /= 0 ! sst_yr==0 implies transient mode.
+      sst_yr = abs(sst_yr)
       call modelEclock%getDate(year=jyear, dayOfYear=jday)
+      if(cyclic) jyear = sst_yr
       call init_stream(grid,SSTstream,'OSST','sst',-100d0,100d0,'ppm',
-     &       jyear,jday,msk=atmocn%focean)
+     &       jyear,jday,msk=atmocn%focean,cyclic=cyclic)
       end subroutine init_sstmod
 
       subroutine set_gtemp_sst(atmocn)
