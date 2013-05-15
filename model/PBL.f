@@ -63,7 +63,7 @@
 
       ! public parameters
       public n,zgs,XCDpbl,kappa,emax,skin_effect,ustar_min
-     &   ,lmonin_min,lmonin_max,xdelt
+     &   ,lmonin_min,lmonin_max,xdelt,calc_wspdf
 
       ! public interfaces
       public advanc,inits,ccoeff0
@@ -102,6 +102,15 @@ c**** Do not use global variables for that purpose !
         ! the following args needed for diagnostics
         real*8 psi,dbl,khs,ug,vg,wg,ustar,zgs
         real*8 canopy_temperature
+!@var wsgcm magnitude of the GCM surface wind - ocean currents [m/s]
+!@var wspdf mean surface wind calculated from PDF of wind speed [m/s]
+!@var wsubtke turbulent kinetic energy velocity scale [m/s]
+!@var wsubwd dry convective velocity scale [m/s]
+!@var wsubwm moist convective velocity scale [m/s]
+        real*8 :: wsgcm,wspdf,wsubtke,wsubwd,wsubwm
+!@var mcfrac fractional area with moist convection in grid cell
+        REAL(KIND=8) :: mcfrac
+
 #ifdef TRACERS_ON
 c**** Attention: tracer arrays in this structure have dim 1:ntm
 c**** while local arrays in PBL code have dim 1:ntx
@@ -146,8 +155,6 @@ c**** input
         REAL*8 :: pprec,pevap
 !@var pbl_args%d_dust prescribed daily dust emissions [kg/m^2/s] (e.g. AEROCOM)
         real(kind=8) :: d_dust(nAerocomDust)
-!@var pbl_args%mcfrac fractional area with moist convection in grid cell
-        REAL(KIND=8) :: mcfrac
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 !@var pbl_args%minfr distribution of tracer fractions in grid box
         real(kind=8) :: mineralFractions( Ntm_dust )
@@ -155,12 +162,6 @@ c**** input
 c**** output
 !@var pbl_args%pdfint integral of dust emission probability density function
         REAL*8 :: pdfint
-!@var pbl_args%wsgcm magnitude of the GCM surface wind - ocean currents [m/s]
-!@var pbl_args%wspdf mean surface wind calculated from PDF of wind speed [m/s]
-        REAL*8 ::wsgcm,wspdf
-!@var pbl_args%wsubtke turbulent kinetic energy velocity scale [m/s]
-!@var pbl_args%wsubwd dry convective velocity scale [m/s]
-!@var pbl_args%wsubwm moist convective velocity scale [m/s]
 !@var pbl_args%wtrsh velocity threshold for dust emission (depends on soil
 !@+                  moisture) [m/s]
 !@var pbl_args%dust_event1 number of dust events [1]
@@ -169,8 +170,8 @@ c**** output
 !@var pbl_args%dust_flux1 dust flux [kg/m^2/s]
 !@var pbl_args%dust_flux2 dust flux from cubic emission scheme (diagnostics
 !@+                       only) [kg/m^2/s]
-        REAL*8 :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),wsubtke
-     *       ,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
+        REAL*8 :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust)
+     *       ,dust_event1,dust_event2,wtrsh
         REAL*8 :: z(npbl),km(npbl-1),gh(npbl-1),gm(npbl-1),zhat(npbl-1),
      &       lmonin
 !@var pbl_args%hbaij accumulated precipitation - evaporation balance  [kg/m^2]
@@ -272,6 +273,10 @@ CCC      real*8 :: bgrid
 
 !@dbparam skin_effect sets whether skin effects are used or not
       integer :: skin_effect=1  ! Used by default
+
+!@dbparam calc_wspdf if calc_wspdf==1, calculate mean surface
+!@+       wind speed from PDF of velocities
+      integer :: calc_wspdf=0
 
       CONTAINS
 
@@ -436,10 +441,10 @@ c**** local vars for input from pbl_args
       logical :: ocean,ddml_eq_1
       real*8 :: gusti
 c**** local vars for output to pbl_args
-      real*8 :: us,vs,ws,tsv,qsrf,khs,dskin,ustar,cm,ch,cq,wsgcm
+      real*8 :: us,vs,ws,tsv,qsrf,khs,dskin,ustar,cm,ch,cq,wsgcm,wspdf
       real*8 :: ws0
 c**** other local vars
-      real*8 :: qsat,deltaSST,tgskin,qnet,ts,rhosrf,qgrnd,tg1
+      real*8 :: qsat,deltaSST,tgskin,qnet,ts,rhosrf,qgrnd,tg1,delt
       real*8 :: tstar,qstar,ustar0,test,wstar3,wstar2h,tgrnd,ustar_oc
       real*8 :: bgrid,an2,as2,dudz,dvdz,tau,tgr4skin
       real*8 :: ws02
@@ -479,7 +484,6 @@ C****
     (defined TRACERS_TOMAS)
       INTEGER :: n1
       REAL*8 :: dsrcflx,dsrcflx2
-      real*8 wspdf,delt
 #endif
 #ifdef TRACERS_TOMAS
       INTEGER ss_bin,num_bin,du_bin,num_bin2,k,nx
@@ -694,15 +698,13 @@ C**** generic calculations for all tracers
 C**** To use, uncomment next two lines and adapt the next chunk for
 C**** your tracers. The integrated wind value is passed back to SURFACE
 C**** and GHY_DRV. This may need to be tracer dependent?
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
-      delt = t(1)/(1.+q(1)*xdelt) - tgrnd/(1.+qgrnd*xdelt)
-      CALL sig(e(1),mdf,dbl,delt,ch,wsgcm,t(1),pbl_args%wsubtke
-     &     ,pbl_args%wsubwd,pbl_args%wsubwm)
-      CALL get_wspdf(pbl_args%wsubtke,pbl_args%wsubwd,pbl_args%wsubwm
-     &     ,pbl_args%mcfrac,wsgcm,wspdf)
-#endif
+      if(calc_wspdf == 1) then
+        delt = t(1)/(1.+q(1)*xdelt) - tgrnd/(1.+qgrnd*xdelt)
+        CALL sig(e(1),mdf,dbl,delt,ch,wsgcm,t(1),pbl_args%wsubtke
+     &       ,pbl_args%wsubwd,pbl_args%wsubwm)
+        CALL get_wspdf(pbl_args%wsubtke,pbl_args%wsubwd,pbl_args%wsubwm
+     &       ,pbl_args%mcfrac,wsgcm,wspdf)
+      endif
 csgs      sig0 = sig(e(1),mdf,dbl,delt,ch,ws,t(1))
 csgsC**** possibly tracer specific coding
 csgs      wt = 3.                 ! threshold velocity
@@ -1102,6 +1104,9 @@ c**** copy output to pbl_args
       pbl_args%tprime=tprime
       pbl_args%qprime=qprime
 
+      pbl_args%wsgcm=wsgcm
+      pbl_args%wspdf=wspdf
+
 C**** tracer code output
 #ifdef TRACERS_ON
       pbl_args%trs(1:NTM) = tr(1,1:NTM)
@@ -1111,8 +1116,6 @@ C**** tracer code output
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-      pbl_args%wsgcm=wsgcm
-      pbl_args%wspdf=wspdf
       pbl_args%z(:) = z(:)
       pbl_args%zhat(:) = zhat(:)
       pbl_args%km(:) = km(:)
@@ -3395,427 +3398,6 @@ c ----------------------------------------------------------------------
       print*, 'Error: rtsafe exceeding maximum iterations'
       return
       END
-
-C**** Functions and subroutines for sub-gridscale wind distribution calc
-
-      subroutine sig(tke,mdf,dbl,delt,ch,ws,tsv,wtke,wd,wm)
-!@sum calculate sub grid scale velocities
-!@auth Reha Cakmur/Gavin Schmidt
-      use constant, only : by3,grav
-      implicit none
-!@var tke local turbulent kinetic energy at surface (J/kg)
-!@var mdf downdraft mass flux from moist convection (m/s)
-!@var dbl boundary layer height (m)
-!@var delt difference between surface and ground T (ts-tg) (K)
-!@var tsv virtual surface temperature (K)
-!@var ch local heat exchange coefficient
-!@var ws grid box mean wind speed (m/s)
-      real*8, intent(in):: tke,mdf,dbl,delt,tsv,ch,ws
-      real*8, intent(out):: wtke,wd,wm
-
-C**** TKE contribution  ~ sqrt( 2/3 * tke)
-      wtke=sqrt(2d0*tke*by3)
-
-C**** dry convection/turbulence contribution ~(Qsens*g*H/rho*cp*T)^(1/3)
-      if (delt.lt.0d0) then
-        wd=(-delt*ch*ws*grav*dbl/tsv)**by3
-      else
-        wd=0.d0
-      endif
-C**** moist convection contribution beta/frac_conv = 200.
-      wm=200.d0*mdf
-      return
-      end SUBROUTINE sig
-
-      subroutine integrate_sgswind(sig,wt,wmin,wmax,ws,icase,wint)
-!@sum Integrate sgswind distribution for different cases
-!@auth Reha Cakmur/Gavin Schmidt
-      use constant, only : by3
-      implicit none
-!@var sig distribution parameter (m/s)
-!@var wt threshold velocity (m/s)
-!@var ws resolved wind speed (m/s)
-!@var wmin,wmax min and max wind speed for integral
-      real*8, intent(in):: sig,wt,ws,wmin,wmax
-      real*8, intent(out) :: wint
-      integer, intent(in) :: icase
-      integer, parameter :: nstep = 100
-      integer i
-      real*8 x,sgsw,bysig2
-
-C**** integrate distribution from wmin to wmax using Simpsons' rule
-C**** depending on icase, integral is done on w, w^2 or w^3
-C**** Integration maybe more efficient with a log transform (putting
-C**** more points near wmin), but that's up to you...
-C**** Use approximate value for small sig and unresolved delta function
-      if ((wmax-wmin).lt.sig*dble(nstep)) then
-        bysig2=1./(sig*sig)
-        wint=0
-        do i=1,nstep+1
-          x=wmin+(wmax-wmin)*(i-1)/dble(nstep)
-          if (i.eq.1.or.i.eq.nstep+1) then
-            wint=wint+sgsw(x,ws,wt,bysig2,icase)*by3
-          elseif (mod(i,2).eq.0) then
-            wint=wint+4d0*sgsw(x,ws,wt,bysig2,icase)*by3
-          else
-            wint=wint+2d0*sgsw(x,ws,wt,bysig2,icase)*by3
-          end if
-        end do
-        wint=wint*(wmax-wmin)/dble(nstep)
-      else                      ! approximate delta function
-        if (ws.ge.wmin.and.ws.le.wmax) then
-          wint = ws**(icase-1)*(ws-wt)
-        else
-          wint = 0.
-        end if
-      end if
-
-      return
-      end
-
-      real*8 function sgsw(x,ws,wt,bysig2,icase)
-!@sum sgsw function to be integrated for sgs wind calc
-!@auth Reha Cakmur/Gavin Schmidt
-      use constant, only : pi
-      implicit none
-      real*8, intent(in) :: x,ws,wt,bysig2
-      integer, intent(in) :: icase
-      real*8 :: besf,exx,bessi0
-
-      besf=x*ws*bysig2
-      if (besf.lt.200d0 ) then
-        exx=exp(-0.5d0*(x*x+ws*ws)*bysig2)
-        sgsw=(x)**(icase)*(x-wt)*bysig2*BESSI0(besf)*exx
-      else ! use bessel function expansion for large besf
-        sgsw=(x)**(icase)*(x-wt)*bysig2*exp(-0.5d0*(x-ws)**2*bysig2)
-     *       /sqrt(besf*2*pi)
-      end if
-
-      return
-      end
-
-      real*8 function bessi0(x)
-!@sum Bessel's function I0
-!@auth  Numerical Recipes
-      implicit none
-      real*8 ax,y
-      real*8, parameter:: p1=1.0d0, p2=3.5156229d0, p3=3.0899424d0,
-     *     p4=1.2067492d0, p5=0.2659732d0, p6=0.360768d-1,
-     *     p7=0.45813d-2
-      real*8, parameter:: q1=0.39894228d0,q2=0.1328592d-1,
-     *     q3=0.225319d-2, q4=-0.157565d-2, q5=0.916281d-2,
-     *     q6=-0.2057706d-1, q7=0.2635537d-1, q8=-0.1647633d-1,
-     *     q9=0.392377d-2
-      real*8, intent(in)::x
-
-      if (abs(x).lt.3.75d0) then
-        y=(x/3.75d0)**2.d0
-        bessi0=(p1+y*(p2+y*(p3+y*(p4+y*(p5+y*(p6+y*p7))))))
-      else
-        ax=abs(x)
-        y=3.75d0/ax
-        bessi0=(exp(ax)/sqrt(ax))*(q1+y*(q2+y*(q3+y*(q4
-     *       +y*(q5+y*(q6+y*(q7+y*(q8+y*q9))))))))
-      end if
-      end function bessi0
-
-      SUBROUTINE get_wspdf(wsubtke,wsubwd,wsubwm,mcfrac,wsgcm,wspdf)
-!@sum calculates mean surface wind speed using the integral over the
-!@sum probability density function of the wind speed from lookup table
-!@auth Reha Cakmur/Jan Perlwitz
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-
-      USE tracers_dust,ONLY : kim,kjm,table1,x11,x21
-
-      IMPLICIT NONE
-
-c Input:
-!@var wsubtke velocity scale of sub grid scale turbulence
-!@var wsubwd velocity scale of sub grid scale dry convection
-!@var wsubwm velocity scale of sub grid scale moist convection
-!@var wsgcm GCM surface wind
-
-      REAL(KIND=8),INTENT(IN) :: wsubtke,wsubwd,wsubwm,mcfrac,wsgcm
-
-c Output:
-!@var wspdf mean surface wind speed from integration over PDF
-
-      REAL*8,INTENT(OUT) :: wspdf
-
-!@var sigma standard deviation of sub grid fluctuations
-      REAL*8 :: sigma,ans,dy
-
-      REAL*8 :: work_wspdf1,work_wspdf2,wsgcm1
-      CHARACTER(14) :: fname='WARNING_in_PBL'
-      CHARACTER(9) :: subr='get_wspdf'
-      CHARACTER(5) :: vname1='wsgcm',vname2='sigma'
-
-      wsgcm1=wsgcm
-
-c     This is the case when wsgcm is very small and we set it
-c     equal to one of the smallest values in the table index
-
-      IF (wsgcm1 < 0.0005) wsgcm1=0.0005D0
-
-c     If sigma <= 0.0005:
-
-      wspdf=wsgcm1
-
-      CALL check_upper_limit(wsgcm1,x11(Kim),fname,subr,vname1)
-c     There is no moist convection, sigma is composed of TKE and DRY
-c     convective velocity scale
-      IF (wsubwm == 0.) THEN
-        sigma=wsubtke+wsubwd
-        IF (sigma > 0.0005) THEN
-          CALL check_upper_limit(sigma,x21(Kjm),fname,subr,vname2)
-c     Linear Polynomial fit (Default)
-          CALL polint2dlin(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
-c     Cubic Polynomial fit (Not Used, Optional)
-c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
-          wspdf=exp(ans)
-        END IF
-      ELSE
-
-c     When there is moist convection, the sigma is the combination of
-c     all three subgrid scale parameters (i.e. independent or dependent)
-c     Takes into account that the moist convective velocity scale acts
-c     only over the area with downdrafts (mcfrac).
-
-        work_wspdf1=0.D0
-        sigma=wsubtke+wsubwd+wsubwm
-        IF (sigma > 0.0005) THEN
-          CALL check_upper_limit(sigma,x21(Kjm),fname,subr,vname2)
-c     Linear Polynomial fit (Default)
-          CALL polint2dlin(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
-c     Cubic Polynomial fit (Not Used, Optional)
-c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
-          work_wspdf1=exp(ans)*mcfrac
-        END IF
-
-        work_wspdf2=0.D0
-        sigma=wsubtke+wsubwd
-        IF (sigma > 0.0005) THEN
-          CALL check_upper_limit(sigma,x21(Kjm),fname,subr,vname2)
-c     Linear Polynomial fit (Default)
-          CALL polint2dlin(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
-c     Cubic Polynomial fit (Not Used, Optional)
-c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
-          work_wspdf2=exp(ans)*(1.d0-mcfrac)
-        END IF
-        wspdf=work_wspdf1+work_wspdf2
-
-      END IF
-#endif
-
-      RETURN
-      END SUBROUTINE get_wspdf
-
-      SUBROUTINE polint2dlin(x1a,x2a,ya,m,n,x1,x2,y,dy)
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-      IMPLICIT NONE
-      INTEGER,INTENT(IN) :: m,n
-      REAL*8,INTENT(IN) :: x1a(m),x2a(n),ya(m,n),x1,x2
-      REAL*8,INTENT(OUT) :: dy,y
-      INTEGER, PARAMETER :: nmax=2
-      INTEGER j,k,jjj,iii,xx,yy
-      REAL*8 ymtmp(nmax),yntmp(nmax),x11(nmax),x22(nmax)
-
-      call locatepbl(x1a,m,x1,xx)
-      call locatepbl(x2a,n,x2,yy)
-
-      do k=1,nmax
-        iii=k
-        do j=1,nmax
-          jjj=j
-          yntmp(j)=ya(xx+jjj-1,yy+iii-1)
-          x11(j)=x1a(xx+jjj-1)
-        enddo
-        if (yntmp(1).eq.-1000.) then
-          ymtmp(k)=-1000.
-          x22(k)=x2a(yy+iii-1)
-        else
-          call polintpbl(x11,yntmp,nmax,x1,ymtmp(k),dy)
-          x22(k)=x2a(yy+iii-1)
-        endif
-      enddo
-      if (ymtmp(1).eq.-1000.) then
-        y=-1000.
-      else
-        call polintpbl(x22,ymtmp,nmax,x2,y,dy)
-      endif
-#endif
-
-      return
-      END SUBROUTINE polint2dlin
-C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
-
-      SUBROUTINE polint2dcub(x1a,x2a,ya,m,n,x1,x2,y,dy)
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-      IMPLICIT NONE
-      INTEGER,INTENT(IN) :: m,n
-      REAL*8,INTENT(IN) :: x1a(m),x2a(n),ya(m,n),x1,x2
-      REAL*8,INTENT(OUT) :: dy,y
-      INTEGER, PARAMETER :: nmax=4
-      INTEGER j,k,jjj,iii,xx,yy
-      REAL*8 ymtmp(nmax),yntmp(nmax),x11(nmax),x22(nmax)
-
-      call locatepbl(x1a,m,x1,xx)
-      call locatepbl(x2a,n,x2,yy)
-
-      do k=1,nmax
-        iii=k-1
-        do j=1,nmax
-          jjj=j-1
-          yntmp(j)=ya(xx+jjj-1,yy+iii-1)
-          x11(j)=x1a(xx+jjj-1)
-        enddo
-        if (yntmp(1).eq.-1000..or.yntmp(2).eq.-1000.) then
-          ymtmp(k)=-1000.
-          x22(k)=x2a(yy+iii-1)
-        else
-          call polintpbl(x11,yntmp,nmax,x1,ymtmp(k),dy)
-          x22(k)=x2a(yy+iii-1)
-        endif
-      enddo
-      if (ymtmp(1).eq.-1000..or.ymtmp(2).eq.-1000.) then
-        y=-1000.
-      else
-        call polintpbl(x22,ymtmp,nmax,x2,y,dy)
-      endif
-#endif
-
-      return
-      END SUBROUTINE polint2dcub
-C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
-
-      SUBROUTINE polintpbl(xa,ya,n,x,y,dy)
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: n
-      REAL*8, INTENT(OUT) :: y,dy
-      REAL*8, INTENT(IN) :: x,xa(n),ya(n)
-      INTEGER i,m,ns
-      REAL*8 den,dif,dift,ho,hp,w,c(n),d(n)
-
-      ns=1
-      dif=abs(x-xa(1))
-      do 11 i=1,n
-        dift=abs(x-xa(i))
-        if (dift.lt.dif) then
-          ns=i
-          dif=dift
-        endif
-        c(i)=ya(i)
-        d(i)=ya(i)
- 11   continue
-      y=ya(ns)
-      ns=ns-1
-      do 13 m=1,n-1
-        do 12 i=1,n-m
-          ho=xa(i)-x
-          hp=xa(i+m)-x
-          w=c(i+1)-d(i)
-          den=ho-hp
-          if(den.eq.0.d0)CALL stop_model('failure in polint in pbl',255)
-          den=w/den
-          d(i)=hp*den
-          c(i)=ho*den
- 12     continue
-        if (2*ns.lt.n-m)then
-          dy=c(ns+1)
-        else
-          dy=d(ns)
-          ns=ns-1
-        endif
-        y=y+dy
- 13   continue
-#endif
-
-      return
-      END SUBROUTINE polintpbl
-C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
-
-      SUBROUTINE locatepbl(xx,n,x,j)
-!@sum locates parameters of integration in lookup table
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-      implicit none
-      INTEGER, INTENT(IN):: n
-      INTEGER, INTENT(OUT):: j
-      REAL*8, INTENT(IN):: x,xx(n)
-      INTEGER jl,jm,ju
-      jl=0
-      ju=n+1
-10    if(ju-jl.gt.1)then
-        jm=(ju+jl)/2
-        if((xx(n).gt.xx(1)).eqv.(x.gt.xx(jm)))then
-          jl=jm
-        else
-          ju=jm
-        endif
-      goto 10
-      endif
-      j=jl
-#endif
-
-      return
-      END SUBROUTINE locatepbl
-
-      SUBROUTINE check_upper_limit(var,varm,cwarn,subr,vname)
-!@sum checks whether variable var exceeds maximum value varm. If it does
-!@+   set it to maximum value and writes warning message to file cwarn
-!@auth Jan Perlwitz
-!@ver 1.0
-
-      USE filemanager,ONLY : openunit,closeunit
-      USE model_com,ONLY : itime
-
-      IMPLICIT NONE
-
-!@var var Variable to be checked and set to maximum value if larger (inout)
-!@var varm Maximum value of variable to be checked (in)
-!@var cwarn File name for warning message (in)
-!@var subr Name of subroutine (in)
-!@var vname Name of variable (in)
-      REAL(KIND=8),INTENT(IN) :: varm
-      CHARACTER(*),INTENT(IN) :: cwarn,subr,vname
-
-      REAL(KIND=8),INTENT(INOUT) :: var
-
-      INTEGER :: iu
-
-      IF (var > varm) THEN
-        CALL openunit(cwarn,iu)
-        DO
-          READ(iu,*,END=1)
-          CYCLE
- 1        EXIT
-        END DO
-        WRITE(iu,*) 'Warning in ',subr,':'
-        WRITE(iu,*) ' Variable ',vname,' exceeds allowed maximum value.'
-        WRITE(iu,*) ' ',vname,' set to maximum value.'
-        WRITE(iu,*) ' itime, max of ',vname,', ',vname,':',itime,varm
-     &       ,var
-        CALL closeunit(iu)
-        var=varm        
-      END IF
-
-      RETURN
-      END SUBROUTINE check_upper_limit
 
       real*8 function deltaSST(Qnet,Qsol,ustar_oc)
 !@sum deltaSST calculate skin-bulk SST difference (deg C)
