@@ -1344,7 +1344,6 @@ C**** Functions and subroutines for sub-gridscale wind distribution calc
 
       module wspdf_mod
 
-      INTEGER,PARAMETER :: Lim=234,Ljm=234,Lkm=22
 !@param kim dimension 1 of lookup table for mean surface wind speed integration
 !@param kjm dimension 2 of lookup table for mean surface wind speed integration
       INTEGER,PARAMETER :: kim=234,kjm=234
@@ -1354,14 +1353,6 @@ C**** Functions and subroutines for sub-gridscale wind distribution calc
 !@var x11 index of table1 for GCM surface wind speed from 0 to 50 m/s
 !@var x21 index of table1 for sub grid scale velocity scale (sigma)
       REAL*8 :: x11(kim),x21(kjm)
-!@var x1,x2,x3 indices of lock up table for emission
-      REAL*8 :: x1(Lim),x2(Ljm),x3(Lkm)
-
-!@var table array of lock up table for emission local to each grid box
-      real*8 table(Lim,Ljm,Lkm)
-
-      !REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: table
-      !ALLOCATE(table(Lim,Ljm,Lkm),STAT=ier)
 
       end module wspdf_mod
 
@@ -1409,48 +1400,6 @@ c**** index of table for sub grid scale velocity (sigma) from 0.0001 to 50 m/s
 c**** index of table for GCM surface wind speed from 0.0001 to 50 m/s
       x11(:)=x21(:)
 
-c**** Read input: EMISSION LOOKUP TABLE data
-        IF (am_i_root()) THEN
-          CALL openunit('LKTAB',io_data,.TRUE.,.TRUE.)
-          DO k=1,Lkm
-            READ(io_data,IOSTAT=ierr) ((table(i,j,k),i=1,Lim),j=1,Ljm)
-          END DO
-          name=nameunit(io_data)
-          CALL closeunit(io_data)
-          IF (ierr == 0) THEN
-            write(6,*) ' Read from file '//TRIM(name)
-          ELSE
-            WRITE(cierr,'(I2)') ierr
-            write(6,*) ' READ ERROR ON FILE '//TRIM(name)//' rc='//cierr
-          END IF
-        END IF
-        CALL broadcast(grid,ierr)
-        if(ierr.ne.0) CALL stop_model('init_wspdf_mod: READ ERROR',255)
-        CALL broadcast(grid,table)
-
-c**** index of table for threshold velocity from 6.5 to 17 m/s
-        DO k=1,Lkm
-          x3(k)=6.d0+0.5d0*k
-        END DO
-
-c**** index of table for sub grid scale velocity (sigma) from .0001 to 30 m/s
-        zsum=0.d0
-        DO j=1,Ljm
-          IF (j <= 30) THEN
-            zsum=zsum+0.0001d0+FLOAT(j-1)*0.00008d0
-            x2(j)=zsum
-          ELSE IF (j > 30) THEN
-            zsum=zsum-0.055254d0+0.005471d0*FLOAT(j)-
-     &           1.938365d-4*FLOAT(j)**2.d0+
-     &           3.109634d-6*FLOAT(j)**3.d0-
-     &           2.126684d-8*FLOAT(j)**4.d0+
-     &           5.128648d-11*FLOAT(j)**5.d0
-            x2(j)=zsum
-          END IF
-        END DO
-c**** index of table for GCM surface wind speed from 0.0001 to 30 m/s
-        x1(:)=x2(:)
-      
       end subroutine init_wspdf_mod
 
       subroutine sig(tke,mdf,dbl,delt,ch,ws,tsv,wtke,wd,wm)

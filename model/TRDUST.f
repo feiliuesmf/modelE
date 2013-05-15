@@ -9,8 +9,7 @@
       USE model_com,ONLY : dtsrc
       use fluxes, only : nisurf
       USE socpbl,ONLY : t_pbl_args
-      USE tracers_dust,ONLY : imDust
-      use wspdf_mod, only : lim,ljm,lkm,table,x1,x2,x3
+      USE tracers_dust,ONLY : imDust,lim,ljm,lkm,table,x1,x2,x3
       use polint_mod
       IMPLICIT NONE
 

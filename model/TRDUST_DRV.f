@@ -125,14 +125,16 @@ c tracer_ic_soildust
 
       IMPLICIT NONE
 
-      integer :: k,io_data,ires
+      integer :: i,ierr,j,io_data,k,ires
       INTEGER startd(3),countd(3),statusd
       INTEGER idd1,idd2,idd3,idd4,ncidd1,ncidd2,ncidd3,ncidd4
+      REAL*8 :: zsum
 c**** temporary array to read in data
       REAL*4,DIMENSION(grid%i_strt:grid%i_stop,
      &                 grid%j_strt:grid%j_stop) :: work ! no halo
 
       LOGICAL,SAVE :: qfirst=.TRUE.
+      CHARACTER :: cierr*3,name*256
       CHARACTER(80) :: OptModelVers='No Entry'
 
       IF (.NOT. qfirst) RETURN
@@ -564,6 +566,47 @@ c**** set parameters depending on the preferred sources chosen
           end if
         end if
 
+c**** Read input: EMISSION LOOKUP TABLE data
+        IF (am_i_root()) THEN
+          CALL openunit('LKTAB',io_data,.TRUE.,.TRUE.)
+          DO k=1,Lkm
+            READ(io_data,IOSTAT=ierr) ((table(i,j,k),i=1,Lim),j=1,Ljm)
+          END DO
+          name=nameunit(io_data)
+          CALL closeunit(io_data)
+          IF (ierr == 0) THEN
+            write(6,*) ' Read from file '//TRIM(name)
+          ELSE
+            WRITE(cierr,'(I2)') ierr
+            write(6,*) ' READ ERROR ON FILE '//TRIM(name)//' rc='//cierr
+          END IF
+        END IF
+        CALL broadcast(grid,ierr)
+        if(ierr.ne.0) CALL stop_model('init_dust: READ ERROR',255)
+        CALL broadcast(grid,table)
+
+c**** index of table for threshold velocity from 6.5 to 17 m/s
+        DO k=1,Lkm
+          x3(k)=6.d0+0.5d0*k
+        END DO
+
+c**** index of table for sub grid scale velocity (sigma) from .0001 to 30 m/s
+        zsum=0.d0
+        DO j=1,Ljm
+          IF (j <= 30) THEN
+            zsum=zsum+0.0001d0+FLOAT(j-1)*0.00008d0
+            x2(j)=zsum
+          ELSE IF (j > 30) THEN
+            zsum=zsum-0.055254d0+0.005471d0*FLOAT(j)-
+     &           1.938365d-4*FLOAT(j)**2.d0+
+     &           3.109634d-6*FLOAT(j)**3.d0-
+     &           2.126684d-8*FLOAT(j)**4.d0+
+     &           5.128648d-11*FLOAT(j)**5.d0
+            x2(j)=zsum
+          END IF
+        END DO
+c**** index of table for GCM surface wind speed from 0.0001 to 30 m/s
+        x1(:)=x2(:)
       ELSE
         CALL stop_model
      &     ('Stopped in init_dust: parameter imDUST must be <= 2',255)

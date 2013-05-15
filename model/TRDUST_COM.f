@@ -120,6 +120,16 @@ c**** wind speed
 !@var dustSourceFunction distribution of preferred dust sources
       real(kind=8),allocatable,dimension(:,:) :: dustSourceFunction
 
+      ! note that Lim,Ljm happen to match kim,kjm in wspdf_mod
+      INTEGER,PARAMETER :: Lim=234,Ljm=234,Lkm=22
+!@var x1,x2,x3 indices of lock up table for emission
+      REAL*8 :: x1(Lim),x2(Ljm),x3(Lkm)
+!@var table array of lock up table for emission local to each grid box
+      real*8 table(Lim,Ljm,Lkm)
+
+      !REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: table
+      !ALLOCATE(table(Lim,Ljm,Lkm),STAT=ier)
+
 !@var wsubtke_com distributed array of subscale turbulent term
 !@var wsubwd_com distributed array of subscale dry convective term
 !@var wsubwm_com distributed array of subscale moist convective term
