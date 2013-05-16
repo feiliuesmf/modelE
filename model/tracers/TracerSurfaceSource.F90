@@ -1,5 +1,6 @@
 module TracerSurfaceSource_mod
   use TracerSource_mod
+  use timestream_mod, only : timestream
   implicit none
   private
 
@@ -17,6 +18,9 @@ module TracerSurfaceSource_mod
 
   type, extends(TracerSource) :: TracerSurfaceSource
     character(len=30) :: sourceName ! holds source name, read from file header, e.g. to be
+!@var EMstream interface for reading and time-interpolating emissions file if it is netcdf.
+!@+   See usage notes in timestream_mod.
+    type (timestream) :: EMstream
     ! placed into lname and sname arrays.
     character(len=10) :: tracerName ! tracer name read from emis file header (should match trname)
     character(len=1) :: frequency ! (annual 'a' or monthly 'm') read from emis file header
@@ -42,22 +46,35 @@ contains
   subroutine initSurfaceSource(this, tracerName, fileName, sectorNames, checkname)
     use TracerSource_mod, only: N_MAX_SECT
     use Dictionary_mod, only : sync_param
-    USE FILEMANAGER, only: openunit,closeunit
+    USE FILEMANAGER, only: openunit,closeunit,is_fbsa
+    use pario, only : par_open,par_close,read_attr
+    USE DOMAIN_DECOMP_ATM, only: GRID
     type (TracerSurfaceSource), intent(inout) :: this
     character(len=*), intent(in) :: tracerName
     character(len=*), intent(in) :: fileName
     character*10, intent(in):: sectorNames(:)
     logical, intent(in) :: checkName
 
-    integer :: nsect, nn, i, j, iu
+    integer :: nsect, nn, i, j, iu, fid
     character*32 :: pname
     character*124 :: tr_sectors_are
     integer :: numTrSectors
     character(len=80) :: name ! sector
 
-    call openunit(fileName,iu,.true.)
-    call readEmissionHeader(this, tracerName, iu, checkname)
-    call closeunit(iu)
+    if(is_fbsa(fileName)) then
+      call openunit(fileName,iu,.true.)
+      call readEmissionHeader(this, fileName, iu, checkname)
+      call closeunit(iu)
+    else
+      this%tracerName = tracerName
+      this%sourceName = 'notfound'
+      fid = par_open(grid,trim(fileName),'read')
+      call read_attr(grid,fid,'global','source',i,this%sourceName)
+      call par_close(grid,fid)
+      if(trim(this%sourceName).eq.'notfound') then
+        call stop_model('source name not found in file '//trim(fileName),255)
+      endif
+    endif
 
     ! -- begin sector  stuff --
     tr_sectors_are = ' '
@@ -499,7 +516,9 @@ contains
   subroutine readSurfaceSource(this, fname, checkname, sfc_src, xyear, xday)
     USE DOMAIN_DECOMP_ATM, only: GRID,  readt_parallel, write_parallel
     use Domain_decomp_atm, only: getDomainBounds
-    USE FILEMANAGER, only: openunit,closeunit, nameunit
+    USE FILEMANAGER, only: openunit,closeunit, nameunit,is_fbsa
+    use timestream_mod, only : init_stream,read_stream
+    use dictionary_mod, only : get_param
     type (TracerSurfaceSource), intent(inout) :: this
     character(*), intent(in) :: fname
     logical, intent(in) :: checkname
@@ -514,6 +533,22 @@ contains
          & sfc_a,sfc_b
 
     INTEGER :: J_1, J_0, I_0, I_1
+    integer :: aer_int_yr,master_yr
+    logical :: cyclic
+
+    if(.not.is_fbsa(fname)) then
+
+      if(this%firstTrip) then
+        this%firstTrip = .false.
+        call get_param('master_yr',master_yr)
+        call get_param('aer_int_yr',aer_int_yr,default=master_yr)
+        call init_stream(grid,this%EMstream,trim(fname), &
+             trim(this%tracername),0d0,1d30,'linm2m',xyear,xday, &
+             cyclic = (aer_int_yr > 0) )
+      endif
+      call read_stream(grid,this%EMstream,xyear,xday,sfc_src)
+
+    else
 
     CALL getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
     CALL getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
@@ -561,6 +596,7 @@ contains
               ipos=1+(k-this%yearStart)/kstep ! (integer artithmatic)
               alpha=(365.d0*(0.5+real(xyear-1-k))+xday) /  &
                    &                  (365.d0*real(kstep))
+!              alpha = real(365*(xyear-k) + xday-183,kind=8) / real(365*kstep,kind=8)
               kx=k
               exit
             endif
@@ -585,6 +621,9 @@ contains
 
     endif
     call closeunit(iu)
+
+    endif ! giss format or not
+
   end subroutine readSurfaceSource
 
 end module TracerSurfaceSource_mod
