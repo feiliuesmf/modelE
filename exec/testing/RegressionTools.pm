@@ -220,11 +220,15 @@ sub runConfiguration
     else
       exit 1;
     fi
-    $restart;
-    if [ -e $expName/fort.2.nc ]; then
-      cp $expName/fort.2.nc $resultsDir/$expName.restart$suffix;
+    if [[ "$rundeck" == "SCMSGPCONT" ]]; then
+       echo "Not restart reproducible";
     else
-      exit 1;
+      $restart;
+      if [ -e $expName/fort.2.nc ]; then
+        cp $expName/fort.2.nc $resultsDir/$expName.restart$suffix;
+      else
+        exit 1;
+      fi
     fi
 EOF
   }

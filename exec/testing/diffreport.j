@@ -140,32 +140,36 @@ deckDiff()
     else
 # compare SERIAL restart reproducibility
       if [ $checkSERIAL -gt 0 ]; then
-        doDiff $deck.SERIAL.$comp.1dy $deck.SERIAL.$comp.restart $deck $comp
 # compare SERIAL baseline (previous day) restart reproducibility
         doDiff $deck.SERIAL.$comp.1hr $baseline/$deck.SERIAL.$comp.1hr $deck $comp
         doDiff $deck.SERIAL.$comp.1dy $baseline/$deck.SERIAL.$comp.1dy $deck $comp
+        if [[ ! "$deck" =~ SCM ]]; then
+          doDiff $deck.SERIAL.$comp.1dy $deck.SERIAL.$comp.restart $deck $comp
+        else
+          echo "  Skip restart reproducibility..."
+        fi
       fi
     fi
-    if [[ "$comp" =~ nag ]]; then
-       echo "skip MPI comparisons when using NAG compiler"
+    if [[ "$comp" =~ nag ]] || [[ "$deck" =~ SCM ]]; then
+       echo "  Skip MPI comparisons when using NAG compiler or SCM rundeck"
     else
 # compare MPI restart reproducibility - 3rd argument ($3) is NPE configuration
-    if [ ! -z $3 ]; then
-      declare -a npeArray=("${!3}")
-      for npe in "${npeArray[@]}"; do
-        if [ $checkMPI -gt 0 ]; then
-          doDiff $deck.MPI.$comp.1dy.np=$npe $deck.MPI.$comp.restart.np=$npe $deck $comp
-        fi
-      done
+      if [ ! -z $3 ]; then
+        declare -a npeArray=("${!3}")
+        for npe in "${npeArray[@]}"; do
+          if [ $checkMPI -gt 0 ]; then
+            doDiff $deck.MPI.$comp.1dy.np=$npe $deck.MPI.$comp.restart.np=$npe $deck $comp
+          fi
+        done
 # compare MPI baseline (previous day) restart reproducibility
-      for npe in "${npeArray[@]}"; do
-        if [ $checkMPI -gt 0 ]; then
-          doDiff $deck.MPI.$comp.1hr.np=$npe $baseline/$deck.MPI.$comp.1hr.np=$npe $deck $comp
-          doDiff $deck.MPI.$comp.1dy.np=$npe $baseline/$deck.MPI.$comp.1dy.np=$npe $deck $comp
-        fi
-      done
-    fi
-    fi # skip MPI comparisons when using NAG compiler
+        for npe in "${npeArray[@]}"; do
+          if [ $checkMPI -gt 0 ]; then
+            doDiff $deck.MPI.$comp.1hr.np=$npe $baseline/$deck.MPI.$comp.1hr.np=$npe $deck $comp
+            doDiff $deck.MPI.$comp.1dy.np=$npe $baseline/$deck.MPI.$comp.1dy.np=$npe $deck $comp
+          fi
+        done
+      fi
+    fi # skip MPI comparisons
 
     if [ "$compileErr" == YES ]; then
       updDeckReport "$deck $comp ***COMPILE_RUNTIME_ERROR***"
