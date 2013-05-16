@@ -741,11 +741,6 @@ c set-up for MPI implementation
       include 'mpif.h'      ! Needed for GLINT2
 #endif
 
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      call initTracerCom
-      call initGhyTracers
-#endif
-
 #ifdef SCM
 !TODO push init_grid SCM option down into INIT_GRID.
       call sync_param( "J_TARG", J_TARG )
@@ -754,6 +749,11 @@ c set-up for MPI implementation
 c initialize the atmospheric domain decomposition
 c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call init_grid(grid, im, jm, lm, CREATE_CAP=.true.)
+#endif
+
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      call initTracerCom
+      call initGhyTracers
 #endif
 
 #ifdef GLINT2
