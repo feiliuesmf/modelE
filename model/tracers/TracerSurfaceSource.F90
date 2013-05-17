@@ -63,7 +63,7 @@ contains
 
     if(is_fbsa(fileName)) then
       call openunit(fileName,iu,.true.)
-      call readEmissionHeader(this, fileName, iu, checkname)
+      call readEmissionHeader(this, tracerName, iu, checkname)
       call closeunit(iu)
     else
       this%tracerName = tracerName
