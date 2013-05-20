@@ -73,6 +73,7 @@ MODULE dist_grid_mod
    PUBLIC :: TRANSPOSE_COLUMN
 !@var GLOBALMIN Generic wrapper for Real
    INTERFACE GLOBALMIN
+      MODULE PROCEDURE GLOBALMIN_I
       MODULE PROCEDURE GLOBALMIN_R
    END INTERFACE
 
@@ -1277,6 +1278,25 @@ MODULE dist_grid_mod
     &     getMpiCommunicator(distGrid), ierr)
 #else
       val_max = val
+#endif
+
+      END SUBROUTINE
+
+! ----------------------------------------------------------------------
+      SUBROUTINE GLOBALMIN_I(distGrid, val, val_min)
+! ----------------------------------------------------------------------
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN)  :: distGrid
+      INTEGER,            INTENT(IN)  :: val
+      INTEGER,            INTENT(OUT) :: val_min
+
+      INTEGER  :: ierr
+
+#ifdef USE_MPI
+      CALL MPI_Allreduce(val, val_min, 1, MPI_INTEGER, MPI_MIN, &
+    &     getMpiCommunicator(distGrid), ierr)
+#else
+      val_min = val
 #endif
 
       END SUBROUTINE
