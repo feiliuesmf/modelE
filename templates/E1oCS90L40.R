@@ -77,11 +77,11 @@ MPI_Support shared dd2d CS_Support
 Data input files:
 AIC=AIC_CS90.nc      ! initial conditions (atm.)      needs GIC, ISTART=2
 GIC=GIC_CS90_1.nc      ! initial conditions (ground)
-OIC=OIC288X180.D1201         ! Levitus ocean intial conditions
-TOPO_OC=Z288X180N            ! ocean fraction and topography
+OIC=OIC288X180.D1201.nc      ! Levitus ocean intial conditions
+TOPO_OC=OZ288X180N.nc        ! ocean fraction and topography
 OFTAB=OFTABLE_NEW               ! ocean function table
 AVR=OPF.E1QX1.L32            ! ocean filter
-KBASIN=KB288X180.modelE      ! ocean basin designations
+KBASIN=KB288X180.modelE.nc   ! ocean basin designations
 TOPO=Z_C90fromZ1QX1N.nc
 SOIL=SOIL_CS90.nc ! soil/topography bdy.conds
 VEG=V_CS90_144X90_5percent.nc

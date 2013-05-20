@@ -56,12 +56,6 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
      *     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
      *     SXMO,SYMO,SZMO, SXXMO,SYYMO,SZZMO, SXYMO,SYZMO,SZXMO
 
-C**** Global arrays needed for i/o, GM,straits,odiff ?
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: 
-     *     MO_glob,UO_glob,VO_glob,UOD_glob,VOD_glob,
-     *     G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
-     *     S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
-
       Real*8 UONP(LMO), !  U component at north pole, points down 90W
      *       VONP(LMO)  !  V component at north pole, points down 0 (GM)
 
@@ -98,12 +92,11 @@ C**** ocean geometry (should this be in a separate module?)
       REAL*8, DIMENSION(IM,2) :: oLON_DG
 !@var  IMAXJ varying number of used longitudes
       INTEGER, DIMENSION(JM) :: IMAXJ
-      INTEGER, DIMENSION(IM,JM) :: LMM,LMU,LMV
+      INTEGER, DIMENSION(:,:), allocatable :: LMM,LMU,LMV
       Integer*4 J40S, !  maximum grid cell below 40S (used in OPFIL)
      *           J1O  !  most southern latitude (J) where ocean exists
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: oLAT2D_DG !distributed latitute array (in degrees)
-      REAL*8, DIMENSION(IM,JM) :: HATMO,HOCEAN,FOCEAN
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: FOCEAN_loc
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: HATMO,HOCEAN,FOCEAN
 C**** ocean related parameters
       INTEGER NDYNO,MDYNO,MSGSO
 !@dbparam DTO timestep for ocean dynamics (s)
@@ -115,18 +108,13 @@ C**** ocean related parameters
       INTEGER :: oJ_0B,oJ_1B
 !@var OPRESS Anomalous pressure at surface of ocean (under ice) (Pa)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: OPRESS ! (IM,JM)
-      REAL*8, DIMENSION(IM,JM) :: OPRESS_glob ! needed for straits ?
 !@var OGEOZ ocean geopotential at surface (m^2/s^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: OGEOZ,OGEOZ_SV
-      REAL*8, DIMENSION(IM,JM) :: OGEOZ_glob, OGEOZ_SV_glob ! for i/o
 !@var OPBOT ocean bottom pressure (diagnostic only) (Pa)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: OPBOT
 
 #ifdef TRACERS_OCEAN
 !@var TRMO,TXMO,TYMO,TZMO tracer amount (+moments) in ocean (kg)
-! for i/o, straits, GM ?
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: 
-     *     TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRMO
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) ::
@@ -159,169 +147,169 @@ C**** ocean related parameters
 
       contains
 
-      subroutine gather_ocean (icase)
+!      subroutine gather_ocean (icase)
+!
+!      use domain_decomp_1d, only: pack_data
+!      use OCEANR_DIM, only : grid=>ogrid
+!
+!      integer, intent(in) :: icase
+!
+!c**** icase=0:full i/o, 1:ini_straits, 2:serialized ocn dynamics
+!      CALL PACK_DATA(grid,   MO   ,    MO_glob)
+!      if (icase.ne.1) then      ! needed for i/o and ODIFF only
+!        CALL PACK_DATA(grid,   UO   ,    UO_glob)
+!        CALL PACK_DATA(grid,   VO   ,    VO_glob)
+!        CALL PACK_DATA(grid,   UOD   ,    UOD_glob)
+!        CALL PACK_DATA(grid,   VOD   ,    VOD_glob)
+!      end if
+!      if (icase.lt.1) then      ! needed for i/o only
+!        CALL PACK_DATA(grid,OGEOZ   , OGEOZ_glob)
+!        CALL PACK_DATA(grid,OGEOZ_SV,OGEOZ_SV_glob)
+!      end if
+!
+!      CALL PACK_DATA(grid,  G0M   ,   G0M_glob)
+!      CALL PACK_DATA(grid,  GXMO  ,  GXMO_glob)
+!      CALL PACK_DATA(grid,  GYMO  ,  GYMO_glob)
+!      CALL PACK_DATA(grid,  GZMO  ,  GZMO_glob)
+!      CALL PACK_DATA(grid,  S0M   ,   S0M_glob)
+!      CALL PACK_DATA(grid,  SXMO  ,  SXMO_glob)
+!      CALL PACK_DATA(grid,  SYMO  ,  SYMO_glob)
+!      CALL PACK_DATA(grid,  SZMO  ,  SZMO_glob)
+!#ifdef TRACERS_OCEAN
+!      CALL PACK_DATA(grid,  TRMO  ,  TRMO_glob)
+!      CALL PACK_DATA(grid,  TXMO  ,  TXMO_glob)
+!      CALL PACK_DATA(grid,  TYMO  ,  TYMO_glob)
+!      CALL PACK_DATA(grid,  TZMO  ,  TZMO_glob)
+!#endif
+!      if (icase.lt.2) return
+!
+!c**** icase=2: still serialized non-i/o parts of ocn dynamics
+!               ! for straits:  mo,G0M,...,S0M,...,TRMO,...,opress
+!      CALL PACK_DATA(grid,  OPRESS,OPRESS_glob)
+!               ! for OCNGM:    mo,G0M,...,S0M,...,TRMO,...
+!               ! for ODIFF:    mo,uo,vo
+!
+!      RETURN
+!      end subroutine gather_ocean
 
-      use domain_decomp_1d, only: pack_data
-      use OCEANR_DIM, only : grid=>ogrid
+!      subroutine scatter_ocean (icase)
+!
+!      use domain_decomp_1d, only: unpack_data
+!      use OCEANR_DIM, only : grid=>ogrid
+!
+!      integer, intent(in) :: icase
+!
+!c**** icase=-1: i/o no_trc 0:full i/o, 1:ini_straits, 2:serial ocn dyn
+!      CALL UNPACK_DATA(grid,       MO_glob,   MO )
+!      if (icase.lt.1) then            ! needed for i/o only
+!        CALL UNPACK_DATA(grid,       UO_glob,   UO )
+!        CALL UNPACK_DATA(grid,       VO_glob,   VO )
+!        CALL UNPACK_DATA(grid,       UOD_glob,   UOD )
+!        CALL UNPACK_DATA(grid,       VOD_glob,   VOD )
+!        CALL UNPACK_DATA(grid,    OGEOZ_glob, OGEOZ   )
+!        CALL UNPACK_DATA(grid, OGEOZ_SV_glob, OGEOZ_SV)
+!      end if
+!
+!      CALL UNPACK_DATA(grid,      G0M_glob,  G0M )
+!      CALL UNPACK_DATA(grid,     GXMO_glob,  GXMO)
+!      CALL UNPACK_DATA(grid,     GYMO_glob,  GYMO)
+!      CALL UNPACK_DATA(grid,     GZMO_glob,  GZMO)
+!      CALL UNPACK_DATA(grid,      S0M_glob,  S0M )
+!      CALL UNPACK_DATA(grid,     SXMO_glob,  SXMO)
+!      CALL UNPACK_DATA(grid,     SYMO_glob,  SYMO)
+!      CALL UNPACK_DATA(grid,     SZMO_glob,  SZMO)
+!#ifdef TRACERS_OCEAN
+!      if (icase.lt.0) return                   ! IC w/o tracers
+!      CALL UNPACK_DATA(grid,     TRMO_glob,  TRMO)
+!      CALL UNPACK_DATA(grid,     TXMO_glob,  TXMO)
+!      CALL UNPACK_DATA(grid,     TYMO_glob,  TYMO)
+!      CALL UNPACK_DATA(grid,     TZMO_glob,  TZMO)
+!#endif
+!      if (icase.lt.2) return
+!
+!c**** icase=2: still serialized non-i/o parts of ocn dynamics
+!               ! for straits: mo,G0M,...,S0M,...,TRMO,...,opress
+!      CALL UNPACK_DATA(grid,   OPRESS_glob,OPRESS)
+!
+!      RETURN
+!      end subroutine scatter_ocean
 
-      integer, intent(in) :: icase
-
-c**** icase=0:full i/o, 1:ini_straits, 2:serialized ocn dynamics
-      CALL PACK_DATA(grid,   MO   ,    MO_glob)
-      if (icase.ne.1) then      ! needed for i/o and ODIFF only
-        CALL PACK_DATA(grid,   UO   ,    UO_glob)
-        CALL PACK_DATA(grid,   VO   ,    VO_glob)
-        CALL PACK_DATA(grid,   UOD   ,    UOD_glob)
-        CALL PACK_DATA(grid,   VOD   ,    VOD_glob)
-      end if
-      if (icase.lt.1) then      ! needed for i/o only
-        CALL PACK_DATA(grid,OGEOZ   , OGEOZ_glob)
-        CALL PACK_DATA(grid,OGEOZ_SV,OGEOZ_SV_glob)
-      end if
-
-      CALL PACK_DATA(grid,  G0M   ,   G0M_glob)
-      CALL PACK_DATA(grid,  GXMO  ,  GXMO_glob)
-      CALL PACK_DATA(grid,  GYMO  ,  GYMO_glob)
-      CALL PACK_DATA(grid,  GZMO  ,  GZMO_glob)
-      CALL PACK_DATA(grid,  S0M   ,   S0M_glob)
-      CALL PACK_DATA(grid,  SXMO  ,  SXMO_glob)
-      CALL PACK_DATA(grid,  SYMO  ,  SYMO_glob)
-      CALL PACK_DATA(grid,  SZMO  ,  SZMO_glob)
-#ifdef TRACERS_OCEAN
-      CALL PACK_DATA(grid,  TRMO  ,  TRMO_glob)
-      CALL PACK_DATA(grid,  TXMO  ,  TXMO_glob)
-      CALL PACK_DATA(grid,  TYMO  ,  TYMO_glob)
-      CALL PACK_DATA(grid,  TZMO  ,  TZMO_glob)
-#endif
-      if (icase.lt.2) return
-
-c**** icase=2: still serialized non-i/o parts of ocn dynamics
-               ! for straits:  mo,G0M,...,S0M,...,TRMO,...,opress
-      CALL PACK_DATA(grid,  OPRESS,OPRESS_glob)
-               ! for OCNGM:    mo,G0M,...,S0M,...,TRMO,...
-               ! for ODIFF:    mo,uo,vo
-
-      RETURN
-      end subroutine gather_ocean
-
-      subroutine scatter_ocean (icase)
-
-      use domain_decomp_1d, only: unpack_data
-      use OCEANR_DIM, only : grid=>ogrid
-
-      integer, intent(in) :: icase
-
-c**** icase=-1: i/o no_trc 0:full i/o, 1:ini_straits, 2:serial ocn dyn
-      CALL UNPACK_DATA(grid,       MO_glob,   MO )
-      if (icase.lt.1) then            ! needed for i/o only
-        CALL UNPACK_DATA(grid,       UO_glob,   UO )
-        CALL UNPACK_DATA(grid,       VO_glob,   VO )
-        CALL UNPACK_DATA(grid,       UOD_glob,   UOD )
-        CALL UNPACK_DATA(grid,       VOD_glob,   VOD )
-        CALL UNPACK_DATA(grid,    OGEOZ_glob, OGEOZ   )
-        CALL UNPACK_DATA(grid, OGEOZ_SV_glob, OGEOZ_SV)
-      end if
-
-      CALL UNPACK_DATA(grid,      G0M_glob,  G0M )
-      CALL UNPACK_DATA(grid,     GXMO_glob,  GXMO)
-      CALL UNPACK_DATA(grid,     GYMO_glob,  GYMO)
-      CALL UNPACK_DATA(grid,     GZMO_glob,  GZMO)
-      CALL UNPACK_DATA(grid,      S0M_glob,  S0M )
-      CALL UNPACK_DATA(grid,     SXMO_glob,  SXMO)
-      CALL UNPACK_DATA(grid,     SYMO_glob,  SYMO)
-      CALL UNPACK_DATA(grid,     SZMO_glob,  SZMO)
-#ifdef TRACERS_OCEAN
-      if (icase.lt.0) return                   ! IC w/o tracers
-      CALL UNPACK_DATA(grid,     TRMO_glob,  TRMO)
-      CALL UNPACK_DATA(grid,     TXMO_glob,  TXMO)
-      CALL UNPACK_DATA(grid,     TYMO_glob,  TYMO)
-      CALL UNPACK_DATA(grid,     TZMO_glob,  TZMO)
-#endif
-      if (icase.lt.2) return
-
-c**** icase=2: still serialized non-i/o parts of ocn dynamics
-               ! for straits: mo,G0M,...,S0M,...,TRMO,...,opress
-      CALL UNPACK_DATA(grid,   OPRESS_glob,OPRESS)
-
-      RETURN
-      end subroutine scatter_ocean
-
-      subroutine gather_straits_to_global (icase)
-      use SparseCommunicator_mod, only: gatherIJ
-      integer, intent(in) :: icase
-
-c**** icase=0:full i/o, 1:ini_straits, 2:serialized ocn dynamics
-      CALL gatherIJ(mySparseComm_type,   MO   ,    MO_glob)
-      if (icase.ne.1) then      ! needed for i/o and ODIFF only
-        CALL gatherIJ(mySparseComm_type,   UO   ,    UO_glob)
-        CALL gatherIJ(mySparseComm_type,   VO   ,    VO_glob)
-      end if
-      if (icase.lt.1) then      ! needed for i/o only
-        CALL gatherIJ(mySparseComm_type,OGEOZ   , OGEOZ_glob)
-        CALL gatherIJ(mySparseComm_type,OGEOZ_SV,OGEOZ_SV_glob)
-      end if
-
-      CALL gatherIJ(mySparseComm_type,  G0M   ,   G0M_glob)
-      CALL gatherIJ(mySparseComm_type,  GXMO  ,  GXMO_glob)
-      CALL gatherIJ(mySparseComm_type,  GYMO  ,  GYMO_glob)
-      CALL gatherIJ(mySparseComm_type,  GZMO  ,  GZMO_glob)
-      CALL gatherIJ(mySparseComm_type,  S0M   ,   S0M_glob)
-      CALL gatherIJ(mySparseComm_type,  SXMO  ,  SXMO_glob)
-      CALL gatherIJ(mySparseComm_type,  SYMO  ,  SYMO_glob)
-      CALL gatherIJ(mySparseComm_type,  SZMO  ,  SZMO_glob)
-#ifdef TRACERS_OCEAN
-      CALL gatherIJ(mySparseComm_type,  TRMO  ,  TRMO_glob)
-      CALL gatherIJ(mySparseComm_type,  TXMO  ,  TXMO_glob)
-      CALL gatherIJ(mySparseComm_type,  TYMO  ,  TYMO_glob)
-      CALL gatherIJ(mySparseComm_type,  TZMO  ,  TZMO_glob)
-#endif
-      if (icase.lt.2) return
-
-c**** icase=2: still serialized non-i/o parts of ocn dynamics
-               ! for straits:  mo,G0M,...,S0M,...,TRMO,...,opress
-      CALL gatherIJ(mySparseComm_type,  OPRESS,OPRESS_glob)
-               ! for OCNGM:    mo,G0M,...,S0M,...,TRMO,...
-               ! for ODIFF:    mo,uo,vo
-
-      RETURN
-      end subroutine gather_straits_to_global
-
-      subroutine scatter_straits_from_global (icase)
-      use SparseCommunicator_mod, only: scatterIJ
-      integer, intent(in) :: icase
-
-c**** icase=-1: i/o no_trc 0:full i/o, 1:ini_straits, 2:serial ocn dyn
-      CALL scatterIJ(mySparseComm_type,       MO_glob,   MO )
-      if (icase.lt.1) then            ! needed for i/o only
-        CALL scatterIJ(mySparseComm_type,       UO_glob,   UO )
-        CALL scatterIJ(mySparseComm_type,       VO_glob,   VO )
-        CALL scatterIJ(mySparseComm_type,    OGEOZ_glob, OGEOZ   )
-        CALL scatterIJ(mySparseComm_type, OGEOZ_SV_glob, OGEOZ_SV)
-      end if
-
-      CALL scatterIJ(mySparseComm_type,      G0M_glob,  G0M )
-      CALL scatterIJ(mySparseComm_type,     GXMO_glob,  GXMO)
-      CALL scatterIJ(mySparseComm_type,     GYMO_glob,  GYMO)
-      CALL scatterIJ(mySparseComm_type,     GZMO_glob,  GZMO)
-      CALL scatterIJ(mySparseComm_type,      S0M_glob,  S0M )
-      CALL scatterIJ(mySparseComm_type,     SXMO_glob,  SXMO)
-      CALL scatterIJ(mySparseComm_type,     SYMO_glob,  SYMO)
-      CALL scatterIJ(mySparseComm_type,     SZMO_glob,  SZMO)
-#ifdef TRACERS_OCEAN
-      if (icase.lt.0) return                   ! IC w/o tracers
-      CALL scatterIJ(mySparseComm_type,     TRMO_glob,  TRMO)
-      CALL scatterIJ(mySparseComm_type,     TXMO_glob,  TXMO)
-      CALL scatterIJ(mySparseComm_type,     TYMO_glob,  TYMO)
-      CALL scatterIJ(mySparseComm_type,     TZMO_glob,  TZMO)
-#endif
-      if (icase.lt.2) return
-
-c**** icase=2: still serialized non-i/o parts of ocn dynamics
-               ! for straits: mo,G0M,...,S0M,...,TRMO,...,opress
-      CALL scatterIJ(mySparseComm_type,   OPRESS_glob,OPRESS)
-
-      RETURN
-      end subroutine scatter_straits_from_global
+!      subroutine gather_straits_to_global (icase)
+!      use SparseCommunicator_mod, only: gatherIJ
+!      integer, intent(in) :: icase
+!
+!c**** icase=0:full i/o, 1:ini_straits, 2:serialized ocn dynamics
+!      CALL gatherIJ(mySparseComm_type,   MO   ,    MO_glob)
+!      if (icase.ne.1) then      ! needed for i/o and ODIFF only
+!        CALL gatherIJ(mySparseComm_type,   UO   ,    UO_glob)
+!        CALL gatherIJ(mySparseComm_type,   VO   ,    VO_glob)
+!      end if
+!      if (icase.lt.1) then      ! needed for i/o only
+!        CALL gatherIJ(mySparseComm_type,OGEOZ   , OGEOZ_glob)
+!        CALL gatherIJ(mySparseComm_type,OGEOZ_SV,OGEOZ_SV_glob)
+!      end if
+!
+!      CALL gatherIJ(mySparseComm_type,  G0M   ,   G0M_glob)
+!      CALL gatherIJ(mySparseComm_type,  GXMO  ,  GXMO_glob)
+!      CALL gatherIJ(mySparseComm_type,  GYMO  ,  GYMO_glob)
+!      CALL gatherIJ(mySparseComm_type,  GZMO  ,  GZMO_glob)
+!      CALL gatherIJ(mySparseComm_type,  S0M   ,   S0M_glob)
+!      CALL gatherIJ(mySparseComm_type,  SXMO  ,  SXMO_glob)
+!      CALL gatherIJ(mySparseComm_type,  SYMO  ,  SYMO_glob)
+!      CALL gatherIJ(mySparseComm_type,  SZMO  ,  SZMO_glob)
+!#ifdef TRACERS_OCEAN
+!      CALL gatherIJ(mySparseComm_type,  TRMO  ,  TRMO_glob)
+!      CALL gatherIJ(mySparseComm_type,  TXMO  ,  TXMO_glob)
+!      CALL gatherIJ(mySparseComm_type,  TYMO  ,  TYMO_glob)
+!      CALL gatherIJ(mySparseComm_type,  TZMO  ,  TZMO_glob)
+!#endif
+!      if (icase.lt.2) return
+!
+!c**** icase=2: still serialized non-i/o parts of ocn dynamics
+!               ! for straits:  mo,G0M,...,S0M,...,TRMO,...,opress
+!      CALL gatherIJ(mySparseComm_type,  OPRESS,OPRESS_glob)
+!               ! for OCNGM:    mo,G0M,...,S0M,...,TRMO,...
+!               ! for ODIFF:    mo,uo,vo
+!
+!      RETURN
+!      end subroutine gather_straits_to_global
+!
+!      subroutine scatter_straits_from_global (icase)
+!      use SparseCommunicator_mod, only: scatterIJ
+!      integer, intent(in) :: icase
+!
+!c**** icase=-1: i/o no_trc 0:full i/o, 1:ini_straits, 2:serial ocn dyn
+!      CALL scatterIJ(mySparseComm_type,       MO_glob,   MO )
+!      if (icase.lt.1) then            ! needed for i/o only
+!        CALL scatterIJ(mySparseComm_type,       UO_glob,   UO )
+!        CALL scatterIJ(mySparseComm_type,       VO_glob,   VO )
+!        CALL scatterIJ(mySparseComm_type,    OGEOZ_glob, OGEOZ   )
+!        CALL scatterIJ(mySparseComm_type, OGEOZ_SV_glob, OGEOZ_SV)
+!      end if
+!
+!      CALL scatterIJ(mySparseComm_type,      G0M_glob,  G0M )
+!      CALL scatterIJ(mySparseComm_type,     GXMO_glob,  GXMO)
+!      CALL scatterIJ(mySparseComm_type,     GYMO_glob,  GYMO)
+!      CALL scatterIJ(mySparseComm_type,     GZMO_glob,  GZMO)
+!      CALL scatterIJ(mySparseComm_type,      S0M_glob,  S0M )
+!      CALL scatterIJ(mySparseComm_type,     SXMO_glob,  SXMO)
+!      CALL scatterIJ(mySparseComm_type,     SYMO_glob,  SYMO)
+!      CALL scatterIJ(mySparseComm_type,     SZMO_glob,  SZMO)
+!#ifdef TRACERS_OCEAN
+!      if (icase.lt.0) return                   ! IC w/o tracers
+!      CALL scatterIJ(mySparseComm_type,     TRMO_glob,  TRMO)
+!      CALL scatterIJ(mySparseComm_type,     TXMO_glob,  TXMO)
+!      CALL scatterIJ(mySparseComm_type,     TYMO_glob,  TYMO)
+!      CALL scatterIJ(mySparseComm_type,     TZMO_glob,  TZMO)
+!#endif
+!      if (icase.lt.2) return
+!
+!c**** icase=2: still serialized non-i/o parts of ocn dynamics
+!               ! for straits: mo,G0M,...,S0M,...,TRMO,...,opress
+!      CALL scatterIJ(mySparseComm_type,   OPRESS_glob,OPRESS)
+!
+!      RETURN
+!      end subroutine scatter_straits_from_global
 
       subroutine alloc_odiff(grid)
       use DOMAIN_DECOMP_1D, only: dist_grid, getDomainBounds
@@ -432,14 +420,12 @@ C****
       USE OCEAN, only : auvel,avvel
 #endif
       USE OCEAN, only : OPRESS,OPBOT, OGEOZ,OGEOZ_SV
-      USE OCEAN, only :
-     *     MO_glob,UO_glob,VO_glob,UOD_glob,VOD_glob,
-     *     G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
-     *     S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
       USE OCEAN, only : use_qus,
      *     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
      *     SXMO,SYMO,SZMO, SXXMO,SYYMO,SZZMO, SXYMO,SYZMO,SZXMO
-      USE OCEAN, only : OXYP,OLAT2D_DG,OJ_BUDG,OWTBUDG,FOCEAN_loc
+      USE OCEAN, only : OXYP,OLAT2D_DG,OJ_BUDG,OWTBUDG
+      USE OCEAN, only : FOCEAN,HATMO,HOCEAN
+      USE OCEAN, only : LMM,LMU,LMV
       USE OCEAN, only : nbyzmax,
      &     nbyzm,nbyzu,nbyzv,nbyzc,
      &     i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv, i1yzc,i2yzc
@@ -467,6 +453,10 @@ C****
 #ifdef TRACERS_OCEAN
       call alloc_ocn_tracer_com
 #endif
+
+      ALLOCATE(   LMM(IM,J_0H:J_1H), STAT = IER)
+      ALLOCATE(   LMU(IM,J_0H:J_1H), STAT = IER)
+      ALLOCATE(   LMV(IM,J_0H:J_1H), STAT = IER)
 
       ALLOCATE(   MO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   UO(IM,J_0H:J_1H,LMO), STAT = IER)
@@ -515,21 +505,9 @@ C****
         lmg = 1
       end if
 
-      ALLOCATE(   MO_glob(IMG,JMG,LMG), STAT = IER)
-      ALLOCATE(   UO_glob(IMG,JMG,LMG), STAT = IER)
-      ALLOCATE(   VO_glob(IMG,JMG,LMG), STAT = IER)
-      ALLOCATE(   UOD_glob(IMG,JMG,LMG), STAT = IER)
-      ALLOCATE(   VOD_glob(IMG,JMG,LMG), STAT = IER)
-      ALLOCATE(   G0M_glob(IMG,JMG,LMG), STAT = IER)
-      ALLOCATE(   GXMO_glob(IMG,JMG,LMG), STAT = IER)
-      ALLOCATE(   GYMO_glob(IMG,JMG,LMG), STAT = IER)
-      ALLOCATE(   GZMO_glob(IMG,JMG,LMG), STAT = IER)
-      ALLOCATE(   S0M_glob(IMG,JMG,LMG), STAT = IER)
-      ALLOCATE(   SXMO_glob(IMG,JMG,LMG), STAT = IER)
-      ALLOCATE(   SYMO_glob(IMG,JMG,LMG), STAT = IER)
-      ALLOCATE(   SZMO_glob(IMG,JMG,LMG), STAT = IER)
-      
-      ALLOCATE( FOCEAN_loc(IM,J_0H:J_1H), STAT = IER)
+      ALLOCATE( FOCEAN(IM,J_0H:J_1H), STAT = IER)
+      ALLOCATE( HATMO(IM,J_0H:J_1H), STAT = IER)
+      ALLOCATE( HOCEAN(IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OPRESS(IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OPBOT (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OGEOZ (IM,J_0H:J_1H), STAT = IER)
@@ -598,14 +576,22 @@ c??   call ALLOC_GM_COM(agrid)
 
       subroutine read_ocean_topo
 C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
-      USE FILEMANAGER, only : openunit,closeunit
-      USE OCEAN, only : IM,JM,FOCEAN,HATMO,HOCEAN
+      USE OCEAN, only : FOCEAN,HATMO,HOCEAN
+      use pario, only : par_open,par_close,read_dist_data
+      use oceanr_dim, only : grid=>ogrid
+      use domain_decomp_1d, only : halo_update
       IMPLICIT NONE
-      INTEGER :: iu_TOPO
-      call openunit("TOPO_OC",iu_TOPO,.true.,.true.)
-      CALL READT (iu_TOPO,0,IM*JM,FOCEAN,1) ! Ocean fraction
-      CALL READT (iu_TOPO,0,IM*JM,HATMO ,4) ! Atmo. Topography
-      CALL READT (iu_TOPO,0,IM*JM,HOCEAN,1) ! Ocean depths
-      call closeunit(iu_TOPO)
+      INTEGER :: fid
+
+      fid = par_open(grid,'TOPO_OC','read')
+      call read_dist_data(grid,fid,'focean',focean)
+      call read_dist_data(grid,fid,'zatmo' ,hatmo )
+      call read_dist_data(grid,fid,'zocean',hocean)
+      call par_close(grid,fid)
+
+      call halo_update(grid,focean)
+      call halo_update(grid,hocean)
+      call halo_update(grid,hatmo)
+
       return
       end subroutine read_ocean_topo

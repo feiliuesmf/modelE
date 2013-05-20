@@ -60,12 +60,12 @@ OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_72x46_input_files"
-OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01 ! ocean initial conditions
+OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01.nc ! ocean initial conditions
 OFTAB=OFTABLE_NEW                    ! ocean function table
 AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
-KBASIN=KB4X513.OCN.gas1              ! ocean basin designations
+KBASIN=KB4X513.OCN.gas1.nc           ! ocean basin designations
 TOPO=Z72X46N.cor4_nocasp.nc          ! topography
-TOPO_OC=Z72X46N_gas.1_nocasp ! ocean bdy.cond
+TOPO_OC=OZ72X46N_gas.1_nocasp.nc ! ocean bdy.cond
 
 RVR=RD_modelE_M.nc                ! river direction file
 NAMERVR=RD_modelE_M.names.txt     ! named river outlets

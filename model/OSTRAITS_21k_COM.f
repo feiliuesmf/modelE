@@ -39,7 +39,8 @@ C****  X  Soya-kaikyo    Above ground
      *     ,SXMST,SZMST
 
 !@var QTYE workspace holding values of QTY at endpoints of straits
-      Real*8 :: OPRESE(2,NMST)
+      integer, dimension(2,nmst) :: LMMe
+      Real*8, dimension(2,nmst) :: OPRESE,HOCEANE
       Real*8, Dimension(2,NMST,LMO) ::
      *       MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME
 

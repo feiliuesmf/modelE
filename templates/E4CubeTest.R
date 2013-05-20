@@ -66,11 +66,11 @@ NAMERVR=RDdistocean_CS32.names.txt  ! named river outlets
 TOP_INDEX=top_index_CS32.nc         ! only used if #define DO_TOPMODEL_RUNOFF
 
   ! ocean
-OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01   ! ocean initial conditions
+OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01.nc ! ocean initial conditions
 OFTAB=OFTABLE_NEW                    ! ocean function table
 AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
-KBASIN=KB4X513.OCN.gas1              ! ocean basin designations
-TOPO_OC=Z72X46N_gas.1_nocasp         ! ocean bdy.cond
+KBASIN=KB4X513.OCN.gas1.nc           ! ocean basin designations
+TOPO_OC=OZ72X46N_gas.1_nocasp.nc     ! ocean bdy.cond
 GLMELT=GLMELT_CS32.nc                   ! glacial melt distribution (on atm grid)
 REMAP=remap72-46C32-32.nc            ! weights for atm-ocean coupling
 

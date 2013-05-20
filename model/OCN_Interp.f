@@ -291,7 +291,7 @@ c*   actual interpolation here
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
       USE OCEAN, only : oIM=>IM, oJM=>JM, oLM=>LMO
-     *                , oFOCEAN_loc=>FOCEAN_loc
+     *                , oFOCEAN_loc=>FOCEAN
      *                , OXYP, oIMAXJ=>IMAXJ
      *                , oCOSI=>COSIC,oSINI=>SINIC
      *                , IVSPO=>IVSP,IVNPO=>IVNP
@@ -691,7 +691,7 @@ C**** do poles
 !@auth Larissa Nazarenko
       USE CONSTANT, only : tf
       USE OCEAN, only : oIM=>IM, oJM=>JM, oLM=>LMO
-     *                , oFOCEAN_loc=>FOCEAN_loc
+     *                , oFOCEAN_loc=>FOCEAN
      *                , OXYP, oIMAXJ=>IMAXJ
      *                , oCOSI=>COSIC,oSINI=>SINIC
      *                , IVSPO=>IVSP,IVNPO=>IVNP
@@ -1547,7 +1547,7 @@ c*
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
       USE OCEAN, only : oIM=>IM,oJM=>JM
-     *                , oFOCEAN_loc=>FOCEAN_loc
+     *                , oFOCEAN_loc=>FOCEAN
 
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only: ntm
@@ -1685,7 +1685,7 @@ c*
 !@auth Larissa Nazarenko
 
       USE OCEAN, only : oIM=>IM,oJM=>JM
-     *                , oFOCEAN_loc=>FOCEAN_loc
+     *                , oFOCEAN_loc=>FOCEAN
 
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only: ntm
