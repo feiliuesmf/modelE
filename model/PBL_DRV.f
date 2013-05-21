@@ -1343,6 +1343,7 @@ c     &     SUBR,'ustar')
 C**** Functions and subroutines for sub-gridscale wind distribution calc
 
       module wspdf_mod
+      use PolynomialInterpolator_mod, only: interpolator2D
 
 !@param kim dimension 1 of lookup table for mean surface wind speed integration
 !@param kjm dimension 2 of lookup table for mean surface wind speed integration
@@ -1353,6 +1354,7 @@ C**** Functions and subroutines for sub-gridscale wind distribution calc
 !@var x11 index of table1 for GCM surface wind speed from 0 to 50 m/s
 !@var x21 index of table1 for sub grid scale velocity scale (sigma)
       REAL*8 :: x11(kim),x21(kjm)
+      type(interpolator2D), save :: wsgInterp
 
       end module wspdf_mod
 
@@ -1399,6 +1401,7 @@ c**** index of table for sub grid scale velocity (sigma) from 0.0001 to 50 m/s
       END DO
 c**** index of table for GCM surface wind speed from 0.0001 to 50 m/s
       x11(:)=x21(:)
+      wsgInterp = interpolator2D(x11,x21,table1)
 
       end subroutine init_wspdf_mod
 
@@ -1530,8 +1533,8 @@ C**** Use approximate value for small sig and unresolved delta function
 !@sum calculates mean surface wind speed using the integral over the
 !@sum probability density function of the wind speed from lookup table
 !@auth Reha Cakmur/Jan Perlwitz
-      use polint_mod
       use wspdf_mod, only : kim,kjm,table1,x11,x21
+      use wspdf_mod, only : wsgInterp
 
       implicit none
 
@@ -1575,9 +1578,7 @@ c     convective velocity scale
         IF (sigma > 0.0005) THEN
           CALL check_upper_limit(sigma,x21(Kjm),fname,subr,vname2)
 c     Linear Polynomial fit (Default)
-          CALL polint2dlin(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
-c     Cubic Polynomial fit (Not Used, Optional)
-c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
+          ans = wsgInterp%interpolate2dlin([wsgcm1,sigma])
           wspdf=exp(ans)
         END IF
       ELSE
@@ -1592,9 +1593,7 @@ c     only over the area with downdrafts (mcfrac).
         IF (sigma > 0.0005) THEN
           CALL check_upper_limit(sigma,x21(Kjm),fname,subr,vname2)
 c     Linear Polynomial fit (Default)
-          CALL polint2dlin(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
-c     Cubic Polynomial fit (Not Used, Optional)
-c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
+          ans = wsgInterp%interpolate2dlin([wsgcm1,sigma])
           work_wspdf1=exp(ans)*mcfrac
         END IF
 
@@ -1603,9 +1602,7 @@ c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
         IF (sigma > 0.0005) THEN
           CALL check_upper_limit(sigma,x21(Kjm),fname,subr,vname2)
 c     Linear Polynomial fit (Default)
-          CALL polint2dlin(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
-c     Cubic Polynomial fit (Not Used, Optional)
-c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
+          ans = wsgInterp%interpolate2dlin([wsgcm1,sigma])
           work_wspdf2=exp(ans)*(1.d0-mcfrac)
         END IF
         wspdf=work_wspdf1+work_wspdf2

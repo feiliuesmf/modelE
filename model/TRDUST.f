@@ -10,7 +10,7 @@
       use fluxes, only : nisurf
       USE socpbl,ONLY : t_pbl_args
       USE tracers_dust,ONLY : imDust,lim,ljm,lkm,table,x1,x2,x3
-      use polint_mod
+      use trdust_drv, only: wsgInterp
       IMPLICIT NONE
 
       INTEGER,INTENT(IN) :: itype
@@ -136,11 +136,8 @@ c     equal to one of the smallest values in the table index
               CALL check_upper_limit(soilvtrsh,x3(Lkm),fname,subr
      &             ,vname3)
 c     Linear Polynomial fit (Default)
-              CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
-     &             soilvtrsh,ans,dy)
-c     Cubic Polynomial fit (Not Used, Optional)
-c              CALL polint3dlicub(x1,x2,x3,table,lim,ljm,lkm,wsgcm1, 
-c     &             sigma,soilvtrsh,ans,dy)
+              ans = wsgInterp%interpolate3dlin([wsgcm1, sigma, 
+     &          soilvtrsh])
               pdfint=exp(ans)
             ELSE
               CALL check_upper_limit(wsgcm1,x1(Lim),fname,subr,vname1)
@@ -148,11 +145,8 @@ c     &             sigma,soilvtrsh,ans,dy)
               CALL check_upper_limit(soilvtrsh,x3(Lkm),fname,subr
      &             ,vname3)
 c     Linear Polynomial fit (Default)
-              CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
-     &             soilvtrsh,ans,dy)
-c     Cubic Polynomial fit (Not Used, Optional) 
-c              CALL polint3dlicub(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,
-c     &             sigma,soilvtrsh,ans,dy)
+              ans = wsgInterp%interpolate3dlin([wsgcm1, sigma, 
+     &          soilvtrsh])
               pdfint=exp(ans)
             END IF
           END IF
@@ -184,11 +178,8 @@ c     equal to one of the smallest values in the table index
               CALL check_upper_limit(soilvtrsh,x3(Lkm),fname,subr
      &             ,vname3)
 c     Linear Polynomial fit (Default)
-              CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
-     &             soilvtrsh,ans,dy)
-c     Cubic Polynomial fit (Not Used, Optional)
-c               call polint3dlicub(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,
-c     &              sigma,soilvtrsh,ans,dy)
+              ans = wsgInterp%interpolate3dlin([wsgcm1, sigma, 
+     &          soilvtrsh])
               workij1=mcfrac*exp(ans)
             ELSE
               CALL check_upper_limit(wsgcm1,x1(Lim),fname,subr,vname1)
@@ -196,11 +187,8 @@ c     &              sigma,soilvtrsh,ans,dy)
               CALL check_upper_limit(soilvtrsh,x3(Lkm),fname,subr
      &             ,vname3)
 c     Linear Polynomial fit (Default)
-              CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
-     &             soilvtrsh,ans,dy)
-c     Cubic Polynomial fit (Not Used, Optional)
-c               CALL polint3dlicub(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,
-c     &              sigma,soilvtrsh,ans,dy)
+              ans = wsgInterp%interpolate3dlin([wsgcm1, sigma, 
+     &          soilvtrsh])
               workij1=mcfrac*exp(ans)
             END IF
           END IF
@@ -225,11 +213,8 @@ c     equal to one of the smallest values in the table index
               CALL check_upper_limit(soilvtrsh,x3(Lkm),fname,subr
      &             ,vname3)
 c     Linear Polynomial fit (Default)
-              CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
-     &             soilvtrsh,ans,dy)
-c     Cubic Polynomial fit (Not Used, Optional)
-c               CALL polint3dlicub(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,
-c     &              sigma,soilvtrsh,ans,dy)
+              ans = wsgInterp%interpolate3dlin([wsgcm1, sigma, 
+     &          soilvtrsh])
               workij2=(1.d0-mcfrac)*exp(ans)
             ELSE
               CALL check_upper_limit(wsgcm1,x1(Lim),fname,subr,vname1)
@@ -237,11 +222,8 @@ c     &              sigma,soilvtrsh,ans,dy)
               CALL check_upper_limit(soilvtrsh,x3(Lkm),fname,subr
      &             ,vname3)
 c     Linear Polynomial fit (Default)
-              CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
-     &             soilvtrsh,ans,dy)
-c     Cubic Polynomial fit (Not Used, Optional)
-c               CALL polint3dlicub(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,
-c     &              sigma,soilvtrsh,ans,dy)
+              ans = wsgInterp%interpolate3dlin([wsgcm1, sigma, 
+     &          soilvtrsh])
               workij2=(1.d0-mcfrac)*exp(ans)
             END IF
           END IF
