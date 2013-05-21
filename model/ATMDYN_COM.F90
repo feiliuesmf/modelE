@@ -16,9 +16,10 @@
                 DSIG(LM),   &  ! =  sige(1:lm)-sige(2:lm+1),
               byDSIG(LM)       ! =  1./DSIG
 
-!@var PIT = pressure tendency (mb m^2/s)
-      Real*8,Allocatable :: PU(:,:,:), PV(:,:,:), SD(:,:,:), PIT(:,:), &
-                           DUT(:,:,:),DVT(:,:,:),SPA(:,:,:),CONV(:,:,:)
+!@var MU,MV,MW,CONV (kg/s) = mass fluxes
+      Real*8,Allocatable :: MU(:,:,:), MV(:,:,:), MW(:,:,:),CONV(:,:,:), &
+                            PU(:,:,:), PV(:,:,:), SD(:,:,:), &
+                           DUT(:,:,:),DVT(:,:,:),SPA(:,:,:)
 
 !@var WCP = vertical mass flux in a constant-pressure vertical
 !@+   coordinate whose pressure levels are the global means of each layer.
@@ -84,7 +85,7 @@
       Subroutine ALLOC_DYNAMICS (GRID)
       Use DOMAIN_DECOMP_ATM, Only: DIST_GRID, AM_I_ROOT
       Use RESOLUTION, Only: LM,LS1, PSFMPT,PLBOT,PTOP
-      Use DYNAMICS, Only: SIGE,SIG,DSIG,BYDSIG, PU,PV,SD,PIT,CONV,DUT,DVT,SPA, SMASS,WCP,WCPsig
+      Use DYNAMICS, Only: SIGE,SIG,DSIG,BYDSIG, MU,MV,MW,CONV, PU,PV,SD, DUT,DVT,SPA, SMASS,WCP,WCPsig
       Use ATM_COM,  Only: LM_REQ, PL00,PMIDL00,PDSIGL00,AML00,BYAML00,PEDNL00
       Implicit  None
       TYPE (DIST_GRID), Intent(In) :: GRID
@@ -108,17 +109,18 @@
       Call CALC_VERT_AMP (PSFMPT,LMR,PL00,AML00,PDSIGL00,PEDNL00,PMIDL00)
       BYAML00(:) = 1 / AML00(:)
 
-      Allocate (PU(I1H:INH,J1H:JNH,LM),  PV(I1H:INH,J1H:JNH,LM),  SD(I1H:INH,J1H:JNH,LM-1), &
+      Allocate (MU(I1H:INH,J1H:JNH,LM),  MV(I1H:INH,J1H:JNH,LM),  MW(I1H:INH,J1H:JNH,LM-1), &
+              CONV(I1H:INH,J1H:JNH,LM), &
+                PU(I1H:INH,J1H:JNH,LM),  PV(I1H:INH,J1H:JNH,LM),  SD(I1H:INH,J1H:JNH,LM-1), &
                DUT(I1H:INH,J1H:JNH,LM), DVT(I1H:INH,J1H:JNH,LM), SPA(I1H:INH,J1H:JNH,LM), &
-              CONV(I1H:INH,J1H:JNH,LM), PIT(I1H:INH,J1H:JNH), &
             WCPsig(I1H:INH,J1H:JNH,LM), WCP(I1H:INH,J1H:JNH,LM), &
                      SMASS(J1H:JNH),  Stat=IER)
 
 ! correct or wrong, but being static all arrays were initialized
 ! to zero by default. They have to be initialized to something now
 ! to avoid floating point exceptions...
-      PU(:,:,:) = 0  ;  PV(:,:,:) = 0  ;  CONV(:,:,:) = 0  ;  PIT(:,:) = 0
-
+      MU(:,:,:) = 0  ;  MV(:,:,:) = 0  ;  CONV(:,:,:) = 0
+      PU(:,:,:) = 0  ;  PV(:,:,:) = 0
       EndSubroutine ALLOC_DYNAMICS
 !!!#endif
 
