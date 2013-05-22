@@ -46,15 +46,40 @@
 #ifdef TRACERS_Alkalinity
      .                    ,caexp
 #endif
+
+#ifdef OBIO_RUNOFF
+#ifdef NITR_RUNOFF
+!     .                    ,rnitrmflo_loc
+     .                    ,rnitrconc_loc
+#endif
+#ifdef DIC_RUNOFF
+     .                    ,rdicconc_loc
+#endif
+#ifdef DOC_RUNOFF
+     .                    ,rdocconc_loc
+#endif
+#ifdef SILI_RUNOFF
+     .                    ,rsiliconc_loc
+#endif
+#ifdef IRON_RUNOFF
+     .                    ,rironconc_loc
+#endif
+#ifdef POC_RUNOFF
+     .                    ,rpocconc_loc
+#endif
+#ifdef ALK_RUNOFF
+     .                    ,ralkconc_loc
+#endif
+#endif
+
 #ifdef OBIO_ON_GARYocean
      .                    ,obio_deltat,nstep0
      .                    ,tracer =>tracer_loc        
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es,ij_pp
-     .                 ,ij_cexp,ij_lim,ij_wsd,ij_ndet
-     .                 ,ij_DICrhs1,ij_DICrhs2,ij_DICrhs3,ij_DICrhs4
-     .                 ,ij_DICrhs5,ij_xchl
+     .                 ,ij_cexp,ij_lim,ij_wsd,ij_ndet,ij_xchl
+     .                 ,ij_rhs
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                 ,ij_flux
@@ -63,6 +88,33 @@
 #ifdef TRACERS_Alkalinity
       USE ODIAG, only: ij_fca
 #endif
+
+#ifdef OBIO_RUNOFF
+#ifdef NITR_RUNOFF
+      USE ODIAG, only: ij_rnitrconc
+!     .                 ,ij_rnitrmflo
+#endif
+#ifdef DIC_RUNOFF
+      USE ODIAG, only: ij_rdicconc
+#endif
+#ifdef DOC_RUNOFF
+      USE ODIAG, only:  ij_rdocconc
+#endif
+#ifdef SILI_RUNOFF
+      USE ODIAG, only:  ij_rsiliconc
+#endif
+#ifdef IRON_RUNOFF
+      USE ODIAG, only:  ij_rironconc
+#endif
+#ifdef POC_RUNOFF
+      USE ODIAG, only:  ij_rpocconc
+#endif
+#ifdef ALK_RUNOFF
+      USE ODIAG, only:  ij_ralkconc
+#endif
+#endif
+
+
       USE ODIAG, only : oij=>oij_loc
 #endif
 #ifndef OBIO_ON_GARYocean    /* HYCOM only */
@@ -73,6 +125,9 @@
      .    ,pCO2av_loc, pp2tot_dayav_loc, cexpav_loc
 #ifdef TRACERS_Alkalinity
      .    ,caexp_loc=>caexpij,caexpav_loc
+#endif
+#ifdef OBIO_RUNOFF
+! will have something here
 #endif
 #endif
 
@@ -794,6 +849,7 @@ cdiag  endif
  108  format(i6,a/(12x,i3,11(1x,es9.2)))
  109  format(i6,a/(12x,i3,7(1x,es9.2)))
 
+
        !------------------------------------------------------------
 
 #ifdef OBIO_ON_GARYocean
@@ -860,8 +916,8 @@ cdiag     endif
 
       !------------------------------------------------------------
       !integrate rhs vertically 
-      do ll= 1, 16
-      do nt= 1, ntrac
+      do ll= 1, 17
+      do nt= 1, ntrac-1
       rhs_obio(i,j,nt,ll) = 0.d0
       do k = 1, kdm
 #ifdef OBIO_ON_GARYocean
@@ -949,21 +1005,32 @@ cdiag     endif
       endif
 
 #ifdef OBIO_ON_GARYocean
-      OIJ(I,J,IJ_DICrhs1)=OIJ(I,J,IJ_DICrhs1)+rhs_obio(i,j,14,5)  
-      OIJ(I,J,IJ_DICrhs2)=OIJ(I,J,IJ_DICrhs2)+rhs_obio(i,j,14,10)  
-      OIJ(I,J,IJ_DICrhs3)=OIJ(I,J,IJ_DICrhs3)+rhs_obio(i,j,14,14)  
-      OIJ(I,J,IJ_DICrhs4)=OIJ(I,J,IJ_DICrhs4)+rhs_obio(i,j,14,15)  
-      OIJ(I,J,IJ_DICrhs5)=OIJ(I,J,IJ_DICrhs5)+rhs_obio(i,j,14,16)  
+      do nt=1,ntrac-1   ! don't include unused inert tracer
+      do ll=1,17
+      OIJ(I,J,IJ_rhs(nt,ll)) = OIJ(I,J,IJ_rhs(nt,ll))
+     .                                    + rhs_obio(i,j,nt,ll)  ! all terms in rhs
+      enddo
+      enddo
 #endif
 
       if (vrbos) then
-       print*, 'OBIO TENDENCIES, 1-16, 1,7'
+       print*, 'OBIO TENDENCIES, 1-17, 1,7'
        do k=1,1
-        write(*,'(16(e9.2,1x))')((rhs(k,nt,ll),ll=1,16),nt=1,7)
-         print*, 'OBIO TENDENCIES, 1-16, 8,14'
-        write(*,'(16(e9.2,1x))')((rhs(k,nt,ll),ll=1,16),nt=8,ntrac-1)
+        write(*,'(17(e9.2,1x))')((rhs(k,nt,ll),ll=1,17),nt=1,7)
+         print*, 'OBIO TENDENCIES, 1-17, 8,14'
+        write(*,'(17(e9.2,1x))')((rhs(k,nt,ll),ll=1,17),nt=8,ntrac-1)
        enddo
       endif
+
+
+!      if (i.eq.169 .and. j.eq.59) then  ! test loc at nile mouth
+!        write(*,'(a,17(e12.4,1x))') 'dic rhs = ',(rhs(1,14,ll),ll=1,17)
+!        write(*,'(a,17(e12.4,1x))') 'dic rhs_obio='
+!     .                   ,(rhs_obio(i,j,14,ll),ll=1,17)
+!        write(*,*) 'OIJ(I,J,IJ_rhs(14,17))=',OIJ(I,J,IJ_rhs(14,17))
+!      endif
+
+
 
 !      write(*,'(a,3i5,16(e12.4,1x))')'obio_model, ironrhs:',
 !     .  nstep,i,j,(rhs_obio(i,j,4,ll),ll=1,16)
@@ -1103,6 +1170,31 @@ cdiag     endif
 ! NOT FOR HYCOM
 #ifdef TRACERS_OceanBiology
        OIJ(I,J,IJ_flux) = OIJ(I,J,IJ_flux) + ao_co2flux      !air-sea CO2 flux(watson)
+#endif
+#endif
+
+#ifdef OBIO_RUNOFF
+#ifdef NITR_RUNOFF
+!       OIJ(I,J,IJ_rnitrmflo) = OIJ(I,J,IJ_rnitrmflo)+rnitrmflo_loc(i,j)  ! riverine nitr mass flow from dC (kg/s)
+       OIJ(I,J,IJ_rnitrconc) = OIJ(I,J,IJ_rnitrconc)+rnitrconc_loc(i,j)  ! riverine nitr conc from dC (kg/kg)
+#endif
+#ifdef DIC_RUNOFF
+       OIJ(I,J,IJ_rdicconc) = OIJ(I,J,IJ_rdicconc)+rdicconc_loc(i,j)     ! riverine dic conc from dC (kg/kg)
+#endif
+#ifdef DOC_RUNOFF
+       OIJ(I,J,IJ_rdocconc) = OIJ(I,J,IJ_rdocconc)+rdocconc_loc(i,j)     ! riverine doc conc from dC (kg/kg)
+#endif
+#ifdef SILI_RUNOFF
+       OIJ(I,J,IJ_rsiliconc) = OIJ(I,J,IJ_rsiliconc)+rsiliconc_loc(i,j)  ! riverine silica conc from dC (kg/kg)
+#endif
+#ifdef IRON_RUNOFF
+       OIJ(I,J,IJ_rironconc) = OIJ(I,J,IJ_rironconc)+rironconc_loc(i,j)  ! riverine iron conc from dC (kg/kg)
+#endif
+#ifdef POC_RUNOFF
+       OIJ(I,J,IJ_rpocconc) = OIJ(I,J,IJ_rpocconc)+rpocconc_loc(i,j)     ! riverine poc conc from dC (kg/kg)
+#endif
+#ifdef ALK_RUNOFF
+       OIJ(I,J,IJ_ralkconc) = OIJ(I,J,IJ_ralkconc)+ralkconc_loc(i,j)     ! riverine alkalinity conc from A-S (mol/kg)
 #endif
 #endif
 

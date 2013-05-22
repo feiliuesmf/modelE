@@ -18,6 +18,31 @@ c
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
      .                    ,C_tend,wsdet,gro,obio_deltath,obio_deltat 
 
+#ifdef OBIO_RUNOFF
+#ifdef NITR_RUNOFF
+!     .                    ,rnitrmflo_loc
+     .                    ,rnitrconc_loc
+#endif
+#ifdef DIC_RUNOFF
+     .                    ,rdicconc_loc
+#endif
+#ifdef DOC_RUNOFF
+     .                    ,rdocconc_loc
+#endif
+#ifdef SILI_RUNOFF
+     .                    ,rsiliconc_loc
+#endif
+#ifdef IRON_RUNOFF
+     .                    ,rironconc_loc
+#endif
+#ifdef POC_RUNOFF
+     .                    ,rpocconc_loc
+#endif
+#ifdef ALK_RUNOFF
+     .                    ,ralkconc_loc
+#endif
+      USE pario
+#endif
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
       USE OCEAN, only : LMOM=>LMM,ZOE=>ZE,focean,hocean
@@ -38,6 +63,7 @@ c
       integer imon,ihr,nrec,ichan
       integer np,lambda,ic
       integer icd,ntr,ich,ih,iu_fac
+      integer fid
       real saw,sbw,sac,sbc
       real*4  facirr4(nh,nch,5,ncd)
 
@@ -51,7 +77,7 @@ c
       character*50 title
 !     character*50 cfle
       character cacbc*11,cabw*10
-      character*80 filename
+      character*80 filename,fn
 
       data cacbc,cabw /'acbc25b.dat','abw25b.dat'/
 
@@ -517,6 +543,60 @@ c  Read in factors to compute average irradiance
         call bio_inicond2D_g(filename,atmFe(:,:,:),.true.)
 #else
         call bio_inicond2D(filename,atmFe(:,:,:),.true.)
+#endif
+
+#ifdef OBIO_RUNOFF
+! read in nutrient concentrations, already regridded to model grid
+	if (AM_I_ROOT()) then
+	print*, '    '
+	print*, 'reading nutrient runoff data.....'
+	print*, '    '
+	endif
+#ifdef NITR_RUNOFF
+!        filename='rnitr_mflo'
+        filename='rnitr_conc'
+	fid=par_open(ogrid,filename,'read')
+!	call read_dist_data(ogrid,fid,'din',rnitrmflo_loc)
+	call read_dist_data(ogrid,fid,'din',rnitrconc_loc)
+	call par_close(ogrid,fid)
+#endif
+#ifdef DIC_RUNOFF
+	filename='rdic_conc'
+	fid=par_open(ogrid,filename,'read')
+	call read_dist_data(ogrid,fid,'dic',rdicconc_loc)
+	call par_close(ogrid,fid)
+	write(*,*)'reading dic from',filename
+#endif
+#ifdef DOC_RUNOFF
+	filename='rdoc_conc'
+	fid=par_open(ogrid,filename,'read')
+	call read_dist_data(ogrid,fid,'doc',rdocconc_loc)
+	call par_close(ogrid,fid)
+#endif
+#ifdef SILI_RUNOFF
+	filename='rsili_conc'
+	fid=par_open(ogrid,filename,'read')
+	call read_dist_data(ogrid,fid,'sil',rsiliconc_loc)
+	call par_close(ogrid,fid)
+#endif
+#ifdef IRON_RUNOFF
+	filename='riron_conc'
+	fid=par_open(ogrid,filename,'read')
+	call read_dist_data(ogrid,fid,'fe',rironconc_loc)
+	call par_close(ogrid,fid)
+#endif
+#ifdef POC_RUNOFF
+	filename='rpoc_conc'
+	fid=par_open(ogrid,filename,'read')
+	call read_dist_data(ogrid,fid,'poc',rpocconc_loc)
+	call par_close(ogrid,fid)
+#endif
+#ifdef ALK_RUNOFF
+	filename='ralk_conc'
+	fid=par_open(ogrid,filename,'read')
+	call read_dist_data(ogrid,fid,'alk',ralkconc_loc)
+	call par_close(ogrid,fid)
+#endif
 #endif
 
 #ifdef TRACERS_Alkalinity

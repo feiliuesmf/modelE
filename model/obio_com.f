@@ -38,6 +38,34 @@ c
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo_glob !tot chlorophyl at surf. layer
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: rhs_obio      !rhs matrix
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: chng_by       !integr tendency for total C
+
+#ifdef OBIO_RUNOFF
+
+#ifdef NITR_RUNOFF
+!      real, ALLOCATABLE, DIMENSION(:,:)    :: rnitrmflo_loc      ! riverine nitrate mass flow rate (kg/s)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rnitrconc_loc      ! riverine nitrate concentration (kg/kg)
+#endif
+#ifdef DIC_RUNOFF
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rdicconc_loc       ! riverine dic concentration (kg/kg)
+#endif
+#ifdef DOC_RUNOFF
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rdocconc_loc       ! riverine doc concentration (kg/kg)
+#endif 
+#ifdef SILI_RUNOFF
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rsiliconc_loc      ! riverine silica concentration (kg/kg)
+#endif
+#ifdef IRON_RUNOFF
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rironconc_loc      ! riverine iron concentration (kg/kg)
+#endif
+#ifdef POC_RUNOFF
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rpocconc_loc       ! riverine poc concentration (kg/kg)
+#endif
+#ifdef ALK_RUNOFF
+      real, ALLOCATABLE, DIMENSION(:,:)    :: ralkconc_loc       ! riverine alkalinity concentration (mol/kg)
+#endif
+
+#endif
+
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
       real, ALLOCATABLE, DIMENSION(:,:,:,:) :: tracav, tracav_loc
       real, ALLOCATABLE, DIMENSION(:,:,:)   :: plevav, plevav_loc
@@ -106,6 +134,31 @@ c
 #ifdef TRACERS_Alkalinity
       real A_tend(kdm)
 #endif
+#ifdef OBIO_RUNOFF
+
+#ifdef NITR_RUNOFF
+      real rnitrconc_ij
+!     .    , rnitrmflo_ij
+#endif
+#ifdef DIC_RUNOFF
+      real rdicconc_ij
+#endif
+#ifdef DOC_RUNOFF
+      real rdocconc_ij
+#endif
+#ifdef SILI_RUNOFF
+      real rsiliconc_ij
+#endif
+#ifdef IRON_RUNOFF
+      real rironconc_ij
+#endif
+#ifdef POC_RUNOFF
+      real rpocconc_ij
+#endif
+#ifdef ALK_RUNOFF
+      real ralkconc_ij
+#endif
+#endif
 
       real rmuplsr(kdm,nchl)                  !growth+resp 
       real D_tend(kdm,ndet)                   !detrtial tendency
@@ -126,7 +179,7 @@ C endif
       real :: gro(kdm,nchl)                   !realized growth rate
       integer :: day_of_month, hour_of_day
 
-      real :: rhs(kdm,ntrac,16)         !secord arg-refers to tracer definition 
+      real :: rhs(kdm,ntrac,17)         !secord arg-refers to tracer definition 
                                         !we are not using n_inert (always ntrac-1)
                                         !second argument refers to process that
                                         !contributes to tendency 
@@ -225,8 +278,34 @@ c**** Extract domain decomposition info
       ALLOCATE(pp2tot_day_glob(idm,jdm))
       ALLOCATE(tot_chlo(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(tot_chlo_glob(idm,jdm))
-      ALLOCATE(rhs_obio(i_0h:i_1h,j_0h:j_1h,ntrac,16))
+      ALLOCATE(rhs_obio(i_0h:i_1h,j_0h:j_1h,ntrac,17))
       ALLOCATE(chng_by(i_0h:i_1h,j_0h:j_1h,14))
+
+#ifdef OBIO_RUNOFF
+#ifdef NITR_RUNOFF
+!      ALLOCATE(rnitrmflo_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(rnitrconc_loc(i_0h:i_1h,j_0h:j_1h))
+#endif
+#ifdef DIC_RUNOFF
+      ALLOCATE(rdicconc_loc(i_0h:i_1h,j_0h:j_1h))
+#endif
+#ifdef DOC_RUNOFF
+      ALLOCATE(rdocconc_loc(i_0h:i_1h,j_0h:j_1h))
+#endif
+#ifdef SILI_RUNOFF
+      ALLOCATE(rsiliconc_loc(i_0h:i_1h,j_0h:j_1h))
+#endif
+#ifdef IRON_RUNOFF
+      ALLOCATE(rironconc_loc(i_0h:i_1h,j_0h:j_1h))
+#endif
+#ifdef POC_RUNOFF
+      ALLOCATE(rpocconc_loc(i_0h:i_1h,j_0h:j_1h))
+#endif
+#ifdef ALK_RUNOFF
+      ALLOCATE(ralkconc_loc(i_0h:i_1h,j_0h:j_1h))
+#endif
+#endif
+
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
       ALLOCATE(ao_co2flux_loc(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(ao_co2flux_glob(idm,jdm))

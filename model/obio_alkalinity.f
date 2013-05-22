@@ -47,6 +47,14 @@
      .      npratio,uMtomgm3,cnratio,bn,zc
       USE obio_com, only: P_tend,p1d,pp2_1d,dp1d,A_tend,
      .      rhs,alk1d,caexp,kzc
+#ifdef OBIO_RUNOFF
+#ifdef ALK_RUNOFF
+     .      ,ralkconc_loc(i,j)
+      USE OFLUXES, only:  oFLOWO
+      USE MODEL_COM, only: dtsrc
+#endif
+#endif
+
 
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only: nstep=> itime
@@ -178,6 +186,18 @@
 !    .   nstep,i,j,k,rhs(k,15,1),rhs(k,15,5),A_tend(k)
 
       enddo
+
+#ifdef OBIO_RUNOFF
+#ifdef ALK_RUNOFF
+      term = ralkconc_loc(i,j)
+     . * oFLOWO(i,j)/dtsrc           ! mol/kg,w => mol/m2,w/s
+     . / dp1d(1)                     ! mol/m2,w/s => mol/m3,w/s
+     . * 1.d3                        ! mol/m3,w/s => mmol/m3,w/s
+     . * 3600.                       ! mmol/m3,w/s => mmol/m3/hr
+      rhs(1,15,17) = term
+      A_tend(1) = A_tend(1) + term
+#endif
+#endif 
 
       !for consistency, keep term that goes into rhs table in uM/hr = mili-mol,N/m3/hr
       !convert A_tend terms into uE/kg/hr, the actual units of alkalinity 

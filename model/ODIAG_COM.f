@@ -6,6 +6,9 @@
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm
 #endif
+#ifdef TRACERS_OceanBiology
+      USE obio_dim, only:  ntrac
+#endif
       USE OCEAN, only : im,jm,lmo
       USE STRAITS, only : nmst
       USE MDIAG_COM, only : sname_strlen,units_strlen,lname_strlen
@@ -14,7 +17,7 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=70,KOIJL=38,KOL=6,KOLNST=12,KOIJmm=10
+      INTEGER, PARAMETER :: KOIJ=350,KOIJL=38,KOL=6,KOLNST=12,KOIJmm=10
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJmm lat-lon ocean min/max diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
@@ -56,17 +59,45 @@
        character(len=1)str1
        character(len=4)str2
        character(len=5)str3
+       character(len=4)str4
+       character(len=5)str5
+       character(len=9)str6
        INTEGER :: IJ_dic,IJ_pCO2,IJ_nitr,IJ_diat,ij_herb
      .           ,ij_amm,ij_sil,ij_iron,ij_chlo,ij_cyan
      .           ,ij_cocc,ij_doc,IJ_alk,IJ_dayl,ij_sunz,ij_solz
      .           ,ij_flux,ij_Ed,ij_Es,ij_cexp,ij_pp,ij_wsd
-     .           ,ij_lim(4,5),ilim,ij_ndet
-     .           ,ij_DICrhs1,ij_DICrhs2   
-     .           ,ij_DICrhs3,ij_DICrhs4,ij_DICrhs5,ij_xchl   
+     .           ,ij_lim(4,5),ilim,ij_ndet,ij_xchl   
      .           ,ij_pp1,ij_pp2,ij_pp3,ij_pp4
+     .           ,ij_rhs(ntrac-1,17),ll
 #ifdef TRACERS_Alkalinity
      .           ,ij_fca
 #endif
+
+#ifdef OBIO_RUNOFF
+#ifdef NITR_RUNOFF
+!     .           ,ij_rnitrmflo
+     .           ,ij_rnitrconc
+#endif
+#ifdef DIC_RUNOFF
+     .           ,ij_rdicconc
+#endif
+#ifdef DOC_RUNOFF
+     .           ,ij_rdocconc
+#endif
+#ifdef SILI_RUNOFF
+     .           ,ij_rsiliconc
+#endif
+#ifdef IRON_RUNOFF
+     .           ,ij_rironconc
+#endif
+#ifdef POC_RUNOFF
+     .           ,ij_rpocconc
+#endif
+#ifdef ALK_RUNOFF
+     .           ,ij_ralkconc
+#endif
+#endif
+
 #endif
 
 !@var IJ_xxx Names for OIJmm diagnostics
@@ -1341,46 +1372,6 @@ c
       scale_oij(k)=1
 
       k=k+1
-      IJ_DICrhs1=k
-      lname_oij(k)="DIC rhs1"
-      sname_oij(k)="oij_DICrhs1"
-      units_oij(k)="mili-molC/hr"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_DICrhs2=k
-      lname_oij(k)="DIC rhs2"
-      sname_oij(k)="oij_DICrhs2"
-      units_oij(k)="mili-molC/hr"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_DICrhs3=k
-      lname_oij(k)="DIC rhs3"
-      sname_oij(k)="oij_DICrhs3"
-      units_oij(k)="mili-molC/hr"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_DICrhs4=k
-      lname_oij(k)="DIC rhs4"
-      sname_oij(k)="oij_DICrhs4"
-      units_oij(k)="mili-molC/hr"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_DICrhs5=k
-      lname_oij(k)="DIC rhs5"
-      sname_oij(k)="oij_DICrhs5"
-      units_oij(k)="mili-molC/hr"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
       IJ_nitr=k
       lname_oij(k)="Surface ocean Nitrates"
       sname_oij(k)="oij_nitr"
@@ -1534,6 +1525,80 @@ c
       scale_oij(k)=1
 #endif
 
+#ifdef OBIO_RUNOFF
+#ifdef NITR_RUNOFF
+!      k=k+1
+!      IJ_rnitrmflo=k
+!      lname_oij(k)="Nitrate mass flow from rivers"
+!      sname_oij(k)="oij_rnitrmflo"
+!      units_oij(k)="kg/s"
+!      ia_oij(k)=ia_src
+!      scale_oij(k)=1
+
+       k=k+1
+       IJ_rnitrconc=k
+       lname_oij(k)="Nitrate conc in runoff"
+       sname_oij(k)="oij_rnitrconc"
+       units_oij(k)="kg/kg"
+       ia_oij(k)=ia_src
+       scale_oij(k)=1
+#endif
+#ifdef DIC_RUNOFF
+       k=k+1
+       IJ_rdicconc=k
+       lname_oij(k)="DIC conc in runoff"
+       sname_oij(k)="oij_rdicconc"
+       units_oij(k)="kg/kg"
+       ia_oij(k)=ia_src
+       scale_oij(k)=1  
+#endif
+#ifdef DOC_RUNOFF
+       k=k+1
+       IJ_rdocconc=k
+       lname_oij(k)="DOC conc in runoff"
+       sname_oij(k)="oij_rdocconc"
+       units_oij(k)="kg/kg"
+       ia_oij(k)=ia_src
+       scale_oij(k)=1
+#endif
+#ifdef SILI_RUNOFF
+       k=k+1
+       IJ_rsiliconc=k
+       lname_oij(k)="silica conc in runoff"
+       sname_oij(k)="oij_rsiliconc"
+       units_oij(k)="kg/kg"
+       ia_oij(k)=ia_src
+       scale_oij(k)=1
+#endif
+#ifdef IRON_RUNOFF
+       k=k+1
+       IJ_rironconc=k
+       lname_oij(k)="iron conc in runoff"
+       sname_oij(k)="oij_rironconc"
+       units_oij(k)="kg/kg"
+       ia_oij(k)=ia_src
+       scale_oij(k)=1
+#endif
+#ifdef POC_RUNOFF
+       k=k+1
+       IJ_rpocconc=k
+       lname_oij(k)="poc conc in runoff"
+       sname_oij(k)="oij_rpocconc"
+       units_oij(k)="kg/kg"
+       ia_oij(k)=ia_src
+       scale_oij(k)=1
+#endif
+#ifdef ALK_RUNOFF
+       k=k+1
+       IJ_ralkconc=k
+       lname_oij(k)="alkalinity conc in runoff"
+       sname_oij(k)="oij_ralkconc"
+       units_oij(k)="mol/kg"
+       ia_oij(k)=ia_src
+       scale_oij(k)=1
+#endif
+#endif
+
       k=k+1
       IJ_pp=k
       lname_oij(k)="Depth integrated PP"
@@ -1561,6 +1626,54 @@ c
         IJ_lim(nt,ilim) = k
         lname_oij(k)=str3
         sname_oij(k)=str3
+        units_oij(k)="?"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+      enddo
+      enddo
+
+      do nt=1,ntrac-1   ! don't include unused inert tracer
+      do ll=1,17
+        if (nt.eq.1)str4 = 'nitr'
+        if (nt.eq.2)str4 = 'ammo'
+        if (nt.eq.3)str4 = 'sili'
+        if (nt.eq.4)str4 = 'iron'
+        if (nt.eq.5)str4 = 'diat'
+        if (nt.eq.6)str4 = 'chlo'
+        if (nt.eq.7)str4 = 'cyan'
+        if (nt.eq.8)str4 = 'cocc'
+        if (nt.eq.9)str4 = 'herb'
+        if (nt.eq.10)str4 = 'ndet'
+        if (nt.eq.11)str4 = 'sdet'
+        if (nt.eq.12)str4 = 'idet'
+        if (nt.eq.13)str4 = 'doc_'
+        if (nt.eq.14)str4 = 'dic_'
+        if (nt.eq.15)str4 = 'alk_'
+
+        if (ll.eq.1)str5 = 'rhs1_'   ! see rhs_obio_matrix.doc for
+        if (ll.eq.2)str5 = 'rhs2_'   ! explanation of rhs terms
+        if (ll.eq.3)str5 = 'rhs3_'
+        if (ll.eq.4)str5 = 'rhs4_'
+        if (ll.eq.5)str5 = 'rhs5_'
+        if (ll.eq.6)str5 = 'rhs6_'
+        if (ll.eq.7)str5 = 'rhs7_'
+        if (ll.eq.8)str5 = 'rhs8_'
+        if (ll.eq.9)str5 = 'rhs9_'
+        if (ll.eq.10)str5 = 'rhs10'
+        if (ll.eq.11)str5 = 'rhs11'
+        if (ll.eq.12)str5 = 'rhs12'
+        if (ll.eq.13)str5 = 'rhs13'
+        if (ll.eq.14)str5 = 'rhs14'
+        if (ll.eq.15)str5 = 'rhs15'
+        if (ll.eq.16)str5 = 'rhs16'
+        if (ll.eq.17)str5 = 'rhs17'
+
+        str6=str4//str5
+
+        k=k+1
+       IJ_rhs(nt,ll) = k
+       lname_oij(k)=str6
+        sname_oij(k)=str6
         units_oij(k)="?"
         ia_oij(k)=ia_src
         scale_oij(k)=1

@@ -20,6 +20,16 @@ c
       USE obio_com, only : C_tend,obio_P,P_tend,car
      .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d
+
+#ifdef OBIO_RUNOFF
+#ifdef DOC_RUNOFF
+     .                    ,rdocconc_loc
+#endif
+#ifdef DIC_RUNOFF
+     .                    ,rdicconc_loc
+#endif
+#endif
+
       use TimeConstants_mod, only: SECONDS_PER_HOUR, DAYS_PER_YEAR,
      &                             HOURS_PER_DAY
       
@@ -35,6 +45,10 @@ c
 #else
       USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only : nstep
+#endif
+
+#ifdef OBIO_RUNOFF
+      USE OFLUXES, only:  oFLOWO
 #endif
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
@@ -98,6 +112,7 @@ c
         rhs(k,13,14) = term
         C_tend(k,1) = C_tend(k,1) + term
 
+
         !adjust detritus
         term = - docdet * pnoice(k) !carbon/nitrogen detritus
         rhs(k,10,14) = term
@@ -154,6 +169,34 @@ c
 !    . mgchltouMC,docbac,tfac(k),remin(1),det(k,1),uMtomgm3
 
       enddo  !k=1,kmax
+
+#ifdef OBIO_RUNOFF
+#ifdef DOC_RUNOFF
+        term = rdocconc_loc(i,j)
+     .    * oFLOWO(i,j)/dtsrc          ! kg,C/kg,w => kg,C/m2,w/s
+     .    / dp1d(1)                    ! kg,C/m2,w/s => kg,C/m3,w/s
+     .    * 1.d6/12.                   ! kg,C/m3,w/s => mmol,C/m3,w/s
+     .    * 3600.                      ! mmol,C/m3,w/s => mmol,C/m3,w/hr
+        rhs(1,13,17) = term
+        C_tend(1,1) = C_tend(1,1) + term
+#endif
+#ifdef DIC_RUNOFF
+	term = rdicconc_loc(i,j)
+     .    * oFLOWO(i,j)/dtsrc          ! kg,C/kg,w => kg,C/m2,w/s
+     .    / dp1d(1)                    ! kg,C/m2,w/s => kg,C/m3,w/s
+     .    * 1.d6/12.                   ! kg,C/m3,w/s => mmol,C/m3,w/s
+     .    *3600.                       ! mmol,C/m3,w/s => mmol,C/m3,w/hr
+        rhs(1,14,17) = term
+        C_tend(1,2) = C_tend(1,2) + term
+
+
+	if (i.eq.169.and.j.eq.59) then
+	write(*,'(/,a,2i5,2e12.4)')'i,j,rdicconc,term:',
+     .  	i,j,rdicconc_loc(i,j),term
+	endif
+#endif
+#endif
+
 
 cdiag   if (vrbos) write(*,'(a,i7,e12.4)')
 cdiag.        'obio_carbon1: ', nstep,C_tend(1,2)
