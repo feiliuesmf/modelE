@@ -4424,6 +4424,13 @@ c
       scale_ij(k)=1d-3/dtsrc
       jgrid_ij(k)=2
 c
+      k=k+1
+      ij_wspdf = k
+      lname_ij(k) = 'PDF MEAN SURFACE WIND SPEED'
+      name_ij(k) = 'wspdf'  
+      units_ij(k) = 'm/s'
+      ia_ij(k) = ia_srf
+                                    
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       k=k+1
@@ -4432,12 +4439,6 @@ c
       name_ij(k) = 'wsgcm'
       units_ij(k) = 'm/s'
       ia_ij(k)= ia_srf
-      k=k+1
-      ij_wspdf = k
-      lname_ij(k) = 'PDF MEAN SURFACE WIND SPEED'
-      name_ij(k) = 'wspdf'
-      units_ij(k) = 'm/s'
-      ia_ij(k) = ia_srf
       k=k+1
       IJ_wdry = k
       lname_ij(k) = 'DRY CONVECTIVE VELOCITY SCALE'
@@ -6766,6 +6767,14 @@ c Column Diagnostics
         end do     
 #endif
 
+      k=k+1
+      IDD_WSPDF=k
+      name_dd(k)='WSPDF'
+      units_dd(k)='m/s'
+      scale_dd(k)=10.
+      lname_dd(k)=' WSPDF*10'
+c
+
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       IF (adiurn_dust == 1) THEN
@@ -6797,13 +6806,6 @@ c
       units_dd(k)='m/s'
       scale_dd(k)=10.
       lname_dd(k)=' WSGCM*10'
-c
-      k=k+1
-      IDD_WSPDF=k
-      name_dd(k)='WSPDF'
-      units_dd(k)='m/s'
-      scale_dd(k)=10.
-      lname_dd(k)=' WSPDF*10'
 c
       k=k+1
       IDD_WTRSH=k

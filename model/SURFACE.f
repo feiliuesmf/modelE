@@ -1206,7 +1206,7 @@ C**** For distributed implementation - ensure point is on local process.
      *     ,ij_gusti,ij_mccon,ij_sss,ij_trsup,ij_trsdn,ij_ssh
      *     ,ij_silwu, ij_silwd
      *     ,ij_sish,ij_evap
-     *     ,ij_tsurfmin,ij_tsurfmax
+     *     ,ij_tsurfmin,ij_tsurfmax,ij_wspdf
 #if (defined mjo_subdd) || (defined etc_subdd)
      *     ,qsen_avg,qlat_avg,pblht_acc
 #endif
@@ -1215,7 +1215,7 @@ C**** For distributed implementation - ensure point is on local process.
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-     &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
+     &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm
 #endif
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : si_atm
@@ -1367,11 +1367,15 @@ C****
 C**** SUBDD qblht_acc for PBL height *** YH Chen ***
           pblht_acc(I,J)=pblht_acc(I,J)+dblavg(i,j)
 #endif
+          aij(i,j,ij_wspdf)=aij(i,j,ij_wspdf)+atmsrf%wspdf(i,j)
 
+	if (i.eq.1 .and. j.eq.45)then
+	write(*,*) 'wspdf=',aij(i,j,ij_wspdf),'atmsrf%wspdf=',atmsrf%wspdf(i,j)
+	endif
+	
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
           aij(i,j,ij_wsgcm)=aij(i,j,ij_wsgcm)+atmsrf%wsgcm(i,j)
-          aij(i,j,ij_wspdf)=aij(i,j,ij_wspdf)+atmsrf%wspdf(i,j)
           aij(i,j,ij_wdry)=aij(i,j,ij_wdry)+atmsrf%wsubwd(i,j)
           aij(i,j,ij_wtke)=aij(i,j,ij_wtke)+atmsrf%wsubtke(i,j)
           aij(i,j,ij_wmoist)=aij(i,j,ij_wmoist)+atmsrf%wsubwm(i,j)

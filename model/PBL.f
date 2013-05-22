@@ -998,10 +998,19 @@ ccc dust emission from earth
        IF (ocean) THEN  ! OCEAN only
           !note trcnst is already multiplied by byrho in TRACERS_GASEXCH_ocean_CO2_PBL
 
+#ifdef OBIO_WSPDF
+
+          call TRACERS_GASEXCH_ocean_CO2_PBL(tg1,wspdf,
+     .          pbl_args%sss_loc,psurf,itr,pbl_args%trconstflx(itr),
+     .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
+     .          pbl_args%beta_gas,trsf,trcnst,ilong,jlat)
+                         
+#else
           call TRACERS_GASEXCH_ocean_CO2_PBL(tg1,ws,
      .          pbl_args%sss_loc,psurf,itr,pbl_args%trconstflx(itr),
      .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
      .          pbl_args%beta_gas,trsf,trcnst,ilong,jlat)
+#endif
 
 !     write(*,'(a,2i5,4e12.4,i5,7e12.4)')'PBL:', 
 !    .  ilong,jlat,tg1,ws,pbl_args%sss_loc,psurf,itr,

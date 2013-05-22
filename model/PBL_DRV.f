@@ -367,11 +367,11 @@ C ******************************************************************
       atm%w2_l1(I,J) = w2_1
       atm%ciaavg(i,j)  =  psi
       atm%khsavg(i,j)  =  pbl_args%khs
+      atm%wspdf(i,j) = pbl_args%wspdf
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       atm%wsgcm(i,j) = pbl_args%wsgcm
-      atm%wspdf(i,j) = pbl_args%wspdf
       atm%wsubwd(i,j) = pbl_args%wsubwd
       atm%wsubtke(i,j) = pbl_args%wsubtke
       atm%wsubwm(i,j) = pbl_args%wsubwm
