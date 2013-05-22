@@ -18,10 +18,11 @@
       IMPLICIT NONE
       SAVE
 #ifdef OBIO_ON_GARYocean
-      INTEGER, PARAMETER :: KOIJ=350,KOIJL=41,KOL=6,KOLNST=14,KOIJmm=11
+      INTEGER, PARAMETER :: KOIJ=350
 #else
-      INTEGER, PARAMETER :: KOIJ=71,KOIJL=41,KOL=6,KOLNST=14,KOIJmm=11
+      INTEGER, PARAMETER :: KOIJ=71
 #endif
+      INTEGER, PARAMETER :: KOIJL=41,KOL=6,KOLNST=14,KOIJmm=11
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJmm lat-lon ocean min/max diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
