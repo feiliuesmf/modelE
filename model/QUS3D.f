@@ -4,6 +4,7 @@
 
       MODULE TRACER_ADV
 !@sum MODULE TRACER_ADV arrays needed for tracer advection
+!@vers 2013/04/02
 
       USE RESOLUTION, ONLY : IM,JM,LM
       USE GEOM, only : byim
@@ -52,13 +53,13 @@ c arrays for upwind halos
      &     buffer_exchange=>halo_update_mask
       USE QUSDEF
       USE QUSCOM, ONLY : IM,JM,LM
-      USE ATM_COM, ONLY: pu=>pua, pv=>pva, sd=>sda, mb, ma
+      USE ATM_COM, ONLY: pu=>MUs, pv=>MVs, sd=>MWs, mb, MMA
       IMPLICIT NONE
       character(*) tname          !tracer name
       logical :: qlimit
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: 
+      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) ::
      &                  rm
-      REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) 
+      REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
      &               :: rmom
       REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     mflx,mwdn,fdn,fdn0
@@ -82,12 +83,12 @@ c**** Extract domain decomposition info
 
 
       DO L=1,LM
-         MA(:,:,L) = MB(:,:,L) ! fill in halo lats
+         MMA(:,:,L) = MB(:,:,L) ! fill in halo lats
       ENDDO
 
       do nc=1,ncyc
 
-        if(nc.gt.1) CALL HALO_UPDATE(grid, ma, FROM=NORTH+SOUTH)
+        if(nc.gt.1) CALL HALO_UPDATE(grid, MMA, FROM=NORTH+SOUTH)
 #ifndef UPWIND_HALOS
         CALL HALO_UPDATE(grid, rm,    FROM=NORTH+SOUTH)
         CALL HALO_UPDATE_COLUMN(grid, rmom, FROM=NORTH+SOUTH)
@@ -173,7 +174,7 @@ c
             do ncxy=1,ncycxy(l) ! loop over horizontal cycles
 
               if(ncxy.gt.1) then ! update boundaries if necessary
-                CALL HALO_UPDATE(grid, ma(:,:,l), FROM=NORTH+SOUTH)
+                CALL HALO_UPDATE(grid, MMA(:,:,l), FROM=NORTH+SOUTH)
                 CALL HALO_UPDATE(grid, rm(:,:,l), FROM=NORTH+SOUTH)
                 CALL HALO_UPDATE_COLUMN(
      &                           grid, rmom(:,:,:,l), FROM=NORTH+SOUTH)
@@ -186,29 +187,29 @@ c when flow out both sides would cause negative tracer mass, modify moments
                   j=j_0h
                   do ii=1,ni_checkfobs_y(j,l)
                     i = i_checkfobs_y(ii,j,l)
-                    call checkflux(pv_south(i,l),pv(i,j,l),ma(i,j,l),
+                    call checkflux(pv_south(i,l),pv(i,j,l),MMA(i,j,l),
      &                   rm(i,j,l),rmom(my,i,j,l),rmom(myy,i,j,l))
                   enddo
                 endif
                 do j=max(2,j_0),min(jm-1,j_1h)
                   do ii=1,ni_checkfobs_y(j,l)
                     i = i_checkfobs_y(ii,j,l)
-                    call checkflux(pv(i,j-1,l),pv(i,j,l),ma(i,j,l),
+                    call checkflux(pv(i,j-1,l),pv(i,j,l),MMA(i,j,l),
      &                   rm(i,j,l),rmom(my,i,j,l),rmom(myy,i,j,l))
                   enddo
                 enddo
                 CALL AADVQY(RM(1,j_0h,l),RMOM(1,1,j_0h,l),
-     &               MA(1,j_0h,l),pv(1,j_0h,l)
+     &               MMA(1,j_0h,l),pv(1,j_0h,l)
      &               ,sbf(j_0h,l),sbm(j_0h,l),sfbm(j_0h,l),sbfv)
                 CALL AADVQX(RM(1,j_0h,l),RMOM(1,1,j_0h,l),
-     &               MA(1,j_0h,l),pu(1,j_0h,l),jmin_x,jmax_x,
+     &               MMA(1,j_0h,l),pu(1,j_0h,l),jmin_x,jmax_x,
      &               nstepx(j_0h,l),safv)
               else
                 CALL AADVQY2(RM(1,j_0h,l),RMOM(1,1,j_0h,l),
-     &               MA(1,j_0h,l),pv(1,j_0h,l)
+     &               MMA(1,j_0h,l),pv(1,j_0h,l)
      &               ,sbf(j_0h,l),sbm(j_0h,l),sfbm(j_0h,l),sbfv)
                 CALL AADVQX2(RM(1,j_0h,l),RMOM(1,1,j_0h,l),
-     &               MA(1,j_0h,l),pu(1,j_0h,l),jmin_x,jmax_x,
+     &               MMA(1,j_0h,l),pu(1,j_0h,l),jmin_x,jmax_x,
      &               nstepx(j_0h,l),safv)
               endif
 
@@ -220,7 +221,7 @@ c when flow out both sides would cause negative tracer mass, modify moments
             do j=j_0,j_1
               do ii=1,ni_checkfobs_z(j,l)
                 i = i_checkfobs_z(ii,j,l)
-                call checkflux(sd(i,j,l-1),sd(i,j,l),ma(i,j,l),
+                call checkflux(sd(i,j,l-1),sd(i,j,l),MMA(i,j,l),
      &               rm(i,j,l),rmom(mz,i,j,l),rmom(mzz,i,j,l))
               enddo
             enddo
@@ -228,11 +229,11 @@ c when flow out both sides would cause negative tracer mass, modify moments
           if(l.gt.1) then
             if(qlimit) then
               CALL AADVQZ(RM(1,j_0h,l-1),RMOM(1,1,j_0h,l-1),
-     &             MA(1,j_0h,l-1),SD(1,j_0h,L-1),mwdn,fdn,fmomdn,fdn0
+     &             MMA(1,j_0h,l-1),SD(1,j_0h,L-1),mwdn,fdn,fmomdn,fdn0
      &             ,scf(j_0h,l-1),scm(j_0h,l-1),sfcm(j_0h,l-1))
             else
               CALL AADVQZ2(RM(1,j_0h,l-1),RMOM(1,1,j_0h,l-1),
-     &             MA(1,j_0h,l-1),SD(1,j_0h,L-1),mwdn,fdn,fmomdn!,fdn0
+     &             MMA(1,j_0h,l-1),SD(1,j_0h,L-1),mwdn,fdn,fmomdn!,fdn0
      &             ,scf(j_0h,l-1),scm(j_0h,l-1),sfcm(j_0h,l-1))
             endif
           endif
@@ -251,7 +252,7 @@ c
             nl = lmax-lmin+1
             mw1d(1:nl-1) = mw_extra(i,j,lmin:lmax-1)/nstepz_extra(i,j)
             mw1d(nl) = 0d0      ! important
-            ma1d(1:nl) = ma(i,j,lmin:lmax)
+            ma1d(1:nl) = MMA(i,j,lmin:lmax)
             rm1d(1:nl) = rm(i,j,lmin:lmax)
             rmom1d(:,1:nl) = rmom(:,i,j,lmin:lmax)
             do istep=1,nstepz_extra(i,j)
@@ -261,7 +262,7 @@ c
                 call AADVQZ2_COLUMN(rm1d,rmom1d,ma1d,mw1d,nl)
               endif
             enddo
-            ma(i,j,lmin:lmax) = ma1d(1:nl)
+            MMA(i,j,lmin:lmax) = ma1d(1:nl)
             rm(i,j,lmin:lmax) = rm1d(1:nl)
             rmom(:,i,j,lmin:lmax) = rmom1d(:,1:nl)
           enddo ! i
@@ -278,7 +279,7 @@ c
 !@+   Decide how many cycles to take such that mass does not become
 !@+   too small during any of the operator splitting steps of each cycle
 !@auth Maxwell Kelley
-      USE ATM_COM, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, ma
+      USE ATM_COM, ONLY: mu=>MUs, mv=>MVs, mw=>MWs, mb, MMA
       USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds
       USE DOMAIN_DECOMP_1D, ONLY : GLOBALSUM, HALO_UPDATE, globalmax
       USE DOMAIN_DECOMP_1D, ONLY : NORTH, SOUTH, AM_I_ROOT
@@ -350,7 +351,7 @@ c
         byn = 1./ncyc
         nbad_loc = 0
         do l=1,lm
-          ma(:,j_0h:j_1h,l) = mb(:,j_0h:j_1h,l)
+          MMA(:,j_0h:j_1h,l) = mb(:,j_0h:j_1h,l)
         enddo
         lminzij(:,:) = lm+1;
         lmaxzij(:,:) = 0
@@ -360,30 +361,30 @@ C**** check whether horizontal fluxes reduce mass too much
           do l=1,lm
             do j=J_0S,J_1S
               i=1
-              ma(i,j,l) = ma(i,j,l) + 
+              MMA(i,j,l) = MMA(i,j,l) +
      &             byn*(mu(im ,j,l)-mu(i,j,l)+mv(i,j-1,l)-mv(i,j,l))
-              if (ma(i,j,l).lt.mrat_limh*mb(i,j,l)) then
+              if (MMA(i,j,l).lt.mrat_limh*mb(i,j,l)) then
                 nbad_loc = nbad_loc + 1
               endif
               do i=2,im
-                ma(i,j,l) = ma(i,j,l) +
+                MMA(i,j,l) = MMA(i,j,l) +
      &               byn*(mu(i-1,j,l)-mu(i,j,l)+mv(i,j-1,l)-mv(i,j,l))
-                if (ma(i,j,l).lt.mrat_limh*mb(i,j,l)) then
+                if (MMA(i,j,l).lt.mrat_limh*mb(i,j,l)) then
                   nbad_loc = nbad_loc + 1
                 endif
               enddo
             enddo
             if (HAVE_SOUTH_POLE) then
-              ssp = sum(ma(:, 1,l)-mv(:,   1,l)*byn)*byim
-              ma(:,1 ,l) = ssp
-              if (ma(1,1,l).lt.mrat_limh*mb(1,1,l)) then
+              ssp = sum(MMA(:, 1,l)-mv(:,   1,l)*byn)*byim
+              MMA(:,1 ,l) = ssp
+              if (MMA(1,1,l).lt.mrat_limh*mb(1,1,l)) then
                 nbad_loc = nbad_loc + 1
               endif
             endif
             if (HAVE_NORTH_POLE) then
-              snp = sum(ma(:,jm,l)+mv(:,jm-1,l)*byn)*byim
-              ma(:,jm,l) = snp
-              if (ma(1,jm,l).lt.mrat_limh*mb(1,jm,l)) then
+              snp = sum(MMA(:,jm,l)+mv(:,jm-1,l)*byn)*byim
+              MMA(:,jm,l) = snp
+              if (MMA(1,jm,l).lt.mrat_limh*mb(1,jm,l)) then
                 nbad_loc = nbad_loc + 1
               endif
             endif
@@ -397,7 +398,7 @@ c check courant numbers in the z direction
               do j=j_0,j_1
                 do i=1,im
                   mwbyn = mw(i,j,l)*byn
-                  if((ma(i,j,l)-mwbyn)*(ma(i,j,l+1)+mwbyn).lt.0.) then
+                  if((MMA(i,j,l)-mwbyn)*(MMA(i,j,l+1)+mwbyn).lt.0.) then
                     lminzij(i,j) = min(lminzij(i,j),l)
                     lmaxzij(i,j) = max(lmaxzij(i,j),l+1)
                   endif
@@ -409,19 +410,19 @@ c update mass from z fluxes
               if(l.eq.1) then   ! lowest layer
                 do j=J_0,J_1
                   do i=1,im
-                    ma(i,j,l) = ma(i,j,l)-mw(i,j,l)*byn
+                    MMA(i,j,l) = MMA(i,j,l)-mw(i,j,l)*byn
                   enddo
                 enddo
               elseif(l.eq.lm) then ! topmost layer
                 do j=J_0,J_1
                   do i=1,im
-                    ma(i,j,l) = ma(i,j,l)+mw(i,j,l-1)*byn
+                    MMA(i,j,l) = MMA(i,j,l)+mw(i,j,l-1)*byn
                   enddo
                 enddo
               else              ! interior layers
                 do j=J_0,J_1
                   do i=1,im
-                    ma(i,j,l) = ma(i,j,l)+(mw(i,j,l-1)-mw(i,j,l))*byn
+                    MMA(i,j,l) = MMA(i,j,l)+(mw(i,j,l-1)-mw(i,j,l))*byn
                   end do
                 end do
               endif
@@ -606,7 +607,7 @@ c update boundary airmasses to avoid layerwise mpi communication during iteratio
                   enddo
                 endif
               endif
-            
+
             enddo               ! nc loop
           enddo                 ! nbad.gt.0
 
@@ -941,7 +942,7 @@ C****
 
       ALLOCATE( safv(IM,J_0H:J_1H),
      *          sbfv(IM,J_0H:J_1H) )
-  
+
 
       allocate(lminzij(IM,J_0H:J_1H),
      &         lmaxzij(IM,J_0H:J_1H),
@@ -966,7 +967,7 @@ C****
       use QUSCOM, only : im,jm
       implicit none
       integer :: jmin,jmax
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &                  rm,mass,mu
       REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &                  rmom
@@ -1224,16 +1225,16 @@ c****
       use QUSDEF
       use QUSCOM, only : im,jm,byim
       implicit none
-      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: 
+      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &                  rm,mass,mv
       REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:
      &                          grid%J_STOP_HALO) :: rmom
-      REAL*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+      REAL*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &                                         sfbm,sbm,sbf
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: sbfv
       integer :: i,j,jj
       REAL*8 :: m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
-      real*8, dimension(im) :: mvs,fs
+      real*8, dimension(im) :: mvj,fs
       real*8, dimension(nmom,im) :: fmoms
       real*8, dimension(nmom) :: fmomn
       real*8 :: frac1,fracm,fn,mold,mnew,bymnew,dm2
@@ -1331,7 +1332,7 @@ c compute fluxes at s. edge of local domain, or at edge of SP cap
             fn=-rm(i,j+1)
           endif
         endif
-        mvs(i) = mv(i,j)
+        mvj(i) = mv(i,j)
         fs(i) = fn
         fs0(i) = fn_pass
       enddo
@@ -1339,7 +1340,7 @@ c compute fluxes at s. edge of local domain, or at edge of SP cap
 c update south polar cap
       if (have_south_pole) then
         j = 1
-         m_sp =  m_sp - sum(mvs(:))
+         m_sp =  m_sp - sum(mvj(:))
         rm_sp = rm_sp - sum(fs(:))
         do i=1,im
            rzm_sp =  rzm_sp - fmoms(mz,i)
@@ -1419,9 +1420,9 @@ c loop over non-polar rows
          endif
 
          mold=mass(i,j)
-         mnew=mold+mvs(i)-mv(i,j)
+         mnew=mold+mvj(i)-mv(i,j)
          bymnew = 1./mnew
-         dm2=mvs(i)+mv(i,j)
+         dm2=mvj(i)+mv(i,j)
          rm0=rm(i,j)+fs0(i)-fn0
          rm(i,j)=rm(i,j)+fs(i)-fn
       !
@@ -1453,7 +1454,7 @@ c loop over non-polar rows
            rm(i,j)=0d0; rmom(:,i,j)=0d0
          endif
 
-         mvs(i) = mv(i,j)
+         mvj(i) = mv(i,j)
          fs(i) = fn
          fmoms(:,i) = fmomn(:)
 
@@ -1471,7 +1472,7 @@ c loop over non-polar rows
 
 c update north polar cap
       if (have_north_pole) then
-         m_np =  m_np + sum(mvs(:))
+         m_np =  m_np + sum(mvj(:))
         rm_np = rm_np + sum(fs(:))
         do i=1,im
            rzm_np =  rzm_np + fmoms(mz,i)
@@ -1500,11 +1501,11 @@ c update north polar cap
       use QUSCOM, only : im,jm
       USE GEOM, only : imaxj
       implicit none
-      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,2) 
+      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,2)
      &        :: rm,mass
-      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo,2) 
+      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo,2)
      &        :: rmom
-      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo) 
+      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo)
      &        :: fmomdn
       REAL*8, dimension(IM,grid%j_strt_halo:grid%j_stop_halo) ::
      &     mw,mwdn,fdn,fdn0
@@ -1678,7 +1679,7 @@ c
       use QUSCOM, only : im,jm
       implicit none
       integer :: jmin,jmax
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &                  rm,mass,mu
       REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &                  rmom
@@ -1842,16 +1843,16 @@ c****
       use QUSDEF
       use QUSCOM, only : im,jm,byim
       implicit none
-      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: 
+      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &                  rm,mass,mv
       REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:
      &                          grid%J_STOP_HALO) :: rmom
-      REAL*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+      REAL*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &                                         sfbm,sbm,sbf
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: sbfv
       integer :: i,j,jj
       REAL*8 :: m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
-      real*8, dimension(im) :: mvs,fs
+      real*8, dimension(im) :: mvj,fs
       real*8, dimension(nmom,im) :: fmoms
       real*8, dimension(nmom) :: fmomn
       real*8 :: frac1,fracm,fn,mold,mnew,bymnew,dm2
@@ -1927,14 +1928,14 @@ c compute fluxes at s. edge of local domain, or at edge of SP cap
         fmoms(mzz,i) = fracm*rmom(mzz,i,jj)
         fmoms(mxx,i) = fracm*rmom(mxx,i,jj)
         fmoms(mzx,i) = fracm*rmom(mzx,i,jj)
-        mvs(i) = mv(i,j)
+        mvj(i) = mv(i,j)
         fs(i) = fn
       enddo
 
 c update south polar cap
       if (have_south_pole) then
         j = 1
-         m_sp =  m_sp - sum(mvs(:))
+         m_sp =  m_sp - sum(mvj(:))
         rm_sp = rm_sp - sum(fs(:))
         do i=1,im
            rzm_sp =  rzm_sp - fmoms(mz,i)
@@ -1981,9 +1982,9 @@ c loop over non-polar rows
          fmomn(mzx) = fracm*rmom(mzx,i,jj)
 
          mold=mass(i,j)
-         mnew=mold+mvs(i)-mv(i,j)
+         mnew=mold+mvj(i)-mv(i,j)
          bymnew = 1./mnew
-         dm2=mvs(i)+mv(i,j)
+         dm2=mvj(i)+mv(i,j)
          rm(i,j)=rm(i,j)+fs(i)-fn
       !
          rmom(my,i,j)=(rmom(my,i,j)*mold-3.*(-dm2*rm(i,j)
@@ -2009,7 +2010,7 @@ c loop over non-polar rows
 
          mass(i,j) = mnew
 
-         mvs(i) = mv(i,j)
+         mvj(i) = mv(i,j)
          fs(i) = fn
          fmoms(:,i) = fmomn(:)
 
@@ -2023,7 +2024,7 @@ c loop over non-polar rows
 
 c update north polar cap
       if (have_north_pole) then
-         m_np =  m_np + sum(mvs(:))
+         m_np =  m_np + sum(mvj(:))
         rm_np = rm_np + sum(fs(:))
         do i=1,im
            rzm_np =  rzm_np + fmoms(mz,i)
@@ -2049,11 +2050,11 @@ c update north polar cap
       use QUSCOM, only : im,jm
       USE GEOM, only : imaxj
       implicit none
-      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,2) 
+      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,2)
      &        :: rm,mass
-      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo,2) 
+      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo,2)
      &        :: rmom
-      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo) 
+      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo)
      &        :: fmomdn
       REAL*8, dimension(IM,grid%j_strt_halo:grid%j_stop_halo) ::
      &     mw,mwdn,fdn

@@ -24,7 +24,7 @@ Preprocessor Options
 #define TRDIAG_WETDEPO           ! additional wet deposition diags for tracers
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
-#define RAD_O3_GCM_HRES     ! Use GCM horiz resl to input rad code clim Ozone
+#define RAD_O3_2010              ! 2010 ozone dataset
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
@@ -71,7 +71,6 @@ TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
-RAD_native_O3                       ! for reading ozone to rad code at native GCM horiz res.
 lightning                           ! Colin Price lightning model
 ! flammability_drv flammability       ! Olga's fire model
 
@@ -89,18 +88,16 @@ OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 ! OPTS_dd2d = NC_IO=PNETCDF           /* an OPTION for new i/o */
 
 Data input files:
-#include "IC_144x90_input_files_AR5"
+#include "IC_144x90_input_files"
 #include "dynamic_ocn_288x180_input_files_AR5"
-TOPO=Z2HX2fromZ1QX1N.BS1            ! atm-grid surface fractions and topography
-RVR=RD_Fb.RVR.bin                   ! river direction file
-
+TOPO=Z2HX2fromZ1QX1N.BS1.nc     ! atm-grid surface fractions and topography
+RVR=RD_Fb.nc             ! river direction file
+NAMERVR=RD_Fb.names.txt  ! named river outlets
 VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculations
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "TAero2008_input_files"
-#include "O3_2010_144x90_input_files"
-!#include "O3_2005_input_files"
+#include "rad_144x90_input_files"
 
 #include "chemistry_input_files"
 #include "chemistry_144x90_input_files"

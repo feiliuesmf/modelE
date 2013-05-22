@@ -54,7 +54,6 @@
 !@var SOLAR absorbed solar radiation (J/m^2)
 !@var TRHEAT net LW flux accumulation (J/m^2)
      &      E0,SOLAR,TRHEAT
-C**** Momemtum stresses are calculated as if they were over whole box
 !@var DMUA,DMVA momentum flux from atmosphere (kg/m s)
 !@+   On atmospheric A grid (tracer point)
      &     ,DMUA, DMVA
@@ -266,7 +265,7 @@ C**** Momemtum stresses are calculated as if they were over whole box
          REAL*8, DIMENSION(:,:), POINTER ::
 !@var ftype fraction of the gridcell occupied by this patch
      &      FTYPE
-     &     ,FTYPE_REL
+     &     ,FHC
 !@var LAT latitude of gridbox (radians)
      &     ,LAT
 !@var WORK1,WORK2 temporary workspace
@@ -665,7 +664,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 
       ALLOCATE(
      &          this % FTYPE   ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % FTYPE_REL( I_0H:I_1H , J_0H:J_1H ),
+     &          this % FHC     ( I_0H:I_1H , J_0H:J_1H ),
 
      &          this % LAT     ( I_0H:I_1H , J_0H:J_1H ),
 
@@ -881,7 +880,7 @@ c
         do k=1,np
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
-          ftype(i,j,k) = patches(k)%ftype_rel(i,j)
+          ftype(i,j,k) = patches(k)%fhc(i,j)
         enddo
         enddo
         enddo
@@ -955,7 +954,7 @@ c
         do k=1,np
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
-          ftype(i,j,k) = patches(k)%ftype_rel(i,j)
+          ftype(i,j,k) = patches(k)%fhc(i,j)
         enddo
         enddo
         enddo
@@ -1028,7 +1027,7 @@ c
         do k=1,np
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
-          ftype(i,j,k) = patches(k)%ftype_rel(i,j)
+          ftype(i,j,k) = patches(k)%fhc(i,j)
         enddo
         enddo
         enddo
@@ -1103,7 +1102,7 @@ c
         do k=1,np
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
-          ftype(i,j,k) = patches(k)%ftype_rel(i,j)
+          ftype(i,j,k) = patches(k)%fhc(i,j)
         enddo
         enddo
         enddo
@@ -1494,6 +1493,13 @@ c
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FEARTH0
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FLAKE0
 
+#ifdef GLINT2
+!@var FLICE_ICEMODEL Fraction of gridbox that's landice that
+!     comes from a GLINT2-related ice model.
+!     NOTE: FLICE_GLINT2 < FLICE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FLICE_GLINT2
+#endif
+
 !@param NSTYPE number of surface types for radiation purposes
       !INTEGER, PARAMETER :: NSTYPE=4
 
@@ -1604,6 +1610,9 @@ C**** fluxes associated with variable lake fractions
 !@+   water, floating ice, glacial ice, and the land surface.
       type(atmocn_xchng_vars) :: atmocns(1) ! ocean and lakes
       type(atmice_xchng_vars) :: atmices(1) ! ocean and lakes
+#ifdef GLINT2
+      type(atmgla_xchng_vars), allocatable, dimension(:) :: atmglas_hp !(1-min(nhc,2)/2:nhc) ! glacial ice
+#endif
       type(atmgla_xchng_vars), allocatable, dimension(:) :: atmglas !(1-min(nhc,2)/2:nhc) ! glacial ice
       type(atmlnd_xchng_vars) :: atmlnds(1) ! land surface
 
@@ -1615,6 +1624,9 @@ C**** fluxes associated with variable lake fractions
       type(atmlnd_xchng_vars), pointer :: atmlnd ! land surface
 
       target :: atmocns,atmices,atmglas,atmlnds
+#ifdef GLINT2
+      target :: atmglas_hp
+#endif
 
 !@var atmsrf contains atm-surf interaction quantities averaged over
 !@+   all surface types.
@@ -1681,10 +1693,13 @@ C**** fluxes associated with variable lake fractions
       SUBROUTINE ALLOC_FLUXES !(grd_dum)
 !@sum   Initializes FLUXES''s arrays
 !@auth  Rosalinda de Fainchtein
-      USE FILEMANAGER
       USE EXCHANGE_TYPES, only : alloc_xchng_vars
-      USE DOMAIN_DECOMP_ATM, ONLY : GRD_DUM=>GRID,READT_PARALLEL,
+      USE DOMAIN_DECOMP_ATM, ONLY : GRD_DUM=>GRID,
      &     HALO_UPDATE,HASSOUTHPOLE,HASNORTHPOLE
+#ifdef GLINT2
+      USE DOMAIN_DECOMP_ATM, ONLY : glint2
+      use glint2_modele
+#endif
       USE FLUXES
       USE GEOM, only : lat2d
 #ifndef CUBED_SPHERE
@@ -1703,18 +1718,22 @@ C**** fluxes associated with variable lake fractions
 #endif
       USE ATM_COM, only : temperature_istart1
       USE Dictionary_mod
-      USE pario
+      use pario, only : par_open,par_close,read_dist_data
 
       IMPLICIT NONE
       !TYPE (DIST_GRID), INTENT(IN) :: grd_dum
-      INTEGER :: iu_TOPO
+      INTEGER :: fid
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: I, J, I_0, I_1, J_1, J_0
       INTEGER :: IER,K
       character(len=2) :: c2
       integer :: NHC_LOCAL = 1
 
+#ifdef GLINT2
+      nhc_local = glint2_modele_nhc(glint2)
+#else
       call sync_param( "NHC", nhc_local)
+#endif
       call sync_param( "NIsurf", NIsurf )
       call sync_param( "UOdrag", UOdrag )
 
@@ -1727,37 +1746,39 @@ C**** fluxes associated with variable lake fractions
       I_1 = grd_dum%I_STOP
       J_0 = grd_dum%J_STRT
       J_1 = grd_dum%J_STOP
-
+!      print *,'ALLOCATE atmglas', 1-min(nhc_local,2)/2, nhc_local
+#ifdef GLINT2
+      ALLOCATE(atmglas_hp(1-min(nhc_local,2)/2:nhc_local), STAT=IER)
+#endif
+      ! nhc=1 --> lbound = 1
+      ! nhc>1 --> lbound = 0   (zeroth element is for sum)
       ALLOCATE(atmglas(1-min(nhc_local,2)/2:nhc_local), STAT=IER)
       ALLOCATE(FLAND(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(FOCEAN(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(FLICE(I_0H:I_1H,J_0H:J_1H), STAT = IER)
+#ifdef GLINT2
+      ALLOCATE(FLICE_GLINT2(I_0H:I_1H,J_0H:J_1H), STAT = IER)
+#endif
       ALLOCATE(FEARTH0(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(FLAKE0(I_0H:I_1H,J_0H:J_1H), STAT = IER)
 
 C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
 C**** Note that FLAKE0 is read in only to provide initial values
 C**** Actual array is set from restart file.
-      if (NHC_LOCAL.eq.1) then		! Read old-format TOPO file
-        call openunit("TOPO",iu_TOPO,.true.,.true.)
+      fid = par_open(grid,'TOPO','read')
+      call read_dist_data(grid,fid,'focean',FOCEAN)
+      call read_dist_data(grid,fid,'flake',FLAKE0)
+      call read_dist_data(grid,fid,'fgrnd',FEARTH0)
+      call read_dist_data(grid,fid,'fgice',FLICE)
+      call par_close(grid,fid)
 
-        CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FOCEAN,1) ! Ocean fraction
-
-        CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FLAKE0,1) ! Orig. Lake fraction
-        CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FEARTH0,1) ! Earth frac. (no LI)
-
-        CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FLICE ,1) ! Land ice fraction
-        call closeunit(iu_TOPO)
-      else
-        ! Read new-format TOPO.nc file (allows for height classes)
-        iu_TOPO = par_open(grid,"TOPO","read")
-        call read_dist_data(grid,iu_TOPO,'focean',FOCEAN)
-        call read_dist_data(grid,iu_TOPO,'flake',FLAKE0)
-        call read_dist_data(grid,iu_TOPO,'fgrnd',FEARTH0)
-        call read_dist_data(grid,iu_TOPO,'fgice',FLICE)
-        call par_close(grid,iu_TOPO)
-      end if
-
+#ifdef GLINT2
+        ! Fix it up with GLINT2
+        call glint2_modele_compute_fgice(glint2, .true.,
+     &         FLICE_GLINT2,
+     &         FLICE, FEARTH0, FOCEAN, FLAKE0,
+     &     grid%i_strt_halo, grid%j_strt_halo)
+#endif
 
       CALL HALO_UPDATE(GRD_DUM, FOCEAN)
       CALL HALO_UPDATE(GRD_DUM, FEARTH0)
@@ -1854,7 +1875,9 @@ C**** Ensure that no round off error effects land with ice and earth
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       ALLOCATE(pprec(I_0H:I_1H,J_0H:J_1H),STAT = IER)
+      pprec = 0
       ALLOCATE(pevap(I_0H:I_1H,J_0H:J_1H),STAT = IER)
+      pevap = 0
       ALLOCATE(dust_flux_glob(I_0H:I_1H,J_0H:J_1H,Ntm_dust),STAT = IER)
 #ifdef TRACERS_DRYDEP
       ALLOCATE(depo_turb_glob(I_0H:I_1H,J_0H:J_1H,Ntm)
@@ -1916,11 +1939,25 @@ C**** Ensure that no round off error effects land with ice and earth
 
       do k=lbound(atmglas,1),ubound(atmglas,1)
         write(c2,'(i2.2)') k
+#ifdef GLINT2
+        atmglas_hp(k)%surf_name = 'gla'//c2
+#endif
         atmglas(k)%surf_name = 'gla'//c2
+
 #ifdef TRACERS_ON
+#ifdef GLINT2
+        atmglas_hp(k)%ntm = ntm
+#endif
         atmglas(k)%ntm = ntm
 #endif
+#ifdef GLINT2
+        call alloc_xchng_vars(grid,atmglas_hp(k))
+#endif
         call alloc_xchng_vars(grid,atmglas(k))
+#ifdef GLINT2
+        atmglas_hp(k)%grid => grd_dum
+        atmglas_hp(k)%lat(:,:) = lat2d(:,:)
+#endif
         atmglas(k)%grid => grd_dum
         atmglas(k)%lat(:,:) = lat2d(:,:)
       enddo
@@ -1973,6 +2010,10 @@ C**** Ensure that no round off error effects land with ice and earth
      &       atmices(1+k-p1ice)%atmsrf_xchng_vars,asflx(k))
       enddo
       do k=p1gla,p2gla
+#ifdef GLINT2
+        call alloc_xchng_vars(grid,
+     &       atmglas_hp(1+k-p1gla)%atmsrf_xchng_vars,asflx(k))
+#endif
         call alloc_xchng_vars(grid,
      &       atmglas(1+k-p1gla)%atmsrf_xchng_vars,asflx(k))
       enddo

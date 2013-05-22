@@ -313,7 +313,8 @@ c**** prescribed dust emission
 #endif
       USE TRACER_COM, only: ntm
 #ifdef TRACERS_TOMAS
-      use TRACER_COM, only: IDTNUMD, IDTH2O, xk, nbins
+      USE TRACER_COM, only: IDTNUMD, IDTH2O, xk, nbins
+      USE TOMAS_EMIS 
 #endif
  !     use socpbl, only : dtsurf
       use geom, only : axyp
@@ -365,39 +366,6 @@ cddd#endif
 #ifdef TRACERS_TOMAS
       INTEGER ss_bin,num_bin,du_bin,num_bin2
       real*8 ss_num(nbins),dust_num(nbins),tot_dust,tot_seasalt
-#ifdef TOMAS_12_10NM 
-!scalesizeClay assumes a lognormal with NMD=0.14 um and Sigma=2
-!sum of scalesizeClay = ~1 (~5% of total clay emission will be in Dp>2um) 
-      real*8, parameter :: scalesizeClay(nbins)=(/
-     *    3.883E-08,1.246E-06,2.591E-05,3.493E-04,
-     *    3.059E-03,1.741E-02,6.444E-02,1.553E-01,
-     *    2.439E-01,2.495E-01,2.530E-01,1.292E-02/)
-!scalesizeSilt assumes a lognormal with NMD=1.14 um and Sigma=2
-!sum of scalesizeSilt = 0.8415 (~15% of total silt emission will be missing 
-!due to upper size limit, ~10um, in TOMAS. ~8% will be in clay size range)
- 
-      real*8, parameter :: scalesizeSilt(nbins)=(/
-     *    2.310E-17,5.376E-15,8.075E-13,7.832E-11,
-     *    4.910E-09,1.991E-07,5.229E-06,8.900E-05,
-     *    9.831E-04,7.054E-03,2.183E-01,6.150E-01/)
-#endif
-#ifdef TOMAS_12_3NM 
-!scalesizeClay assumes a lognormal with NMD=0.14 um and Sigma=2
-!sum of scalesizeClay = ~1 (~5% of total clay emission will be in Dp>2um) 
-      real*8, parameter :: scalesizeClay(nbins)=(/0.,0.,0.,
-     *    3.883E-08,1.246E-06,2.591E-05,3.493E-04,
-     *    3.059E-03,1.741E-02,6.444E-02,1.553E-01,
-     *    2.439E-01,2.495E-01,2.530E-01,1.292E-02/)
-!scalesizeSilt assumes a lognormal with NMD=1.14 um and Sigma=2
-!sum of scalesizeSilt = 0.8415 (~15% of total silt emission will be missing 
-!due to upper size limit, ~10um, in TOMAS. ~8% will be in clay size range)
-      real*8, parameter :: scalesizeSilt(nbins)=(/0.,0.,0.,
-     *    2.310E-17,5.376E-15,8.075E-13,7.832E-11,
-     *    4.910E-09,1.991E-07,5.229E-06,8.900E-05,
-     *    9.831E-04,7.054E-03,2.183E-01,6.150E-01/)
-#endif
-
-
 #endif
 ccc tracers
       byNIsurf=1.d0/real(NIsurf)
@@ -1107,7 +1075,7 @@ c**** call tracers stuff
 
       call get_canopy_temperaure(pbl_args%canopy_temperature, i, j)
 
-      call pbl(i,j,itype,ptype,pbl_args,atmlnd)
+      call pbl(i,j,1,itype,ptype,pbl_args,atmlnd)
 
 c****
       cdm = pbl_args%cm ! cmgs(itype,i,j)
@@ -1371,25 +1339,27 @@ c     if SCM use sensible and latent heat fluxes provided by ARM
 c        values
       if (i.eq.I_TARG.and.j.eq.J_TARG) then
           if (SCM_SURFACE_FLAG.eq.1) then
-             dth1(i,j)=dth1(i,j)
+             atmlnd%dth1(i,j)=atmlnd%dth1(i,j)
      &             +ash*pbl_args%dtsurf*ptype/(sha*ma1)
-             dq1(i,j) =dq1(i,j)
+             atmlnd%dq1(i,j) =atmlnd%dq1(i,j)
      &             +alh*pbl_args%dtsurf*ptype/(ma1*lhe)
              EVPFLX = EVPFLX + ALH*ptype
              SHFLX = SHFLX + ASH*ptype
-             write(iu_scm_prt,981) i,ptype,dth1(i,j),dq1(i,j),
+             write(iu_scm_prt,981) i,ptype,atmlnd%dth1(i,j),
+     &                  atmlnd%dq1(i,j),
      &                  EVPFLX,SHFLX
  981         format(1x,'EARTH ARM   i ptype dth1 dq1 evpflx shflx ',
      &            i5,f9.4,f9.4,f9.5,f11.5,f11.5)
           elseif (SCM_SURFACE_FLAG.eq.2) then
-             dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1)
-             dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
-c            write(iu_scm_prt,982) i,ptype,dth1(i,j),dq1(i,j)
+             atmlnd%dth1(i,j)=atmlnd%dth1(i,j)-(SHDT+dLWDT)*
+     &       ptype/(sha*ma1)
+             atmlnd%dq1(i,j) =atmlnd%dq1(i,j)+aevap*ptype/ma1
+c            write(iu_scm_prt,982) i,ptype,atmlnd%dth1(i,j),dq1(i,j)
 c982         format(1x,'EARTH GCM    i ptype dth1 dq1 ',i5,f9.4,f9.4,f9.5)
           endif
       else
-          dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1)
-          dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
+          atmlnd%dth1(i,j)=atmlnd%dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1)
+          atmlnd%dq1(i,j) =atmlnd%dq1(i,j)+aevap*ptype/ma1
           atmlnd%sensht(i,j) = atmlnd%sensht(i,j)+SHDT
           atmlnd%latht(i,j) = atmlnd%latht(i,j) + EVHDT
       endif
@@ -1783,10 +1753,8 @@ ccc                               currently using only topography part
 
       subroutine init_gh(dtsurf,istart)
 c**** modifications needed for split of bare soils into 2 types
-      use filemanager, only : openunit, closeunit, nameunit
       use Dictionary_mod, only : sync_param, get_param
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
-      use DOMAIN_DECOMP_ATM, only : DREAD_PARALLEL, READT_PARALLEL
       use fluxes, only : focean
 #ifdef SCM
       use SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
@@ -1796,24 +1764,17 @@ c**** modifications needed for split of bare soils into 2 types
       use ghy_com
       use snow_drvm, only : snow_cover_coef2=>snow_cover_coef
      &     ,snow_cover_same_as_rad
-
+      use pario, only : par_open,par_close,read_dist_data
       implicit none
 
       real*8, intent(in) :: dtsurf
       integer, intent(in) :: istart
-      integer iu_soil,iu_top_index
+      integer fid
       logical :: qcon(npts)
       integer i, j
       logical ghy_data_missing
       character conpt(npts)*10
 c****
-cgsfc      REAL*8::TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,11*NGM+1)
-      REAL*8, Allocatable, DIMENSION(:,:,:) :: TEMP_LOCAL
-c**** contents of TEMP_LOCAL used for reading the following in a block:
-c****       1 -   ngm   dz(ngm)
-c****   ngm+1 - 6*ngm   q(is,ngm)
-c**** 6*ngm+1 - 11*ngm   qk(is,ngm)
-c**** 11*ngm+1           sl
 !@dbparam ghy_default_data if == 1 reset all GHY data to defaults
 !@+ (do not read it from files)
       integer :: ghy_default_data = 0
@@ -1866,27 +1827,19 @@ c**** read land surface parameters or use defaults
       if ( ghy_default_data == 0 ) then ! read from files
 
 c**** read soils parameters
-        call openunit("SOIL",iu_SOIL,.true.,.true.)
-        ALLOCATE(TEMP_LOCAL(I_0H:I_1H,J_0H:J_1H,11*NGM+1))
-        call DREAD_PARALLEL(grid,iu_SOIL,NAMEUNIT(iu_SOIL),TEMP_LOCAL)
-        DZ_IJ(:,:,:)   = TEMP_LOCAL(:,:,1:NGM)
-         Q_IJ(I_0:I_1,J_0:J_1,:,:) =
-     &       RESHAPE( TEMP_LOCAL(I_0:I_1,J_0:J_1,1+NGM:) ,
-     *                   (/I_1-I_0+1,J_1-J_0+1,imt,ngm/) )
-        QK_IJ(I_0:I_1,J_0:J_1,:,:) =
-     *        RESHAPE( TEMP_LOCAL(I_0:I_1,J_0:J_1,1+NGM+NGM*IMT:) ,
-     *                   (/I_1-I_0+1,J_1-J_0+1,imt,ngm/) )
-        SL_IJ(I_0:I_1,J_0:J_1)  =
-     &       TEMP_LOCAL(I_0:I_1,J_0:J_1,1+NGM+NGM*IMT+NGM*IMT)
-        DEALLOCATE(TEMP_LOCAL)
-        call closeunit (iu_SOIL)
+        fid = par_open(grid,'SOIL','read')
+        call read_dist_data(grid,fid,'dz',dz_ij)
+        call read_dist_data(grid,fid,'q',q_ij)
+        call read_dist_data(grid,fid,'qk',qk_ij)
+        call read_dist_data(grid,fid,'sl',sl_ij)
+        call par_close(grid,fid)
+
 c**** read topmodel parameters
-        call openunit("TOP_INDEX",iu_TOP_INDEX,.true.,.true.)
-        call READT_PARALLEL
-     *    (grid,iu_TOP_INDEX,NAMEUNIT(iu_TOP_INDEX),top_index_ij,1)
-        call READT_PARALLEL
-     *    (grid,iu_TOP_INDEX,NAMEUNIT(iu_TOP_INDEX),top_dev_ij  ,1)
-        call closeunit (iu_TOP_INDEX)
+        fid = par_open(grid,'TOP_INDEX','read')
+        call read_dist_data(grid,fid,'top_index',top_index_ij)
+        call read_dist_data(grid,fid,'top_dev',top_dev_ij)
+        call par_close(grid,fid)
+
       else  ! reset to default data
         if ( istart>0 .and. istart<8 ) then ! reset all
           call reset_gh_to_defaults( .true. )

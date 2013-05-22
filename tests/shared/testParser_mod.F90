@@ -1,6 +1,5 @@
 module testParser_mod
   use pFUnit
-  use Parser_mod
   implicit none
   private
 
@@ -14,9 +13,6 @@ module testParser_mod
   public :: testNoBeginData
   public :: testIsEndData
 
-  public :: testGetValueType
-  public :: testGetCommonValueType
-
   public :: testSplitTokensA
   public :: testSplitTokensB
   public :: testSplitTokensC
@@ -27,6 +23,7 @@ module testParser_mod
   public :: testParseEOF
   public :: testParseSimple
   public :: testParse
+  public :: testParseAttribute
   public :: testParseNoValue
 
   public :: testWriteFormatted
@@ -40,6 +37,7 @@ module testParser_mod
 
 contains
   subroutine testStripComment_noComment()
+    use Parser_mod
     character(len=30) :: expectedString
     character(len=30) :: string
 
@@ -50,6 +48,7 @@ contains
   end subroutine testStripComment_noComment
 
   subroutine testStripComment()
+    use Parser_mod
     character(len=30) :: expectedString
     character(len=30) :: string
 
@@ -65,6 +64,7 @@ contains
   end subroutine testStripComment
 
   subroutine testStripComment_1stChar()
+    use Parser_mod
     character(len=30) :: expectedString
     character(len=30) :: string
 
@@ -75,6 +75,7 @@ contains
   end subroutine testStripComment_1stChar
 
   subroutine testStripComment_new()
+    use Parser_mod
     type (Parser_type) :: parser
     character(len=40) :: expectedString
     character(len=40) :: string
@@ -95,6 +96,7 @@ contains
   end subroutine testStripComment_new
 
   subroutine testSkipHeader()
+    use Parser_mod
     use FileManager
     type (Parser_type) :: parser
     integer :: unit
@@ -119,6 +121,7 @@ contains
   end subroutine testSkipHeader
 
   subroutine testNoBeginData()
+    use Parser_mod
     use FileManager
     type (Parser_type) :: parser
     integer :: unit
@@ -138,55 +141,8 @@ contains
     close(unit, status='delete')
   end subroutine testNoBeginData
 
-  subroutine testGetValueType()
-    use Dictionary_mod
-
-    call assertEqual(INTEGER_TYPE, getValueType('3'), 'case A')
-    call assertEqual(INTEGER_TYPE, getValueType('123456'), 'case B')
-
-    call assertEqual(REAL64_TYPE, getValueType('1.'), 'case C')
-    call assertEqual(REAL64_TYPE, getValueType('1.2'), 'case D')
-    call assertEqual(REAL64_TYPE, getValueType('1.2e+10'), 'case E')
-    call assertEqual(REAL64_TYPE, getValueType('234.6d-12'), 'case F')
-
-    call assertEqual(LOGICAL_TYPE, getValueType('.true.'), 'case G')
-    call assertEqual(LOGICAL_TYPE, getValueType('.false.'), 'case H')
-    call assertEqual(LOGICAL_TYPE, getValueType('T'), 'case I')
-    call assertEqual(LOGICAL_TYPE, getValueType('F'), 'case J')
-    call assertEqual(LOGICAL_TYPE, getValueType('t'), 'case K')
-    call assertEqual(LOGICAL_TYPE, getValueType('f'), 'case L')
-    call assertEqual(LOGICAL_TYPE, getValueType('t'), 'case M')
-    call assertEqual(LOGICAL_TYPE, getValueType('false'), 'case N')
-    call assertEqual(LOGICAL_TYPE, getValueType('true'), 'case O')
-
-    call assertEqual(STRING_TYPE, getValueType('hello'), 'case P')
-    call assertEqual(STRING_TYPE, getValueType('truely'), 'case Q')
-    call assertEqual(STRING_TYPE, getValueType('Fa'), 'case R')
-    call assertEqual(STRING_TYPE, getValueType('''.true.'''), 'case S') ! has quotes => string
-    call assertEqual(STRING_TYPE, getValueType('".true."'), 'case T') ! has quotes => string
-
-  end subroutine testGetValueType
-
-  subroutine testGetCommonValueType()
-!@sum Test that a mixed set of tokens are treated as a category that
-!@+ sufficiently broad.  E.g mix of integer and string should be
-!@+ treated as string.
-    use Dictionary_mod
-
-    call assertEqual(INTEGER_TYPE, getValueType(['3','4']))
-    call assertEqual(REAL64_TYPE, getValueType(['3.','4 ']))
-    call assertEqual(REAL64_TYPE, getValueType(['3 ','4.', '5 ']))
-    call assertEqual(REAL64_TYPE, getValueType(['3 ','4.']))
-    call assertEqual(REAL64_TYPE, getValueType(['3.','4.']))
-
-    call assertEqual(LOGICAL_TYPE, getValueType(['T     ','F     ','.true.']))
-    call assertEqual(STRING_TYPE,  getValueType(['3     ','F     ','.true.']))
-
-  end subroutine testGetCommonValueType
-
-
-
   subroutine testIsEndData()
+    use Parser_mod
     use FileManager
     type (Parser_type) :: parser
     character(len=*), parameter :: END_DATA = '*** end params ***'
@@ -197,6 +153,7 @@ contains
   end subroutine testIsEndData
 
   subroutine testSplitTokensA()
+    use Parser_mod
     type (Parser_type) :: parser
     character(len=*), parameter :: separators = '=,'
     character(len=128) :: string
@@ -211,6 +168,7 @@ contains
   end subroutine testSplitTokensA
 
   subroutine testSplitTokensB()
+    use Parser_mod
     type (Parser_type) :: parser
     character(len=*), parameter :: separators = '=,'
     character(len=128) :: string
@@ -226,6 +184,7 @@ contains
   end subroutine testSplitTokensB
 
   subroutine testSplitTokensC()
+    use Parser_mod
     type (Parser_type) :: parser
     character(len=*), parameter :: separators = '=,'
     character(len=128) :: string
@@ -244,6 +203,7 @@ contains
   end subroutine testSplitTokensC
 
   subroutine testSplitTokensD()
+    use Parser_mod
     type (Parser_type) :: parser
     character(len=*), parameter :: separators = '=,'
     character(len=128) :: string
@@ -266,6 +226,7 @@ contains
   end subroutine testSplitTokensD
 
   subroutine testSplitEmbeddedComma()
+    use Parser_mod
     type (Parser_type) :: parser
     character(len=*), parameter :: separators = '=,'
     character(len=128) :: string
@@ -285,6 +246,7 @@ contains
   end subroutine testSplitEmbeddedComma
 
   subroutine testBadFirstSeparator()
+    use Parser_mod
     type (Parser_type) :: parser
     character(len=*), parameter :: separators = '= ,'
     character(len=128) :: string
@@ -302,10 +264,11 @@ contains
   end subroutine testBadFirstSeparator
 
   subroutine testParseEOF()
+    use Parser_mod
     use FileManager
-    use Dictionary_mod
+    use AttributeDictionary_mod
     type (Parser_type) :: parser
-    type (Dictionary_type) :: aDictionary
+    type (AttributeDictionary) :: aDictionary
 
     integer :: status
     integer :: unit
@@ -320,14 +283,15 @@ contains
   end subroutine testParseEOF
 
   subroutine testParseSimple()
+    use Parser_mod
     use FileManager
-    use Dictionary_mod
-    use GenericType_mod
+    use AttributeDictionary_mod
+    use Attributes_mod
     type (Parser_type) :: parser
 
-    type (Dictionary_type) :: aDictionary
+    type (AttributeDictionary) :: aDictionary
     integer :: unit
-    integer :: i(3)
+    integer, pointer :: i(:)
     character(len=*), parameter :: BEGIN_DATA = '*** end header ***'
     character(len=*), parameter :: END_DATA = '*** end params ***'
     integer :: status
@@ -346,9 +310,9 @@ contains
     aDictionary = parse(parser, unit, status)
     close(unit, status='delete')
 
-    call assertEqual(1, size(getKeys(aDictionary)))
-    call assertTrue(hasKey(aDictionary, 'key'), 'There should not be a "key".')
-    i = lookup(aDictionary, 'key')
+    call assertEqual(1, aDictionary%size())
+    call assertTrue(aDictionary%has('key'), 'There should not be a "key".')
+    i = aDictionary%getReference('key')
     call assertEqual([1,2,3], i, 'Wrong value for "key".')
 
     call clean(aDictionary)
@@ -356,21 +320,22 @@ contains
   end subroutine testParseSimple
 
   subroutine testParse()
+    use Parser_mod
     use FileManager
-    use Dictionary_mod
-    use GenericType_mod
+    use AttributeDictionary_mod
+    use Attributes_mod
     type (Parser_type) :: parser
 
-    type (Dictionary_type) :: aDictionary
+    type (AttributeDictionary) :: aDictionary
     integer :: unit
     character(len=*), parameter :: BEGIN_DATA = '*** end header ***'
     character(len=*), parameter :: END_DATA = '*** end params ***'
 
     integer :: status
 
-    integer :: betaValue
-    real(kind=r64) :: gammaValue
-    logical :: deltaValues(4)
+    integer, pointer :: betaValue
+    real(kind=r64), pointer :: gammaValue
+    logical, pointer :: deltaValues(:)
 
     call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
     write(unit,'(a)') 'alpha = 0' ! ignore - in header
@@ -395,35 +360,99 @@ contains
     aDictionary = parse(parser, unit, status)
     close(unit, status='delete')
 
-    call assertEqual(3, size(getKeys(aDictionary)))
-    call assertFalse(hasKey(aDictionary, 'alpha'), 'There should not be an "alpha".')
-    call assertTrue(hasKey(aDictionary, 'beta'), 'There should be a "beta".')
-    call assertTrue(hasKey(aDictionary, 'gamma'), 'There should be a "gamma".')
-    call assertTrue(hasKey(aDictionary, 'delta'), 'There should be a "delta".')
+    call assertEqual(3, aDictionary%size())
+    call assertFalse(aDictionary%has('alpha'), 'There should not be an "alpha".')
+    call assertTrue(aDictionary%has('beta'), 'There should be a "beta".')
+    call assertTrue(aDictionary%has('gamma'), 'There should be a "gamma".')
+    call assertTrue(aDictionary%has('delta'), 'There should be a "delta".')
 
-    betaValue = lookup(aDictionary, 'beta')
+    betaValue = aDictionary%getReference('beta')
     call assertEqual(2, betaValue, 'Wrong value for "beta".')
 
-    gammaValue = lookup(aDictionary, 'gamma')
+    gammaValue = aDictionary%getReference('gamma')
     call assertEqual(3.d+0, gammaValue, 'Wrong value for "gamma".')
 
-    gammaValue = lookup(aDictionary, 'Gamma')
+    gammaValue = aDictionary%getReference('Gamma')
     call assertEqual(3.d+0, gammaValue, 'Wrong value for "Gamma".')
 
-    deltaValues = lookup(aDictionary, 'delta')
+    deltaValues = aDictionary%getReference('delta')
     call assertTrue(all([.true.,.false.,.true.,.true.] .eqv. deltaValues), 'Wrong value for "delta".')
 
     call clean(aDictionary)
 
   end subroutine testParse
 
+  subroutine testParseAttribute()
+    use Parser_mod, only: Parser_type, parse
+    use Parser_mod, only: setBeginData, setCommentCharacters, setEndData
+    use Parser_mod, only: setTokenSeparators
+    use FileManager
+    use AttributeDictionary_mod
+    use Attributes_mod
+    type (Parser_type) :: parser
+
+    type (AttributeDictionary) :: aDictionary
+    integer :: unit
+    character(len=*), parameter :: BEGIN_DATA = '*** end header ***'
+    character(len=*), parameter :: END_DATA = '*** end params ***'
+
+    integer :: status
+
+    integer, pointer :: betaValue
+    real(kind=r64), pointer :: gammaValue
+    logical, pointer :: deltaValues(:)
+    class (AbstractAttribute), pointer :: p
+
+    call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
+    write(unit,'(a)') 'alpha = 0' ! ignore - in header
+    write(unit,'(a)') 'b'
+    write(unit,'(a)') BEGIN_DATA
+    write(unit,'(a)') '! alpha = 1' ! ignore - only a comment
+    write(unit,'(a)') 'beta = 2'
+    write(unit,'(a)') ! empty line
+    write(unit,'(a)') '!' ! effectively empty line
+    write(unit,'(a)') 'gamma = 3.'
+    write(unit,'(a)') '! alpha = 2' ! ignore - only a comment
+    write(unit,'(a)') 'delta = T, F, T, T'
+    write(unit,'(a)') END_DATA
+    write(unit,'(a)') '! alpha = 3' ! ignore - after header
+    rewind(unit)
+
+    call setBeginData(parser, BEGIN_DATA)
+    call setEndData(parser, END_DATA)
+    call setTokenSeparators(parser, '=,')
+    call setCommentCharacters(parser, '!#')
+
+    aDictionary = parse(parser, unit, status)
+
+    close(unit, status='delete')
+
+
+    call assertEqual(3, aDictionary%size())
+    call assertFalse(aDictionary%has('alpha'), 'There should not be an "alpha".')
+    call assertTrue(aDictionary%has('beta'), 'There should be a "beta".')
+    call assertTrue(aDictionary%has('gamma'), 'There should be a "gamma".')
+    call assertTrue(aDictionary%has('delta'), 'There should be a "delta".')
+
+    betaValue = aDictionary%getReference('beta')
+    call assertEqual(2, betaValue, 'Wrong value for "beta".')
+
+    gammaValue = aDictionary%getReference('gamma')
+    call assertEqual(3.d+0, gammaValue, 'Wrong value for "gamma".')
+
+    deltaValues = aDictionary%getReference('delta')
+    call assertTrue(all([.true.,.false.,.true.,.true.] .eqv. deltaValues), 'Wrong value for "delta".')
+
+  end subroutine testParseAttribute
+
   subroutine testParseNoValue()
 !@sum Tests that an exception is thrown if there is no value to associate with a key.
+    use Parser_mod
     use FileManager
     use Dictionary_mod
     type (Parser_type) :: parser
 
-    type (Dictionary_type) :: aDictionary
+    type (Dictionary) :: aDictionary
     integer :: unit
     character(len=*), parameter :: BEGIN_DATA = '*** end header ***'
     character(len=*), parameter :: END_DATA = '*** end params ***'
@@ -451,25 +480,24 @@ contains
   end subroutine testParseNoValue
 
   subroutine testWriteFormatted()
+    use Parser_mod
     use FileManager
-    use Dictionary_mod
-    use GenericType_mod
+    use AttributeDictionary_mod
     type (Parser_type) :: parser
 
-    type (Dictionary_type) :: aDictionary
-    type (Dictionary_type) :: bDictionary
+    type (AttributeDictionary) :: aDictionary
+    type (AttributeDictionary) :: bDictionary
     integer :: unit
     character(len=*), parameter :: BEGIN_DATA = '*** end header ***'
     character(len=*), parameter :: END_DATA = '*** end params ***'
     character(len=256) :: line
-    character(len=MAX_LEN_KEY), pointer :: keys(:)
 
     integer :: status
 
-    integer :: i(3)
+    integer, pointer :: i(:)
 
-    aDictionary = Dictionary()
-    call insert(aDictionary,'key',[1,2,3])
+    aDictionary = newAttributeDictionary()
+    call aDictionary%insert('key',[1,2,3])
 
     call setBeginData(parser, BEGIN_DATA)
     call setEndData(parser, END_DATA)
@@ -483,10 +511,9 @@ contains
 
     bDictionary = parse(parser, unit, status)
 
-    keys => getKeys(bDictionary)
-    i = lookup(bDictionary, 'key')
+    i = bDictionary%getReference('key')
 
-    call assertTrue(aDictionary == bDictionary)
+    call assertTrue(aDictionary%equals(bDictionary))
 
     call clean(bDictionary)
     call clean(aDictionary)
@@ -496,17 +523,17 @@ contains
   end subroutine testWriteFormatted
 
   subroutine testWriteTextExample()
+    use Parser_mod
     use FileManager
-    use Dictionary_mod
+    use AttributeDictionary_mod
     type (Parser_type) :: parser
 
-    type (Dictionary_type) :: aDictionary
-    type (Dictionary_type) :: bDictionary
+    type (AttributeDictionary) :: aDictionary
+    type (AttributeDictionary) :: bDictionary
     integer :: unit
     character(len=*), parameter :: BEGIN_DATA = '{'
     character(len=*), parameter :: END_DATA = '}'
     character(len=256) :: line
-    character(len=MAX_LEN_KEY), pointer :: keys(:)
 
     integer :: status
 
@@ -520,17 +547,16 @@ contains
     call setCommentCharacters(parser, '!#')
     call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
 
-    aDictionary = Dictionary()
-    call insert(aDictionary,'name', 'Air')
-    call insert(aDictionary,'logScale', -2)
-    call insert(aDictionary,'molecularMass', 28.9655d0)
+    aDictionary = newAttributeDictionary()
+    call aDictionary%insert('name', 'Air')
+    call aDictionary%insert('logScale', -2)
+    call aDictionary%insert('molecularMass', 28.9655d0)
     call writeFormatted(parser, unit, aDictionary)
     
     rewind(unit)
     bDictionary = parse(parser, unit, status)
 
-    keys => getKeys(bDictionary)
-    call assertTrue(aDictionary == bDictionary, 'Dictionaries differ.')
+    call assertTrue(aDictionary%equals(bDictionary), 'Dictionaries differ.')
 
     call clean(bDictionary)
     call clean(aDictionary)

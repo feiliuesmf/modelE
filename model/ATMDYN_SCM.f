@@ -13,7 +13,7 @@
       SUBROUTINE DYNAM
       USE RESOLUTION, only: im,lm,ls1
       USE SOMTQ_COM,  only: tmom,mz
-      USE ATM_COM,    only: t,p,q,PMID,PEDN,PUA,PVA,SDA
+      USE ATM_COM,    only: t,p,q,PMID,PEDN,MUs,MVs,MWs
       USE DOMAIN_DECOMP_ATM, only : grid
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
@@ -22,9 +22,9 @@
       INTEGER L
 
       do L=1,LM
-         PUA(:,:,L) = 0.
-         PVA(:,:,L) = 0.
-         SDA(:,:,L) = 0.
+         MUs(:,:,L) = 0.
+         MVs(:,:,L) = 0.
+         MWs(:,:,L) = 0.
       ENDDO
 
       call pass_SCMDATA
@@ -181,9 +181,9 @@ c     want to fill SD (IDUM,JDUM)  check out
       USE SCMCOM,     only: iu_scm_prt,I_TARG,J_TARG 
       USE GEOM,       only: imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp,acor,acor2
       USE DYNAMICS,   only: sig,bydsig,do_polefix,
-     *     dsig,sige,pu,pit,spa,dut,dvt,mrch
+     *     dsig,sige,pu,spa,dut,dvt,mrch
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D,  only: GET, HALO_UPDATE
+      USE DOMAIN_DECOMP_1D,  only: getDomainBounds, HALO_UPDATE
       USE DOMAIN_DECOMP_1D,  only: NORTH, SOUTH
       USE DOMAIN_DECOMP_1D,  only: haveLatitude
       IMPLICIT NONE
@@ -301,12 +301,12 @@ c     END SUBROUTINE AFLUX
 
 C**** Dummy routines
 
-      SUBROUTINE COMPUTE_DYNAM_AIJ_DIAGNOSTICS( PUA,PVA,dt)
+      SUBROUTINE COMPUTE_DYNAM_AIJ_DIAGNOSTICS( MUs,MVs,dt)
 !@sum COMPUTE_DYNAM_AIJ_DIAGNOSTICS Dummy
       use DOMAIN_DECOMP_ATM, only: grid
 
-      real*8, intent(in) :: PUA(:,grid%J_STRT_HALO:,:)
-      real*8, intent(in) :: PVA(:,grid%J_STRT_HALO:,:)
+      real*8, intent(in) :: MUs(:,grid%J_STRT_HALO:,:)
+      real*8, intent(in) :: MVs(:,grid%J_STRT_HALO:,:)
       real*8, intent(in) :: dt
 
       return
@@ -373,8 +373,8 @@ c     dummy of subroutine
       USE DYNAMICS,   only: dsig
       USE ATM_COM,    only: p,u,v
       USE DOMAIN_DECOMP_ATM, only: GRID
-      USE DOMAIN_DECOMP_1D,  only: GET, CHECKSUM, HALO_UPDATE
-      USE DOMAIN_DECOMP_1D,  only: SOUTH
+      USE DOMAIN_DECOMP_1D,  only: CHECKSUM, HALO_UPDATE
+      USE DOMAIN_DECOMP_1D,  only: getDomainBounds, SOUTH
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RKE
@@ -447,9 +447,9 @@ C****
       USE ATM_COM,    only: ua=>ualij,va=>valij
       USE GEOM,       only : imaxj,idij,idjj,kmaxj,rapj,cosiv,siniv
       USE DOMAIN_DECOMP_ATM, only: GRID
-      USE DOMAIN_DECOMP_1D,  only: GET, NORTH, HALO_UPDATE_COLUMN
+      USE DOMAIN_DECOMP_1D,  only: NORTH, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP_1D,  only: HALO_UPDATE
-      USE DOMAIN_DECOMP_1D,  only: NORTH
+      USE DOMAIN_DECOMP_1D,  only: getDomainBounds, NORTH
       implicit none
       real*8, dimension(im) :: ra
       integer, dimension(im) :: idj
@@ -882,7 +882,7 @@ c regrids scalar x_bgrid*dxyv -> x_agrid*dxyp
       USE RESOLUTION, only: im,jm
       USE GEOM,       only: byim,rapvs,rapvn,dxyp,dxyv
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D,  only: GET, HALO_UPDATE, NORTH
+      USE DOMAIN_DECOMP_1D,  only: getDomainBounds, HALO_UPDATE, NORTH
       use Domain_Decomp_1d,  only: hasNorthPole, hasSouthPole
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: X

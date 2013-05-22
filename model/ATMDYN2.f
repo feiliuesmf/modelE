@@ -1,9 +1,10 @@
 #include "rundeck_opts.h"
 
       SUBROUTINE DYNAM2
+!@vers 2013/04/02
       USE model_com, only : im,jm,lm,ls1,
      &     u,v,t,p,NIdyn,dt,DTsrc,NSTEP,mrch,ndaa
-      USE DYNAMICS, only : pu,pv,sd, pua,pva,sda
+      USE DYNAMICS, only : pu,pv,sd, MUs,MVs,MWs
       USE DYNAMICS, only : gz,phi
       USE SOMTQ_COM, only : tmom,mz
       USE DOMAIN_DECOMP_1D, only : grid, GET, globalsum
@@ -15,7 +16,7 @@
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     PT, PX, PSAVE, AM1, AM2, FPEU,FPEV, PPGF
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
-     &     UT,VT,TT,TZ,TZT,MA,UX,VX
+     &     UT,VT,TT,TZ,TZT,MMA,UX,VX
 
       REAL*8 DTFS,DTLF, DAMSUM
       INTEGER I,J,L   !@var I,J,L  loop variables
@@ -42,9 +43,9 @@ c**** Extract domain decomposition info
       call halo_update(grid,t)
 
       DO L=1,LM
-         PUA(:,:,L) = 0.
-         PVA(:,:,L) = 0.
-         SDA(:,:,L) = 0.
+         MUs(:,:,L) = 0.
+         MVs(:,:,L) = 0.
+         MWs(:,:,L) = 0.
       ENDDO
 
       DO L=1,LM
@@ -97,9 +98,9 @@ C**** ADVECT TEMPERATURE and accumulate mass fluxes
             enddo
           enddo
         enddo
-        call calc_ma(psave,ma)
+        call calc_ma (psave,mma)
         CALL HALO_UPDATE(grid,PU, FROM=NORTH)
-        CALL AADVT3(MA,T,TMOM, TZ, SD,PU,PV, DTLF)
+        CALL AADVT3 (MMA,T,TMOM, TZ, SD,PU,PV, DTLF)
         do l=1,lm
           do j=j_0s-1,j_1
             do i=1,imaxj(j)
@@ -1316,8 +1317,9 @@ c convert xy velocities back to polar coordinates
       return
       end subroutine isotropuv2
 
-      SUBROUTINE AADVT3(MA,RM,RMOM,RZ,SD,PU,PV,DT)
+      SUBROUTINE AADVT3 (MMA,RM,RMOM,RZ,SD,PU,PV,DT)
 !@sum  AADVT advection driver
+!@vers 2013/03/27
 !@auth G. Russell, modified by Maxwell Kelley
 c****
 c**** AADVT advects tracers using the Quadradic Upstream Scheme.
@@ -1330,7 +1332,7 @@ c****
 c**** input/output:
 c****     rm = tracer concentration
 c****   rmom = moments of tracer concentration
-c****     ma (kg) = fluid mass
+c****     mma (kg) = fluid mass
 c****
       USE DOMAIN_DECOMP_1D, only: grid, get
       USE DOMAIN_DECOMP_1D, only:
@@ -1338,17 +1340,17 @@ c****
      &     NORTH,SOUTH
       USE QUSDEF
       USE QUSCOM, ONLY : IM,JM,LM
-      USE DYNAMICS, only : pua,pva,sda
+      USE DYNAMICS, only : MUs,MVs,MWs
       USE GEOM, only : imaxj
       IMPLICIT NONE
 
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: 
-     &                  rm,ma,rz
-      REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) 
+      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) ::
+     &                  rm,mma,rz
+      REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
      &               :: rmom
 
       REAL*8, INTENT(IN) :: DT
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm), 
+      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm),
      &    intent(in) :: pu,pv
       REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm-1),
      &    intent(in) :: sd
@@ -1361,7 +1363,7 @@ c****
 
       INTEGER :: I,J,L,N
       integer :: jmin_x,jmax_x
-      REAL*8 :: BYMA
+      Real*8  :: byMMA
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
@@ -1373,7 +1375,7 @@ c**** Extract domain decomposition info
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 c halo updates
-c      CALL HALO_UPDATE(grid, ma) ! not needed
+c      CALL HALO_UPDATE (grid, mma) ! not needed
 c      CALL HALO_UPDATE(grid, rm) ! already done by DYNAM
       CALL HALO_UPDATE_COLUMN(grid, rmom)
 
@@ -1392,17 +1394,17 @@ C****
       DO L=1,LM
 
 C**** ACCUMULATE MASS FLUXES FOR TRACERS and Q (halo included)
-        PUA(:,:,L) = PUA(:,:,L)+PU(:,:,L)*DT
-        PVA(:,:,L) = PVA(:,:,L)+PV(:,:,L)*DT
-        IF (L.LT.LM) SDA(:,:,L) = SDA(:,:,L)+SD(:,:,L)*DT
+        MUs(:,:,L) = MUs(:,:,L)+PU(:,:,L)*DT
+        MVs(:,:,L) = MVs(:,:,L)+PV(:,:,L)*DT
+        IF (L.LT.LM) MWs(:,:,L) = MWs(:,:,L)+SD(:,:,L)*DT
 
 C****
 C**** convert from concentration to mass units
 C****
         DO J=J_0S-1,J_1S+1
         DO I=1,IMAXJ(J)
-          RM(I,J,L)=RM(I,J,L)*MA(I,J,L)
-          RMOM(:,I,J,L)=RMOM(:,I,J,L)*MA(I,J,L)
+          RM(I,J,L)=RM(I,J,L)*MMA(I,J,L)
+          RMOM(:,I,J,L)=RMOM(:,I,J,L)*MMA(I,J,L)
         enddo
         enddo
 
@@ -1411,46 +1413,46 @@ C****
           mflx(:,j)=pu(:,j,l)*(.5*dt)
         enddo
         CALL AADVTX3(RM(1,j_0h,l),RMOM(1,1,j_0h,l),
-     &       MA(1,j_0h,l),MFLX,jmin_x,jmax_x)
+     &       MMA(1,j_0h,l),MFLX,jmin_x,jmax_x)
 
 c include halo lat to the south
         mflx(:,J_0S-1:J_1S)=pv(:,J_0S:J_1S+1,l)*dt
         if (HAVE_NORTH_POLE) mflx(:,jm)=0.
         CALL AADVTY3(RM(1,j_0h,l),RMOM(1,1,j_0h,l),
-     &       MA(1,j_0h,l),MFLX)
+     &       MMA(1,j_0h,l),MFLX)
 
         if(l.gt.1) then
           do j=j_0,j_1
           do i=1,imaxj(j)
             MFLX(i,j)=SD(i,j,L-1)*(-DT)
 c high vertical resolution near steep topography needs courz checks
-            if(     mflx(i,j).gt.ma(i,j,l-1)) then
+            if(     mflx(i,j).gt.mma(i,j,l-1)) then
 c              write(6,'(a6,3i4,f6.2)')
-c     &             'courz ',i,j,l-1,mflx(i,j)/ma(i,j,l-1)
+c     &             'courz ',i,j,l-1,mflx(i,j)/mma(i,j,l-1)
               rmom(zmoms,i,j,l-1) = 0.
-            elseif(-mflx(i,j).gt.ma(i,j,l  )) then
+            elseif(-mflx(i,j).gt.mma(i,j,l  )) then
 c              write(6,'(a6,3i4,f6.2)')
-c     &             'courz ',i,j,l-1,mflx(i,j)/ma(i,j,l)
+c     &             'courz ',i,j,l-1,mflx(i,j)/mma(i,j,l)
               rmom(zmoms,i,j,l) = 0.
             endif
           enddo
           enddo
 
           CALL AADVTZ3(RM(1,j_0h,l-1),RMOM(1,1,j_0h,l-1),
-     &         MA(1,j_0h,l-1),MFLX,mwdn,fdn,fmomdn)
+     &         MMA(1,j_0h,l-1),MFLX,mwdn,fdn,fmomdn)
 
           jmin_x = j_0s; jmax_x = j_1s
           do j=jmin_x,jmax_x
             mflx(:,j)=pu(:,j,l-1)*(.5*dt)
           enddo
           CALL AADVTX3(RM(1,j_0h,l-1),RMOM(1,1,j_0h,l-1),
-     &         MA(1,j_0h,l-1),MFLX,jmin_x,jmax_x)
+     &         MMA(1,j_0h,l-1),MFLX,jmin_x,jmax_x)
 
           DO J=J_0,J_1
           DO I=1,IM
-            BYMA = 1.D0/MA(I,J,L-1)
-            RM(I,J,L-1)=RM(I,J,L-1)*BYMA
-            RMOM(:,I,J,L-1)=RMOM(:,I,J,L-1)*BYMA
+            byMMA = 1 / MMA(I,J,L-1)
+            RM(I,J,L-1) = RM(I,J,L-1)*byMMA
+            RMOM(:,I,J,L-1) = RMOM(:,I,J,L-1)*byMMA
             rz(i,j,l-1)=rmom(mz,i,j,l-1)
           enddo
           enddo
@@ -1462,18 +1464,18 @@ c     &             'courz ',i,j,l-1,mflx(i,j)/ma(i,j,l)
       l=lm
       mflx(:,j_0:j_1)=0.
       CALL AADVTZ3(RM(1,j_0h,l),RMOM(1,1,j_0h,l),
-     &     MA(1,j_0h,l),MFLX,mwdn,fdn,fmomdn)
+     &     MMA(1,j_0h,l),MFLX,mwdn,fdn,fmomdn)
       jmin_x = j_0s; jmax_x = j_1s
       do j=jmin_x,jmax_x
         mflx(:,j)=pu(:,j,l)*(.5*dt)
       enddo
       CALL AADVTX3(RM(1,j_0h,l),RMOM(1,1,j_0h,l),
-     &     MA(1,j_0h,l),MFLX,jmin_x,jmax_x)
+     &     MMA(1,j_0h,l),MFLX,jmin_x,jmax_x)
       DO J=J_0,J_1
       DO I=1,IM
-        BYMA = 1.D0/MA(I,J,L)
-        RM(I,J,L)=RM(I,J,L)*BYMA
-        RMOM(:,I,J,L)=RMOM(:,I,J,L)*BYMA
+        byMMA = 1 / MMA(I,J,L)
+        RM(I,J,L) = RM(I,J,L)*byMMA
+        RMOM(:,I,J,L) = RMOM(:,I,J,L)*byMMA
         rz(i,j,l)=rmom(mz,i,j,l)
       enddo
       enddo
@@ -1507,7 +1509,7 @@ c****
       use QUSCOM, only : im,jm
       implicit none
       integer :: jmin,jmax
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &                  rm,mass,mu
       REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &                  rmom
@@ -1716,13 +1718,13 @@ c****
       use QUSDEF
       use QUSCOM, only : im,jm,byim
       implicit none
-      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: 
+      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &                  rm,mass,mv
       REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:
      &                          grid%J_STOP_HALO) :: rmom
       integer :: i,j,jj
       REAL*8 :: m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
-      real*8, dimension(im) :: mvs,fs
+      real*8, dimension(im) :: mvj,fs
       real*8, dimension(nmom,im) :: fmoms
       real*8, dimension(nmom) :: fmomn
       real*8 :: frac1,fracm,fn,mold,mnew,bymnew,dm2
@@ -1776,7 +1778,7 @@ c--------------------------------------------------------------------
         mv(:,jm) = 0.
       endif
       if(have_south_pole) then
-        mvs(:) = 0.
+        mvj(:) = 0.
         fs(:) = 0.
         fmoms(:,:) = 0.
       else
@@ -1806,7 +1808,7 @@ c--------------------------------------------------------------------
           fmomn(mzz) = fracm*rmom(mzz,i,jj)
           fmomn(mxx) = fracm*rmom(mxx,i,jj)
           fmomn(mzx) = fracm*rmom(mzx,i,jj)
-          mvs(i) = mv(i,j)
+          mvj(i) = mv(i,j)
           fs(i) = fn
           fmoms(:,i) = fmomn(:)
         enddo ! i
@@ -1839,9 +1841,9 @@ c--------------------------------------------------------------------
          fmomn(mzx) = fracm*rmom(mzx,i,jj)
 
          mold=mass(i,j)
-         mnew=mold+mvs(i)-mv(i,j)
+         mnew=mold+mvj(i)-mv(i,j)
          bymnew = 1./mnew
-         dm2=mvs(i)+mv(i,j)
+         dm2=mvj(i)+mv(i,j)
          rm(i,j)=rm(i,j)+fs(i)-fn
       !
          rmom(my,i,j)=(rmom(my,i,j)*mold-3.*(-dm2*rm(i,j)
@@ -1867,7 +1869,7 @@ c--------------------------------------------------------------------
 
          mass(i,j) = mnew
 
-         mvs(i) = mv(i,j)
+         mvj(i) = mv(i,j)
          fs(i) = fn
          fmoms(:,i) = fmomn(:)
 
@@ -1879,9 +1881,9 @@ c**** average and unscale polar boxes
       if (HAVE_SOUTH_POLE) then
         mass(1,1 ) = (m_sp + sum(mass(:,1 )-m_sp))*byim
         rm(1,1 ) = (rm_sp + sum(rm(:,1 )-rm_sp))*byim
-        rmom(mz ,1,1 ) = (rzm_sp + 
+        rmom(mz ,1,1 ) = (rzm_sp +
      *       sum(rmom(mz ,:,1 )-rzm_sp ))*byim
-        rmom(mzz,1,1 ) = (rzzm_sp+ 
+        rmom(mzz,1,1 ) = (rzzm_sp+
      *       sum(rmom(mzz,:,1 )-rzzm_sp))*byim
         rmom(ihmoms,1,1) = 0
       end if   !SOUTH POLE
@@ -1889,9 +1891,9 @@ c**** average and unscale polar boxes
       if (HAVE_NORTH_POLE) then
         mass(1,jm) = (m_np + sum(mass(:,jm)-m_np))*byim
         rm(1,jm) = (rm_np + sum(rm(:,jm)-rm_np))*byim
-        rmom(mz ,1,jm) = (rzm_np + 
+        rmom(mz ,1,jm) = (rzm_np +
      &       sum(rmom(mz ,:,jm)-rzm_np ))*byim
-        rmom(mzz,1,jm) = (rzzm_np+ 
+        rmom(mzz,1,jm) = (rzzm_np+
      &       sum(rmom(mzz,:,jm)-rzzm_np))*byim
         rmom(ihmoms,1,jm) = 0.
       end if  !NORTH POLE
@@ -1921,11 +1923,11 @@ c****
       use QUSCOM, only : im,jm
       USE GEOM, only : imaxj
       implicit none
-      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,2) 
+      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,2)
      &        :: rm,mass
-      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo,2) 
+      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo,2)
      &        :: rmom
-      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo) 
+      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo)
      &        :: fmomdn
       REAL*8, dimension(IM,grid%j_strt_halo:grid%j_stop_halo) ::
      &     mw,mwdn,fdn
@@ -2062,7 +2064,7 @@ c slopes to prevent excessive subsidence warming in gridcells downwind
 c of high surface altitudes.
 c
       use model_com, only : im,jm,lm,ls1,zatmo,t
-      use dynamics, only : pua,pva
+      use dynamics, only : MUs,MVs
       use qusdef, only : mx,mxx,my,myy
       use somtq_com, only : tmom
       use domain_decomp_atm, only : grid,getDomainBounds,halo_update
@@ -2075,7 +2077,7 @@ C**** define local grid
       call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
 
       call halo_update(grid,t)    ! already haloed ?
-      call halo_update(grid,pva)  ! already haloed ?
+      call halo_update(grid,MVs)  ! already haloed ?
 
       do j=j_0s,j_1s
       do i=2,im-1 ! skipping wraparound for now
@@ -2091,11 +2093,11 @@ c
             te2_sv = t(i,j,l)+tmom(my,i,j,l)+tmom(myy,i,j,l)
             te1 = te1_sv
             te2 = te2_sv
-            if(zatmo(i,j-1).lt.zthresh .and. pva(i,j-1,l).lt.0.) then
+            if(zatmo(i,j-1).lt.zthresh .and. MVs(i,j-1,l).lt.0.) then
               te1 = min(te1, .5*t(i,j,l)+.5*t(i,j-1,l) )
 c              te1 = min(te1, .25*t(i,j,l)+.75*t(i,j-1,l) )
             endif
-            if(zatmo(i,j+1).lt.zthresh .and. pva(i,j  ,l).gt.0.) then
+            if(zatmo(i,j+1).lt.zthresh .and. MVs(i,j  ,l).gt.0.) then
               te2 = min(te2, .5*t(i,j,l)+.5*t(i,j+1,l) )
 c              te2 = min(te2, .25*t(i,j,l)+.75*t(i,j+1,l) )
             endif
@@ -2114,11 +2116,11 @@ c
             te2_sv = t(i,j,l)+tmom(mx,i,j,l)+tmom(mxx,i,j,l)
             te1 = te1_sv
             te2 = te2_sv
-            if(zatmo(i-1,j).lt.zthresh .and. pua(i-1,j,l).lt.0.) then
+            if(zatmo(i-1,j).lt.zthresh .and. MUs(i-1,j,l).lt.0.) then
               te1 = min(te1, .5*t(i,j,l)+.5*t(i-1,j,l) )
 c              te1 = min(te1, .25*t(i,j,l)+.75*t(i-1,j,l) )
             endif
-            if(zatmo(i+1,j).lt.zthresh .and. pua(i  ,j,l).gt.0.) then
+            if(zatmo(i+1,j).lt.zthresh .and. MUs(i  ,j,l).gt.0.) then
               te2 = min(te2, .5*t(i,j,l)+.5*t(i+1,j,l) )
 c              te2 = min(te2, .25*t(i,j,l)+.75*t(i+1,j,l) )
             endif

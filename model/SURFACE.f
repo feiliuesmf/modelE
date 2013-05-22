@@ -24,6 +24,7 @@ C****
 !@+   sensible heat, evaporation, thermal radiation, and momentum
 !@+   drag.  It also calculates instantaneous surface temperature,
 !@+   surface specific humidity, and surface wind components.
+!@vers 2013/03/27
 !@auth Nobody will claim responsibilty
 
       USE CONSTANT, only : rgas,lhm,lhe,lhs
@@ -41,7 +42,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, GLOBALSUM
       USE GEOM, only : axyp,imaxj,byaxyp
       USE SOMTQ_COM, only : tmom,qmom,mz
-      USE ATM_COM, only : pmid,pk,pedn,pek,am,byam
+      USE ATM_COM, only : pmid,pk,pedn,pek,MA,byMA
       USE RAD_COM, only : trhr,fsf,cosz1,trsurf
 #ifdef TRACERS_ON
       use OldTracer_mod, only: itime_tr0, needtrs
@@ -78,6 +79,11 @@ C****
      &     ,nisurf,fland,flice,focean
      &     ,atmocn,atmice,atmgla,atmlnd,asflx,atmsrf
      &     ,atmglas
+#ifdef GLINT2
+      USE FLUXES, only : atmglas_hp
+      use hp2hc
+#endif
+
 #ifdef TRACERS_ON
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
@@ -116,6 +122,9 @@ C****
 
       INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IHM
      *     ,ii,itype4,ipatch
+#ifdef GLINT2
+      INTEGER ihp
+#endif
       REAL*8 PLAND,PLICE,POICE,POCEAN,PS,P1K
      *     ,ELHX,MSI2,CDTERM,CDENOM,dF1dTG,HCG1,HCG2,EVHDT,F1DT
      *     ,CM,CH,CQ,EVHEAT,F0,F1,DSHDTG,DQGDTG
@@ -199,18 +208,17 @@ C****
       DO I=I_0,IMAXJ(J)
         PLAND=FLAND(I,J)
         PWATER=1.-PLAND
-        PLICE=FLICE(I,J)
       ! RSI = RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
         POICE=RSI(I,J)*PWATER
         POCEAN=PWATER-POICE
         atmocn%ftype(i,j) = pocean
         atmice%ftype(i,j) = poice
-        atmgla%ftype(i,j) = plice
+        atmgla%ftype(i,j) = flice(I,J)
         atmlnd%ftype(i,j) = fearth(i,j)
       enddo
       enddo
 
-      call patchify_landice_inputs(after_atm_phase1)
+      call downscale_pressure_li
 
       do ipatch=1,size(asflx)
         ! solar,trheat,evapor,sensht,latht,e0,dmua,dmva,runo,eruno
@@ -223,9 +231,18 @@ C****
 
       CALL PRECIP_SI(si_atm,icelak,atmice)
 
+#ifdef GLINT2
+      do ihp=1,ubound(atmglas_hp,1)
+        CALL PRECIP_LI(atmglas_hp(ihp),ihp)
+      enddo
+      call bundle_hp_to_hc(bundle_precip_li,
+     &       atmglas_hp(1:), atmglas(1:))
+#else
       do ipatch=1,ubound(atmglas,1)
         CALL PRECIP_LI(atmglas(ipatch),ipatch)
       enddo
+#endif
+
 c The following landice section will migrate once precip_li AND precip_lk
 c are folded into their respective top-level drivers in a "single-entry-point"
 c design (as already exists for the land surface).
@@ -321,7 +338,8 @@ C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
            asflx(ipatch)%trsrfflx(:,:,:) = 0.
          enddo
 #endif
-
+      ! Part of PBL_DRV.f, uses atm/srf exchange variables
+      ! Initializes boundary layer calc each surface time step
       call loadbl
 
 #ifdef TRACERS_ON
@@ -382,7 +400,7 @@ C****
       ! T=Temperature
       THV1=T(I,J,1)*(1.+Q1*xdelt)
 
-      MA1=AM(1,I,J) !@var MA1 mass of lowest atmospheric layer (kg/m^2)
+      MA1=MA(1,I,J) !@var MA1 mass of lowest atmospheric layer (kg/m^2)
 
 C****
       DO ITYPE=ITYPE_MIN,ITYPE_OCEANICE ! no earth or landice type
@@ -521,9 +539,9 @@ c      pbl_args%trhr0 = TRHR(0,I,J)
 !     PBL = "Planetary Boundary Layer"
 C**** Call pbl to calculate near surface profile
       if(itype == 1) then
-        CALL PBL(I,J,ITYPE,PTYPE,pbl_args,atmocn)
+        CALL PBL(I,J,1,ITYPE,PTYPE,pbl_args,atmocn)
       else
-        CALL PBL(I,J,ITYPE,PTYPE,pbl_args,atmice)
+        CALL PBL(I,J,1,ITYPE,PTYPE,pbl_args,atmice)
       endif
 c#ifdef TRACERS_ON
 c      trs(1:ntm) = pbl_args%trs(1:ntm)
@@ -615,7 +633,7 @@ C**** Limit evaporation if lake mass is at minimum
         if (QCHECK) WRITE(99,*) "Lake EVAP limited: I,J,EVAP,MWL",I,J
      *     ,atmocn%EVAPOR(I,J)-DQ1X*MA1,
      *     MWL(I,J)/(RHOW*FLAKE(I,J)*AXYP(I,J))
-        DQ1X=(atmocn%EVAPOR(I,J)-EVAPLIM)*BYAM(1,I,J)
+        DQ1X=(atmocn%EVAPOR(I,J)-EVAPLIM)*byMA(1,I,J)
         lim_lake_evap=.true.
       ELSEIF (DQ1X.GT.Q1) THEN
         DQ1X=Q1
@@ -703,12 +721,14 @@ C**** final fluxes
 #ifdef SCM
 cccccc for SCM use ARM provided fluxes for designated box
       if ((I.eq.I_TARG.and.J.eq.J_TARG).and.SCM_SURFACE_FLAG.eq.1) then
-           DTH1(I,J)=DTH1(I,J)
-     &              +ash*DTSURF*ptype/(SHA*MA1)
-           DQ1(I,J)=DQ1(I,J) + ALH*DTSURF*ptype/(MA1*LHE)
+           asflx(itype)%DTH1(I,J)=asflx(itype)%DTH1(I,J) +
+     &        ash*DTSURF*ptype/(SHA*MA1)
+           asflx(itype)%DQ1(I,J)=asflx(itype)%DQ1(I,J) + 
+     &        ALH*DTSURF*ptype/(MA1*LHE)
            SHFLX = SHFLX + ASH*ptype
            EVPFLX = EVPFLX + ALH*ptype
-           write(iu_scm_prt,980) I,PTYPE,DTH1(I,J),DQ1(I,J),
+           write(iu_scm_prt,980) I,PTYPE,asflx(itype)%DTH1(I,J),
+     &           asflx(itype)%DQ1(I,J),
      &           EVPFLX,SHFLX
  980       format(1x,'SURFACE ARM   I PTYPE DTH1 DQ1 evpflx shflx',
      &            i5,f9.4,f9.5,f9.6,f9.5,f9.5)
@@ -719,18 +739,19 @@ cccccc for SCM use ARM provided fluxes for designated box
       asflx(itype)%DQ1(I,J) = -DQ1X
 #ifdef SCM
       if (i.eq.I_TARG.and.j.eq.J_TARG) then
-          write(iu_scm_prt,988) I,PTYPE,DTH1(I,J),DQ1(I,J),SHDT,dLWDT
+          write(iu_scm_prt,988) I,PTYPE,asflx(itype)%DTH1(I,J),
+     &          asflx(itype)%DQ1(I,J),SHDT,dLWDT
  988      format(1x,'988 SURFACE GCM  I PTYPE DTH1 DQ1 SHDT dLWDT ',
      &           i5,f9.4,f9.5,f9.6,f12.4,f10.4)
       endif
       endif
 #endif
-      DMUA_IJ=PTYPE*DTSURF*RCDMWS*(US-UOCEAN)
-      DMVA_IJ=PTYPE*DTSURF*RCDMWS*(VS-VOCEAN)
-      asflx(itype)%DMUA(I,J) = asflx(itype)%DMUA(I,J) + DMUA_IJ
-      asflx(itype)%DMVA(I,J) = asflx(itype)%DMVA(I,J) + DMVA_IJ
-      asflx(itype)%uflux1(i,j) = RCDMWS*(US-UOCEAN)
-      asflx(itype)%vflux1(i,j) = RCDMWS*(VS-VOCEAN)
+      DMUA_IJ=RCDMWS*(US-UOCEAN)
+      DMVA_IJ=RCDMWS*(VS-VOCEAN)
+      asflx(itype)%DMUA(I,J) = asflx(itype)%DMUA(I,J) + DMUA_IJ*DTSURF
+      asflx(itype)%DMVA(I,J) = asflx(itype)%DMVA(I,J) + DMVA_IJ*DTSURF
+      asflx(itype)%uflux1(i,j) = DMUA_IJ
+      asflx(itype)%vflux1(i,j) = DMVA_IJ
 
 C****
 C**** SAVE SOME TYPE DEPENDENT FLUXES/DIAGNOSTICS
@@ -761,10 +782,24 @@ C****
 C****
 C**** LAND ICE
 C****
-      call patchify_landice_inputs(during_srfflx)
+      call downscale_temperature_li
+#ifdef GLINT2
+      do ihp=1,ubound(atmglas_hp,1)
+        CALL SURFACE_LANDICE(NS==1,MODDD,DTSURF,atmglas_hp(ihp),ihp)
+      enddo
+
+      ! Convert variables set in surface_landice from height point
+      ! to height class space.
+      call bundle_hp_to_hc(bundle_surface_landice,
+     &    atmglas_hp(1:), atmglas(1:))
+#else
       do ipatch=1,ubound(atmglas,1)
+!        print *,'SURFACE_LANDICE',ipatch
         CALL SURFACE_LANDICE(NS==1,MODDD,DTSURF,atmglas(ipatch),ipatch)
       enddo
+
+#endif
+
 
 C****
 C**** EARTH
@@ -887,8 +922,8 @@ C****
 c****   retrieve fluxes
         uflux1(i,j)=atmsrf%uflux1(i,j)
         vflux1(i,j)=atmsrf%vflux1(i,j)
-        tflux1(i,j)=-atmsrf%dth1(i,j)*AM(1,I,J)/(dtsurf)
-        qflux1(i,j)=-atmsrf%dq1(i,j)*AM(1,I,J)/(dtsurf)
+        tflux1(i,j) = -atmsrf%dth1(i,j)*MA(1,I,J) / dtsurf
+        qflux1(i,j) = -atmsrf%dq1(i,j) *MA(1,I,J) / dtsurf
       END DO 
       END DO
 
@@ -949,10 +984,21 @@ C****
 
       atmice%e1(:,:) = e1(2,:,:)
 
-C**** APPLY SURFACE FLUXES TO LAND ICE
+C**** APPLY SURFACE FLUXES TO LAND ICE (and modify fluxes as well)
+#ifdef GLINT2
+      do ipatch=1,ubound(atmglas_hp,1)
+        CALL GROUND_LI(atmglas_hp(ipatch),ipatch)
+      enddo
+
+      ! Convert variables set in surface_landice from height point
+      ! to height class space.
+      call bundle_hp_to_hc(bundle_ground_li,
+     &     atmglas_hp(1:), atmglas(1:))
+#else
       do ipatch=1,ubound(atmglas,1)
         CALL GROUND_LI(atmglas(ipatch),ipatch)
       enddo
+#endif
 
 c create composite values for land ice for diagnostics
       call avg_patches_srfflx_exports(grid,
@@ -1038,7 +1084,7 @@ C****
       subroutine surface_diag_mjo
       USE CONSTANT, only : undef
       USE MODEL_COM, only : lm
-      USE ATM_COM, only : phi,sda
+      USE ATM_COM, only : phi,MWs
       USE DIAG_COM, only :
      *     ,PW_acc, E_acc,sst_avg,p_avg,lwu_avg
      *     ,u_avg,v_avg,w_avg,t_avg,q_avg,r_avg,z_avg
@@ -1047,7 +1093,7 @@ C**** Accumulate subdaily precipitable water (kg/m^2) PW_acc ***
 C****   longwave upward flux lwu_avg,surface pres p_avg, sst sst_avg
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
-        PW_acc(I,J)=PW_acc(I,J)+SUM(Q(I,J,:)*AM(:,I,J))
+        PW_acc(I,J) = PW_acc(I,J) + Sum(Q(I,J,:)*MA(:,I,J))
         p_avg(I,J)=p_avg(I,J)+P(I,J)
         if (FOCEAN(I,J).gt.0) then
           sst_avg(i,j)=sst_avg(i,j)+atmocn%GTEMP(i,j)
@@ -1070,7 +1116,7 @@ C**** Accumulate 3D subdaily quantities
         u_avg(I,J,K)=u_avg(I,J,K)+u(I,J,K)
         v_avg(I,J,K)=v_avg(I,J,K)+v(I,J,K)
         IF (K < LM) THEN
-          w_avg(I,J,K)=w_avg(I,J,K)+sda(I,J,K)*byaxyp(I,J)
+          w_avg(I,J,K)=w_avg(I,J,K)+MWs(I,J,K)*byaxyp(I,J)
         END IF
         t_avg(I,J,K)=t_avg(I,J,K)+t(I,J,K)*pk(K,I,J)
         q_avg(I,J,K)=q_avg(I,J,K)+q(I,J,K)
@@ -1140,7 +1186,7 @@ C**** For distributed implementation - ensure point is on local process.
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE GEOM, only : axyp,imaxj,byaxyp
       USE SOMTQ_COM, only : mz
-      USE ATM_COM, only : byam
+      USE ATM_COM, only : byMA
       USE RAD_COM, only : trhr
 #ifdef TRACERS_ON
       use OldTracer_mod, only: itime_tr0, needtrs
@@ -1381,7 +1427,7 @@ C**** Save surface tracer concentration whether calculated or not
       do n=1,ntm
         if (itime_tr0(n).le.itime) then
           if(.not. needtrs(n)) then
-            atmsrf%travg(n,i,j) = byam(1,i,j)*byaxyp(i,j)*
+            atmsrf%travg(n,i,j) = byMA(1,i,j)*byaxyp(i,j)*
      &           max(trm(i,j,1,n)-trmom(mz,i,j,1,n),0d0)
             atmsrf%travg_byvol(n,i,j) =
      &           atmsrf%travg(n,i,j)*atmsrf%rhoavg(i,j)
@@ -1821,11 +1867,25 @@ C**** accumulate implicit fluxes for setting ocean balance
       use landice, only : snmin
       implicit none
       integer :: itype,i,j,n
-      real*8 ::
-     &     tg1, rcdqws, rcdqdws, evap, snow, qg_sat, qsrf,
-     &     dtsurf, flake,
-     &     trm1, trs, trgrnd, trgrnd2, trprime,
-     &     tevaplim, trsrfflx, trevapor
+      real*8 :: tg1
+      real*8 :: rcdqws
+      real*8 :: rcdqdws
+      real*8 :: evap
+      real*8 :: snow
+      real*8 :: qg_sat
+      real*8 :: qsrf
+      real*8 :: dtsurf
+      real*8 :: flake
+      real*8, intent(in) :: trm1	! comes from atmgla%
+      real*8 :: trs
+      real*8, intent(in) :: trgrnd	! comes from atmgla%
+      real*8 :: trgrnd2
+      real*8 :: trprime
+      real*8 :: tevaplim
+      real*8, intent(out) :: trsrfflx	! comes from atmgla%
+      real*8, intent(out) :: trevapor	! comes from atmgla%
+
+
       logical :: lim_lake_evap, lim_dew
 c
       real*8 ::

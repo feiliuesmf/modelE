@@ -143,10 +143,10 @@ c
       integer :: afogcm=0,nsavea=0,nsaveo
 #include "kprf_scalars.h"
 c
-      real sum_,coord,x,x1,totl,sumice,fusion,saldif,tf
-     .    ,sigocn,kappaf,chk_rho,chk_kap,apehyc,pechg_hyc_bolus
-     .    ,hyc_pechg1,hyc_pechg2,q,sum1,sum2,dpini(kdm)
-     .    ,thkchg,flxdiv,eflow_gl
+      real sum_,coord,x,x1,totl,sumice,fusion,saldif,tf,sigocn
+     .  ,chk_rho,chk_rhor,chk_rhostar,apehyc,pechg_hyc_bolus
+     .  ,hyc_pechg1,hyc_pechg2,q,sum1,sum2,dpini(kdm)
+     .  ,thkchg,flxdiv,eflow_gl,sigloc,t4,s4,p4,sigstar
       real*8 sss_restore_dt,sss_restore_dtice
       real totlj(J_0H:J_1H), sumj(J_0H:J_1H), sumicej(J_0H:J_1H)
       integer jj1,no,index,nflip,mo0,mo1,mo2,mo3,rename,iatest,jatest
@@ -154,6 +154,9 @@ c
       integer ipa_loc(aI_0H:aI_1H,aJ_0H:aJ_1H)
 #ifdef USE_ATM_GLOBAL_ARRAYS
       integer ipa(iia,jja)
+#endif
+#ifdef TRACERS_HYCOM_Ventilation
+      integer nt
 #endif
 #ifdef TRACERS_OceanBiology
       integer nt
@@ -385,16 +388,18 @@ c --- accumulate
        aice_loc(ia,ja)= aice_loc(ia,ja) + rsi_loc(ia,ja)*
      .                             dtsrc/(real(nhr)*SECONDS_PER_HOUR)
 c --- dmua on A-grid, admui on C-grid
-      ataux_loc(ia,ja)=ataux_loc(ia,ja)+(dmua_loc(ia,ja)
+      ataux_loc(ia,ja)=ataux_loc(ia,ja)
+     .               +(dmua_loc(ia,ja)*(1d0-rsi_loc(ia,ja))
      .               +(admui_loc(ia,ja)+admui_loc(iam1,ja))*.5)          ! scaled by rsi
      .               /(SECONDS_PER_HOUR*real(nhr))                       ! kg/ms => N/m2
-      atauy_loc(ia,ja)=atauy_loc(ia,ja)+(dmva_loc(ia,ja)
+      atauy_loc(ia,ja)=atauy_loc(ia,ja)
+     .               +(dmva_loc(ia,ja)*(1d0-rsi_loc(ia,ja))
      .               +(admvi_loc(ia,ja)+admvi_loc(ia,max(1,ja-1)))*.5)   ! scaled by rsi
      .               /(SECONDS_PER_HOUR*real(nhr))                       ! kg/ms => N/m2
       austar_loc(ia,ja)=austar_loc(ia,ja)+(
-     . sqrt(sqrt((dmua_loc(ia,ja)
+     . sqrt(sqrt((dmua_loc(ia,ja)*(1d0-rsi_loc(ia,ja))
      .          +(admui_loc(ia,ja)+admui_loc(iam1,ja))*.5)**2
-     .          +(dmva_loc(ia,ja)
+     .          +(dmva_loc(ia,ja)*(1d0-rsi_loc(ia,ja))
      .          +(admvi_loc(ia,ja)+admvi_loc(ia,max(1,ja-1)))*.5)**2)
      .          /dtsrc*thref))                                           ! sqrt(T/r)=>m/s
      .          *dtsrc/(real(nhr)*SECONDS_PER_HOUR)
@@ -509,32 +514,42 @@ c
 c
 c --- compute eqn.of state check values
 c
-      if (pref.eq.2.e7) then
-        chk_rho=36.719718          ! fit range T:[-2:30],S:[18:38]
-        chk_rho=36.876506          ! fit range T:[-2:32],S:[16:38]
-        chk_rho=36.876732          ! using Jackett and McDougall (1995)
-css     chk_rho=36.878687          ! using Wright (1997)
-        chk_kap=0.03461997
+      t4=5.
+      s4=36.
+      p4=2500.e4			! 2500m
+      chk_rho =39.6858			! in_situ rho for t4,s4 & p4
+      if (pref.eq.0.) then
+        chk_rhor    = 28.469            ! sigma0  for t4 & s4
+        chk_rhostar = -9999.            ! sigma0* for t4 & s4
       elseif (pref.eq.1.e7) then
-        chk_rho=32.3834
-        chk_kap=0.
-      elseif (pref.eq.0.) then
-        chk_rho=27.786223
+        chk_rhor    = 33.0321           ! sigma1  for t4 & s4
+        chk_rhostar = 32.82078          ! sigma1* for t4 & s4
+      elseif (pref.eq.2.e7) then
+        chk_rhor    = 37.4934           ! sigma2  for t4 & s4
+        chk_rhostar = -9999.            ! sigma2* for t4 & s4
       else
         stop 'wrong pref'    ! proper mpi_abort
       endif
 c
-      if (abs(sigocn(4.,35.)-chk_rho) .gt. .001) then
+      if (abs(sigocn(t4,s4)-chk_rhor) .gt. .001) then
       if (AM_I_ROOT())
-     & write (lp,'(/2(a,f11.6))') 'error -- sigocn(t=4,s=35) should be',
-     . chk_rho,', not',sigocn(4.,35.)
+     . write (lp,*) 'error -- sigocn should be',chk_rhor
+     . ,', not',sigocn(t4,s4)
         stop
       end if
-      if (abs(kappaf(3.,35.,1.e7,35.,2.5)-chk_kap).gt.1.e-4) then
+
+      if (abs(sigstar(t4,s4,p4)-chk_rhostar).gt. .001) then
       if (AM_I_ROOT())
-     &  write (lp,'(/a,2(a,f14.8))')'error: kappa(3,35,10^7,35,2.5)',
-     .  '  should be',chk_kap,', not',kappaf(3.,35.,1.e7,35.,2.5)
-      stop
+     .  write (lp,*)'error: chk_rhostar should be',
+     .  chk_rhostar,', not',sigstar(t4,s4,p4)
+        stop
+      end if
+c
+      if (abs(sigloc(t4,s4,p4)-chk_rho) .gt. .001) then
+      if (AM_I_ROOT())
+     . write (lp,*) 'error -- sigloc should be',chk_rho
+     . ,', not',sigloc(t4,s4,p4)
+        stop
       end if
 c
       if (AM_I_ROOT())

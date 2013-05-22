@@ -18,6 +18,7 @@ C**** vertically integrated fluxes
       SUBROUTINE AADVQ (RM,RMOM,QLIMIT,tname)
 !@sum  AADVQ advection driver
 !@auth G. Russell, modified by Maxwell Kelley
+!@vers 2013/04/03
 !@+        Jean Lerner modified this for tracers in mass units
 c****
 c**** AADVQ advects tracers using the Quadradic Upstream Scheme.
@@ -30,20 +31,20 @@ c****
 c**** input/output:
 c****     rm = tracer mass
 c****   rmom = moments of tracer mass
-c****     ma (kg) = fluid mass
+c****    MMA (kg) = fluid mass
 c****
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, only : GETDomainBounds
 
       USE QUSCOM, ONLY : MFLX,nmom
-      USE ATM_COM, ONLY: pu=>pua, pv=>pva, sd=>sda, mb,ma
+      USE ATM_COM, ONLY: pu=>MUs, pv=>MVs, sd=>MWs, mb,mma
       IMPLICIT NONE
 
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: rm
       REAL*8, dimension(nmom,im,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: rmom
       logical, intent(in) :: qlimit
-      character*8 tname          !tracer name
+      character(len=*) :: tname          !tracer name
       integer :: I,J,L,n,nx
       real*8 :: fim
       INTEGER :: I_0, I_1, J_1, J_0
@@ -85,9 +86,9 @@ C**** Fill in values at the poles
 C****
 C**** Load mass after advection from mass before advection
 C****
-ccc   ma(:,:,:) = mb(:,:,:)
+ccc   mma(:,:,:) = mb(:,:,:)
       DO L=1,LM
-         MA(:,:,L) = MB(:,:,L)
+         MMA(:,:,L) = MB(:,:,L)
       ENDDO
 C****
 C**** Advect the tracer using the quadratic upstream scheme
@@ -99,7 +100,7 @@ ccc   mflx(:,:,:)=pu(:,:,:)
          MFLX(:,:,L) = PU(:,:,L)
       ENDDO
 
-      call aadvqx (rm,rmom,ma,mflx,qlimit,tname,nstepx1(J_0H,1,n),
+      call aadvqx (rm,rmom,mma,mflx,qlimit,tname,nstepx1(J_0H,1,n),
      &    safv)
 
 ccc   mflx(:,:,:)=pv(:,:,:)
@@ -107,7 +108,7 @@ ccc   mflx(:,:,:)=pv(:,:,:)
          MFLX(:,:,L) = PV(:,:,L)
       ENDDO
 
-      call aadvqy (rm,rmom,ma,mflx,qlimit,tname,nstepy(1,n),
+      call aadvqy (rm,rmom,mma,mflx,qlimit,tname,nstepy(1,n),
      &    sbf,sbm,sfbm,sbfv)
 
 ccc   mflx(:,:,:)=sd(:,:,:)
@@ -115,7 +116,7 @@ ccc   mflx(:,:,:)=sd(:,:,:)
          MFLX(:,:,L) = SD(:,:,L)
       ENDDO
 
-      call aadvqz (rm,rmom,ma,mflx,qlimit,tname,nstepz(1,n),
+      call aadvqz (rm,rmom,mma,mflx,qlimit,tname,nstepz(1,n),
      &    scf,scm,sfcm)
 
 ccc   mflx(:,:,:)=pu(:,:,:)
@@ -123,7 +124,7 @@ ccc   mflx(:,:,:)=pu(:,:,:)
          MFLX(:,:,L) = PU(:,:,L)
       ENDDO
 
-      call aadvqx (rm,rmom,ma,mflx,qlimit,tname,nstepx2(J_0H,1,n),
+      call aadvqx (rm,rmom,mma,mflx,qlimit,tname,nstepx2(J_0H,1,n),
      *     safv)
       end do
 
@@ -152,9 +153,9 @@ C**** deal with vertical polar box diagnostics outside ncyc loop
 !@+   too small during any of the operator splitting steps of each cycle
 !@auth Maxwell Kelley
 c****
-C**** The MA array space is temporarily put to use in this section
-      USE ATM_COM, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, ma
-      USE DOMAIN_DECOMP_ATM, only: grid 
+C**** The MMA array space is temporarily put to use in this section
+      USE ATM_COM, ONLY: mu=>MUs, mv=>MVs, mw=>MWs, mb, mma
+      USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, GLOBALSUM
       USE DOMAIN_DECOMP_1D, ONLY : NORTH, SOUTH, AM_I_ROOT, HALO_UPDATE
       USE QUSCOM, ONLY : IM,JM,LM,BYIM
@@ -215,7 +216,7 @@ C**** Set things up
       byn = 1./ncyc
       nbad_loc = 0
       do l=1,lm
-         ma(:,:,l) = mb(:,:,l)
+         mma(:,:,l) = mb(:,:,l)
       enddo
       do nc=1,ncyc
 
@@ -224,8 +225,8 @@ C****     1/2 x-direction
         do j=J_0,J_1
           im1 = im
           do i=1,im
-            ma(i,j,l) = ma(i,j,l) + (mu(im1,j,l)-mu(i,j,l))*byn
-            if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
+            mma(i,j,l) = mma(i,j,l) + (mu(im1,j,l)-mu(i,j,l))*byn
+            if (mma(i,j,l).lt.0.5*mb(i,j,l)) then
                nbad_loc = nbad_loc + 1
 c               exit lloopx1 ! saves time in single-processor mode
             endif
@@ -241,25 +242,25 @@ C****         y-direction
         lloopy: do l=1,lm              !Interior
         do j=J_0S,J_1S
         do i=1,im
-          ma(i,j,l) = ma(i,j,l) + (mv(i,j-1,l)-mv(i,j,l))*byn
-          if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
+          mma(i,j,l) = mma(i,j,l) + (mv(i,j-1,l)-mv(i,j,l))*byn
+          if (mma(i,j,l).lt.0.5*mb(i,j,l)) then
              nbad_loc = nbad_loc + 1
 c             exit lloopy ! saves time in single-processor mode
           endif
         end do
         end do
         if (HAVE_SOUTH_POLE) then
-           ssp = sum(ma(:, 1,l)-mv(:,   1,l)*byn)*byim
-           ma(:,1 ,l) = ssp
-           if (ma(1,1,l).lt.0.5*mb(1,1,l)) then
+           ssp = sum(mma(:, 1,l)-mv(:,   1,l)*byn)*byim
+           mma(:,1 ,l) = ssp
+           if (mma(1,1,l).lt.0.5*mb(1,1,l)) then
               nbad_loc = nbad_loc + 1
 c              exit lloopy ! saves time in single-processor mode
            endif
         endif
         if (HAVE_NORTH_POLE) then
-           snp = sum(ma(:,jm,l)+mv(:,jm-1,l)*byn)*byim
-           ma(:,jm,l) = snp
-           if (ma(1,jm,l).lt.0.5*mb(1,jm,l)) then
+           snp = sum(mma(:,jm,l)+mv(:,jm-1,l)*byn)*byim
+           mma(:,jm,l) = snp
+           if (mma(1,jm,l).lt.0.5*mb(1,jm,l)) then
               nbad_loc = nbad_loc + 1
 c              exit lloopy ! saves time in single-processor mode
            endif
@@ -273,8 +274,8 @@ C****         z-direction
         if(l.eq.1) then ! lowest layer
         do j=J_0,J_1
         do i=1,im
-          ma(i,j,l) = ma(i,j,l)-mw(i,j,l)*byn
-          if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
+          mma(i,j,l) = mma(i,j,l)-mw(i,j,l)*byn
+          if (mma(i,j,l).lt.0.5*mb(i,j,l)) then
              nbad_loc = nbad_loc + 1
 c             exit lloopz ! saves time in single-processor mode
           endif
@@ -283,8 +284,8 @@ c             exit lloopz ! saves time in single-processor mode
         else if(l.eq.lm) then ! topmost layer
         do j=J_0,J_1
         do i=1,im
-          ma(i,j,l) = ma(i,j,l)+mw(i,j,l-1)*byn
-          if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
+          mma(i,j,l) = mma(i,j,l)+mw(i,j,l-1)*byn
+          if (mma(i,j,l).lt.0.5*mb(i,j,l)) then
              nbad_loc = nbad_loc + 1
 c             exit lloopz ! saves time in single-processor mode
           endif
@@ -293,8 +294,8 @@ c             exit lloopz ! saves time in single-processor mode
         else ! interior layers
         do j=J_0,J_1
         do i=1,im
-          ma(i,j,l) = ma(i,j,l)+(mw(i,j,l-1)-mw(i,j,l))*byn
-          if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
+          mma(i,j,l) = mma(i,j,l)+(mw(i,j,l-1)-mw(i,j,l))*byn
+          if (mma(i,j,l).lt.0.5*mb(i,j,l)) then
              nbad_loc = nbad_loc + 1
 c             exit lloopz ! saves time in single-processor mode
           endif
@@ -310,8 +311,8 @@ C****     1/2 x-direction
         do j=J_0,J_1
           im1 = im
           do i=1,im
-            ma(i,j,l) = ma(i,j,l) + (mu(im1,j,l)-mu(i,j,l))*byn
-            if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
+            mma(i,j,l) = mma(i,j,l) + (mu(im1,j,l)-mu(i,j,l))*byn
+            if (mma(i,j,l).lt.0.5*mb(i,j,l)) then
                nbad_loc = nbad_loc + 1
 c               exit lloopx2 ! saves time in single-processor mode
             endif
@@ -352,15 +353,15 @@ ccc   mw(:,:,:)=mw(:,:,:)*byn
 C****
 C**** Decide how many timesteps to take by computing Courant limits
 C****
-ccc   MA(:,:,:) = MB(:,:,:)
+ccc   MMA(:,:,:) = MB(:,:,:)
       DO L=1,LM
-         MA(:,:,L) = MB(:,:,L)
+         MMA(:,:,L) = MB(:,:,L)
       ENDDO
       do n=1,ncyc
-        call xstep (MA,nstepx1(J_0H,1,n))
-        call ystep (MA,nstepy(1,n))
-        call zstep (MA,nstepz(1,n))
-        call xstep (MA,nstepx2(J_0H,1,n))
+        call xstep (MMA,nstepx1(J_0H,1,n))
+        call ystep (MMA,nstepy(1,n))
+        call zstep (MMA,nstepz(1,n))
+        call xstep (MMA,nstepx2(J_0H,1,n))
       end do
       RETURN
   900 format (1x,a,3i4,f10.4,i5)
@@ -402,7 +403,7 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       REAL*8  AM(IM), F_I(IM), FMOM_I(NMOM,IM)
       REAL*8, intent(inout),
      *        dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: safv
-      character*8 tname
+      character(len=*) :: tname
       integer :: nstep(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm)
       integer :: i,j,l,ierr,nerr,ns,ICKERR,ICKERR_LOC
 
@@ -438,7 +439,7 @@ c****
       end if
 
 ! store tracer flux in safv array
-      safvl(:,j,l) = safvl(:,j,l) + f_i(:) 
+      safvl(:,j,l) = safvl(:,j,l) + f_i(:)
 
       enddo ! ns
       enddo ! j
@@ -446,7 +447,7 @@ c****
       safv = safv + sum(safvl,3)
 
       If (HAVE_NORTH_POLE) safv(:,jm) = 0. ! no horizontal flux at poles
-      If (HAVE_SOUTH_POLE) safv(:,1) = 0.  
+      If (HAVE_SOUTH_POLE) safv(:,1) = 0.
 C
       CALL GLOBALSUM(grid, ICKERR_LOC, ICKERR, all=.true.)
       IF(ICKERR.GT.0)  CALL stop_model('Stopped in aadvQx',11)
@@ -483,17 +484,17 @@ c****
 ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
       use QUSCOM, only : im,jm,lm, ystride,               byim
       implicit none
-      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
+      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      &                                         rm,mass,mv
-      REAL*8, dimension(nmom,im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
+      REAL*8, dimension(nmom,im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      &                                         rmom
       logical ::  qlimit
-      REAL*8, intent(inout), 
-     &        dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
+      REAL*8, intent(inout),
+     &        dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      &                                         sfbm,sbm,sbf
       REAL*8, intent(inout),
      *        dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: sbfv
-      character*8 tname
+      character(len=*) tname
       integer :: i,j,l,ierr,ns,nstep(lm),ICKERR, ICKERR_LOC
       integer :: err_loc(3)
       REAL*8, DIMENSION(LM) :: m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,
@@ -502,7 +503,7 @@ ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
      &     drzm_np,drzzm_sp, drzzm_np
 
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: fqv
-      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &     F_J,BM
       REAL*8  FMOM_J(NMOM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
 
@@ -518,7 +519,7 @@ c****Get relevant local distributed parameters
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      call getDomainBounds(grid, J_STRT=J_0,       J_STOP=J_1, 
+      call getDomainBounds(grid, J_STRT=J_0,       J_STOP=J_1,
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      *               J_STRT_SKP=J_0S,  J_STOP_SKP=J_1S,
      *               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
@@ -573,7 +574,7 @@ c****
 c**** call 1-d advection routine
 c****
       idx =(ns <= nstep)
-        call advection_1D_custom( rm(1,j_0h,1), rmom(1,1,j_0h,1), 
+        call advection_1D_custom( rm(1,j_0h,1), rmom(1,1,j_0h,1),
      &       f_j(1,j_0h,1),fmom_j(1,1,j_0h,1), mass(1,j_0h,1),
      &       bm(1,j_0h,1),j_1-j_0+1,LM,idx,
      &     qlimit,ystride,ydir,ierr,err_loc)
@@ -678,7 +679,7 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
      &                                         sfcm,scm,scf
       logical ::  qlimit
       REAL*8, dimension(lm) :: fqw
-      character*8 tname
+      character(len=*) tname
       REAL*8  CM(LM),F_L(LM),FMOM_L(NMOM,LM)
       integer :: i,j,l,ierr,nerr,ns,ICKERR,ICKERR_LOC
 
@@ -746,7 +747,7 @@ c****
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, GLOBALSUM
       USE QUSCOM, ONLY : IM,JM,LM,byim
-      USE ATM_COM, ONLY: mu=>pua
+      USE ATM_COM, ONLY: mu=>MUs
       IMPLICIT NONE
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: m
       REAL*8, dimension(im) :: a,am,mi
@@ -828,7 +829,7 @@ C
       USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, HALO_UPDATE, NORTH
       USE DOMAIN_DECOMP_1D, ONLY : GLOBALSUM, GLOBALMAX, SOUTH
       USE QUSCOM, ONLY : IM,JM,LM,byim
-      USE ATM_COM, ONLY: mv=>pva
+      USE ATM_COM, ONLY: mv=>MVs
       IMPLICIT NONE
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: m
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: mij
@@ -931,12 +932,12 @@ C
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, GLOBALSUM
       USE QUSCOM, ONLY : IM,JM,LM,byim
-      USE ATM_COM, ONLY: mw=>sda
+      USE ATM_COM, ONLY: mw=>MWs
       IMPLICIT NONE
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: m
       REAL*8, dimension(lm) :: ml
       REAL*8, dimension(0:lm) :: c,cm
-      integer, dimension(im*(GRID%J_STOP_HALO-GRID%J_STRT_HALO+1)) :: 
+      integer, dimension(im*(GRID%J_STOP_HALO-GRID%J_STRT_HALO+1)) ::
      &                                                         nstepz
       integer :: nstep,ns,l,i,j,ICKERR,ICKERR_LOC
       REAL*8 :: courmax,byn
@@ -1024,7 +1025,7 @@ C****
       ALLOCATE(  NSTEPX1(J_0H:J_1H,LM,NCMAX),
      *           NSTEPX2(J_0H:J_1H,LM,NCMAX),
      *            NSTEPZ(IM*(J_1H-J_0H+1),NCMAX) )
-  
+
       ALLOCATE( sfbm(J_0H:J_1H,LM),
      *           sbm(J_0H:J_1H,LM),
      *           sbf(J_0H:J_1H,LM),

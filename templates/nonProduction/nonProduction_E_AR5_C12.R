@@ -33,15 +33,14 @@ OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
-#include "IC_36x24_input_files.nc"
+#include "IC_36x24_input_files"
 #include "static_ocn_1950_36x24_input_files"  /* 1880 for 8x10 needs to be made */
+RVR=RD8X10.nc            ! river direction file
+NAMERVR=RD8X10.names.txt ! named river outlets
 
-RVR=RD8X10.RVR.bin           ! river direction file
-
-#include "land_36x24_input_files"
+#include "land36x24_input_files"
 #include "rad_input_files"
-#include "TAero2008_input_files"
-#include "O3_2005_input_files"
+#include "rad_36x24_input_files"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG8X10                      ! special regions-diag
@@ -52,7 +51,6 @@ EC12 (ModelE4 8x10, 12 layers, 1850 atm, 1950 prescr. ocn)
 &&PARAMETERS
 #include "static_ocn_params"
 #include "sdragC12_params"
-!#include "gwdragM20_params"
 
 xCDpbl=1.
 cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent

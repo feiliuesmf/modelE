@@ -30,7 +30,7 @@ End Preprocessor Options
 Object modules: (in order of decreasing priority)
      ! resolution-specific source codes
 RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
-RES_2Hx2_L32                        ! ocean horiz res 2x2.5deg, 32 vert layers
+ORES_2Hx2_L32                       ! ocean horiz res 2x2.5deg, 32 vert layers
 DIAG_RES_F                          ! diagnostics (resolution dependent)
 FFT144 OFFT144E                     ! utilities
 OSTRAITS_F_COM                      ! dynamic ocean modules
@@ -46,7 +46,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "modelE4_source_files"
 #include "dynamic_ocn_source_files"
 #include "tracer_shared_source_files"
-
+MiscTracersMetadata
 OCN_Int_LATLON                      ! atm-ocn regrid routines
 
 #include "ocarbon_cycle_oR_files" ! both gas exch and ocean tracer oR model
@@ -64,56 +64,40 @@ OPTS_Ent = ONLINE=YES PS_MODEL=FBB
 OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
-AIC=AIC.RES_F40.D771201         ! observed init cond (atm. only) ISTART=2
+AIC=AIC.RES_F40.D771201.nc         ! observed init cond (atm. only) ISTART=2
 !!! AIC=1JAN1931.rsfE8F40o32        ! Larissa's restart              ISTART=8
 !!! AIC=1JAN1918.rsfE31F40o32       ! XXXXXXXXX dont use this AIC, just for test purposess
-GIC=GIC.144X90.DEC01.1.ext.nc   ! initial ground conditions      ISTART=2
+GIC=GIC.144X90.DEC01.1.ext_1.nc   ! initial ground conditions      ISTART=2
 
-OIC=OIC.E2HX2.L32.D1201         ! Levitus ocean intial conditions
-TOPO=Z144X90N_nocasp.1          ! surface fractions and topography
-TOPO_OC=Z144X90N_nocasp.1       ! ocean fraction and topography
+OIC=OIC.E2HX2.L32.D1201.nc         ! Levitus ocean intial conditions
+TOPO=Z144X90N_nocasp.1.nc          ! surface fractions and topography
+TOPO_OC=OZ144X90N_nocasp.1.nc      ! ocean fraction and topography
 
 !OIC=OIC_compatible_with_TOPO_OC ! Levitus ocean intial conditions
 !TOPO=Z2HX2fromZ1QX1N            ! surface fractions and topography
-!TOPO_OC=Z2HX2fromZ1QX1N         ! ocean fraction and topography
+!TOPO_OC=OZ2HX2fromZ1QX1N.nc     ! ocean fraction and topography
 
 OFTAB=OFTABLE_NEW               ! ocean function table
 AVR=OPF.E2HX2.L32               ! ocean filter
-KBASIN=KB144X90.modelE          ! ocean basin designations
-CDN=CD144X90.ext                ! neutral drag coefficient
-VEG=V144X90_no_crops.ext        ! vegatation file
-CROPS=CROPS_144X90N_nocasp.ext  ! crops
-SOIL=S144X900098M.ext           ! soil properties
+KBASIN=KB144X90.modelE.nc       ! ocean basin designations
+CDN=CD144X90.ext.nc             ! neutral drag coefficient
+VEG=V144X90_no_crops.ext.nc     ! vegatation file
+CROPS=CROPS_144X90N_nocasp.ext.nc ! crops
+SOIL=S144X900098M.ext.nc        ! soil properties
 REG=REG2X2.5                    ! special regions-diag
-RVR=RD_modelE_F.RVR.bin         ! river direction file
+RVR=RD_modelE_F.nc             ! river direction file
+NAMERVR=RD_modelE_F.names.txt  ! named river outlets
 
 #include "rad_input_files"
+#include "rad_144x90_input_files"
 
-! updated aerosols need MADAER=3
-TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_SSA=SSA_Koch2008_kg_m2_72x46x20h
-TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000h
-TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
-! ozone files (minimum 1, maximum 9 files + 1 trend file)
-O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
-O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
-O3file_03=mar2004_o3_shindelltrop_72x46x49x12_1910
-O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
-O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
-O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
-O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
-O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
-O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
-O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
-TOP_INDEX=top_index_144x90_a.ij.ext
-ZVAR=ZVAR2X25A             ! topographic variation for gwdrag
+TOP_INDEX=top_index_144x90_a.ij.ext.nc
+ZVAR=ZVAR2X25A.nc             ! topographic variation for gwdrag
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_144X90_gas.OCN   ! glacial melt distribution
+GLMELT=GLMELT_144X90_gas.OCN.nc   ! glacial melt distribution
 ! probably need these (should convert to 144x90)
 soil_textures=soil_textures_top30cm_2x2.5
-SOILCARB_global=soilcarb_top30cm_nmaps_2x2.5bin.dat
+SOILCARB_global=soilcarb_top30cm_2x2.5.nc
 !!!!!!!!!!!!!!!!!!! obio  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 cfle1=abw25b.dat                         ! seawater spectral absorp.
                                          ! and scatt. coefs
@@ -202,21 +186,8 @@ madaer=3    ! updated aerosols
 aer_rad_forc=0
 cloud_rad_forc=1
 
-! parameters that control the atmospheric/boundary conditions
-! if set to 0, the current (day/) year is used: transient run
-crops_yr=1850  ! if -1, crops in VEG-file is used
-s0_yr=1850
-s0_day=182
-ghg_yr=1850
-ghg_day=182
-volc_yr=-1
-volc_day=182
-aero_yr=1850
-od_cdncx=0.        ! don't include 1st indirect effect
-cc_cdncx=0.        ! include 2nd indirect effect
-albsn_yr=1850
-dalbsnX=.024
-o3_yr=-1850
+#include "atmCompos_1850_params"
+variable_orb_par=-2
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=225. ! Shapiro filter on U in E-W direction; usually same as DT (below)

@@ -44,12 +44,12 @@ Data input files:
 #include "IC_CS90_input_files"
 #include "static_ocn_1880_CS90_input_files"
 
-RVR=RDdistocean_CS90_EM.bin         ! river direction file
+RVR=RDdistocean_CS90_EM.nc             ! river direction file
+NAMERVR=RDdistocean_CS90_EM.names.txt  ! named river outlets
 
 #include "landCS90_input_files"
 #include "rad_input_files"
-#include "TAero2008_input_files"
-#include "O3_2005_input_files"
+#include "rad_C90_input_files"
 
 MSU_wts=MSU.RSS.weights.data     ! MSU-diag
 REG=REG.txt                      ! special regions-diag

@@ -2,7 +2,7 @@ use CommandEntry;
 use Env;
 
 my $extraFlags;
-my $localDebug=0;
+my $localDebug=1;
 $extraFlags{SERIAL}   = "";
 $extraFlags{MPI}      = "MPI=YES";
 $extraFlags{OPENMP}   = "EXTRA_FFLAGS=-mp MP=YES NPROCS=\$npes";
@@ -51,12 +51,23 @@ sub compileRundeck
   if (@_) {$expName = shift}
   else {$expName = "$rundeck.$configuration.$compiler"};
 
+  if ($expName =~ m/^(nonProduction)/i) {
+     $expName = substr $expName, 14;
+  }
+
   my $branch   = $env->{BRANCH};
   my $debugFlags = $env -> {DEBUGFLAGS};
 
   my $resultsDir = $env -> {RESULTS_DIRECTORY};
   $resultsDir .="/$compiler";
-  my $MODELERC = $env->{MODELERC};
+  my $MODELERC;
+  my $onEC2 = $ENV{RUNONEC2};
+  if ($onEC2) {
+     $MODELERC = $ENV{MODELERC}
+  }
+  else {
+    $MODELERC = $env->{MODELERC};
+  }
  
   my $flags;
   if ($debugFlags eq 'N')
@@ -121,8 +132,21 @@ sub runConfiguration
   my $duration = $env -> {DURATION};
   my $resultsDir = $env->{RESULTS_DIRECTORY};
   $resultsDir .="/$compiler";
+  my $MODELERC;
+  my $onEC2 = $ENV{RUNONEC2};
+
+  if ($rundeck =~ m/^(nonProduction)/i) {
+     $rundeck = substr $rundeck, 14;
+  }
   my $expName = "$rundeck.$configuration.$compiler";
-  my $MODELERC = $env->{MODELERC};
+
+  if ($onEC2) {
+     $MODELERC = $ENV{MODELERC}
+  }
+  else {
+    $MODELERC = $env->{MODELERC};
+  }
+  my $doMock = $ENV{MOCKMODELE};
 
   print "BRANCH: $branch \n" if $localDebug;
   print "DURATION: $duration \n" if $localDebug;
@@ -165,7 +189,11 @@ sub runConfiguration
   {  
     $run1hr = createMakeCommand($env, $expName, $npes, $flags, 2);
     $run1dy = createMakeCommand($env, $expName, $npes, $flags, 48);
-    $restart = "cd $expName; cp fort.2.nc fort.1.nc; ./$expName $mpiArgs; cd -";
+    if ($doMock == 1) {
+      $restart = "cd $expName; cp fort.2.nc fort.1.nc; ./run_command; cd -";
+    } else {
+      $restart = "cd $expName; cp fort.2.nc fort.1.nc; ./$expName $mpiArgs; cd -";
+    }
   }
   else
   {
@@ -192,11 +220,15 @@ sub runConfiguration
     else
       exit 1;
     fi
-    $restart;
-    if [ -e $expName/fort.2.nc ]; then
-      cp $expName/fort.2.nc $resultsDir/$expName.restart$suffix;
+    if [[ "$rundeck" == "SCMSGPCONT" ]]; then
+       echo "Not restart reproducible";
     else
-      exit 1;
+      $restart;
+      if [ -e $expName/fort.2.nc ]; then
+        cp $expName/fort.2.nc $resultsDir/$expName.restart$suffix;
+      else
+        exit 1;
+      fi
     fi
 EOF
   }
@@ -267,6 +299,11 @@ sub createMakeCommand
 
   my $deck = $env->{RUNDECK};
   my $rc = $env->{MODELERC};
+
+  if ($exp =~ m/^(nonProduction)/i) {
+     $exp = substr $exp, 14;
+  }
+
   if ($time == 2 || $time == 48 ) 
   {
     if ($deck =~ m/^(E_AR5)/i)

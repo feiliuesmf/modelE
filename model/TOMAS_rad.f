@@ -1,16 +1,12 @@
 #include "rundeck_opts.h"
-C     **************************************************************
-C     * SETTOMAS_LEV                                               *
-C     **************************************************************
-
-C     WRITTEN BY Yunha Lee, May 2006
-
-C     This is to compute aerosol optical depth. 
-C     Assumes external mixing state (TOMAS_DIAG_FC = 2)
-C
-C     Need new subroutine for internal-mixing case (TOMAS_DIAG_FC=1).      
-C
-C ************************************************************                          
+!    **************************************************************
+!@sum   SETTOMAS_LEV                                              
+!    **************************************************************
+!@+    This is to compute aerosol optical depth by each components. 
+!@+    Currently, it assumes external mixing state (TOMAS_DIAG_FC = 2)
+!@+    Need new subroutine for internal-mixing case (TOMAS_DIAG_FC=1). 
+!@auth  Yunha Lee, May 2006
+C                        
                        
       subroutine SETTOMAS_LEV(i,j,l)
 
@@ -251,7 +247,17 @@ C     Determine size parameter
       return
       end SUBROUTINE SETTOMAS_LEV
 
-                      
+                    
+!    **************************************************************
+!@sum   SETTOMAS                                              
+!    **************************************************************
+!@+    This subroutine computes total aerosol optical depth (all comp) 
+!@+    Currently, it assumes external mixing state (TOMAS_DIAG_FC = 2)
+!@+    and no absorption in the longwave length. 
+!@+    Need new subroutine for internal-mixing case (TOMAS_DIAG_FC=1). 
+!@auth  Yunha Lee (modified from the existing modelE code)
+C
+C ************************************************************   
                        
       subroutine SETTOMAS(TOMAS_EXT,TOMAS_SCT,TOMAS_GCB,TOMAS_TRBALK)
 
@@ -306,6 +312,16 @@ c     LW
       return
       end SUBROUTINE SETTOMAS
       
+!    **************************************************************
+!@sum   readmielut                                              
+!    **************************************************************
+!@+    This subroutine reads aerosol optical properties from the 
+!@+    lookup table, which computed them by size parameter and chemical 
+!@+    components.   
+!@auth  Yunha Lee
+C
+C ************************************************************ 
+
       subroutine readmielut
 c to read a mie lookup table for aerosol optical properties
       USE TOMAS_AEROSOL, only : TOMAS_qext, TOMAS_qsca,TOMAS_qabs,

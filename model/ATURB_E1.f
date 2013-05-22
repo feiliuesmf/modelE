@@ -3,6 +3,7 @@
       subroutine atm_diffus(lbase_min,lbase_max,dtime)
 !@sum  atm_diffus updates u,v,t,q due to turbulent transport throughout
 !@+    all GCM layers using a non-local turbulence model
+!@vers 2013/03/27
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
 !@cont atm_diffus,getdz,dout,de_solver_main,de_solver_edge,l_gcm,k_gcm,
 !@+    e_gcm,find_pbl_top,zze,apply_fluxes_to_atm
@@ -21,7 +22,7 @@
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,byaxyp,axyp
-      USE ATM_COM, only : pk,pdsig,plij,pek,byam,am
+      USE ATM_COM, only : pk,pdsig,plij,pek,byMA,MA
      &     ,u_3d_agrid=>ualij,v_3d_agrid=>valij
       USE DOMAIN_DECOMP_ATM, ONLY : grid, getDomainBounds, halo_update
       USE DIAG_COM, only : jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
@@ -81,7 +82,7 @@ cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
 !@var trmomij vertical tracer concentration moment profile (kg/kg)
 !@var wc_nl non-local fluxes of tracers
       real*8, dimension(lm,ntm) :: tr0ij,trij,wc_nl
-      real*8, dimension(lm) :: dtrm,amkg,byamkg
+      real*8, dimension(lm) :: dtrm,amkg,byMMA
 cc      real*8, dimension(nmom,lm,ntm) :: trmomij
 !@var trflx surface tracer flux (-w tr) (kg/kg m/s)
       real*8, dimension(ntm) :: trflx
@@ -183,12 +184,12 @@ cc            tmomij(:,l)=tmom(:,i,j,l) ! vert. grad. should virtual ?
 
 #ifdef TRACERS_ON
           do l=1,lm
-            byamkg(l) = byam(l,i,j)*byaxyp(i,j)
+            byMMA(l) = byMA(l,i,j)*byaxyp(i,j)
           enddo
           do nx=1,nta
             n=ntix(nx)
             do l=1,lm
-              trij(l,nx)=trm(i,j,l,n)*byamkg(l)
+              trij(l,nx) = trm(i,j,l,n)*byMMA(l)
 cc                trmomij(:,l,nx)=trmom(:,i,j,l,n)
               tr0ij(l,nx)=trij(l,nx)
             enddo
@@ -400,7 +401,7 @@ cc            tmom(:,i,j,l)=tmomij(:,l)
 
 #ifdef TRACERS_ON
           do l=1,lm
-            amkg(l) = am(l,i,j)*axyp(i,j)
+            amkg(l) = MA(l,i,j)*axyp(i,j)
           enddo
           do nx=1,nta
             n=ntix(nx)

@@ -195,8 +195,6 @@ C**** does not produce exactly the same as the default values.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: dH2O
 !@var RSDIST,SIND,COSD orbit related variables computed once a day
       REAL*8 :: RSDIST,SIND,COSD
-!@var depoBC,depoBC_1990 observed black carbon deposition (curr,1990)
-      REAL*8, DIMENSION(72,46) :: depoBC,depoBC_1990  ! rad.grid
 !@var ALB is SRNFLB(1)/(SRDFLB(1)+1.D-20),PLAVIS,PLANIR,ALBVIS,ALBNIR,
 !@+       SRRVIS,SRRNIR,SRAVIS,SRANIR (see RADIATION)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), TARGET :: ALB

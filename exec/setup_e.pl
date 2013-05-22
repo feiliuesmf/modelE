@@ -28,6 +28,7 @@ $MIN_STACK=0;
 $mpi=0;
 $nproc=1;
 $MPIDISTR="";
+$MPIDIR="";
 $MPIRUN_COMMAND="";
 $LOCATION="";
 
@@ -51,6 +52,7 @@ if ( -f $modelerc ) {
 	$UMASK = oct "$1" if /^ *UMASK *= *(\S+)/;
 	$NETCDFHOME = $1 if /^ *NETCDFHOME *= *(\S+)/;
         $MPIDISTR = $1 if /^ *MPIDISTR *= *\"?([^ ^#][^#^"]*).*\n/;
+        $MPIDIR = $1 if /^ *MPIDIR *= *\"?([^ ^#][^#^"]*).*\n/;
 	$MPIRUN_COMMAND = $1 if /^ *MPIRUN_COMMAND *= *\"?([^ ^#][^#^"]*).*\n/;
 	$LOCATION = $1 if /^ *LOCATION *= *\"?([^ ^#][^#^"]*).*\n/;
 						#	])])]);
@@ -95,6 +97,8 @@ $umask_inv = $UMASK ^ 0777;
 $umask_str = sprintf "%lo", $UMASK;
 $NETCDFBIN = "$NETCDFHOME/bin";
 $netcdf_template_file = "$runID.nctemp";
+if ( $MPIDIR ) { $MPIBIN = "$MPIDIR/bin/"; }
+else { $MPIBIN = ""; }
 
 ## check if this run is already running
 if ( -f $lockfile ) {
@@ -213,14 +217,25 @@ open RUNIDULN, ">$runID"."uln" or die "can't open ${runID}ln for writing\n";
 $flag_missing_data_files = 0;
 
 foreach $_ ( @data_files ) {
+    my $full_dest = "";
     ($name, $dest) = split /\s*=\s*/;
-    if ( $dest !~ /^\// ) { $dest = "$GCMSEARCHPATH/$dest"; }
-    if ( ! -e "$dest" ) {
+    if ( $dest !~ /^\// ) { 
+	my $dir="";
+	foreach $dir (split /:/, $GCMSEARCHPATH) {
+	    if ( -e "$dir/$dest" ) {
+		$full_dest = "$dir/$dest";
+		last;
+	    }
+	}
+    } else {
+	$full_dest = $dest;
+    }
+    if ( ! $full_dest || ! -e "$full_dest" ) {
 	print "$dest not found\n";
 	$flag_missing_data_files = 1;
-	#exit 1;
+	next;
     }
-    print RUNIDLN "ln -fs $dest $name\n";
+    print RUNIDLN "ln -fsn $full_dest $name\n";
     print RUNIDULN "rm $name\n";
 }
 
@@ -255,15 +270,19 @@ close RUNTIMEOPTS;
 ## Architecture-dependent commands to start MPI runs
 # default commands
 $mpi_start = "";
-$mpi_run = "mpirun \$MPI_FLAGS -np \$NP ";
+$mpi_run = $MPIBIN."mpirun \$MPI_FLAGS -np \$NP ";
 $mpi_stop = "";
 
 if ( $MPIDISTR =~ /mvapich2/ ) {
-    $mpi_run = "mpirun_rsh -np \$NP -hostfile \$PBS_NODEFILE ";
+    $mpi_run = $MPIBIN."mpirun_rsh -np \$NP -hostfile \$PBS_NODEFILE ";
 } elsif ( $MPIDISTR =~ /SCALI/ ) {
-    $mpi_run = "mpirun \$MPI_FLAGS -np \$NP -inherit_limits ";
+    $mpi_run = $MPIBIN."mpirun \$MPI_FLAGS -np \$NP -inherit_limits ";
 } elsif ( $MPIDISTR =~ /openmpi/ ) {
-    $mpi_run = "mpirun \$MPI_FLAGS -np \$NP --mca btl_openib_warn_no_hca_params_found 0 ";
+    if ( -f $MPIBIN."openmpirun" ) { # hack for Macports OpenMPI
+	$mpi_run = $MPIBIN."openmpirun \$MPI_FLAGS -np \$NP";
+    } else {
+	$mpi_run = $MPIBIN."mpirun \$MPI_FLAGS -np \$NP"; # --mca btl_openib_warn_no_hca_params_found 0 ";
+    }
 }
 
 # special cases for old architectures
@@ -309,7 +328,7 @@ while (<RFILE>) {
     s/\s*$//;
     next if ( ! $_ ); 
     #print I "$_\n";
-    if ( /ISTART/ ) {
+    if ( /^\s*ISTART/ ) {
 	$str_cold .= "$_\n";
     } else {
 	$istr .= "$_\n";

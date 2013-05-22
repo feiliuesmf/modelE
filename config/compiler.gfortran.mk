@@ -2,8 +2,8 @@
 F90 = gfortran
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CPPFLAGS += -DCOMPILER_G95
-FFLAGS = -cpp -fconvert=big-endian -O2 -fno-range-check
-F90FLAGS = -cpp -fconvert=big-endian -O2 -fno-range-check -ffree-line-length-none
+FFLAGS = -g -cpp -fconvert=big-endian -O2 -fno-range-check
+F90FLAGS = -g -cpp -fconvert=big-endian -O2 -fno-range-check -ffree-line-length-none
 LFLAGS =
 
 F90_VERSION = $(shell $(F90) --version | head -1)

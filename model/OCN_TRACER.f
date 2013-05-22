@@ -18,10 +18,9 @@
       USE OCN_TRACER_COM, only : water_tracer_ic
 #endif
 
-      USE OCEAN, only : im,jm,lmo,focean,dxypo,mo,lmm,imaxj,oXYP
+      USE OCEAN, only : im,jm,lmo,dxypo,mo,lmm,imaxj,oXYP
 #ifdef TRACERS_OCEAN
-     *     ,trmo,txmo,tymo,tzmo,s0m,sxmo,symo,szmo,oc_tracer_mean
-     *     ,trmo_glob,s0m_glob,mo_glob
+     *     ,trmo,txmo,tymo,tzmo,mo,s0m,sxmo,symo,szmo,oc_tracer_mean
 #endif
       USE SEAICE, only : xsi,lmi
       USE STRAITS, only : nmst,msist,ssist
@@ -37,7 +36,7 @@
      *     broadcast, GLOBALSUM
       USE OCEANR_DIM, only : grid=>ogrid
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, pack_data, unpack_data
-      USE OCEAN, only : gather_ocean
+      !USE OCEAN, only : gather_ocean
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       USE Dictionary_mod
       IMPLICIT NONE
@@ -51,7 +50,7 @@ c
       real*8 fwm,afac
 #endif
       real*8 t01,t02,trsum,wsum,tratio,frac_tr
-
+      real*8, dimension(im,jm,lmo) :: mo_glob,s0m_glob,trmo_glob
       real*8 :: OTRACJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) 
       INTEGER :: J_0S, J_1S, J_0, J_1, J_0H, J_1H
       call getDomainBounds(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
@@ -67,6 +66,9 @@ c
 
 C**** Note that only sea ice related arrays are initialised if
 C**** only TRACERS_WATER is true.
+
+      call pack_data(grid,mo,mo_glob)
+      call pack_data(grid,s0m,s0m_glob)
 
       do n=1,ntm
 
@@ -239,7 +241,9 @@ C**** Multiply ratios by freshwater mass
 #endif
 
 C**** Initiallise strait values based on adjacent ocean boxes
-          call gather_ocean(1)  ! mo,g0m,gx-zmo,s0m,sx-zmo,trmo,tx-zmo
+          !call gather_ocean(1)  ! mo,g0m,gx-zmo,s0m,sx-zmo,trmo,tx-zmo
+
+          call pack_data(grid,trmo(:,:,:,n),trmo_glob)
 
           if(am_I_root()) then
           do nst=1,nmst
@@ -248,9 +252,9 @@ C**** Initiallise strait values based on adjacent ocean boxes
             i2=ist(nst,2)
             j2=jst(nst,2)
             do l=1,lmst(nst)
-              t01=trmo_glob(i1,j1,l,n)/(mo_glob(i1,j1,l)*dxypo(j1)
+              t01=trmo_glob(i1,j1,l)/(mo_glob(i1,j1,l)*dxypo(j1)
      *             -s0m_glob(i1,j1,l))
-              t02=trmo_glob(i2,j2,l,n)/(mo_glob(i2,j2,l)*dxypo(j2)
+              t02=trmo_glob(i2,j2,l)/(mo_glob(i2,j2,l)*dxypo(j2)
      *             -s0m_glob(i2,j2,l))
               trmst(l,nst,n) = 5d-1*(mmst(l,nst)-s0mst(l,nst))*(t01+t02)
               txmst(l,nst,n) = -5d-1*sxmst(l,nst)*(t01+t02)
@@ -384,7 +388,7 @@ C****
       use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR
       USE MODEL_COM, only : itime
       USE OCN_TRACER_COM, only : n_age
-      USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
+      USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj,
      *     lmm, lmo
 
       USE DOMAIN_DECOMP_1D, only : getDomainBounds

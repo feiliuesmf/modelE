@@ -6,6 +6,7 @@ use RegressionEnvs;
 
 # This is the main modelE regression tests script. Its role is to setup the testing
 # environment for rundecks specified in the configuration file (required argument).
+# It also creates a "pool" of commands that is executed once the setup is done.
 
 $num_args = $#ARGV + 1;
 if ($num_args != 1) {
@@ -36,6 +37,13 @@ my @rundecks;
 $env->{BRANCH} = $branch;
 $env = setupENVvariables($env);
 
+$machine = $ENV{HOST};
+if ($machine =~ discover || $machine =~ borg)
+{
+  # On DISCOVER the default git is quite old so make sure we use the latest
+  $ENV{PATH}="/usr/local/other/git/1.7.3.4_GNU/libexec/git-core:".$ENV{PATH};
+}
+
 foreach $compiler (@compilers) 
 {
   $env->{$compiler} = getEnvironment($env, $compiler, $branch);
@@ -51,12 +59,11 @@ $resolutions->{nonProduction_E_AR5_C12} = "8x10";
 $resolutions->{EM20}                    = "4x5";
 $resolutions->{E1oM20}                  = "4x5";
 $resolutions->{E4F40}                   = "2x2.5";
-$resolutions->{E4TcadF40}               = "2x2.5";
+$resolutions->{E4TampF40}               = "2x2.5";
 $resolutions->{E4TcadiF40}              = "2x2.5";
 $resolutions->{E4arobio_h4c}            = "2x2.5";
 $resolutions->{E4arobio_g6c}            = "2x2.5";
-$resolutions->{E4TctomasiF40}           = "2x2.5";
-$resolutions->{E4TctomasiF40ncep}       = "2x2.5";
+$resolutions->{E4TctomasF40}           = "2x2.5";
 $resolutions->{E_AR5_CADI}              = "2x2.5";
 $resolutions->{SCMSGPCONT}              = "0";   # single column model 
 $resolutions->{E4C90L40}                = "CS";  # cubed sphere
@@ -77,7 +84,7 @@ $numProcesses->{"0"}->{INSANE}         = [];
 $numProcesses->{"CS"}->{GENTLE}        = [6];
 $numProcesses->{"CS"}->{AGGRESSIVE}    = [6,48];
 $numProcesses->{"CS"}->{INSANE}        = [6,84];
-$numProcesses->{"2x2.5"}->{XLDECK}     = [45];  # for extra large (memory) rundecks
+$numProcesses->{"2x2.5"}->{XLDECK}     = [44];  # for extra large (memory) rundecks
 $numProcesses->{"2x2.5"}->{XLRUN}      = [88];  # for extra long (>=1mo) runs
 
 # Loop over configurations and copy into local arrays
@@ -137,6 +144,7 @@ foreach $compiler (@compilers)
 }
 
 my $reference = "$env->{SCRATCH_DIRECTORY}" . "/$branch";
+my $shortName;
 
 print "Loop over all configurations...\n";
 foreach my $rundeck (@rundecks) 
@@ -145,10 +153,9 @@ foreach my $rundeck (@rundecks)
   {
     if ($compiler eq 'nag') 
     {
-      $ENV{PATH}="/discover/nobackup/ccruz/Baselibs/mvapich2_1.8/nag-5.3-886/lib:".$ENV{PATH};
-      $ENV{LD_LIBRARY_PATH}="/discover/nobackup/ccruz/Baselibs/mvapich2_1.8/nag-5.3-886/lib:".$ENV{LD_LIBRARY_PATH};
+      $ENV{PATH}="/usr/local/other/SLES11.1/mvapich2/1.8.1/nag-5.3-907/bin:".$ENV{PATH};
+      $ENV{LD_LIBRARY_PATH}="/usr/local/other/SLES11.1/mvapich2/1.8.1/nag-5.3-907/lib:".$ENV{LD_LIBRARY_PATH};
     }
-
     $env->{$compiler}->{RUNDECK} = $rundeck;
 
     foreach $configuration (@{$useCases->{$rundeck}->{CONFIGURATIONS}}) 
@@ -157,10 +164,15 @@ foreach my $rundeck (@rundecks)
       $env->{$compiler}->{CONFIGURATION} = $configuration;
       $env->{$compiler}->{DEBUGFLAGS} = $useCases->{$rundeck}->{DEBUGFLAGS};
       $env->{$compiler}->{DURATION} = $useCases->{$rundeck}->{DURATION};
-      my $tempDir="$env->{SCRATCH_DIRECTORY}/$compiler/$rundeck.$configuration";
+
+      $shortName = $rundeck;
+      if ($rundeck =~ m/^(nonProduction)/i) {
+         $shortName = substr $rundeck, 14;
+      }
+      my $tempDir="$env->{SCRATCH_DIRECTORY}/$compiler/$shortName.$configuration";
 
       my $copy  = createTemporaryCopy($reference, $tempDir, $branch);
-      $copy->{STDOUT_LOG_FILE} = "$env->{$compiler}->{RESULTS_DIRECTORY}/$compiler/$rundeck.$configuration.$compiler.buildlog";
+      $copy->{STDOUT_LOG_FILE} = "$env->{$compiler}->{RESULTS_DIRECTORY}/$compiler/$shortName.$configuration.$compiler.buildlog";
       $pool->add($copy, $git);
 
       my $build = compileRundeck($env->{$compiler}, $tempDir);

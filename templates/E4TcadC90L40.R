@@ -22,7 +22,7 @@ Preprocessor Options
 #define TRDIAG_WETDEPO           ! additional wet deposition diags for tracers
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
-#define RAD_O3_GCM_HRES     ! Use GCM horiz resl to input rad code clim Ozone
+#define RAD_O3_2010              ! 2010 ozone dataset
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
@@ -56,12 +56,15 @@ RES_CS90L40                         ! C90 horiz. resolution, top at 0.1mb, 40 la
 TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shared_source_files"
 TRDIAG                              ! for offline postprocessing
+ShindellTracersMetadata
+sharedTracersMetadata
+KochTracersMetadata
+MiscTracersMetadata
 #include "tracer_shindell_source_files"
 #include "tracer_aerosols_source_files"
 
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "modelE4_source_files"
-RAD_native_O3                       ! for reading ozone to rad code at native GCM horiz res.
 lightning                           ! Colin Price lightning model
 ! flammability_drv flammability       ! Olga's fire model
 
@@ -84,7 +87,8 @@ Data input files:
 #include "static_ocn_1880_CS90_input_files"
 !#include "static_ocn_2000_CS90_input_files"
 
-RVR=RDdistocean_CS90_EM.bin         ! river direction file
+RVR=RDdistocean_CS90_EM.nc             ! river direction file
+NAMERVR=RDdistocean_CS90_EM.names.txt  ! named river outlets
 
 ! OFF VEG_DENSE=veg_dense_C90_from_2x2.5
 
@@ -96,9 +100,7 @@ RVR=RDdistocean_CS90_EM.bin         ! river direction file
 
 #include "landCS90_input_files"
 #include "rad_input_files"
-#include "TAero2008_input_files"
-#include "O3_2010_C90_input_files"
-!#include "O3_2005_input_files"
+#include "rad_C90_input_files"
 
 #include "chemistry_input_files"
 #include "chemistry_C90_input_files"

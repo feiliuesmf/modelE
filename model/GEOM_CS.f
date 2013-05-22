@@ -15,6 +15,11 @@
       IMPLICIT NONE
       SAVE
 
+!@var  i-index (longitude) of each grid cell
+      INTEGER, ALLOCATABLE :: indx(:,:)
+!@var  j-index (latitude) of each grid cell
+      INTEGER, ALLOCATABLE :: jndx(:,:)
+
 !@var  lat2d latitude of mid point of primary grid box (radians)
       REAL*8, ALLOCATABLE :: lat2d(:,:)
 !@var  lat2d_dg latitude of mid point of primary grid box (degrees)
@@ -74,6 +79,9 @@
       write(*,*) "geom  i0h,i1h,i0,i1,j0h,j1h,j0,j1=",
      &     i0h,i1h,i0,i1,j0h,j1h,j0,j1
 
+      allocate(indx(i0h:i1h, j0h:j1h))
+      allocate(jndx(i0h:i1h, j0h:j1h))
+
       allocate(lat2d(i0h:i1h, j0h:j1h))
       allocate(lon2d(i0h:i1h, j0h:j1h))
 
@@ -114,11 +122,23 @@ c      lat2d_corner = corner_grid(:,:,2)
      &         lat2d, lon2d, lon2d_corner, lat2d_corner)
 
 
+      ! Fill in indices for grid cells, so we can
+      ! halo-update them with our neighbors
+      do j=j0,j1
+      do i=i0,i1
+        indx(i,j) = i
+        jndx(i,j) = j
+      end do    ! i
+      end do    ! j
+
 !    Update halo
       call halo_update(grid, lat2d)
       call halo_update(grid, lon2d)
       call halo_update(grid, lon2d_corner)
       call halo_update(grid, lat2d_corner)
+      call halo_update(grid, indx)
+      call halo_update(grid, jndx)
+
 
       lat2d_dg = lat2d/radian
       lon2d_dg = lon2d/radian

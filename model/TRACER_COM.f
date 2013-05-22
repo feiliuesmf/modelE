@@ -10,37 +10,30 @@
 !@auth Jean Lerner
 C
       USE QUSDEF, only: nmom
-      USE RESOLUTION, only: im,jm,lm
-      use OldTracer_mod, only: trName
+      USE RESOLUTION, only: lm
       use OldTracer_mod, only: tr_mm
       use OldTracer_mod, only: ntm_power
       use OldTracer_mod, only: t_qlimit
       use OldTracer_mod, only: needtrs
       use OldTracer_mod, only: trdecay
-
       use OldTracer_mod, only: itime_tr0
       use OldTracer_mod, only: mass2vol
       use OldTracer_mod, only: vol2mass
-
       use OldTracer_mod, only: dodrydep
       use OldTracer_mod, only: F0
       use OldTracer_mod, only: HSTAR
-
       use OldTracer_mod, only: do_fire
       use OldTracer_mod, only: nBBsources
       use OldTracer_mod, only: emisPerFireByVegType
       use OldTracer_mod, only: trpdens
       use OldTracer_mod, only: trradius
-
       use OldTracer_mod, only: tr_wd_TYPE
       use OldTracer_mod, only: tr_RKD
       use OldTracer_mod, only: tr_DHD
       use OldTracer_mod, only: fq_aer
       use OldTracer_mod, only: rc_washt
       use OldTracer_mod, only: isDust
-
       use OldTracer_mod, only: nGAS, nPART, nWATER
-
       use OldTracer_mod, only: tr_H2ObyCH4
       use OldTracer_mod, only: dowetdep
       use OldTracer_mod, only: trw0
@@ -48,26 +41,31 @@ C
       use OldTracer_mod, only: conc_from_fw
       use OldTracer_mod, only: trglac
       use OldTracer_mod, only: ntisurfsrc
-
       use OldTracer_mod, only: trli0
       use OldTracer_mod, only: trsi0
+
 #ifdef TRACERS_AEROSOLS_VBS
       use TRACERS_VBS, only: vbs_bins
 #endif
 
-      use TracerBundle_mod
+      use TracerBundle_mod, only: TracerBundle, newTracerBundle
       use TracerSource_mod, only: N_MAX_SECT
 c     
       IMPLICIT NONE
       SAVE
 
-      type (TracerBundle_type) :: tracers
+      type (TracerBundle) :: tracers
+      type (TracerBundle) :: shindellTracers
+      type (TracerBundle) :: lernerTracers
+      type (TracerBundle) :: tomasTracers
+      type (TracerBundle) :: ampTracers
 
 !@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
       integer :: COUPLED_CHEM = 0
 
 C**** Each tracer has a variable name and a unique index
-!@param NTM number of tracers
+!@var NTM number of tracers
+      integer :: NTM
 
 !@var ntm_O18: Number of TRACERS_SPECIAL_O18 tracers.
 #ifdef TRACERS_SPECIAL_O18
@@ -280,48 +278,40 @@ C**** Each tracer has a variable name and a unique index
      *                               ntm_shindell_strat+
      *                               ntm_soa
 #ifdef TRACERS_AMP
-! This is kept seperate, as ntm_dust needs to be set 
-c          (in order to calculate dust emissions), but not added to ntm.
-      integer, parameter :: oldNTM=ntm_amp+ntm_chem
 #else
 #ifdef TRACERS_TOMAS
        !constants that have to do with the number of tracers
-C    NBS is the number of bulk species (gases and aerosols that don't
-C	 have size resolution such as MSA)
-C    NAP is the number of size-resolved "prognostic" aerosol species
-C	 (ones that undergo transport)
-C    NAD is the number of size-resolved "diagnostic" aerosol species
-C	 (ones that don't undergo transport or have a complete budget
-C	 such as aerosol water and nitrate)
-C    NSPECIES is the number of unique chemical species not counting
-C	 size-resolved species more than once (the sum of NBS, NAP,
-C	 and NAD)
-C    NBINS is the number of bins used to resolve the size distribution
-C    NTM is the total number of tracer concentrations that the model
-C	 tracks.  This counts bulk species, and both prognostic and 
-C	 diagnostic aerosols.  Each size-resolved aerosol has a number
-C	 of tracers equal to NBINS to resolve its mass distribution.
-C	 An additional NBINS are required to resolve the aerosol number
-C	 distribution.
-C    NTT is the total number of transported tracers.  This is the same
-C	 as NTM, but excludes the "diagnostic" aerosol species which
-C	 do not undergo transport - ??? will I use this
+!@param NBS is the number of bulk species (gases and aerosols that don't
+!@+      have size resolution such as MSA) but excluding Shindell's gas tracers
+!@param NAP is the number of size-resolved "prognostic" aerosol species
+!@+      (ones that undergo transport)
+!@param NAD is the number of size-resolved "diagnostic" aerosol species
+!@+      (ones that don't undergo transport or have a complete budget
+!@+      such as aerosol water and nitrate)
+!@param NSPECIES is the number of unique chemical species not counting
+!@+      size-resolved species more than once (the sum of NBS, NAP,
+!@+      and NAD)
+!@param NBINS is the number of bins used to resolve the size distribution
+!@param NTM is the total number of tracer concentrations that the model
+!@+      tracks.  This counts bulk species, and both prognostic and 
+!@+      diagnostic aerosols.  Each size-resolved aerosol has a number
+!@+      of tracers equal to NBINS to resolve its mass distribution.
+!@+      An additional NBINS are required to resolve the aerosol number
+!@+      distribution.
+!@param NTT is the total number of transported tracers.  This is the same
+!@+      as NTM, but excludes the "diagnostic" aerosol species which
+!@+      do not undergo transport - ??? will I use this
 
        !constants that determine the size of diagnostic arrays
-C    NXP is the number of transport processes that are tracked
-C	 separately
-C    NCR is the number of chemical reactions for which data is saved
-C    NOPT is the number of aerosol optical properties tracked
-C    NFOR is the number of different forcings that are calculated
-C    NAERO is the number of aerosol microphysics diagnostics
-C    NCONS is the number of conservation quantity diagnostics
-C    KCDGN is the number of cloud microphysics and optical depth diagnostics
+!@param NXP is the number of transport processes that are tracked
+!@+      separately (NO USE)
+!@param NCR is the number of chemical reactions for which data is saved (NO USE)
+!@param NOPT is the number of aerosol optical properties tracked
+!@param NFOR is the number of different forcings that are calculated
+!@param NAERO is the number of aerosol microphysics diagnostics
+!@param NCONS is the number of conservation quantity diagnostics
+!@param KCDGN is the number of cloud microphysics and optical depth diagnostics
 
-!yhl - nbs should be deleted, and use shindell gas species..
-
-!@param ntm number of tracers
-
-! yhl - NAP is changed to 6 to exclude mineral dust for now (1/20/2011)
 #if (defined TOMAS_12_10NM) 
       integer, parameter :: NBINS=12 
 #elif (defined TOMAS_15_10NM) || (defined TOMAS_12_3NM)
@@ -337,7 +327,6 @@ C    KCDGN is the number of cloud microphysics and optical depth diagnostics
      *                          ntm_shindell_extra+ntm_ococean+NBS
 
       integer, parameter :: 
-c     &     IDTNUMD = non_aerosol+1,         !NBINS for number distribution
      *     IDTSO4  = non_aerosol+1, !36;NBINS for sulfate mass dist.
      &     IDTNA   = IDTSO4 +NBINS, !66;
      &     IDTECOB = IDTNA+NBINS, !126; NBINS for Hydrophobic EC
@@ -347,355 +336,15 @@ c     &     IDTNUMD = non_aerosol+1,         !NBINS for number distribution
      &     IDTDUST = IDTOCIL+NBINS, !216
      &     IDTNUMD = IDTDUST+NBINS,
      &     IDTH2O  = IDTNUMD+NBINS  !246
-      double precision, dimension(nbins+1) :: xk
+      real*8, dimension(nbins+1) :: xk
 !      integer, parameter :: oldNTM=ntm_tomas
       integer, parameter :: oldNTM=non_aerosol+ntm_tomas !ntm_dust is excluded.      
 
 #else
-!@param ntm number of tracers
-      integer, parameter :: oldNTM=ntm_O18+ntm_gasexch+ntm_lerner+
-     *                          ntm_water+ntm_koch+ntm_vbs+ntm_dust+
-     *                          ntm_het+ntm_nitrate+ntm_cosmo+
-     *                          ntm_ocean+ntm_air+ntm_chem+
-     *                          ntm_shindell_extra+ntm_ococean
-
 #endif  /* TRACERS_TOMAS */
 #endif
 
-      integer :: NTM
-
-#ifdef TRACERS_AMP
-#ifdef TRACERS_AMP_M1
-      integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
-     *    0 ,0 ,0 ,1 ,1,  !AKK
-     *    2 ,2 ,3 ,3 ,3,  !ACC,DD1
-     *    4 ,4 ,4 ,5 ,5,  !DS1,DD2
-     *    5 ,6 ,6 ,6 ,7,  !DD2,DS2,SSA
-     *    7 ,8,           !SSA,SSC
-     *    9 ,9 ,9 ,10,10, !OCC,BC1
-     *    10,11,11,11,12, !BC1,BC2,BC3
-     *    12,12,13,13,13, !BC3,DBC
-     *    13,14,14,14,14, !DBC,BOC
-     *    15,15,15,16,16, !BCS,MXX
-     *    16,16,16,16/)
-      integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/
-     *    0 ,0 ,0 ,0 ,1,  !AKK
-     *    0 ,2 ,0 ,0 ,3,  !ACC,DD1
-     *    0 ,0 ,4 ,0 ,0,  !DS1,DD2
-     *    5 ,0 ,0 ,6 ,0,  !DD2,DS2,SSA
-     *    0 ,0,           !SSA,SSC
-     *    0 ,0 ,9 ,0 ,0 , !OCC,BC1
-     *    10,0 ,0 ,11,0 , !BC1,BC2,BC3
-     *    0 ,12,0 ,0 ,0 , !BC3,DBC
-     *    13,0 ,0 ,0 ,14, !DBC,BOC
-     *    0 ,0 ,15,0 ,0 , !BCS,MXX
-     *    0 ,0 , 0,16/)
-      integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,
-     *    11,12,13,14,15,16,17,18,19,20,
-     *    21,      24,   26,27,28,29,30,
-     *    31,32,33,34,35,36,37,38,39,40,
-     *    41,42,43,44,45,46,47,48,49,50,
-     *    51,52,53,54   /)
-
-      integer, parameter :: AMP_trm_nm1(ntmAMP)=(/
-     *             0 ,         0 ,         0 ,ntm_chem+4 ,ntm_chem+4,  !AKK
-     *    ntm_chem+6 ,ntm_chem+6 ,ntm_chem+8 ,ntm_chem+8 ,ntm_chem+8,  !ACC,DD1
-     *    ntm_chem+11,ntm_chem+11,ntm_chem+11,ntm_chem+14,ntm_chem+14, !DS1,DD2
-     *    ntm_chem+14,ntm_chem+17,ntm_chem+17,ntm_chem+17,ntm_chem+20, !DD2,DS2,SSA
-     *    ntm_chem+20,ntm_chem+22,                                     !SSA,SSC
-     *    ntm_chem+23,ntm_chem+23,ntm_chem+23,ntm_chem+26,ntm_chem+26, !OCC,BC1
-     *    ntm_chem+26,ntm_chem+29,ntm_chem+29,ntm_chem+29,ntm_chem+32, !BC1,BC2,BC3
-     *    ntm_chem+32,ntm_chem+32,ntm_chem+35,ntm_chem+35,ntm_chem+35, !BC3,DBC
-     *    ntm_chem+35,ntm_chem+39,ntm_chem+39,ntm_chem+39,ntm_chem+39, !DBC,BOC
-     *    ntm_chem+43,ntm_chem+43,ntm_chem+43,ntm_chem+46,ntm_chem+46, !BCS,MXX
-     *    ntm_chem+46,ntm_chem+46,ntm_chem+46,ntm_chem+46/)
-      integer, parameter :: AMP_trm_nm2(ntmAMP)=(/
-     *             0 ,         0 ,         0 ,ntm_chem+4 ,ntm_chem+4,  !AKK
-     *    ntm_chem+6 ,ntm_chem+6 ,ntm_chem+9 ,ntm_chem+9 ,ntm_chem+9,  !ACC,DD1
-     *    ntm_chem+12,ntm_chem+12,ntm_chem+12,ntm_chem+15,ntm_chem+15, !DS1,DD2
-     *    ntm_chem+15,ntm_chem+18,ntm_chem+18,ntm_chem+18,ntm_chem+21, !DD2,DS2,SSA
-     *    ntm_chem+21,ntm_chem+22,                                     !SSA,SSC
-     *    ntm_chem+24,ntm_chem+24,ntm_chem+24,ntm_chem+27,ntm_chem+27, !OCC,BC1
-     *    ntm_chem+27,ntm_chem+30,ntm_chem+30,ntm_chem+30,ntm_chem+33, !BC1,BC2,BC3
-     *    ntm_chem+33,ntm_chem+33,ntm_chem+37,ntm_chem+37,ntm_chem+37, !BC3,DBC
-     *    ntm_chem+37,ntm_chem+41,ntm_chem+41,ntm_chem+41,ntm_chem+41, !DBC,BOC
-     *    ntm_chem+44,ntm_chem+44,ntm_chem+44,ntm_chem+50,ntm_chem+50, !BCS,MXX
-     *    ntm_chem+50,ntm_chem+50,ntm_chem+50,ntm_chem+50/)
-#endif
-#ifdef TRACERS_AMP_M2
-      integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
-     *    0 ,0 ,0 ,1 ,1,  !AKK
-     *    2 ,2 ,3 ,3 ,3,  !ACC,DD1
-     *    4 ,4 ,4 ,5 ,5,  !DS1,DD2
-     *    5 ,6 ,6 ,6 ,7,  !DD2,DS2,SSA
-     *    7 ,8,           !SSA,SSC
-     *    9 ,9 ,9 ,10,10, !OCC,BC1
-     *    10,11,11,11,12, !BC1,BC2,OSC
-     *    12,12,13,13,13, !BC3,DBC
-     *    13,14,14,14,14, !DBC,BOC
-     *    15,15,15,16,16, !BCS,MXX
-     *    16,16,16,16/)
-      integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/
-     *    0 ,0 ,0 ,0 ,1,  !AKK
-     *    0 ,2 ,0 ,0 ,3,  !ACC,DD1
-     *    0 ,0 ,4 ,0 ,0,  !DS1,DD2
-     *    5 ,0 ,0 ,6 ,0,  !DD2,DS2,SSA
-     *    0 ,0,           !SSA,SSC
-     *    0 ,0 ,9 ,0 , 0, !OCC,BC1
-     *    10,0 ,0 ,11,0 , !BC1,BC2,OSC
-     *    0 ,12,0 ,0 ,0 , !DBC
-     *    13,0 ,0 ,0 ,14, !DBC,BOC
-     *    0 ,0 ,15,0 ,0 , !BCS,MXX
-     *    0 ,0 ,0 ,16/)
-      integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
-     *    11,12,13,14,15,16,17,18,19,20,
-     *    21,      24,  26,27,28,29,30,        
-     *    31,32,33,34,35,36,37,38,39,40,
-     *    41,42,43,44,45,46,47,48,49,50,
-     *    51,52,53,54   /)
-
-      integer, parameter :: AMP_trm_nm1(ntmAMP)=(/
-     *    0 ,0 ,0 ,4 ,4,  !AKK
-     *    6 ,6 ,8 ,8 ,8,  !ACC,DD1
-     *    11,11,11,14,14, !DS1,DD2
-     *    14,17,17,17,20, !DD2,DS2,SSA
-     *    20,22,          !SSA,SSC
-     *    23,23,23,26,26, !OCC,BC1
-     *    26,29,29,29,32, !BC1,BC2
-     *    32,32,35,35,35, !OSC,DBC
-     *    35,39,39,39,39, !DBC,BOC
-     *    43,43,43,46,46, !BCS,MXX
-     *    46,46,46,46/)
-      integer, parameter :: AMP_trm_nm2(ntmAMP)=(/
-     *    0 ,0 ,0 ,4 ,4,  !AKK
-     *    6 ,6 ,9 ,9 ,9,  !ACC,DD1
-     *    12,12,12,15,15, !DS1,DD2
-     *    15,18,18,18,21, !DD2,DS2,SSA
-     *    21,22,          !SSA,SSC
-     *    24,24,24,27,27, !OCC,BC1
-     *    27,30,30,30,33, !BC1,BC2
-     *    33,33,37,37,37, !OCS,DBC
-     *    37,41,41,41,41, !DBC,BOC
-     *    44,44,44,50,50, !BCS,MXX
-     *    50,50,50,50/)
-#endif
-#ifdef TRACERS_AMP_M3
-      integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
-     *    0 ,0 ,0 ,1 ,1,  !AKK
-     *    2 ,2 ,3 ,3 ,3,  !ACC,DD1
-     *    4 ,4 ,4 ,5 ,5,  !DS1,DD2
-     *    5 ,6 ,6 ,6 ,7,  !DD2,DS2,SSA
-     *    7 ,8,           !SSA,SSC
-     *    9 ,9 ,9 ,10,10, !OCC,BC1
-     *    10,11,11,11,12, !BC1,BC2,BOc
-     *    12,12,12,13,13, !BOC,MXX
-     *    13,13,13,13/)
-      integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/
-     *    0 ,0 ,0 ,0 ,1,  !AKK
-     *    0 ,2 ,0 ,0 ,3,  !ACC,DD1
-     *    0 ,0 ,4 ,0 ,0,  !DS1,DD2
-     *    5 ,0 ,0 ,6 ,0,  !DD2,DS2,SSA
-     *    0 ,0,           !SSA,SSC
-     *    0 ,0 ,9 ,0 ,0 , !OCC,BC1
-     *    10,0 ,0 ,11,0 , !BC1,BC2,BOc
-     *    0 ,0 ,12,0 ,0 , !BOC,MXX
-     *    0 ,0 ,0 ,13/)
-      integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
-     *    11,12,13,14,15      ,18   ,20,
-     *    21,22,23,24,25,26,27,28,29,30,        
-     *    31,32,33,34,35,36,37,38,39,40,
-     *    41,42,43,44  /)
-
-      integer, parameter :: AMP_trm_nm1(ntmAMP)=(/
-     *    0 ,0 ,0 ,4 ,4,  !AKK
-     *    6 ,6 ,8 ,8 ,8,  !ACC,DD1
-     *    11,11,11,14,14, !DS1,DD2
-     *    14,17,17,17,20, !DD2,DS2,SSA
-     *    20,22,          !SSA,SSC
-     *    23,23,23,26,26, !OCC,BC1
-     *    26,29,29,29,32, !BC1,BC2,BOC
-     *    32,32,32,36,36, !BOC,MXX
-     *    36,36,36,36/)
-
-      integer, parameter :: AMP_trm_nm2(ntmAMP)=(/
-     *    0 ,0 ,0 ,4 ,4,  !AKK
-     *    6 ,6 ,9 ,9 ,9,  !ACC,DD1
-     *    12,12,12,15,15, !DS1,DD2
-     *    15,18,18,18,21, !DD2,DS2,SSA
-     *    21,22,          !SSA,SSC
-     *    24,24,24,27,27, !OCC,BC1
-     *    27,30,30,30,34, !BC1,BC2,BOC
-     *    34,34,34,40,40, !BOC,MXX
-     *    40,40,40,40/)
- 
-#endif
-#ifdef TRACERS_AMP_M4
-      integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
-     *    0 ,0 ,0 ,1 ,1,  !ACC
-     *    2 ,2 ,2 ,3 ,3,  !DD1,DS1
-     *    3 ,4 ,4 ,4 ,5,  !DS1,DD2,DS2
-     *    5 ,5 ,6 ,6,     !DS2,SSS
-     *    7 ,7 ,7 ,8 ,8,  !OCC,BC1
-     *    8 ,9 ,9 ,9 ,10, !BC1,BC2,MXX
-     *    10,10,10,10,10  !MXX
-     *    /)
-      integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/
-     *    0 ,0 ,0 ,0 ,1,  !ACC
-     *    0 ,0 ,2 ,0 ,0,  !DD1,DS1
-     *    3 ,0 ,0 ,4 ,0,  !DS1,DD2,DS2
-     *    0 ,5 ,0 ,0,     !DS2,SSS
-     *    0 ,0 ,6 ,0 ,0,  !OCC,BC1
-     *    7 ,0 ,0 ,8 ,0,  !BC1,BC2,MXX
-     *    0, 0, 0 ,0 ,9  !MXX
-     *    /)
-      integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
-     *    11,12,13,14,15,16,17,18,19,
-     *    21,22,23,24,25,26,27,28,29,30,        
-     *    31,32,33,34,35   /)
-      integer, parameter :: AMP_trm_nm1(ntmAMP)=(/
-     *    0 ,0 ,0 ,4 ,4,  !ACC
-     *    6 ,6 ,6 ,9 ,9,  !DD1
-     *    9 ,12,12,12,15, !DS1,DD2
-     *    15,15,18,18,    !DD2,DS2,SSA
-     *    20,20,20,23,23, !SSA,SSC
-     *    23,26,26,26,29, !OCC,BC1
-     *    29,29,29,29,29/)
-
-      integer, parameter :: AMP_trm_nm2(ntmAMP)=(/
-     *    0 ,0 ,0 ,4 ,4,  !ACC
-     *    7 ,7 ,7 ,10,10,  !DD1
-     *    10,13,13,13,16, !DS1,DD2
-     *    16,16,19,19,    !DD2,DS2,SSA
-     *    21,21,21,24,24, !SSA,SSC
-     *    24,27,27,27,33, !OCC,BC1
-     *    33,33,33,33,33/)
- 
-#endif
-#ifdef TRACERS_AMP_M5
-      integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
-     *    0 ,0 ,0 ,1 ,1,  !AKK
-     *    2 ,2 ,3 ,3 ,3,  !ACC,DD1
-     *    4 ,4 ,4 ,       !DS1
-     *    5 ,             !SSA
-     *    5 ,6 ,          !SSA,SSC
-     *    7 ,7 ,7, 8, 8,  !OCC,BC1
-     *    8, 9, 9, 9,10,  !BC1,BC2,BC3
-     *    10,10,11,11,11, !BC3,DBC
-     *    11,12,12,12,12, !DBC,BOC
-     *    13,13,13,14,14, !BCS,MXX
-     *    14,14,14,14/)
-      integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/
-     *    0 ,0 ,0 ,0 ,1,  !AKK
-     *    0 ,2 ,0 ,0 ,3,  !ACC,DD1
-     *    0 ,0 ,4 ,       !DS1
-     *    0 ,             !SSA
-     *    0 ,0 ,          !SSA,SSC
-     *    0 ,0 ,7, 0, 0,  !OCC,BC1
-     *    8, 0, 0, 9, 0,  !BC1,BC2,BC3
-     *    0, 10,0 ,0 ,0, !BC3,DBC
-     *    11,0 ,0 ,0 ,12, !DBC,BOC
-     *    0, 0, 13,0 ,0, !BCS,MXX
-     *    0,0,0,14/)
-      integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
-     *    11,12,13,14,15,      18,   20,
-     *    21,22,23,24,25,26,27,28,29,30,        
-     *    31,32,33,34,35,36,37,38,39,40,
-     *    41,42,43,44,45,46,47,48   /)
-#endif
-#ifdef TRACERS_AMP_M6
-      integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
-     *    0 ,0 ,0 ,1 ,1,  !AKK
-     *    2 ,2 ,3 ,3 ,3,  !ACC,DD1
-     *    4 ,4 ,4 ,       !DS1
-     *    5 ,             !SSA
-     *    5 ,6 ,          !SSA,SSC
-     *    7 ,7 ,7, 8, 8,  !OCC,BC1
-     *    8, 9, 9, 9,10,  !BC1,BC2,OCS
-     *    10,10,11,11,11, !OCS,DBC
-     *    11,12,12,12,12, !DBC,BOC
-     *    13,13,13,14,14, !BCS,MXX
-     *    14,14,14,14/)
-      integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/
-     *    0 ,0 ,0 ,0 ,1,  !AKK
-     *    0 ,2 ,0 ,0 ,3,  !ACC,DD1
-     *    0 ,0 ,4 ,       !DS1
-     *    0 ,             !SSA
-     *    0 ,0 ,          !SSA,SSC
-     *    0 ,0 ,7, 0, 0,  !OCC,BC1
-     *    8, 0, 0, 9, 0,  !BC1,BC2,OCS
-     *    0 ,10,0 ,0 ,0 , !OCS,DBC
-     *    11,0 ,0 ,0 ,12, !DBC,BOC
-     *    0 ,0 ,13,0 ,0 , !BCS,MXX
-     *    0 ,0 ,0 ,14/)
-      integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
-     *    11,12,13,14,15,      18,   20,
-     *    21,22,23,24,25,26,27,28,29,30,        
-     *    31,32,33,34,35,36,37,38,39,40,
-     *    41,42,43,44,45,46,47,48   /)
-#endif
-#ifdef TRACERS_AMP_M7
-      integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
-     *    0 ,0 ,0 ,1 ,1,  !AKK
-     *    2 ,2 ,3 ,3 ,3,  !ACC,DD1
-     *    4 ,4 ,4 ,       !DS1
-     *    5 ,             !SSA
-     *    5 ,6 ,          !SSA,SSC
-     *    7 ,7 ,7, 8, 8,  !OCC,BC1
-     *    8, 9, 9, 9,     !BC1,BC2
-     *    10,10,10,10,    !OCS,DBC
-     *    11,11,          !MXX
-     *    11,11,11,11/)   !MXX
-      integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/
-     *    0 ,0 ,0 ,0 ,1,  !AKK
-     *    0 ,2 ,0 ,0 ,3,  !ACC,DD1
-     *    0 ,0 ,4 ,       !DS1
-     *    0 ,             !SSA
-     *    0 ,0 ,          !SSA,SSC
-     *    0 ,0 ,7, 0, 0,  !OCC,BC1
-     *    8, 0, 0, 9,     !BC1,BC2
-     *    0, 0, 0,10,    !OCS,DBC
-     *    0, 0,          !MXX
-     *    0, 0, 0,11/)   !MXX
-      integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
-     *    11,12,13,14,15,      18,   20,
-     *    21,22,23,24,25,26,27,28,29,30,        
-     *    31,32,33,34,35,36,37,38/)
-#endif
-#ifdef TRACERS_AMP_M8
-      integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
-     *    0 ,0 ,0 ,       !
-     *    1 ,1 ,2 ,2 ,2,  !ACC,DD1
-     *    3 ,3 ,3 ,       !DS1
-     *    4 ,             !SSS
-     *    4 ,5 ,          !SSS
-     *    5 ,5 ,5, 6, 6,  !OCC,BC1
-     *    6, 7, 7, 7, 8,  !BC1,BC2
-     *    8,8,8,8,8/)    !MXX
-      integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/
-     *    0 ,0 ,0 ,       !
-     *    0 ,1 ,0 ,0 ,2,  !ACC,DD1
-     *    0 ,0 ,3 ,       !DS1
-     *    0 ,             !SSS
-     *    0 ,0 ,          !SSS
-     *    0 ,0 ,5, 0, 0,  !OCC,BC1
-     *    6, 0, 0, 7, 0,  !BC1,BC2
-     *    0,0,0,0,8/)    !MXX
-      integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,        
-     *    6 ,7 ,8 ,9 ,10,        
-     *    11,12,13,15,16,        
-     *    17,18,19,20,21,
-     *    22,23,24,25,26,        
-     *    27,28,29   /)
-#endif
-#endif   /* TRACERS_AMP */
+!@var N_XXX: variable names of indices for tracers (init = 0)
 #ifdef TRACERS_TOMAS
       integer, dimension(nbins) :: n_ANUM =0
       integer, dimension(nbins) :: n_ASO4 =0
@@ -708,7 +357,6 @@ c     &     IDTNUMD = non_aerosol+1,         !NBINS for number distribution
       integer, dimension(nbins) :: n_ADUST=0  
       integer :: n_SOAgas=0
 #endif
-!@var N_XXX: variable names of indices for tracers (init = 0)
       integer ::
      *                 n_SF6_c=0,                                        
      *     n_Air=0,    n_SF6=0,   n_Rn222=0, n_CO2=0,      n_N2O=0,
@@ -942,7 +590,42 @@ c note: not applying CPP when declaring counts/lists.
       subroutine initTracerCom()
       use TracerBundle_mod, only: TracerBundle
 
-      tracers = TracerBundle()
+      tracers = newTracerBundle()
+
+      call tracers%addDefault('mass2vol', 0.0d0)
+      call tracers%addDefault('dodrydep', .false.)
+      call tracers%addDefault('t_qlimit',.true.)
+      call tracers%addDefault('trpdens', 0.0d0)
+      call tracers%addDefault('needtrs', .false.)
+      call tracers%addDefault('trdecay', 0.0d0)
+
+      call tracers%addDefault('trsi0', 0.0d0)
+      call tracers%addDefault('trw0', 0.0d0)
+      call tracers%addDefault('vol2mass', 0.0d0)
+      call tracers%addDefault('F0', 0.0d0)
+      call tracers%addDefault('HSTAR', 0.0d0)
+      call tracers%addDefault('do_fire', .false.)
+      call tracers%addDefault('nBBsources', 0)
+
+      call tracers%addDefault('trradius', 0.0d0)
+      call tracers%addDefault('tr_wd_TYPE', nGas)
+      call tracers%addDefault('tr_RKD', 0.0d0)
+      call tracers%addDefault('tr_DHD', 0.0d0)
+      call tracers%addDefault('fq_aer', 0.0d0)
+      call tracers%addDefault('rc_washt', 1.d-1)
+      call tracers%addDefault('isDust', 0)
+      call tracers%addDefault('H2ObyCH4', 0.0d0)
+      call tracers%addDefault('dowetdep', .false.)
+      call tracers%addDefault('ntrocn', 0)
+      call tracers%addDefault('conc_from_fw', .true.)
+
+      call tracers%addDefault('ntisurfsrc', 0)
+      call tracers%addDefault('iso_index', 1)
+      call tracers%addDefault('om2oc', 1.4d0)
+      call tracers%addDefault('to_volume_MixRat', 0)
+      call tracers%addDefault('to_conc', 0)
+      call tracers%addDefault('TRLI0', 0.0d0)
+
       call initTracerMetadata()
 
       end subroutine initTracerCom
@@ -1029,28 +712,43 @@ c note: not applying CPP when declaring counts/lists.
       end subroutine remake_tracer_lists
 
       integer function ntsurfsrc_1(index) result(n)
+      use OldTracer_mod, only: trname
       use Tracer_mod
       integer, intent(in) :: index
 
-      n = ntsurfsrc(tracers, index)
+      class (Tracer), pointer :: t
+
+      t => tracers%getReference(trname(index))
+      n = t%ntsurfsrc
       
       end function ntsurfsrc_1
 
-      function ntsurfsrc_all() result(n)
+      function ntsurfsrc_all() result(nSurf)
       use Tracer_mod
-      integer, pointer :: n(:)
+      integer, pointer :: nSurf(:)
 
-      allocate(n(getNumTracers(tracers)))
-      n = ntsurfsrc(tracers)
+      integer :: i, n
+
+      n = tracers%size()
+      allocate(nSurf(n))
+
+      do i = 1, n
+        nSurf(i) = ntsurfsrc(i)
+      end do
       
       end function ntsurfsrc_all
 
       subroutine set_ntsurfsrc(index, value)
+      use OldTracer_mod, only: trname
       use Tracer_mod
       integer, intent(in) :: index
       integer, intent(in) :: value
+      
+      class (Tracer), pointer :: t
 
-      call setNtsurfsrc(tracers, index, value)
+      t => tracers%getReference(trname(index))
+      t%ntSurfSrc = value
+
       end subroutine set_ntsurfsrc
 
       SUBROUTINE ALLOC_TRACER_COM(grid)
@@ -1105,7 +803,7 @@ C****
       subroutine syncProperty(tracers, property, setValue, values)
       use Dictionary_mod, only: sync_param
       use TracerBundle_mod
-      type (TracerBundle_type), intent(inout) :: tracers
+      type (TracerBundle), intent(inout) :: tracers
       character(len=*) :: property
       interface
         subroutine setValue(n,value)
@@ -1119,7 +817,7 @@ C****
       integer :: n 
       integer :: i
 
-      n = getNumTracers(tracers)
+      n = tracers%size()
       scratch = values
       call sync_param(property,scratch,n)
       do i = 1, n

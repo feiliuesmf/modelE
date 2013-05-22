@@ -195,7 +195,7 @@ subroutine CONDSE
        isccp_totcldarea,isccp_boxtau,isccp_boxptop
 #endif
   use PBLCOM, only : dclev,egcm,w2gcm
-  use ATM_COM, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig,sda, &
+  use ATM_COM, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig,MWs, &
        ua=>ualij,va=>valij,ltropo
   use DYNAMICS, only : wcpsig,dsig,sig,bydsig
   use SEAICE_COM, only : si_atm
@@ -468,10 +468,8 @@ subroutine CONDSE
       do L=1,LM
         do I=I_0thread,I_1thread
           GZIL(I,L) = GZ(I,J,L)
-#ifdef SCM
-          SD_CLDIL(I,L) = SD_CLOUDS(I,J,L)
-#else
-          SD_CLDIL(I,L) = SDA(I,J,L)/DTsrc ! averaged SD
+#ifndef SCM
+          SD_CLDIL(I,L) = MWs(I,J,L)/DTsrc ! averaged SD
 #endif
           WMIL(I,L) = WM(I,J,L)
           TMOMIL(:,I,L) = T3MOM(:,I,J,L)
@@ -949,8 +947,7 @@ subroutine CONDSE
           end if
 
           !**** level 1 downfdraft mass flux/rho (m/s)
-          DDM1(I,J) = (1.-FSSL(1))*DDMFLX(1)*RGAS*TSV/(GRAV*PEDN(1,I,J) &
-               *DTSrc)
+          DDM1(I,J) = DDMFLX(1)*RGAS*TSV/(GRAV*PEDN(1,I,J)*DTSrc)
         end if
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
@@ -2056,7 +2053,7 @@ subroutine qmom_topo_adjustments
   use resolution, only : ls1
   use resolution, only : im,jm,lm
   use atm_com, only : zatmo,t,q
-  use atm_com, only : pua,pva,pk,pmid
+  use atm_com, only : MUs,MVs,pk,pmid
   use qusdef, only : mx,mxx,my,myy
   use somtq_com, only : tmom,qmom
   use domain_decomp_atm, only : grid,getDomainBounds,halo_update
@@ -2068,7 +2065,7 @@ subroutine qmom_topo_adjustments
   implicit none
   integer :: i,j,l
   integer :: iloop_min,iloop_max,jloop_min,jloop_max, &
-       ioff_pua,joff_pva
+       ioff_MUs,joff_MVs
   real*8 :: ttmp,qtmp,slh,zthresh,lhx, &
        qe1,qe2,qe1_sv,qe2_sv, &
        te1,te2,te1_sv,te2_sv
@@ -2094,9 +2091,9 @@ subroutine qmom_topo_adjustments
   call halo_update(grid,pk,jdim=3)   ! already haloed?
   call halo_update(grid,pmid,jdim=3) ! already haloed?
 #ifdef CUBED_SPHERE
-  ! pva is already haloed
+  ! MVs is already haloed
 #else
-  call halo_update(grid,pva)
+  call halo_update(grid,MVs)
 #endif
   call halo_update(grid,svlhx,jdim=3)
 
@@ -2113,13 +2110,13 @@ subroutine qmom_topo_adjustments
   if(i_0.eq.grid%i_strt_halo) then ! latlon model
     iloop_min = 2                  ! skip IDL
     iloop_max = im-1
-    ioff_pua = 0
-    joff_pva = 0
+    ioff_MUs = 0
+    joff_MVs = 0
   else   ! for now, this case is assumed to be the cubed sphere
     iloop_min = i_0
     iloop_max = i_1
-    ioff_pua = 1
-    joff_pva = 1
+    ioff_MUs = 1
+    joff_MVs = 1
   endif
   do j=jloop_min,jloop_max
     do i=iloop_min,iloop_max
@@ -2140,7 +2137,7 @@ subroutine qmom_topo_adjustments
           te1 = t(i,j,l)-tmom(my,i,j,l)+tmom(myy,i,j,l)
           te2 = t(i,j,l)+tmom(my,i,j,l)+tmom(myy,i,j,l)
           if(zatmo(i,j-1).gt.zthresh .and. &
-               pva(i,j-1+joff_pva,l).lt.0.) then
+               MVs(i,j-1+joff_MVs,l).lt.0.) then
             ttmp = t(i,j,l)*pk(l,i,j-1); qtmp = q(i,j,l)
             lhx = svlhx(l,i,j-1)
             if(lhx.eq.0.) then
@@ -2160,7 +2157,7 @@ subroutine qmom_topo_adjustments
             endif
           endif
           if(zatmo(i,j+1).gt.zthresh .and. &
-               pva(i,j+joff_pva,l).gt.0.) then
+               MVs(i,j+joff_MVs,l).gt.0.) then
             ttmp = t(i,j,l)*pk(l,i,j+1); qtmp = q(i,j,l)
             lhx = svlhx(l,i,j+1)
             if(lhx.eq.0.) then
@@ -2212,7 +2209,7 @@ subroutine qmom_topo_adjustments
           te1 = t(i,j,l)-tmom(mx,i,j,l)+tmom(mxx,i,j,l)
           te2 = t(i,j,l)+tmom(mx,i,j,l)+tmom(mxx,i,j,l)
           if(zatmo(i-1,j).gt.zthresh .and. &
-               pua(i-1+ioff_pua,j,l).lt.0.) then
+               MUs(i-1+ioff_MUs,j,l).lt.0.) then
             ttmp = t(i,j,l)*pk(l,i-1,j); qtmp = q(i,j,l)
             lhx = svlhx(l,i-1,j)
             if(lhx.eq.0.) then
@@ -2232,7 +2229,7 @@ subroutine qmom_topo_adjustments
             endif
           endif
           if(zatmo(i+1,j).gt.zthresh .and. &
-               pua(i+ioff_pua,j,l).gt.0.) then
+               MUs(i+ioff_MUs,j,l).gt.0.) then
             ttmp = t(i,j,l)*pk(l,i+1,j); qtmp = q(i,j,l)
             lhx = svlhx(l,i+1,j)
             if(lhx.eq.0.) then

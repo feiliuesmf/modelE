@@ -26,7 +26,7 @@ End Preprocessor Options
 Object modules: (in order of decreasing priority)
        ! resolution-specific source codes
 RES_M20AT DIAG_RES_M       ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
-RES_5x4_L13                ! ocean horiz res 4x5deg, 13 vert layers
+ORES_5x4_L13                ! ocean horiz res 4x5deg, 13 vert layers
 FFT72                      ! Fast Fourier Transform
 
 IO_DRV                             ! new i/o
@@ -40,6 +40,7 @@ QUS_DRV QUS3D
 
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM   ! dynamic ocean modules
 OCNDYN OCNDYN2                           ! dynamic ocean routines
+OCNGISSVM
 OCN_Interp OCN_Int_LATLON                ! dynamic ocean routines
 OSTRAITS OCNGM OCNKPP                    ! dynamic ocean routines
 OCEANR_DIM OFLUXES
@@ -58,20 +59,20 @@ OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
-#include "IC_72x46_input_files.nc"
-OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01 ! ocean initial conditions
+#include "IC_72x46_input_files"
+OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01.nc ! ocean initial conditions
 OFTAB=OFTABLE_NEW                    ! ocean function table
 AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
-KBASIN=KB4X513.OCN.gas1              ! ocean basin designations
-TOPO=Z72X46N.cor4_nocasp          ! topography
-TOPO_OC=Z72X46N_gas.1_nocasp ! ocean bdy.cond
+KBASIN=KB4X513.OCN.gas1.nc           ! ocean basin designations
+TOPO=Z72X46N.cor4_nocasp.nc          ! topography
+TOPO_OC=OZ72X46N_gas.1_nocasp.nc ! ocean bdy.cond
 
-RVR=RD_modelE_M.RVR.bin      ! river direction file
+RVR=RD_modelE_M.nc                ! river direction file
+NAMERVR=RD_modelE_M.names.txt     ! named river outlets
 
 #include "land72x46_input_files"
 #include "rad_input_files"
-#include "TAero2008_input_files"
-#include "O3_2005_input_files"
+#include "rad_72x46_input_files"
 
 MSU_wts=MSU.RSS.weights.data
 REG=REG4X5                      ! special regions-diag

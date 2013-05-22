@@ -46,17 +46,17 @@ FVCUBED = YES
 Data input files:
 #include "IC_CS90_input_files"
 #include "hycom_387x360_input_files"
-TOPO=Z_C90N.1deghycom                 ! atm topog and surf type fractions
+TOPO=Z_C90N.1deghycom.nc             ! atm topog and surf type fractions
 aoremap=remap_c90_hyc387x360.nc      ! cubed-sphere <-> hycom remapping info
 taui2o=taua2o_a2x1_o1degr.8bin       ! coupler weights for vector: ice B -> ocean A
 tauo2i=ssto2a_a2x1_o1degr.8bin       ! coupler weights for vector: ocean A -> ice B
 
-RVR=RDdistocean_C90.1deghycom         ! river direction file
+RVR=RDdistocean_C90.1deghycom.nc            ! river direction file
+NAMERVR=RDdistocean_C90.1deghycom.names.txt ! named river outlets
 
 #include "landCS90_input_files"
 #include "rad_input_files"
-#include "TAero2008_input_files"
-#include "O3_2005_input_files"
+#include "rad_C90_input_files"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG.txt                       ! special regions-diag

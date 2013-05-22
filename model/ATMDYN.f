@@ -81,35 +81,34 @@ c     endif
 
       SUBROUTINE DYNAM
 !@sum  DYNAM Integrate dynamic terms
+!@vers 2013/05/15
 !@auth Original development team
-      USE CONSTANT, only : by3,sha,mb2kg,rgas,bygrav
-      USE RESOLUTION, only : ls1
-      USE RESOLUTION, only : im,jm,lm
+      Use CONSTANT,   Only: by3,SHA,kg2mb,mb2kg,RGAS,byGRAV
+      Use RESOLUTION, Only: IM,JM,LM,LS1, MFIXs
       USE MODEL_COM, only : DTsrc
-      USE ATM_COM, only : u,v,t,p,q,wm
+      Use ATM_COM,    Only: MA,U,V,T,Q,WM,MSUM, MUs,MVs,MWs, PHI,MB,
+     *                      P, PTOLD, PS,PK,PMID,PEDN
       USE GEOM, only : dyv,dxv,dxyp,areag,bydxyp
       USE SOMTQ_COM, only : tmom,mz
-      USE ATM_COM, only : ptold,phi
-     &    ,pua,pva,sda,ps,mb,pk,pmid,pedn
-      USE DYNAMICS, only : pu,pv,sd,dut,dvt
+      Use DYNAMICS,   Only: MU,MV,MW, pu,pv,sd,dut,dvt
      &    ,cos_limit,nidyn,dt,mrch,nstep,quvfilter,USE_UNR_DRAG
       USE DIAG_COM, only : aij => aij_loc,ij_fmv,ij_fgzv
      &     ,MODD5K,NDA5K,NDAA
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : getDomainBounds
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GLOBALSUM
-      USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
-      USE DOMAIN_DECOMP_1D, only : haveLatitude
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
+      Use DOMAIN_DECOMP_1D,  Only: GetDomainBounds,GLOBALSUM,AM_I_ROOT,
+     &                             NORTH,SOUTH, haveLatitude
       USE MOMENTS, only : advecv
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     &     PA, PB, PC, FPEU, FPEV, AM1, AM2
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
-     &     UT,VT,TT,TZ,TZT,MA,
-     &     UX,VX,PIJL
-     &    ,UNRDRAG_x,UNRDRAG_y
+      Real*8,Dimension (LM, IM, GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &   MEVEN,MODD1,MODD3
+      Real*8,Dimension (IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &   MSUMODD, PA,PB,PC, FPEU,FPEV, AM1,AM2
+      Real*8,Dimension (IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
+     &   MMA,TZ,        !  even leap frog arrays
+     &   UT,VT,TT,TZT,  !  odd leap frog arrays
+     &   UX,VX,         !  initial forward step arrays
+     &   PIJL, UNRDRAG_x,UNRDRAG_y
 
       REAL*8 DTFS,DTLF, DAMSUM
       INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
@@ -128,61 +127,51 @@ c**** Extract domain decomposition info
 !?    NIdynO=MOD(NIdyn,2)   ! NIdyn odd is currently not an option
       DTFS=DT*2./3.
       DTLF=2.*DT
-      NS=0
-      NSOLD=0                            ! strat
+      NS = NIDYN  ;  NSOLD = NIDYN
+      MUs(:,:,:) = 0  ;  MVs(:,:,:) = 0  ;  MWs(:,:,:) = 0
 
-      DO L=1,LM
-         PUA(:,:,L) = 0.
-         PVA(:,:,L) = 0.
-         SDA(:,:,L) = 0.
-      ENDDO
 C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
   300 CONTINUE
-c     UX(:,:,:)  = U(:,:,:)
-c     UT(:,:,:)  = U(:,:,:)
-c     VX(:,:,:)  = V(:,:,:)
-c     VT(:,:,:)  = V(:,:,:)
-!     copy z-moment of temperature into contiguous memory
-c     tz(:,:,:) = tmom(mz,:,:,:)
-      DO L=1,LM
-         UX(:,:,L)  = U(:,:,L)
-         UT(:,:,L)  = U(:,:,L)
-         VX(:,:,L)  = V(:,:,L)
-         VT(:,:,L)  = V(:,:,L)
-         TZ(:,:,L)  = TMOM(MZ,:,:,L)
-      ENDDO
-C
-#ifdef NUDGE_ON
-      CALL NUDGE_PREP
-#endif
-      PA(:,:) = P(:,:)
-      PB(:,:) = P(:,:)
-      PC(:,:) = P(:,:)
+      Do J=J_0,J_1  ;  Do I=1,IM
+         MSUM(I,J) = Sum (MA(:,I,J))  ;  EndDo  ;  EndDo
+      UX(:,:,:) = U(:,:,:)  ;  UT(:,:,:) = U(:,:,:)
+      VX(:,:,:) = V(:,:,:)  ;  VT(:,:,:) = V(:,:,:)
+      TZ(:,:,:) = TMOM(MZ,:,:,:)
+#          ifdef NUDGE_ON
+           Call NUDGE_PREP
+#          endif
 
-C**** INITIAL FORWARD STEP, QX = Q + .667*DT*F(Q)
+!**** Initial forward step:  MODD3 = MA + .667*DT*F(MA,U,V))
       MRCH=0
-C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
-      CALL CALC_PIJL(LM,P,PIJL)
-      CALL AFLUX (U,V,PIJL)
-      CALL ADVECM (P,PB,DTFS)
+      Call AFLUX  (NS,MA,MSUM,U,V, MA,MSUM)
+      CALL ADVECM (DTFS, MA,MODD3,MSUMODD)
+       CALL CALC_PIJL (LM,P,PIJL)
+       PU(:,:,:) = MU(:,:,:)*kg2mb
+       PV(:,:,:) = MV(:,:,:)*kg2mb
+       SD(:,:,:) = MW(:,:,:)*kg2mb
+       PB(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
+#          ifdef NUDGE_ON
+           Call NUDGE (UX,VX,DTFS)
+#          endif
       CALL GWDRAG (PB,UX,VX,U,V,T,TZ,DTFS,.true.)   ! strat
-#ifdef NUDGE_ON
-      CALL NUDGE (UX,VX,DTFS)
-#endif
       CALL VDIFF (PB,UX,VX,U,V,T,DTFS)       ! strat
       CALL ADVECV (P,UX,VX,PB,U,V,Pijl,DTFS)  !P->pijl
       CALL PGF (UX,VX,PB,U,V,T,TZ,Pijl,DTFS)
 c      if (QUVfilter) CALL FLTRUV(UX,VX,U,V)
       call isotropuv(ux,vx,COS_LIMIT)
-C**** INITIAL BACKWARD STEP IS ODD, QT = Q + DT*F(QX)
+
+!**** Initial backward step:  MODD1 = MA + DT*F(MEVEN,UX,VX))
       MRCH=-1
-C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
-      CALL CALC_PIJL(LS1-1,PB,PIJL)
-      CALL AFLUX (UX,VX,PIJL)
-      CALL ADVECM (P,PA,DT)
-#ifdef NUDGE_ON
-      CALL NUDGE  (UT,VT,DT)
-#endif
+      Call AFLUX  (NS,MODD3,MSUMODD,UX,VX, MA,MSUM)
+      CALL ADVECM (DT, MA,MODD1,MSUMODD)
+       CALL CALC_PIJL (LS1-1,PB,PIJL)
+       PU(:,:,:) = MU(:,:,:)*kg2mb
+       PV(:,:,:) = MV(:,:,:)*kg2mb
+       SD(:,:,:) = MW(:,:,:)*kg2mb
+       PA(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
+#          ifdef NUDGE_ON
+           Call NUDGE (UT,VT,DT)
+#          endif
       CALL GWDRAG (PA,UT,VT,UX,VX,T,TZ,DT,.false.)   ! strat
       CALL VDIFF (PA,UT,VT,UX,VX,T,DT)       ! strat
       CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
@@ -191,15 +180,19 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
 c      if (QUVfilter) CALL FLTRUV(UT,VT,UX,VX)
       call isotropuv(ut,vt,COS_LIMIT)
       GO TO 360
-C**** ODD LEAP FROG STEP, QT = QT + 2*DT*F(Q)
+
+!**** Odd leap frog step:  MODD3 = MODD1 + 2*DT*F(MA,U,V)
   340 MRCH=-2
-C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
-      CALL CALC_PIJL(LS1-1,P,PIJL)
-      CALL AFLUX (U,V,PIJL)
-      CALL ADVECM (PA,PB,DTLF)
-#ifdef NUDGE_ON
-      CALL NUDGE  (UT,VT,DTLF)
-#endif
+      Call AFLUX  (NS,MA,MSUM,U,V, MODD1,MSUMODD)
+      CALL ADVECM (DTLF, MODD1,MODD3,MSUMODD)
+       CALL CALC_PIJL (LS1-1,P,PIJL)
+       PU(:,:,:) = MU(:,:,:)*kg2mb
+       PV(:,:,:) = MV(:,:,:)*kg2mb
+       SD(:,:,:) = MW(:,:,:)*kg2mb
+       PB(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
+#          ifdef NUDGE_ON
+           Call NUDGE (UT,VT,DTLF)
+#          endif
       CALL GWDRAG (PB,UT,VT,U,V,T,TZ,DTLF,.false.)   ! strat
       CALL VDIFF (PB,UT,VT,U,V,T,DTLF)       ! strat
       CALL ADVECV (PA,UT,VT,PB,U,V,Pijl,DTLF)   !P->pijl
@@ -207,49 +200,43 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
 c      if (QUVfilter) CALL FLTRUV(UT,VT,U,V)
       call isotropuv(ut,vt,COS_LIMIT)
       PA(:,:) = PB(:,:)     ! LOAD PB TO PA
-C**** EVEN LEAP FROG STEP, Q = Q + 2*DT*F(QT)
-  360 NS=NS+2
-         MODD5K=MOD(NSTEP+NS-NIdyn+NDA5K*NIdyn+2,NDA5K*NIdyn+2)
+      MODD1(:,:,:) = MODD3(:,:,:)
+      NS = NS - 1
+
+!**** Even leap frog step:  MEVEN = MA + 2*DT*F(MODD1,UT,VT)
+  360      MODD5K = Mod (NSTEP+4-NS + NDA5K*NIDYN, NDA5K*NIDYN+2)
       MRCH=2
-C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
-      CALL CALC_PIJL(LS1-1,PA,PIJL)
-      CALL AFLUX (UT,VT,PIJL)
-      CALL ADVECM (PC,P,DTLF)
-#ifdef NUDGE_ON
-      CALL NUDGE  (U,V,DTLF)
-#endif
+      MEVEN(:,:,:) = MA(:,:,:)
+       PC(:,:) = P(:,:)      ! LOAD P TO PC
+      Call AFLUX  (NS,MODD1,MSUMODD,UT,VT, MA,MSUM)
+      CALL ADVECM (DTLF, MEVEN,MA,MSUM)
+       CALL CALC_PIJL (LS1-1,PA,PIJL)
+       PU(:,:,:) = MU(:,:,:)*kg2mb
+       PV(:,:,:) = MV(:,:,:)*kg2mb
+       SD(:,:,:) = MW(:,:,:)*kg2mb
+        P(:,:)   = (MSUM(:,:) - MFIXs)*kg2mb
+#          ifdef NUDGE_ON
+           Call NUDGE (U,V,DTLF)
+#          endif
       CALL GWDRAG (P,U,V,UT,VT,T,TZ,DTLF,.false.)   ! strat
       CALL ADVECV (PC,U,V,P,UT,VT,Pijl,DTLF)     !PA->pijl
-         MODDA=MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2)  ! strat
+            MODDA = Mod (NSTEP+4-NS + NDAA*NIDYN, NDAA*NIDYN+2)  ! strat
          IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
 C**** ACCUMULATE MASS FLUXES FOR TRACERS and Q
-      DO L=1,LM
-        PUA(:,:,L)=PUA(:,:,L)+PU(:,:,L)
-        PVA(:,:,L)=PVA(:,:,L)+PV(:,:,L)
-        IF (L.LE.LM-1) SDA(:,:,L)=SDA(:,:,L)+SD(:,:,L)
-      END DO
+      MUs(:,:,:) = MUs(:,:,:) + PU(:,:,:)
+      MVs(:,:,:) = MVs(:,:,:) + PV(:,:,:)
+      MWs(:,:,1:LM-1) = MWs(:,:,1:LM-1) + SD(:,:,:)
 C**** ADVECT Q AND T
-CCC   TT(:,:,:) = T(:,:,:)
-CCC   TZT(:,:,:)= TZ(:,:,:)
-      DO L=1,LM
-         TT(:,:,L)  = T(:,:,L)
-         TZT(:,:,L) = TZ(:,:,L)
-      ENDDO
-      call calc_amp(pc,ma)
-      CALL AADVT (MA,T,TMOM, SD,PU,PV, DTLF,.FALSE.,FPEU,FPEV)
+       TT(:,:,:) =  T(:,:,:)
+      TZT(:,:,:) = TZ(:,:,:)
+      Call CALC_AMP (PC,MMA)
+      Call AADVT (MMA,T,TMOM, SD,PU,PV, DTLF,.False.,FPEU,FPEV)
 !     save z-moment of temperature in contiguous memory for later
-CCC   tz(:,:,:) = tmom(mz,:,:,:)
-      DO L=1,LM
-         TZ(:,:,L) = TMOM(MZ,:,:,L)
-      ENDDO
+      TZ(:,:,:) = TMOM(MZ,:,:,:)
       CALL VDIFF (P,U,V,UT,VT,T,DTLF)          ! strat
-      PC(:,:)    = .5*(P(:,:)+PC(:,:))
-CCC   TT(:,:,:)  = .5*(T(:,:,:)+TT(:,:,:))
-CCC   TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
-      DO L=1,LM
-         TT(:,:,L)  = .5*(T(:,:,L)+TT(:,:,L))
-         TZT(:,:,L) = .5*(TZ(:,:,L)+TZT(:,:,L))
-      ENDDO
+       PC(:,:)   = .5*( P(:,:)  + PC(:,:))
+       TT(:,:,:) = .5*( T(:,:,:)+ TT(:,:,:))
+      TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
 
       CALL CALC_PIJL(LS1-1,PC,PIJL)
 c      CALL CALC_PIJL(LS1-1,PA,PIJL) ! true leapfrog
@@ -260,27 +247,27 @@ c      CALL CALC_PIJL(LS1-1,PA,PIJL) ! true leapfrog
       CALL CALC_AMPK(LS1-1)
 c      if (QUVfilter) CALL FLTRUV(U,V,UT,VT)
       call isotropuv(u,v,COS_LIMIT)
-      PC(:,:) = P(:,:)      ! LOAD P TO PC
       if (USE_UNR_DRAG==0) CALL SDRAG (DTLF)
-         IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
+         If (Mod(NSTEP+4-NS+NDAA*NIDYN,NDAA*NIDYN+2) < MRCH)  Then
            CALL DIAGA
            CALL DIAGB
            CALL EPFLUX (U,V,T,P)
          ENDIF
 C**** Restart after 8 steps due to divergence of solutions
-      IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
+      NS = NS - 1
+      If (NSOLD-NS < 8 .and. NS > 1)  GoTo 340
       NSOLD=NS
-      IF (NS.LT.NIdyn) GO TO 300
+      If (NS > 1)  GoTo 300
 
       if (USE_UNR_DRAG==1) then
-      CALL UNRDRAG (P,U,V,T,TZ,UNRDRAG_x,UNRDRAG_y)
-      U(:,:,:) = U(:,:,:) + UNRDRAG_x(:,:,:) * DTsrc
-      V(:,:,:) = V(:,:,:) + UNRDRAG_y(:,:,:) * DTsrc
-      end if
+         Call UNRDRAG (P,U,V,T,TZ,UNRDRAG_x,UNRDRAG_y)
+         U(:,:,:) = U(:,:,:) + UNRDRAG_x(:,:,:) * DTsrc
+         V(:,:,:) = V(:,:,:) + UNRDRAG_y(:,:,:) * DTsrc  ;  EndIf
 
-      PUA = PUA * DTLF
-      PVA = PVA * DTLF
-      SDA(:,:,1:LM-1) = SDA(:,:,1:LM-1) * DTLF
+!**** Convert summed mass fluxes from (kg/s) to (kg)
+      MUs(:,:,:) = MUs(:,:,:) * DTLF
+      MVs(:,:,:) = MVs(:,:,:) * DTLF
+      MWs(:,:,1:LM-1) = MWs(:,:,1:LM-1) * DTLF
 
 c apply east-west filter to U and V once per physics timestep
       CALL FLTRUV(U,V,UT,VT)
@@ -297,6 +284,7 @@ c apply north-south filter to U and V once per physics timestep
       RETURN
       END SUBROUTINE DYNAM
 
+
       Subroutine compute_mass_flux_diags(PHI, PU, PV, dt)
       use RESOLUTION, only: IM, LM
       USE DOMAIN_DECOMP_ATM, only: grid
@@ -308,13 +296,12 @@ c apply north-south filter to U and V once per physics timestep
       real*8, intent(in) :: PV(:,grid%J_STRT_HALO:,:)
       real*8, intent(in) :: dt
 
-
       integer :: J_0S, J_1S
       integer :: J_0STG, J_1STG
       integer :: I, IP1, L, J
 
       call getDomainBounds(grid, J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG,
-     &               J_STRT_SKP =J_0S,  J_STOP_SKP =J_1S)
+     &                           J_STRT_SKP =J_0S,  J_STOP_SKP =J_1S)
 
       CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
       DO J=J_0S,J_1S ! eastward transports
@@ -338,18 +325,17 @@ c apply north-south filter to U and V once per physics timestep
 
       end subroutine compute_mass_flux_diags
 
-      subroutine COMPUTE_DYNAM_AIJ_DIAGNOSTICS(
-     &    PUA, PVA, dt)
+
+      Subroutine COMPUTE_DYNAM_AIJ_DIAGNOSTICS (MUs, MVs, DT)
       use CONSTANT,      only: BY3
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
-      use DOMAIN_DECOMP_1D, only: halo_update, SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
       use DIAG_COM, only: AIJ => AIJ_loc,
      &     IJ_FGZU, IJ_FGZV, IJ_FMV, IJ_FMU
       use RESOLUTION, only: IM,JM,LM
 
-      real*8, intent(in) :: PUA(:,grid%J_STRT_HALO:,:)
-      real*8, intent(in) :: PVA(:,grid%J_STRT_HALO:,:)
+      real*8, intent(in) :: MUs(:,grid%J_STRT_HALO:,:)
+      real*8, intent(in) :: MVs(:,grid%J_STRT_HALO:,:)
       real*8, intent(in) :: dt
 
       integer :: I, IP1, J, L
@@ -360,431 +346,318 @@ c apply north-south filter to U and V once per physics timestep
       dtlf = 2.*dt
 
       call getDomainBounds(grid, J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG,
-     &               J_STRT_SKP =J_0S,  J_STOP_SKP =J_1S,
+     &                           J_STRT_SKP =J_0S,  J_STOP_SKP =J_1S,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
 
       do j=J_0STG,J_1STG
       do L=1,LM
-         AIJ(:,J,IJ_FMV)  = AIJ(:,J,IJ_FMV )+PVA(:,J,L)*DTLF
+         AIJ(:,J,IJ_FMV)  = AIJ(:,J,IJ_FMV )+MVs(:,J,L)*DTLF
       enddo
       enddo
 
       do j=J_0S,J_1S
       do l=1,lm
-         AIJ(:,J,IJ_FMU) = AIJ(:,J,IJ_FMU)+PUA(:,J,L)*DTLF
+         AIJ(:,J,IJ_FMU) = AIJ(:,J,IJ_FMU)+MUs(:,J,L)*DTLF
       enddo
       enddo
 
       if (haveLatitude(grid, J=1)) then
          do l=1,lm
-            AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+PUA(:, 1,L)*DTLF*BY3
+            AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+MUs(:, 1,L)*DTLF*BY3
          enddo
       endif
       if(haveLatitude(grid, J=JM)) then
          do l=1,lm
-            AIJ(:,JM,IJ_FMU) = AIJ(:,JM,IJ_FMU )+PUA(:,JM,L)*DTLF*BY3
+            AIJ(:,JM,IJ_FMU) = AIJ(:,JM,IJ_FMU )+MUs(:,JM,L)*DTLF*BY3
          enddo
       endif
       end subroutine COMPUTE_DYNAM_AIJ_DIAGNOSTICS
 
-      SUBROUTINE AFLUX (U,V,PIJL)
-!@sum  AFLUX Calculates horizontal/vertical air mass fluxes
-!@+    Input: U,V velocities, PIJL pressure
-!@+    Output: PIT  pressure tendency (mb m^2/s)
-!@+            SD   sigma dot (mb m^2/s)
-!@+            PU,PV horizontal mass fluxes (mb m^2/s)
-!@+            CONV  horizontal mass convergence (mb m^2/s)
-!@+            SPA
-!@auth Original development team
-      USE RESOLUTION, only : ls1
-      USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : zatmo
-      USE GEOM, only : dyp,dxv,polwt,imaxj
-      USE DYNAMICS, only : pit,sd,conv,pu,pv,spa,do_polefix
-     &     ,dsig,bydsig,sige
-      USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : getDomainBounds
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
-      USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
-      USE DOMAIN_DECOMP_1D, only : haveLatitude
-      IMPLICIT NONE
-C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
-!@var U,V input velocities (m/s)
-!@var PIJL input 3-D pressure field (mb) (no DSIG)
-      REAL*8, INTENT(INOUT),
-     &  DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LM) :: U,V
-      REAL*8, INTENT(INOUT),
-     &  DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LM) :: PIJL
-      REAL*8, DIMENSION(IM) :: DUMMYS,DUMMYN
-      INTEGER I,J,L,IP1,IM1,IPOLE
-      REAL*8 PUS,PUN,PVS,PVN,PBS,PBN
-      REAL*8 WT,DXDSIG,DYDSIG,PVSA(LM),PVNA(LM),xx,twoby3
-      real*8, dimension(im,2,LM) :: usv0,vsv0
-      integer :: jvs,jvn,jv
-      real*8 :: wts
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
-     &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
-     &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
-C****
-C**** BEGINNING OF LAYER LOOP
-C****
+      Subroutine AFLUX (NS,MA,MSUM,U,V, ME,MSUME)
+!@sum  AFLUX Calculates horizontal/vertical air mass fluxes
+!@+    Input:  NS = decrementing leap-frog time step counter
+!@+            MA,MSUM (kg/m^2), U,V (m/s) = step center values
+!@+            ME,MSUME (kg/m^2) = mass at beginning of time step
+!@+    Output: MU,MV (kg/s) = horizontal mass fluxes
+!@+            MW (kg/s) = MW(L-1) + (CONV-CONVs + MM-MMs)*MFRAC/MFRACs
+!@+            CONV (kg/s) =  horizontal mass convergence
+!@+            SPA (.5 m/s) = filtered (U+U) defined on eastern cell edge
+!!@auth Original development team
+      Use RESOLUTION, Only: IM,JM,LM,LS1, MFIX,MFIXs,MFRAC
+      Use ATM_COM,    Only: ZATMO
+      Use GEOM,       Only: IMAXJ, DXYP,DYP,DXV, POLWT
+      Use DYNAMICS,   Only: DT, MU,MV,MW,CONV, SPA,DO_POLEFIX
+      Use DOMAIN_DECOMP_ATM, Only: GRID
+      Use DOMAIN_DECOMP_1D,  Only: GetDomainBounds, SOUTH,NORTH,
+     &                             HALO_UPDATE,HALO_UPDATE_COLUMN
+      IMPLICIT NONE
+      Integer,Intent(In) :: NS
+      Real*8,Intent(InOut):: U(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
+     *                       V(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
+     *                   MA(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *                    MSUM(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      Real*8,Intent(In)::ME(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *                   MSUME(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+
+!**** Local variables
+      Real*8,Parameter :: TWOby3 = 2/3d0
+      Integer :: I,J,L,Ip1,Im1, J1,J1XP,J1H,J1V, JN,JNXP,JNH,JNV
+      Logical :: QSP,QNP
+      Real*8  :: DUMMYS(IM),MUS,MVS,PBS,MVSA(LM), zNSxDT,
+     *           DUMMYN(IM),MUN,MVN,PBN,MVNA(LM),
+     *           USV0(IM,2,LM),VSV0(IM,2,LM), M,CONVs,MVARs
+
+       zNSxDT = 1 / (NS*DT)
+!****                             +---------+
+!**** COMPUTATION OF MASS FLUXES  |  MA,T  MU    PRIMARY GRID ROW (J)
+!**** ARAKAWA'S SCHEME B          +---MV---U,V   VELOCITY GRID ROW (J)
+!****
+      Call GetDomainBounds (GRID,
+     &   J_STRT      = J1  , J_STOP      = JN  , !  primary row limits
+     &   J_STRT_SKP  = J1XP, J_STOP_SKP  = JNXP, !  primary row limits excluding poles
+     &   J_STRT_HALO = J1H , J_STOP_HALO = JNH , !  halo primary row limits
+     &   J_STRT_STGR = J1V , J_STOP_STGR = JNV , !  velocity row limits
+     &   HAVE_SOUTH_POLE = QSP, HAVE_NORTH_POLE = QNP)
+
       CALL HALO_UPDATE(grid, U,FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, V,FROM=NORTH+SOUTH)
 
-c
-c interpolate polar velocities to the appropriate latitude
-c
-      do ipole=1,2
-        if (haveLatitude(grid, J=2) .and. ipole == 1) then
-          jv  = 2
-          jvs = 2          ! jvs is the southernmost velocity row
-          jvn = jvs+1      ! jvs is the northernmost velocity row
-          wts = polwt
-        else if(haveLatitude(grid,JM) .and. ipole == 2) then
-          jv = JM
-          jvs = jv - 1
-          jvn = jvs + 1
-          wts = 1.-polwt
-        else
-          cycle
-        endif
+!**** Use interpolated velocity values at poles
+      If (J1V==2)  Then
+         USV0(:,1,:) = U(:,2,:)
+         VSV0(:,1,:) = V(:,2,:)
+         U(:,2,:) = POLWT*U(:,2,:) + (1-POLWT)*U(:,3,:)
+         V(:,2,:) = POLWT*V(:,2,:) + (1-POLWT)*V(:,3,:)  ;  EndIf
+      If (JNV==JM)  Then
+         USV0(:,2,:) = U(:,JM,:)
+         VSV0(:,2,:) = V(:,JM,:)
+         U(:,JM,:) = POLWT*U(:,JM,:) + (1-POLWT)*U(:,JM-1,:)
+         V(:,JM,:) = POLWT*V(:,JM,:) + (1-POLWT)*V(:,JM-1,:)  ;  EndIf
 
-        do L = 1, LM
-          usv0(:,ipole,l) = u(:,jv,l)
-          vsv0(:,ipole,l) = v(:,jv,l)
-          u(:,jv,l) = wts*u(:,jvs,l) + (1.-wts)*u(:,jvn,l)
-          v(:,jv,l) = wts*v(:,jvs,l) + (1.-wts)*v(:,jvn,l)
-        end do
-      enddo
-
-C****
-C**** COMPUTATION OF MASS FLUXES     P,T  PU     PRIMARY GRID ROW
-C**** ARAKAWA'S SCHEME B             PV   U,V    SECONDARY GRID ROW
-C****
-C**** COMPUTE PU, THE WEST-EAST MASS FLUX, AT NON-POLAR POINTS
-      do L = 1, LM
-      DO 2154 J=J_0S,J_1S
+C**** Compute MU (kg/s) = eastward mass flux at non-polar points
+      Do 2166 L=1,LM
+      Do 2154 J=J1XP,JNXP
       DO 2154 I=1,IM
  2154 SPA(I,J,L)=U(I,J,L)+U(I,J+1,L)
-      CALL AVRX (SPA(1,J_0H,L))
+      CALL AVRX (SPA(1,J1H,L))
       I=IM
-      DO 2166 J=J_0S,J_1S
-      DYDSIG = 0.25D0*DYP(J)*DSIG(L)
+      Do 2166 J=J1XP,JNXP
       DO 2165 IP1=1,IM
-      PU(I,J,L)=DYDSIG*SPA(I,J,L)*(PIJL(I,J,L)+PIJL(IP1,J,L))
+      MU(I,J,L) = .25*DYP(J)*SPA(I,J,L)*(MA(L,I,J)+MA(L,Ip1,J))
  2165 I=IP1
  2166 CONTINUE
-      end do
-C**** COMPUTE PV, THE SOUTH-NORTH MASS FLUX
-      CALL HALO_UPDATE(grid, PIJL, FROM=SOUTH)
-      do L = 1, LM
+C**** Compute MV (kg/s) = northward mass flux
+      Call HALO_UPDATE_COLUMN (GRID, MA, From=SOUTH)
+      Call HALO_UPDATE (GRID, MSUM, From=SOUTH)
+      Do 2172 L=1,LM
       IM1=IM
-      DO 2172 J=J_0STG, J_1STG
-      DXDSIG = 0.25D0*DXV(J)*DSIG(L)
+      DO 2172 J=J1V,JNV
       DO 2170 I=1,IM
-      PV(I,J,L)=DXDSIG*(V(I,J,L)+V(IM1,J,L))*(PIJL(I,J,L)+PIJL(I,J-1,L))
-
+      MV(I,J,L) = .25*DXV(J)*(V(I,J,L)+V(Im1,J,L))*
+     *            (MA(L,I,J)+MA(L,I,J-1))
  2170 IM1=I
  2172 CONTINUE
-      end do
 
-c restore uninterpolated values of u,v at the pole
-      do ipole=1,2
-        if (haveLatitude(grid, J=2) .and. ipole == 1) then
-          jv = 2           ! why not staggered grid
-        else if(haveLatitude(grid, J=JM) .and. ipole.eq.2) then
-          jv = JM            ! why not staggered grid
-        else
-          cycle
-        endif
-        do L = 1, LM
-          u(:,jv,l) = usv0(:,ipole,l)
-          v(:,jv,l) = vsv0(:,ipole,l)
-        end do
-      enddo
+!**** Restore uninterpolated values of U,V at poles
+      If (J1V==2)  Then
+         U(:,2,:) = USV0(:,1,:)
+         V(:,2,:) = VSV0(:,1,:)  ;  EndIf
+      If (JNV==JM)  Then
+         U(:,JM,:) = USV0(:,2,:)
+         V(:,JM,:) = VSV0(:,2,:)  ;  EndIf
 
-C**** COMPUTE PU*3 AT THE POLES
-      IF (haveLatitude(grid, J=1)) Then
-        do L = 1, LM
-        PUS=0.
-        PVS=0.
-        DO I=1,IM
-          PUS=PUS+U(I,2,L)
-          PVS=PVS+PV(I,2,L)
-        END DO
-        PUS=.25*DYP(2)*PUS*PIJL(1,1,L)*BYIM
-        PVS=PVS*BYIM
-        PVSA(L)=PVS
-        DUMMYS(1)=0.
-        DO I=2,IM
-          DUMMYS(I)=DUMMYS(I-1)+(PV(I,2,L) -PVS)*BYDSIG(L)
-        END DO
-        PBS=0.
-        PBN=0.
-        DO I=1,IM
-          PBS=PBS+DUMMYS(I)
-        END DO
-        PBS=PBS*BYIM
-        DO I=1,IM
-          SPA(I,1,L)=4.*(PBS-DUMMYS(I)+PUS)/(DYP(2)*PIJL(1,1,L))
-          PU(I,1,L)=3.*(PBS-DUMMYS(I)+PUS)*DSIG(L)
-        END DO
-        end do
-      END IF
-
-      IF (haveLatitude(grid, J=JM)) THEN
-        do L = 1,LM
-        PUN=0.
-        PVN=0.
-        DO I=1,IM
-          PUN=PUN+U(I,JM,L)
-          PVN=PVN+PV(I,JM,L)
-        END DO
-        PUN=.25*DYP(JM-1)*PUN*PIJL(1,JM,L)*BYIM
-        PVN=PVN*BYIM
-        PVNA(L)=PVN
-        DUMMYN(1)=0.
-        DO I=2,IM
-          DUMMYN(I)=DUMMYN(I-1)+(PV(I,JM,L)-PVN)*BYDSIG(L)
-        END DO
-        PBN=0.
-        DO I=1,IM
-          PBN=PBN+DUMMYN(I)
-        END DO
-        PBN=PBN*BYIM
-        DO  I=1,IM
-          SPA(I,JM,L)=4.*(DUMMYN(I)-PBN+PUN)/(DYP(JM-1)*PIJL(1,JM,L))
-          PU(I,JM,L)=3.*(DUMMYN(I)-PBN+PUN)*DSIG(L)
-        END DO
-        END DO
-      END IF
-C****
-C**** CONTINUITY EQUATION
-C****
-C**** COMPUTE CONV, THE HORIZONTAL MASS CONVERGENCE
-c     CALL HALO_UPDATE(grid, PV, FROM=NORTH)
-c     DO 1510 J=J_0S,J_1S
-c     IM1=IM
-c     DO 1510 I=1,IM
-c     CONV(I,J,L)=(PU(IM1,J,L)-PU(I,J,L)+PV(I,J,L)-PV(I,J+1,L))
-c1510 IM1=I
-c     IF (HAVE_SOUTH_POLE) CONV(1,1,L)=-PVS
-c     IF (HAVE_NORTH_POLE) CONV(1,JM,L)=PVN
+C**** Compute MU*3 at poles
+      If (QSP)  Then
+         Do L=1,LM
+            MUS = Sum( U(:,2,L))*byIM*.25*DYP(2)*MA(L,1,1)
+            MVS = Sum(MV(:,2,L))*byIM
+            MVSA(L) = MVS
+            DUMMYS(1) = 0
+            Do I=2,IM
+               DUMMYS(I) = DUMMYS(I-1) + (MV(I,2,L)-MVS)  ;  EndDo
+            PBS = Sum(DUMMYS(:))*byIM
+            SPA(:,1,L) = 4*(PBS-DUMMYS(:)+MUS) / (DYP(2)*MA(L,1,1))
+             MU(:,1,L) = 3*(PBS-DUMMYS(:)+MUS)  ;  EndDo  ;  EndIf
+      If (QNP)  Then
+         Do L=1,LM
+            MUN = Sum( U(:,JM,L))*byIM*.25*DYP(JM-1)*MA(L,1,JM)
+            MVN = Sum(MV(:,JM,L))*byIM
+            MVNA(L) = MVN
+            DUMMYN(1) = 0
+            Do I=2,IM
+               DUMMYN(I) = DUMMYN(I-1) + (MV(I,JM,L)-MVN)  ;  EndDo
+            PBN = Sum(DUMMYN(:))*byIM   
+            SPA(:,JM,L) = 4*(DUMMYN(:)-PBN+MUN) / (DYP(JM-1)*MA(L,1,JM))
+             MU(:,JM,L) = 3*(DUMMYN(:)-PBN+MUN)  ;  EndDo  ;  EndIf
 
       if(do_polefix.eq.1) then
 c To maintain consistency with subroutine ADVECV,
 c adjust pu at the pole if no corner fluxes are used there
 c in ADVECV.
-      do ipole=1,2
-        if(haveLatitude(grid,J=1) .and. ipole.eq.1) then
-          j = 1
-        else if(haveLatitude(grid,J=JM) .and. ipole.eq.2) then
-          j = JM
-        else
-          cycle
-        endif
-        twoby3 = 2d0/3d0
-        do l=1,lm
-           pu(:,j,l) = pu(:,j,l)*twoby3
-        enddo
-      enddo
-      endif
-C****
-C**** END OF HORIZONTAL ADVECTION LAYER LOOP
-C****
-c
-c modify uphill air mass fluxes around steep topography
-      do 2015 j=J_0S,J_1S
-      i = im
-      do 2010 ip1=1,im
-         xx = zatmo(ip1,j)-zatmo(i,j)
-         if(xx.eq.0.0)  go to 2007
-         DO 2005 L=1,LS1-1
-ccc         if((zatmo(ip1,j)-zatmo(i,j))*pu(i,j,l).gt.0.) then
-            if(xx*pu(i,j,l).gt.0.) then
-               if(pu(i,j,l).gt.0.) then
-                  wt = (pijl(ip1,j,l)/pijl(i,j,l)-sige(l+1))/dsig(l)
-               else
-                  wt = (pijl(i,j,l)/pijl(ip1,j,l)-sige(l+1))/dsig(l)
-               endif
-               if(wt.le.0.) then
-                  pu(i,j,l+1) = pu(i,j,l+1) + pu(i,j,l)
-                  pu(i,j,l) = 0.
-               else
-                  go to 2007
-               endif
-            endif
- 2005    CONTINUE
- 2007    CONTINUE
-         i = ip1
- 2010 CONTINUE
- 2015 CONTINUE
+         If (QSP)  MU(:,1 ,:) = MU(:,1 ,:)*TWOby3
+         If (QNP)  MU(:,JM,:) = MU(:,JM,:)*TWOby3  ;  EndIf
 
-ccc   do j=2,jm
-c**** Exceptional J loop boundaries
-      do 2035 j=max(J_0S,3), J_1S
-      do 2035 i=1,im
-         xx = zatmo(i,j)-zatmo(i,j-1)
-         if(xx.eq.0.0)  go to 2035
-         DO 2020 L=1,LS1-1
-ccc         if((zatmo(i,j)-zatmo(i,j-1))*pv(i,j,l).gt.0.) then
-            if(xx*pv(i,j,l).gt.0.) then
-               if(pv(i,j,l).gt.0.) then
-                  wt = (pijl(i,j,l)/pijl(i,j-1,l)-sige(l+1))/dsig(l)
-               else
-                  wt = (pijl(i,j-1,l)/pijl(i,j,l)-sige(l+1))/dsig(l)
-               endif
-               if(wt.le.0.) then
-                  pv(i,j,l+1) = pv(i,j,l+1) + pv(i,j,l)
-                  pv(i,j,l) = 0.
-               else
-                  go to 2035
-               endif
-            endif
- 2020    CONTINUE
- 2035 CONTINUE
-C
-C     Now Really Do  CONTINUITY EQUATION
-C
-C     COMPUTE CONV, THE HORIZONTAL MASS CONVERGENCE
-C
-      CALL HALO_UPDATE(GRID,PU ,FROM=SOUTH+NORTH) ! full halos needed later
-      CALL HALO_UPDATE(GRID,PV ,FROM=SOUTH+NORTH)
+!**** Modify eastward uphill air mass fluxes around steep topography
+      Do 310 J=J1XP,JNXP
+      I = IM
+      Do 310 Ip1=1,IM
+      If (ZATMO(I,J) == ZATMO(Ip1,J))  GoTo 310
+      If (ZATMO(I,J) <  ZATMO(Ip1,J))
+     *   Then  ;  M = MSUM(I,J)
+                  Do L=1,LS1-1
+                     If (MU(I,J,L) <= 0)  GoTo 310
+                     M = M - MA(L,I,J)
+                     If (M <= MSUM(Ip1,J))  GoTo 310
+                     MU(I,J,L+1) = MU(I,J,L+1) + MU(I,J,L)
+                     MU(I,J,L) = 0  ;  EndDo
+         Else  ;  M = MSUM(Ip1,J)
+                  Do L=1,LS1-1
+                     If (MU(I,J,L) >= 0)  GoTo 310
+                     M = M - MA(L,Ip1,J)
+                     If (M <= MSUM(I,J))  GoTo 310
+                     MU(I,J,L+1) = MU(I,J,L+1) + MU(I,J,L)
+                     MU(I,J,L) = 0  ;  EndDo  ;  EndIf
+  310 I = Ip1
+
+!**** Modify northward uphill air mass fluxes around steep topography
+!**** Exceptional J loop boundaries, not:  Do J=J1V,JNV
+      Do 320 J=Max(J1XP,3),JNXP
+      Do 320 I=1,IM
+      If (ZATMO(I,J-1) == ZATMO(I,J))  GoTo 320
+      If (ZATMO(I,J-1) <  ZATMO(I,J))      
+     *   Then  ;  M = MSUM(I,J-1)
+                  Do L=1,LS1-1
+                     If (MV(I,J,L) <= 0)  GoTo 320
+                     M = M - MA(L,I,J-1)
+                     If (M <= MSUM(I,J))  GoTo 320
+                     MV(I,J,L+1) = MV(I,J,L+1) + MV(I,J,L)
+                     MV(I,J,L) = 0  ;  EndDo
+         Else  ;  M = MSUM(I,J)
+                  Do L=1,LS1-1
+                     If (MV(I,J,L) >= 0)  GoTo 320
+                     M = M - MA(L,I,J)
+                     If (M <= MSUM(I,J-1))  GoTo 320
+                     MV(I,J,L+1) = MV(I,J,L+1) + MV(I,J,L)
+                     MV(I,J,L) = 0  ;  EndDo  ;  EndIf
+  320 Continue
+
+!**** Compute CONV (kg/s) = horizontal mass convergence
+      Call HALO_UPDATE (GRID,MU,From=SOUTH+NORTH) ! full halos needed later
+      Call HALO_UPDATE (GRID,MV,From=SOUTH+NORTH)
       DO 2400 L=1,LM
-      DO 1510 J=J_0S,J_1S
+      Do 1510 J=J1XP,JNXP
       IM1=IM
       DO 1510 I=1,IM
-      CONV(I,J,L)=(PU(IM1,J,L)-PU(I,J,L)+PV(I,J,L)-PV(I,J+1,L))
+      CONV(I,J,L) = MU(IM1,J,L)-MU(I,J,L) + MV(I,J,L)-MV(I,J+1,L)
  1510 IM1=I
-      IF (haveLatitude(grid,J=1)) CONV(1,1,L)=-PVSA(L)
-      If (haveLatitude(grid,J=JM)) CONV(1,JM,L)=PVNA(L)
+      If (QSP)  CONV(1,1,L) = -MVSA(L)
+      If (QNP)  CONV(1,JM,L) = MVNA(L)
  2400 CONTINUE
-C
-C**** COMPUTE PIT, THE PRESSURE TENDENCY
-      PIT(:,J_0:J_1) = CONV(:,J_0:J_1,1)
-      SD(:,J_0:J_1,1:LM-1) = CONV(:,J_0:J_1,2:LM)
-      DO 2420 J=J_0,J_1
-         DO 2410 I=1,IMAXJ(J)
-         DO 2410 L=LM-1,1,-1
-           PIT(I,J) = PIT(I,J) + SD(I,J,L)
- 2410    CONTINUE
- 2420 CONTINUE
-C**** COMPUTE SD, SIGMA DOT                                             -------
-      DO 2435 J=J_0,J_1
-         DO 2430 I=1,IMAXJ(J)
-         DO 2430 L=LM-2,LS1-1,-1
-            SD(I,J,L)=SD(I,J,L+1)+SD(I,J,L)
- 2430    CONTINUE
- 2435 CONTINUE
-      DO 2440 J=J_0,J_1
-         DO 2438 I=1,IMAXJ(J)
-         DO 2438 L=LS1-2,1,-1
-           SD(I,J,L)=SD(I,J,L+1)+SD(I,J,L)-
-     &           DSIG(L+1)*PIT(I,J)
- 2438    CONTINUE
- 2440 CONTINUE
-      DO 2450 L=1,LM-1
-      DO 2450 I=2,IM
-        IF (haveLatitude(grid,J=1))
-     *     SD(I,1,L)=SD(1,1,L)
- 2450   IF (haveLatitude(grid,J=JM))
-     *       SD(I,JM,L)=SD(1,JM,L)
 
-        ! Recopy into CONV to support prior usage
-      CONV(:,J_0:J_1,1) = PIT(:,J_0:J_1)
-      CONV(:,J_0:J_1,2:LM) = SD(:,J_0:J_1,1:LM-1)
+C**** Compute MW (kg/s) = downward vertical mass flux
+      DO 2435 J=J1,JN
+      Do 2435 I=1,IMAXJ(J)
+         CONVs = Sum(CONV(I,J,:))
+         MVARs = MSUME(I,J) - MFIXs
+         MW(I,J,LM-1) = CONV(I,J,LM) - CONVs*MFRAC(LM) +
+     +      (ME(LM,I,J) - MFIX(LM) - MVARs*MFRAC(LM))*DXYP(J)*zNSxDT
+         Do 2430 L=LM-2,1,-1
+ 2430       MW(I,J,L) = CONV(I,J,L+1) - CONVs*MFRAC(L+1) + MW(I,J,L+1) +
+     +       (ME(L+1,I,J) - MFIX(L+1) - MVARs*MFRAC(L+1))*DXYP(J)*zNSxDT
+ 2435 CONTINUE
+      Do L=1,LM-1
+         If (QSP)  MW(2:IM,1 ,L) = MW(1,1 ,L)
+         If (QNP)  MW(2:IM,JM,L) = MW(1,JM,L)  ;  EndDo
 
       RETURN
-      END SUBROUTINE AFLUX
+      EndSubroutine AFLUX
 
 
-      SUBROUTINE ADVECM (P,PA,DT1)
+      SUBROUTINE ADVECM (DT1, MOLD,MNEW,MSUM)
 !@sum  ADVECM Calculates updated column pressures using mass fluxes
 !@auth Original development team
-      USE RESOLUTION, only : ptop
-      USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : zatmo,u,v,t,q
-      USE GEOM, only : bydxyp,imaxj
-      USE DYNAMICS, only : pit,mrch
+      Use RESOLUTION, Only: IM,JM,LM, MTOP
+      Use ATM_COM,    Only: ZATMO,U,V,T,Q
+      Use GEOM,       Only: IMAXJ,byDXYP
+      Use DYNAMICS,   Only: MRCH,MW,CONV
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GLOBALSUM
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
-      USE DOMAIN_DECOMP_1D, only : haveLatitude
       IMPLICIT NONE
-      REAL*8, INTENT(IN) :: P(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
-      REAL*8, INTENT(OUT) :: PA(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
-      REAL*8, INTENT(IN) :: DT1
-      INTEGER I,J,L  !@var I,J,L  loop variables
-      INTEGER IM1 ! @var IM1 = I - 1
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0H
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      INTEGER :: n_exception, n_exception_all
+      Real*8,Intent(In) :: DT1,
+     *                   MOLD(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      Real*8,Intent(Out) :: MSUM(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *                   MNEW(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 
-      call getDomainBounds(grid, 
-     &               J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE )
+!**** Local variables
+      Integer :: I,J,L,Im1, J1,JN
+      INTEGER :: n_exception, n_exception_all
+      Logical :: QSP,QNP
+      Real*8  :: MNEWs
+
+      Call GetDomainBounds (GRID,
+     &   J_STRT = J1, J_STOP = JN, !  primary row limits
+     &   HAVE_SOUTH_POLE = QSP, HAVE_NORTH_POLE = QNP)
 
 C**** COMPUTE PA, THE NEW SURFACE PRESSURE
       ! 1st pass count warning/termination events
       ! This avoids the need for 2 halo fills during normal
       ! execution.
       n_exception = 0
-      outer_loop:  DO J=J_0,J_1
-        DO I=1,IMAXJ(J)
-          PA(I,J)=P(I,J)+(DT1*PIT(I,J)*BYDXYP(J))
-          IF (PA(I,J)+PTOP.GT.1160. .or. PA(I,J)+PTOP.LT.350.) THEN
-            n_exception = n_exception + 1
-            IF (PA(I,J)+PTOP.lt.250. .or. PA(I,J)+PTOP.GT.1200.)
-     *           Exit outer_loop
-          End If
-        END DO
-      END DO outer_loop
+      Do J=J1,JN  ;  Do I=1,IMAXJ(J)
+         MNEW(1,I,J) = MOLD(1,I,J) + 
+     +      DT1*(CONV(I,J,1) + MW(I,J,1))*byDXYP(J)
+         Do L=2,LM-1
+            MNEW(L,I,J) = MOLD(L,I,J) +
+     +         DT1*(CONV(I,J,L) + MW(I,J,L) - MW(I,J,L-1))*byDXYP(J)
+            EndDo
+         MNEW(LM,I,J) = MOLD(LM,I,J) +
+     +         DT1*(CONV(I,J,LM) - MW(I,J,LM-1))*byDXYP(J)
+         MSUM(I,J) = Sum (MNEW(:,I,J))
+         If (MSUM(I,J)+MTOP > 11829 .or. MSUM(I,J)+MTOP < 3569)
+     *      n_exception = n_exception + 1
+         If (MSUM(I,J)+MTOP > 12237 .or. MSUM(I,J)+MTOP < 2549)  GoTo 10
+         EndDo  ;  EndDo
 
-      Call GLOBALSUM(grid, n_exception, n_exception_all, all=.true.)
+   10 Call GLOBALSUM (grid, n_exception, n_exception_all, all=.true.)
       IF (n_exception_all > 0) Then ! need halos
         CALL HALO_UPDATE(grid, U, FROM=NORTH)
         CALL HALO_UPDATE(grid, V, FROM=NORTH)
       END IF
 
       IF (n_exception > 0)  Then ! 2nd pass report problems
-        Do J = J_0, J_1
-          DO I = 1, IMAXJ(J)
-            IF (PA(I,J)+PTOP.GT.1160. .or. PA(I,J)+PTOP.LT.350.) THEN
-              IM1 = 1 + MOD(IM+I-2,IM)
-              WRITE (6,990) I,J,MRCH,P(I,J),PA(I,J),ZATMO(I,J),DT1,
-     *             (U(IM1,J,L),U(I,J,L),U(IM1,J+1,L),U(I,J+1,L),
-     *             V(IM1,J,L),V(I,J,L),V(IM1,J+1,L),V(I,J+1,L),
-     *             T(I,J,L),Q(I,J,L),L=1,LM)
-              write(6,*) "Pressure diagnostic error"
-              IF (PA(I,J)+PTOP.lt.250. .or. PA(I,J)+PTOP.GT.1200.)
-     &          call stop_model('ADVECM: Pressure diagnostic error',11)
-            END IF
-          END DO
-        END DO
-      END IF
+         Do J=J1,JN  ;  Do I =1,IMAXJ(J)
+            If (MSUM(I,J)+MTOP > 11829 .or. MSUM(I,J)+MTOP < 3569)  Then
+               Im1 = I-1  ;  If (Im1==0) Im1 = IM
+               Write (6,990) I,J,MRCH,ZATMO(I,J),DT1,
+     *            (L,U(IM1,J,L),U(I,J,L),U(IM1,J+1,L),U(I,J+1,L),
+     *               V(IM1,J,L),V(I,J,L),V(IM1,J+1,L),V(I,J+1,L),
+     *             MNEW(L,I,J),MOLD(L,I,J),T(I,J,L),Q(I,J,L),L=LM,1,-1)
+               Write (6,*) "Pressure diagnostic error"
+               If (MSUM(I,J)+MTOP > 12237 .or. MSUM(I,J)+MTOP < 2549)
+     &            Call STOP_MODEL ('ADVECM: Mass diagnostic error',11)
+               EndIf  ;  EndDo  ;  EndDo  ;  EndIf
 
-      IF (haveLatitude(grid, J=1)) PA(2:IM, 1)=PA(1,1)
-      IF (haveLatitude(grid, J=JM)) PA(2:IM,JM)=PA(1,JM)
+      If (QSP)  Then
+         Do I=2,IM
+            MNEW(:,I,1) = MNEW(:,1,1)
+            MSUM(I,1)   = MSUM(1,1)  ;  EndDo  ;  EndIf
+      If (QNP)  Then
+         Do I=2,IM
+            MNEW(:,I,JM) = MNEW(:,1,JM)
+            MSUM(I,JM)   = MSUM(1,JM)  ;  EndDo  ;  EndIf
 
-C****
-      RETURN
-  990 FORMAT (/'0PRESSURE DIAGNOSTIC     I,J,MRCH,P,PA=',3I4,2F10.2/
+      Return
+  990 Format (/'0PRESSURE DIAGNOSTIC     I,J,MRCH=',3I4,2F10.2/
      *  '     ZATMO=',F10.3,' DT=',F6.1/
-     *  '0    U(I-1,J)     U(I,J)   U(I-1,J+1)    U(I,J+1)    V(I-1,J)',
-     *   '     V(I,J)   V(I-1,J+1)    V(I,J+1)     T(I,J)     Q(I,J)'/
-     *  (1X,9F12.3,F12.6))
-      END SUBROUTINE ADVECM
+     *  '  L     U(I-1,J)     U(I,J)   U(I-1,J+1)    U(I,J+1)',
+     *      '    V(I-1,J)     V(I,J)   V(I-1,J+1)    V(I,J+1)',
+     *      '        MNEW       MOLD       T(I,J)     Q(I,J)' /
+     *  (I3,11F12.3,F12.6))
+      EndSubroutine ADVECM
 
 
       SUBROUTINE PGF (UT,VT,PB,U,V,T,SZ,P,DT1)
@@ -797,7 +670,7 @@ C****
       USE DIAG_COM, only : modd5k
       USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp,acor,acor2
       USE ATM_COM, only : gz,phi
-      USE DYNAMICS, only : pu,pit,spa,dut,dvt,do_polefix,mrch
+      Use DYNAMICS,   Only: pu,spa,dut,dvt,do_polefix,mrch
      &     ,dsig,sige,sig,bydsig
 c      USE DIAG, only : diagcd
       USE DOMAIN_DECOMP_ATM, only: grid
@@ -2461,7 +2334,7 @@ c        X(I,J) = .25*(XIM1J+X(I,J)+X(IM1,J+1)+X(I,J+1))
 
 c      module DIAG
 c      contains
-      SUBROUTINE DIAGCD (grid,M,UX,VX,DUT,DVT,DT1)!,PIT)
+      Subroutine DIAGCD (GRID,M,UX,VX,DUT,DVT,DT1)
 !@sum  DIAGCD Keeps track of the conservation properties of angular
 !@+    momentum and kinetic energy inside dynamics routines
 !@auth Gary Russell
@@ -2470,7 +2343,7 @@ c      contains
       USE MODEL_COM, only : mdiag,mdyn
       USE GEOM, only : cosv, ravpn,ravps,bydxyp,fim,byim
       USE DIAG_COM, only : consrv=>consrv_loc
-      USE DYNAMICS, only : PIT
+      Use DYNAMICS,   Only: CONV
       USE DOMAIN_DECOMP_1D, only : CHECKSUM, HALO_UPDATE, DIST_GRID
       USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH, getDomainBounds
       USE GETTIME_MOD
@@ -2497,9 +2370,6 @@ C****
       REAL*8, INTENT(IN),
      &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &        DUT,DVT
-!@var PIT current pressure tendency
-!      REAL*8, INTENT(IN), OPTIONAL,
-!     &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PIT
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PI
      &     ,DAMB,DKEB
       INTEGER :: I,J,L,N,IP1
@@ -2520,15 +2390,15 @@ C****
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
-C****
-C**** PRESSURE TENDENCY FOR CHANGE BY ADVECTION
-C****
+!****
+!**** Mass change by advection
+!****
       IF (M.eq.1) THEN
         dopit=.true.
-        IF(HAVE_SOUTH_POLE) PI(1)=FIM*PIT(1,1)
-        IF(HAVE_NORTH_POLE) PI(JM)=FIM*PIT(1,JM)
+        If (HAVE_SOUTH_POLE)  PI(1)  = FIM*Sum(CONV(1,1 ,:))
+        If (HAVE_NORTH_POLE)  PI(JM) = FIM*Sum(CONV(1,JM,:))
         DO J=J_0S,J_1S
-          PI(J)=SUM(PIT(:,J))
+           PI(J) = Sum(CONV(:,J,:))
         END DO
       ELSE
         PI=0.
@@ -2722,20 +2592,21 @@ C****
       SUBROUTINE QDYNAM
 !@sum  QDYNAM is the driver to integrate dynamic terms by the method
 !@+          of pre-computing Courant limits using mean fluxes
-!@+    It replaces CALL AADVT (MA,Q,QMOM, SD,PU,PV, DTLF,.TRUE.,
+!@+    It replaces CALL AADVT (MMA,Q,QMOM, SD,PU,PV, DTLF,.TRUE.,
+!@vers 2013/03/27
 !@auth J. Lerner
       use resolution, only : im,jm,lm
       USE ATM_COM, only : q
       USE SOMTQ_COM, only : qmom
       USE DIAG_COM, only: agc=>agc_loc,byim
       USE GCDIAG, only : jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh
-      USE ATM_COM, only: ps,mb,ma,sda
+      Use ATM_COM, Only: PS,MB,MMA,MWs
       USE TRACER_ADV, only:
      *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
-      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds 
+      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
       USE DOMAIN_DECOMP_1D, only : halo_update, south, north
       IMPLICIT NONE
-      REAL*8 byncyc,byma
+      Real*8 :: byNCYC,byMMA
       INTEGER I,J,L   !@var I,J,L loop variables
 
 c**** Extract domain decomposition info
@@ -2746,7 +2617,7 @@ c**** Extract domain decomposition info
 
       CALL CALC_AMP(PS,MB)
       CALL HALO_UPDATE(grid, MB, FROM=SOUTH+NORTH) ! for convenience later
-      CALL AADVQ0 (1._8)  ! uses the fluxes pua,pva,sda from DYNAM
+      CALL AADVQ0 (1._8)  ! uses the fluxes MUs,MVs,MWs from DYNAM
 C****
 C**** convert from concentration to mass units
 C****
@@ -2768,20 +2639,20 @@ C**** ADVECT
         AGC(:,:,jl_zmfvtlh)  = AGC(:,:,jl_zmfvtlh)
      &    + scm(:,:)*sfcm(:,:)*byim*byncyc
 C****
-C**** convert from mass to concentration units (using updated MA)
+C**** convert from mass to concentration units (using updated MMA)
 C****
       DO L=1,LM
       DO J=J_0,J_1
       DO I=1,IM
-        BYMA = 1.D0/MA(I,J,L)
-        Q(I,J,L)=Q(I,J,L)*BYMA
-        QMOM(:,I,J,L)=QMOM(:,I,J,L)*BYMA
+        byMMA = 1 / MMA(I,J,L)
+        Q(I,J,L) = Q(I,J,L)*byMMA
+        QMOM(:,I,J,L) = QMOM(:,I,J,L)*byMMA
       enddo; enddo; enddo
 
 #ifndef TRACERS_ON
 c Unscale the vertical mass flux accumulation for use by column physics.
 c Switch the sign convention back to "positive downward".
-      SDA(:,:,:) = -SDA(:,:,:)*NCYC
+      MWs(:,:,:) = -MWs(:,:,:)*NCYC
 #else
 c TRDYNAM will do the unscaling
 #endif
@@ -2804,12 +2675,12 @@ c      end module ATMDYN_QDYNAM
      *     jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,jlnt_vt_mm,
      *     tij_uflx,tij_vflx
 #endif
-      USE ATM_COM, only : sda
+      USE ATM_COM, only : MWs
       IMPLICIT NONE
       REAL*8 byncyc
       INTEGER N
 
-C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
+C**** uses the fluxes MUs,MVs,MWs from DYNAM and QDYNAM
       DO N=1,NTM
         IF (itime.LT.itime_tr0(N)) cycle
         sfbm = 0.; sbm = 0.; sbf = 0.
@@ -2839,7 +2710,7 @@ C**** vertically integrated atmospheric fluxes
 
 c Unscale the vertical mass flux accumulation for use by column physics.
 c Switch the sign convention back to "positive downward".
-      SDA(:,:,:) = -SDA(:,:,:)*NCYC
+      MWs(:,:,:) = -MWs(:,:,:)*NCYC
 
       RETURN
       END SUBROUTINE TrDYNAM
@@ -3055,12 +2926,12 @@ c Switch the sign convention back to "positive downward".
       hb(L) = P_edge(L) / rhoe(L) * bygrav
       end do
 
-      if (h_4sq <= 0.0) then 
-          !For efficiency, orogrphic variances over oceans were set to a negative value. 
+      if (h_4sq <= 0.0) then
+          !For efficiency, orogrphic variances over oceans were set to a negative value.
           drag_x(:) = 0.0_r8
           drag_y(:) = 0.0_r8
       else
-          call orographic_drag (ue, ve, rhoe, bvfe, h_4sq, Eke_by2 
+          call orographic_drag (ue, ve, rhoe, bvfe, h_4sq, Eke_by2
      *                           , drag_x, drag_y)
       end if
           UNRDRAG_x(I,J,1:LS1-1) = drag_x(1:LS1-1) * byPB2

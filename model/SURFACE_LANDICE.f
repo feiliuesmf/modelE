@@ -7,8 +7,8 @@ C****
 #include "rundeck_opts.h"
 
 
-
-      SUBROUTINE SURFACE_LANDICE (do_init,moddd,dtsurf,atmgla,ihc)
+      ! igla = atmglas(ihc)
+      SUBROUTINE SURFACE_LANDICE (do_init,moddd,dtsurf,igla,ihc)
 
 !@sum SURFACE calculates the surface fluxes which include
 !@+   sensible heat, evaporation, thermal radiation, and momentum
@@ -37,11 +37,12 @@ C****
       USE PBL_DRV, only : alloc_pbl_args, dealloc_pbl_args
       USE PBL_DRV, only : pbl, t_pbl_args, xdelt
 
-      USE LANDICE, only : z1e,z2li,hc1li,hc2li,ace1li,ace2li,snmin
+      USE LANDICE, only : z1e,z2li,hc1li,hc2li,ace1li,ace2li,snmin   ! Constants
       USE LANDICE_COM, only : snowli
 #ifdef TRACERS_WATER
-     *     ,trlndi
+      USE LANDICE_COM, only : trlndi
 #endif
+
       USE LANDICE_COM, only : ijhc,ijhc_tsurf,ijhc_tsli
       USE SEAICE, only : xsi,ace1i,alami0,rhoi,byrls,alami
       USE EXCHANGE_TYPES
@@ -50,15 +51,20 @@ C****
       USE TimerList_mod, only: stopTimer => stop
       USE itype_enum
 
+#ifdef GLINT2
+      use fluxes, only : flice
+      use landice_com, only : usedhp
+#endif
+
       IMPLICIT NONE
 ! ================ Parameter Declarations =====================
       logical, intent(in) :: do_init
       integer, intent(in) :: moddd,ihc
       real*8, intent(in) :: dtsurf
-      type(atmgla_xchng_vars) :: atmgla
+      type(atmgla_xchng_vars) :: igla
+
 ! ================ VARIABLE DECLARATIONS ======================
       INTEGER I,J,K,ITYPE,IH,IHM
-      REAL*8 PLICE
       REAL*8 PS
      *     ,ELHX,MSI2,CDTERM,CDENOM,dF1dTG,HCG1,HCG2,EVHDT,F1DT
      *     ,CM,CH,CQ,EVHEAT,F0,F1,DSHDTG,DQGDTG
@@ -96,7 +102,7 @@ C****
       INTEGER :: J_0, J_1, J_0H, J_1H, I_0,I_1
       LOGICAL :: debug
 
-      real*8, dimension(:,:), pointer :: trdn,srdn,e1,tgrnd,tgr4
+!      real*8, dimension(:,:), pointer :: trdn,srdn,e1,tgrnd,tgr4
 
       type (Timer_type), pointer :: aTimer
 ! ======================= MAIN BODY ======================================
@@ -113,19 +119,19 @@ C****
 
       call startTimer('SURFACE_LANDICE()')
 
-      trdn => atmgla%flong
-      srdn => atmgla%fshort
-      e1 => atmgla%e1
-      tgrnd => atmgla%tgrnd
-      tgr4 => atmgla%tgr4
+!      trdn => atmgla%flong
+!      srdn => atmgla%fshort
+!      e1 => atmgla%e1
+!      tgrnd => atmgla%tgrnd
+!      tgr4 => atmgla%tgr4
 
 ! inits before looping over surface timesteps.
       if(do_init) then
         do j=j_0,j_1
         do i=i_0,i_1
-          e1(i,j) = 0.
-          tgrnd(i,j) = atmgla%gtemp(i,j)
-          tgr4(i,j) = atmgla%gtempr(i,j)**4
+          igla%e1(i,j) = 0.
+          igla%tgrnd(i,j) = igla%gtemp(i,j)
+          igla%tgr4(i,j) = igla%gtempr(i,j)**4
         enddo
         enddo
       endif
@@ -140,7 +146,7 @@ C**** Zero out fluxes summed over type and surface time step
 c ---- Don't need this section, it's asflx is a global variable
 c and it's already zeroed out before outer loop
 
-!      E1=0.    ! I don't think local var E1 is really used.  It is set, but not read.
+!      igla%E1=0.    ! I don't think local var E1 is really used.  It is set, but not read.
 ! /------------ All global variables, zeroed in SURFACE.f ------------\
 !#ifdef SCM
 !      EVPFLX= 0.0d0
@@ -184,9 +190,17 @@ C****
 
       ! Model may expect that some things are zero
       ! call stop_model('Please double-check that model might expect some things to be defined for some boxes, even if there is no ice in that box.', -17)
-      PLICE=atmgla%ftype(I,J)
-      PTYPE = PLICE
-      IF (PTYPE <= 0) CYCLE
+#ifdef GLINT2
+      if (usedhp(i,j,ihc) == 0) cycle
+#else
+      if (igla%ftype(i,j) <= 0) cycle
+#endif
+
+      ! This is only used for:
+      !   (a) Diagnostics inside of PBL()
+      !   (b) Stuff for SCM mode
+      PTYPE = igla%ftype(I,J)
+!      IF (PTYPE <= 0) CYCLE
 
 C****
 C**** DETERMINE SURFACE CONDITIONS
@@ -195,20 +209,20 @@ C****
       ! PS = Pressure at Surface
       ! PEDN = Pressure at lower edge of box (incl. surface) (mb)  (ATM_COM.f)
       !PS=PEDN(1,I,J)
-      PS=atmgla%srfp(I,J)
+      PS=igla%srfp(I,J)
 
       ! PEK = PEDN**KAPA
       ! kapa = ideal gas law exponent for dry air (.2862)
       ! kapa = (g-1)/g where g = 1.401 = c_p/c_v
       !     [or: kapa = (c_p - c_v) / c_p ]
       ! g (or srat) = c_p/c_v = ratio of specific heats at const. press. and vol. (=1.401)
-      !PSK=atmgla%srfpk(i,j)
+      !PSK=igla%srfpk(i,j)
 
       ! Q = specific humidity (kg water vapor/kg air)
       !     (This is the same as mixing ratio)
       ! Q1 = Specific humidity of the bottom atmosphere layer
       ! TODO: This needs to be adjusted for downscaling
-      Q1=atmgla%Q1(I,J) !Q(I,J,1)
+      Q1=igla%Q1(I,J) !Q(I,J,1)
 
       ! T(I,J,Z) = Dry Potential Temperature (theta) referenced to 1 millibar
       ! Actual Temperature temp = T*pk = T * [(p/p0)**(R/cp)]
@@ -241,10 +255,10 @@ C****
       !     considered only _within_ the PBL code).
       ! TODO: THV1 needs to get downscaled for topography
       !THV1=T(I,J,1)*(1.+Q1*xdelt)
-      !THV1=atmgla%TEMP1(I,J)*(1.+Q1*xdelt)
+      !THV1=igla%TEMP1(I,J)*(1.+Q1*xdelt)
 
       ! MA1 = mass of lowest atmospheric layer (kg/m^2)
-      MA1=atmgla%AM1(I,J)
+      MA1=igla%AM1(I,J)
 
 C****
 
@@ -253,22 +267,22 @@ C****
       ! call stop_model('Please double-check something or another.', -17)
 
 ! BEGIN ---------------------------------------------------------
-      PTYPE=PLICE
+
       ! snow amount on land ice (kg/m^2)
       SNOW=SNOWLI(I,J,IHC)
       ! Temperature of top ice layer (C)
-      TG1=TGRND(I,J)
+      TG1=igla%TGRND(I,J)
 
-      ! TR4 = TGR4(3,i,j) = atmgla%GTEMPR**4
+      ! TR4 = TGR4(3,i,j) = igla%GTEMPR**4
       ! (Needed for Stefan-Boltzmann Law)
       ! GTEMPR radiative ground temperature over surface type (K)
-      TR4=TGR4(I,J)
+      TR4=igla%TGR4(I,J)
 
       ! SRHEAT = Solar Heating
       ! FSF = Solar Forcing over each type (W/m^2)
       ! FSF = net absorption (for cosZ = 1)
       ! COSZ1 = Mean Solar Zenith angle for curr. physics(not rad) time step
-      SRHEAT=SRDN(I,J)*atmgla%COSZ1(I,J)
+      SRHEAT=igla%fshort(I,J)*igla%COSZ1(I,J)
 
       ! LHS = latent heat of sublimation at 0 C (J/kg)
       ELHX=LHS
@@ -315,11 +329,11 @@ C =====================================================================
       !              (if xdelt=0, ttop is the actual temperature)
       !pbl_args%TKV=THV1*PSK     ! TKV is referenced to the surface pressure
 
-      !pbl_args%ZS1=.5d-2*RGAS*pbl_args%TKV*MA1/atmgla%p1(i,j) !PMID(1,I,J)
+      !pbl_args%ZS1=.5d-2*RGAS*pbl_args%TKV*MA1/igla%p1(i,j) !PMID(1,I,J)
       ! TODO: qg_sat changes with height (this will come out automatically)
       pbl_args%qg_sat = qg_sat
       !pbl_args%qg_aver = qg_sat   ! QG_AVER=QG_SAT
-      !pbl_args%hemi = sign(1d0,atmgla%lat(i,j))
+      !pbl_args%hemi = sign(1d0,igla%lat(i,j))
 c      pbl_args%pole = pole
 c      pbl_args%evap_max = 1.
 c      pbl_args%fr_sat = 1. ! entire surface is saturated
@@ -327,14 +341,18 @@ c      pbl_args%uocean = uocean
 c      pbl_args%vocean = vocean
       ! TODO: This will change with height
 c      pbl_args%psurf = PS
-c      pbl_args%trhr0 = TRDN(I,J)
+c      pbl_args%trhr0 = igla%flong(I,J)
       pbl_args%ocean = .false.
       pbl_args%snow = SNOW
 
 ! Calculate drag coefficients, wind speed, air density, etc.
 ! PBL = "Planetary Boundary Layer"
 C**** Call pbl to calculate near surface profile
-      CALL PBL(I,J,ITYPE,PTYPE,pbl_args,atmgla)
+! NOTE: PTYPE is used here only to sum into diagnostics
+! We atmgla%fhc with atmgla_hp%fhp (which is approximate)
+!      print *,'surface_landice: call pbl',i,j,ihc
+!      print *,'uab',igla%uabl(1,i,j)
+      CALL PBL(I,J,IHC,ITYPE,PTYPE,pbl_args,igla)
 
       us = pbl_args%us
       vs = pbl_args%vs
@@ -372,7 +390,7 @@ C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
       ! Including gustiness in the latent heat flux:
       EVHEAT=(LHE+TG1*SHV)*(RCDQWS*(QSRF-QG_SAT)+
      *                      RCDQDWS*pbl_args%qprime)
-      TRHEAT=TRDN(I,J)-STBO*TR4
+      TRHEAT=igla%flong(I,J)-STBO*TR4
 
 ! BEGIN ------------------------------------------------------------
 ! Setting up implicit timestep aspects to surface flux calculations
@@ -394,7 +412,7 @@ C**** CASE (3) ! FLUXES USING IMPLICIT TIME STEP OVER LANDICE
       Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
 
       ! Temperature of second ice layer
-      TG2=atmgla%GTEMP2(I,J)
+      TG2=igla%GTEMP2(I,J)
 
       ! TG2 = Temperature of second ice layer
       CDTERM=TG2
@@ -472,10 +490,10 @@ C**** CALCULATE EVAPORATION
      &         tg1, rcdqws, rcdqdws, evap, snow, qg_sat, qsrf,
      &         .false., 0d0, 0d0, ! arguments for lakes only
      &         lim_dew, dtsurf,
-     &         atmgla%TRM1(n,I,J), pbl_args%trs(nx),
-     &         atmgla%gtracer(n,i,j), trgrnd2(nx),
+     &         igla%TRM1(n,I,J), pbl_args%trs(nx),
+     &         igla%gtracer(n,i,j), trgrnd2(nx),
      &         pbl_args%trprime(nx),
-     &         atmgla%trsrfflx(n,i,j), atmgla%trevapor(n,i,j)
+     &         igla%trsrfflx(n,i,j), igla%trevapor(n,i,j)
      &     )
         END IF
       END DO
@@ -484,19 +502,19 @@ C**** CALCULATE EVAPORATION
 
 C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       F0DT=DTSURF*SRHEAT+TRHDT+SHDT+EVHDT
-      atmgla%latht(i,j) = atmgla%latht(i,j) + evhdt
-      atmgla%trheat(i,j) = atmgla%trheat(i,j) + trhdt
-      atmgla%solar(i,j) = atmgla%solar(i,j) + dtsurf*srheat
+      igla%latht(i,j) = igla%latht(i,j) + evhdt
+      igla%trheat(i,j) = igla%trheat(i,j) + trhdt
+      igla%solar(i,j) = igla%solar(i,j) + dtsurf*srheat
 
-      ! atmgla%e0 = net energy flux at surface (J/m^2)
-      atmgla%E0(I,J)=atmgla%E0(I,J)+F0DT
+      ! igla%e0 = net energy flux at surface (J/m^2)
+      igla%E0(I,J)=igla%E0(I,J)+F0DT
 
-      ! atmgla%e1 <= e1 (set below in SURFACE.f)
+      ! igla%e1 <= e1 (set below in SURFACE.f)
       ! E1 = net energy flux at layer 1
       ! (I believe this means between the top 10cm layer and the 2.9m layer below it)
-      E1(I,J)=E1(I,J)+F1DT
+      igla%E1(I,J)=igla%E1(I,J)+F1DT
 
-      atmgla%EVAPOR(I,J)=atmgla%EVAPOR(I,J)+EVAP
+      igla%EVAPOR(I,J)=igla%EVAPOR(I,J)+EVAP
 #ifdef SCM
       if (J.eq.J_TARG.and.I.eq.I_TARG) then
           if (SCM_SURFACE_FLAG.eq.0.or.SCM_SURFACE_FLAG.eq.2) then
@@ -507,42 +525,43 @@ c    *                   EVPFLX,SHFLX,ptype
           endif
       endif
 #endif
-      TGRND(I,J)=TG1  ! includes skin effects
-      TGR4(I,J) =TR4
+      igla%TGRND(I,J)=TG1  ! includes skin effects
+      igla%TGR4(I,J) =TR4
 C**** calculate correction for different TG in radiation and surface
-      dLWDT = DTSURF*(atmgla%TRUP_in_rad(I,J)-TRDN(I,J))+TRHDT
+      dLWDT = DTSURF*(igla%TRUP_in_rad(I,J)-igla%flong(I,J))+TRHDT
 C**** final fluxes
 #ifdef SCM
 cccccc for SCM use ARM provided fluxes for designated box
       if ((I.eq.I_TARG.and.J.eq.J_TARG).and.SCM_SURFACE_FLAG.eq.1) then
-           DTH1(I,J)=DTH1(I,J)
+           igla%DTH1(I,J)=igla%DTH1(I,J)
      &              +ash*DTSURF*ptype/(SHA*MA1)
-           DQ1(I,J)=DQ1(I,J) + ALH*DTSURF*ptype/(MA1*LHE)
+           igla%DQ1(I,J)=igla%DQ1(I,J) + ALH*DTSURF*ptype/(MA1*LHE)
            SHFLX = SHFLX + ASH*ptype
            EVPFLX = EVPFLX + ALH*ptype
-           write(iu_scm_prt,980) I,PTYPE,DTH1(I,J),DQ1(I,J),
+           write(iu_scm_prt,980) I,PTYPE,igla%DTH1(I,J),igla%DQ1(I,J),
      &           EVPFLX,SHFLX
  980       format(1x,'SURFACE ARM   I PTYPE DTH1 DQ1 evpflx shflx',
      &            i5,f9.4,f9.5,f9.6,f9.5,f9.5)
       else
 #endif
-      atmgla%DTH1(I,J)=-(SHDT+dLWDT)/(SHA*MA1) ! +ve up
-      atmgla%sensht(i,j) = atmgla%sensht(i,j)+SHDT
-      atmgla%DQ1(I,J) = -DQ1X
+      igla%DTH1(I,J)=-(SHDT+dLWDT)/(SHA*MA1) ! +ve up
+      igla%sensht(i,j) = igla%sensht(i,j)+SHDT
+      igla%DQ1(I,J) = -DQ1X
 #ifdef SCM
       if (i.eq.I_TARG.and.j.eq.J_TARG) then
-          write(iu_scm_prt,988) I,PTYPE,DTH1(I,J),DQ1(I,J),SHDT,dLWDT
+          write(iu_scm_prt,988) I,PTYPE,igla%DTH1(I,J),igla%DQ1(I,J),
+     &           SHDT,dLWDT
  988      format(1x,'988 SURFACE GCM  I PTYPE DTH1 DQ1 SHDT dLWDT ',
      &           i5,f9.4,f9.5,f9.6,f12.4,f10.4)
       endif
       endif
 #endif
-!unused      DMUA_IJ=PTYPE*DTSURF*RCDMWS*US
-!unused      DMVA_IJ=PTYPE*DTSURF*RCDMWS*VS
-!unused      atmgla%DMUA(I,J) = atmgla%DMUA(I,J) + DMUA_IJ
-!unused      atmgla%DMVA(I,J) = atmgla%DMVA(I,J) + DMVA_IJ
-      atmgla%uflux1(i,j) = RCDMWS*US
-      atmgla%vflux1(i,j) = RCDMWS*VS
+!unused      DMUA_IJ=RCDMWS*US
+!unused      DMVA_IJ=RCDMWS*VS
+!unused      igla%DMUA(I,J) = igla%DMUA(I,J) + DMUA_IJ*DTSURF
+!unused      igla%DMVA(I,J) = igla%DMVA(I,J) + DMVA_IJ*DTSURF
+      igla%uflux1(i,j) = RCDMWS*US
+      igla%vflux1(i,j) = RCDMWS*VS
 
 
       ! demo diagnostic: a PBL output
@@ -560,27 +579,34 @@ C****
 
       call dealloc_pbl_args(pbl_args)
 
-      atmgla%gtemp(:,:) = tgrnd(:,:)
-      atmgla%gtemps(:,:) = tgrnd(:,:)
+      igla%gtemp(:,:) = igla%tgrnd(:,:)
+      igla%gtemps(:,:) = igla%tgrnd(:,:)
 
       call stopTimer('SURFACE_LANDICE()')
+
 
       RETURN
 C****
       END SUBROUTINE SURFACE_LANDICE
 
 ! -----------------------------------------------------------------------
-      subroutine patchify_landice_inputs(phase)
+      subroutine downscale_pressure_li
 ! create patch-specific values of inputs to the land ice model from
 ! grid-mean values and patch-specific physical parameters (elevation etc.)
 ! This initial version is simply copying grid-mean values into all patches.
-      use fluxes, only : atmglas,atmgla
+#ifdef GLINT2
+#define ATMGLAX atmglas_hp
+#else
+#define ATMGLAX atmglas
+#endif
+      use fluxes, only : ATMGLAX
+      use fluxes, only : atmgla
      &     ,after_atm_phase1,during_srfflx
       use domain_decomp_atm, only : grid
       use exchange_types, only : atmgla_xchng_vars
 
       ! Stuff needed for downscaling
-      use landice_com, only : elevhc, HC_T_LAPSE_RATE
+      use landice_com, only : elevhp, HC_T_LAPSE_RATE
       use constant, only : kapa, Grav
       use atm_com, only : zatmo
       USE GEOM, only : imaxj
@@ -591,7 +617,7 @@ C****
       implicit none
       real*8, external :: QSAT      ! Import function from Utilities.F90
 !@var phase indicates from which point this routine was called
-      integer, intent(in) :: phase
+!      integer, intent(in) :: phase
 c
       integer :: ipatch
       type(atmgla_xchng_vars), pointer :: igla
@@ -600,7 +626,7 @@ c
       real*8 :: iglaT_K, atmglaT_K, P, zdiff
       real*8 :: AM1_hPa    ! AM1 in units of hecto-Pascals
 
-      if(ubound(atmglas,1)==1) return ! only one patch. nothing to do
+      if(ubound(ATMGLAX,1)==1) return ! only one patch. nothing to do
 
       i_0 = grid%i_strt
       i_1 = grid%i_stop
@@ -623,10 +649,10 @@ c
       ! !@var FLONG, FSHORT downwelling longwave, shortwave radiation at surface
       !      ,FLONG,FSHORT
       !      ,TRUP_in_rad ! LW emission by surface during rad. timestep.
-      if(phase==after_atm_phase1) then
+      ! if(phase==after_atm_phase1) then
         ! quantities that are not updated during surface sub-timesteps
-        do ipatch=1+lbound(atmglas,1),ubound(atmglas,1)
-          igla => atmglas(ipatch)
+        do ipatch=1+lbound(ATMGLAX,1),ubound(ATMGLAX,1)
+          igla => ATMGLAX(ipatch)
           igla%atm_exports_phase1 = atmgla%atm_exports_phase1
 #ifdef TRACERS_WATER
           igla%tratm_exports_phase1 = atmgla%tratm_exports_phase1
@@ -636,7 +662,7 @@ c
           DO I=I_0,IMAXJ(J)
             ! Downscale Pressure
             ! See eq. 3.7: http://paoc.mit.edu/labweb/notes/chap3.pdf
-            zdiff = elevhc(i,j,ipatch) - zatmo(i,j)/Grav
+            zdiff = elevhp(i,j,ipatch) - zatmo(i,j)/Grav
             igla%SRFP(i,j) = atmgla%SRFP(i,j) * exp(-zdiff/H)
 
             ! Set other things that rely on downscaling
@@ -660,6 +686,53 @@ c
           enddo
           enddo
         enddo	! ipatch
+#undef ATMGLAX
+      end subroutine downscale_pressure_li
+! -----------------------------------------------------------------------
+      subroutine downscale_temperature_li
+! create patch-specific values of inputs to the land ice model from
+! grid-mean values and patch-specific physical parameters (elevation etc.)
+! This initial version is simply copying grid-mean values into all patches.
+
+#ifdef GLINT2
+#define ATMGLAX atmglas_hp
+#else
+#define ATMGLAX atmglas
+#endif
+      use fluxes, only : ATMGLAX
+      use fluxes, only : atmgla
+     &     ,after_atm_phase1,during_srfflx
+      use domain_decomp_atm, only : grid
+      use exchange_types, only : atmgla_xchng_vars
+
+      ! Stuff needed for downscaling
+      use landice_com, only : elevhp, HC_T_LAPSE_RATE
+      use constant, only : kapa, Grav
+      use atm_com, only : zatmo
+      USE GEOM, only : imaxj
+      USE RESOLUTION, only : ptop
+      USE DYNAMICS, only : dsig
+      USE CONSTANT, only : LHS
+
+      implicit none
+      real*8, external :: QSAT      ! Import function from Utilities.F90
+!@var phase indicates from which point this routine was called
+!      integer, intent(in) :: phase
+c
+      integer :: ipatch
+      type(atmgla_xchng_vars), pointer :: igla
+      integer :: i,j,i_0,i_1,j_0,j_1
+      real*8, parameter :: H = 6800d0  ! See eq. 3.7: http://paoc.mit.edu/labweb/notes/chap3.pdf
+      real*8 :: iglaT_K, atmglaT_K, P, zdiff
+      real*8 :: AM1_hPa    ! AM1 in units of hecto-Pascals
+
+      if(ubound(ATMGLAX,1)==1) return ! only one patch. nothing to do
+
+      i_0 = grid%i_strt
+      i_1 = grid%i_stop
+      j_0 = grid%j_strt
+      j_1 = grid%j_stop
+
 
       ! ======= atm_exports_phasesrf is composed of:
       !    real*8, dimension(:,:,:), pointer ::
@@ -673,10 +746,10 @@ c
       !      ,U1,V1
       ! The "layer 1" arrays TEMP1,Q1,U1,V1,P1,AM1 will be redefined
       ! to correspond to the full boundary layer depth.
-      elseif(phase==during_srfflx) then
+      !elseif(phase==during_srfflx) then
         ! quantities that are updated during surface sub-timesteps
-        do ipatch=1+lbound(atmglas,1),ubound(atmglas,1)
-          igla => atmglas(ipatch)
+        do ipatch=1+lbound(ATMGLAX,1),ubound(ATMGLAX,1)
+          igla => ATMGLAX(ipatch)
           igla%atm_exports_phasesrf = atmgla%atm_exports_phasesrf
 #ifdef TRACERS_ON
           igla%tratm_exports_phasesrf = atmgla%tratm_exports_phasesrf
@@ -693,7 +766,7 @@ c
            atmglaT_K = atmgla%TEMP1(i,j) * atmgla%SRFPK(i,j)
 
            ! Downscale temperature, 8K/km (.008 K/m)
-           zdiff = elevhc(i,j,ipatch) - zatmo(i,j)/Grav
+           zdiff = elevhp(i,j,ipatch) - zatmo(i,j)/Grav
            iglaT_K = atmglaT_K - zdiff * HC_T_LAPSE_RATE
 
            ! Convert back to potential temperature
@@ -711,6 +784,5 @@ c
          enddo
          enddo
         enddo		! ipatch
-      endif
-      return
-      end subroutine patchify_landice_inputs
+#undef ATMGLAX
+      end subroutine downscale_temperature_li

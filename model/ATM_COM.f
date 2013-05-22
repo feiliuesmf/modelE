@@ -1,10 +1,11 @@
 #include "rundeck_opts.h"
       MODULE ATM_COM
 !@sum  ATM_COM Main atmospheric variables
+!@vers 2013/04/02
 !@auth Original Development Team
       USE RESOLUTION, only : LM
 #ifdef USE_ESMF
-      USE ESMF_MOD, only: ESMF_Clock
+      USE ESMF, only: ESMF_Clock
 #endif
       IMPLICIT NONE
       SAVE
@@ -40,6 +41,7 @@
       integer :: Kradia=0,iu_rad
 
 !**** Main atmospheric prognostic variables
+!@var MA = Air mass per unit area of each layer (kg/m^2)
 !@var U,V east-west, and north-south velocities (m/s)
 !@var T potential temperature (referenced to 1 mb) (K)
 !@var Q specific humidity (kg water vapor/kg air)
@@ -47,6 +49,7 @@
 #ifdef BLK_2MOM
 !@var WMICE cloud ice amount (kg water/kg air)
 #endif
+      Real*8,Allocatable,Dimension(:,:,:) :: MA  !  PLIJ*DSIG(L)*mb2kg
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: U
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: V
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: T
@@ -55,7 +58,10 @@
 #ifdef BLK_2MOM
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: WMICE
 #endif
+
+!@var MSUM (kg/m^2) = [column mass per unit area] - MTOP
 !@var P surface pressure (hecto-Pascals - PTOP)
+      Real*8,Allocatable,Dimension(:,:) :: MSUM
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: P
 
       real*8, parameter :: temperature_istart1=250. ! not used
@@ -64,74 +70,70 @@
 !@var ZATMO: surface elevation (m)
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: ZATMO
 
-
 C**** Some helpful arrays (arrays should be L first)
 !@var  PLIJ  Surface pressure: P(I,J) or PSF-PTOP (mb)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PLIJ
 !@var  PDSIG  Surface pressure * DSIG(L) (mb)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PDSIG
-!@var  AM  Air mass of each box (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AM     ! PLIJ*DSIG(L)*100/grav
-!@var  BYAM  1/Air mass (m^2/kg)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: BYAM
+!@var  byMA = 1/MA (m^2/kg)
 !@var  PMID  Pressure at mid point of box (mb)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PMID    ! SIG(L)*PLIJ+PTOP
 !@var  PK   PMID**KAPA
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PK
 !@var  PEDN  Pressure at lower edge of box (incl. surface) (mb)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PEDN  ! SIGE(L)*PLIJ+PTOP
 !@var  PEK  PEDN**KAPA
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PEK
 !@var  SQRTP  square root of P (used in diagnostics)
+!@var  PTROPO  Pressure at mid point of tropopause level (mb)
+!@var  LTROPO  Tropopause layer
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PLIJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PDSIG
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: byMA
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PMID    ! SIG(L)*PLIJ+PTOP
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PK
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PEDN  ! SIGE(L)*PLIJ+PTOP
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PEK
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SQRTP
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PTROPO
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: LTROPO
 #ifdef etc_subdd
 !@var  TTROPO  Temperature at mid point of tropopause level, extra subdaily
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: TTROPO
 #endif
-!@var  PTROPO  Pressure at mid point of tropopause level (mb)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PTROPO
-!@var  LTROPO  Tropopause layer
-      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: LTROPO
 
 C**** module should own dynam variables used by other routines
 !@var PTOLD pressure at beginning of dynamic time step (for clouds)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:)    :: PTOLD
 !@var SD_CLOUDS vert. integrated horizontal convergence (for clouds)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SD_CLOUDS
 !@var GZ geopotential height (for Clouds and Diagnostics)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: GZ
 !@var DPDX_BY_RHO,DPDY_BY_RHO (pressure gradients)/density at L=1
-      REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: DPDX_BY_RHO,DPDY_BY_RHO
 !@var DPDX_BY_RHO_0,DPDY_BY_RHO_0 surface (pressure gradients)/density
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)    :: PTOLD
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SD_CLOUDS
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: GZ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: DPDX_BY_RHO,DPDY_BY_RHO
       REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: DPDX_BY_RHO_0
       REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: DPDY_BY_RHO_0
-
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PHI
 
-!@var PUA,PVA,SDA,PS save PU,PV,SD,P for hourly tracer advection
+!@var MUs,MVs,MWs,PS save PU,PV,SD,P for hourly tracer advection
 !@var MB Air mass array for tracers (before advection)
-!@var MA Air mass array for tracers (updated during advection)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PUA,PVA,SDA,MB,MA
+!@var MMA (kg) Air mass array for tracers (updated during advection)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: MUs,MVs,MWs,MB,MMA
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PS
 
 !@var DKE change in KE due to dissipation (SURF/DC/MC) (m^2/s^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DKE
 !@var KEA KE on the A grid (m^2/s^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: KEA ! ke on A grid
 !@var UALIJ,VALIJ U,V on the A grid (m/s)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: UALIJ,VALIJ
 !@var WSAVE vertical velocity (m/s)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DKE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: KEA ! ke on A grid
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: UALIJ,VALIJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: WSAVE
 
       END MODULE ATM_COM
+
 
       SUBROUTINE ALLOC_ATM_COM(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
       USE CONSTANT, only : GRAV
-      USE FILEMANAGER
-      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,HALO_UPDATE,READT_PARALLEL
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,HALO_UPDATE
      &     ,hassouthpole,hasnorthpole
       USE RESOLUTION, ONLY : IM,JM,LM,PSFMPT
       USE ATM_COM, ONLY : temperature_istart1
@@ -140,11 +142,11 @@ C**** module should own dynam variables used by other routines
      *  ,WMICE
 #endif
       USE ATM_COM, ONLY : 
-     &     PLIJ,PDSIG,AM,BYAM,PMID,PK,
+     &     PLIJ,PDSIG,MA,byMA,PMID,PK,
      &     PEDN,PEK,SD_CLOUDS,GZ,PHI,
-     &     PUA,PVA,SDA,MB,MA,DKE,KEA,
+     &     MUs,MVs,MWs,MB,MMA,DKE,KEA,
      &     UALIJ,VALIJ,WSAVE,
-     &     SQRTP,PTROPO,LTROPO,PS,PTOLD,
+     &     SQRTP,MSUM,PTROPO,LTROPO,PS,PTOLD,
 #ifdef etc_subdd
      &     TTROPO,
 #endif
@@ -154,16 +156,15 @@ C**** module should own dynam variables used by other routines
 #else
        USE GEOM, only : geom_b
 #endif
-      USE pario
+      use pario, only : par_open,par_close,read_dist_data
       use Dictionary_mod, only : sync_param, get_param
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
-      INTEGER :: iu_TOPO
+      INTEGER :: fid
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: I, J, I_0, I_1, J_1, J_0
       INTEGER :: IER
-      INTEGER :: nhc_local = 1
 
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
@@ -185,22 +186,15 @@ C****
 #endif
 
       ALLOCATE(ZATMO(I_0H:I_1H,J_0H:J_1H), STAT = IER)
-
       ALLOCATE(P(I_0H:I_1H,J_0H:J_1H), STAT = IER)
-
       ALLOCATE(U(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
-
       ALLOCATE(V(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
-
       ALLOCATE(T(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
-
       ALLOCATE(Q(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
-
       ALLOCATE(WM(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
 #ifdef BLK_2MOM
       ALLOCATE(WMICE(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
 #endif
-
 
       U(:,:,:)=0.
       V(:,:,:)=0.
@@ -212,17 +206,9 @@ C****
       WMICE (:,:,:)=0.
 #endif
 
-      call sync_param("NHC", nhc_local)
-      if (nhc_local.eq.1) then
-        call openunit("TOPO",iu_TOPO,.true.,.true.)
-        CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),ZATMO ,5) ! Topography
-        call closeunit(iu_TOPO)
-      else
-        ! New-format netCDF file
-        iu_TOPO = par_open(grid,"TOPO","read")
-        call read_dist_data(grid,iu_TOPO,'zatmo',zatmo)
-        call par_close(grid,iu_TOPO)
-      end if
+      fid = par_open(grid,'TOPO','read')
+      call read_dist_data(grid,fid,'zatmo',zatmo)
+      call par_close(grid,fid)
 
       ZATMO(I_0:I_1,J_0:J_1) = ZATMO(I_0:I_1,J_0:J_1)*GRAV   ! Geopotential
       CALL HALO_UPDATE(GRID, ZATMO)
@@ -248,23 +234,24 @@ C**** Check polar uniformity
 
       ! K-I-J arrays
       ALLOCATE ( PLIJ(LM,I_0H:I_1H,J_0H:J_1H), 
-     $           PDSIG(LM,I_0H:I_1H,J_0H:J_1H),
-     $             AM(LM,I_0H:I_1H,J_0H:J_1H),  
-     $           BYAM(LM,I_0H:I_1H,J_0H:J_1H),
+     $          PDSIG(LM,I_0H:I_1H,J_0H:J_1H),
+     $             MA(LM,I_0H:I_1H,J_0H:J_1H),  
+     $           byMA(LM,I_0H:I_1H,J_0H:J_1H),
      $           PMID(LM,I_0H:I_1H,J_0H:J_1H),    
-     $           PK(LM,I_0H:I_1H,J_0H:J_1H),
-     $           PEDN(LM+1,I_0H:I_1H,J_0H:J_1H), 
-     $            PEK(LM+1,I_0H:I_1H,J_0H:J_1H),
+     $             PK(LM,I_0H:I_1H,J_0H:J_1H),
+     $         PEDN(LM+1,I_0H:I_1H,J_0H:J_1H), 
+     $          PEK(LM+1,I_0H:I_1H,J_0H:J_1H),
      $   STAT = IER)
+
       ! I-J-K arrays
       ALLOCATE( SD_CLOUDS(I_0H:I_1H,J_0H:J_1H,LM),  
      $                 GZ(I_0H:I_1H,J_0H:J_1H,LM), 
      $                PHI(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                PUA(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                PVA(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                SDA(I_0H:I_1H,J_0H:J_1H,LM),  
-     $                MB(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                MA(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                MUs(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                MVs(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                MWs(I_0H:I_1H,J_0H:J_1H,LM),  
+     $                 MB(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                MMA(I_0H:I_1H,J_0H:J_1H,LM), 
      $                DKE(I_0H:I_1H,J_0H:J_1H,LM), 
      $                KEA(I_0H:I_1H,J_0H:J_1H,LM), 
      $                UALIJ(LM,I_0H:I_1H,J_0H:J_1H), 
@@ -274,17 +261,18 @@ C**** Check polar uniformity
 
       ! I-J arrays
       ALLOCATE(  SQRTP(I_0H:I_1H,J_0H:J_1H), 
+     $            MSUM(I_0H:I_1H,J_0H:J_1H),
      $          PTROPO(I_0H:I_1H,J_0H:J_1H),
      $          LTROPO(I_0H:I_1H,J_0H:J_1H),  
 #ifdef etc_subdd
      $          TTROPO(I_0H:I_1H,J_0H:J_1H),   ! extra subdaily
 #endif
-     $          PTOLD(I_0H:I_1H,J_0H:J_1H),
-     $          DPDX_BY_RHO(I_0H:I_1H,J_0H:J_1H), 
-     $          DPDY_BY_RHO(I_0H:I_1H,J_0H:J_1H),
-     $          DPDX_BY_RHO_0(I_0H:I_1H,J_0H:J_1H), 
-     $          DPDY_BY_RHO_0(I_0H:I_1H,J_0H:J_1H),
-     $          PS(I_0H:I_1H,J_0H:J_1H),
+     $           PTOLD(I_0H:I_1H,J_0H:J_1H),
+     $     DPDX_BY_RHO(I_0H:I_1H,J_0H:J_1H), 
+     $     DPDY_BY_RHO(I_0H:I_1H,J_0H:J_1H),
+     $   DPDX_BY_RHO_0(I_0H:I_1H,J_0H:J_1H), 
+     $   DPDY_BY_RHO_0(I_0H:I_1H,J_0H:J_1H),
+     $              PS(I_0H:I_1H,J_0H:J_1H),
      $   STAT = IER)
 
 ! correct or wrong, but being static all arrays were initialized

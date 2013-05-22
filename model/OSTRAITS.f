@@ -10,9 +10,9 @@ C****
 !@ver  2009/05/22
 C****
       USE CONSTANT, only : grav,rrt12=>byrt12
-      Use OCEAN,   Only: LMO,LMM, DXYPO,HOCEAN
+      Use OCEAN,   Only: LMO, DXYPO
       Use STRAITS, Only: NMST,LMST,IST,JST,WIST,MUST,DISTPG,
-     *                   OPRESE,MOE, G0ME,GZME, S0ME,SZME
+     *                   LMME,OPRESE,HOCEANE, MOE, G0ME,GZME, S0ME,SZME
       IMPLICIT NONE
 
       INTEGER I,J,K,L,N
@@ -31,13 +31,13 @@ C****
       J=JST(N,K)
 C**** Calculate pressure by integrating from the top down
       PE = OPRESE(K,N)
-      DO L=1,LMM(I,J)
+      DO L=1,LMME(K,N)
          PEND(L,K) = PE + GRAV*MOE(K,N,L)*.5
          PE        = PE + GRAV*MOE(K,N,L)  ;  EndDo
 C**** Calculate geopotential by integrating from the bottom up,
 C**** also calculate the specific volume
-      PHIE = -HOCEAN(I,J)*GRAV
-      DO L=LMM(I,J),1,-1
+      PHIE = -HOCEANE(K,N)*GRAV
+      DO L=LMME(K,N),1,-1
       GUP = (G0ME(K,N,L) - 2*RRT12*GZME(K,N,L)) / (MOE(K,N,L)*DXYPO(J))
       GDN = (G0ME(K,N,L) + 2*RRT12*GZME(K,N,L)) / (MOE(K,N,L)*DXYPO(J))
       SUP = (S0ME(K,N,L) - 2*RRT12*SZME(K,N,L)) / (MOE(K,N,L)*DXYPO(J))
@@ -71,7 +71,7 @@ C****
 !@ver  2009/05/26
 C****
       USE CONSTANT, only : teeny
-      USE OCEAN, only : dxypo,bydxypo,mo=>mo_glob
+      USE OCEAN, only : dxypo,bydxypo
       Use STRAITS, Only: NMST,LMST,IST,JST,WIST,MUST,DISTPG,MMST,
      *                   G0MST,GXMST,GZMST, S0MST,SXMST,SZMST,
      *                   MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME,
@@ -331,12 +331,13 @@ C****
 C****
       USE CONSTANT, only: twopi,radius
       Use OCEAN,   Only: IM,JM,LMO, ZE, FJEQ,DLON,DLAT, DXYPO,
-     *                   GATHER_OCEAN, MySparseComm_Type
+     *                   MySparseComm_Type, HOCEAN, LMM
       Use STRAITS, Only: NMST,LMST, IST,JST, XST,YST, WIST,DIST,DISTPG,
      *                   MMST,MUST, G0MST,GXMST,GZMST,S0MST,SXMST,SZMST,
      *                   RSIST,RSIXST, MSIST,SSIST,HSIST,
      *                   MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME,
-     *                   kn2
+     *                   kn2,
+     *                   HOCEANe,LMMe
 #ifdef OCN_GISSMIX
      *                   ,otkest
 #endif
@@ -353,6 +354,8 @@ C****
       REAL*8 FLAT,DFLON,DFLAT,SLAT,DSLON,DSLAT,TLAT,DTLON
      *     ,DTLAT,G01,GZ1,S01,SZ1,G02,GZ2,S02,SZ2
       LOGICAL, INTENT(IN) :: iniOCEAN
+
+      real*8 rLMMe(2,nmst), rLMM(im,grid%j_strt_halo:grid%j_stop_halo)
 
       !initialize communication data for gathering and scattering
       !straits ocean data
@@ -434,6 +437,12 @@ cc    FJEQ = (JM+1)/2d0
       END DO
       END DO
 C****
+
+      call gather_straits_pairs(HOCEAN,HOCEANe, 1)
+      rLMM(:,:) = LMM(:,:)
+      call gather_straits_pairs(rLMM,rLMMe, 1)
+      LMMe = rLMMe
+
       IF(iniOCEAN) THEN
 C****
 C**** Initialize the mass flux, potential heat, and salinity in

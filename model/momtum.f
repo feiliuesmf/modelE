@@ -31,8 +31,8 @@ c
 
       integer kan,jcyc
       character text*20
-      real kappaf,hfharm
-      external kappaf,hfharm
+      real hfharm,sigstar
+      external hfharm,sigstar
       data drcoef/.003/
 c
       boost(pbot1,pbot2,p1,p2)=max(1.,1.5-min(pbot1-p1,pbot2-p2)
@@ -52,9 +52,11 @@ c
 c --- use upper interface pressure in converting sigma to sigma-star.
 c --- this is to avoid density variations in layers intersected by sea floor
 c
-      thstar(i,j,k)=th3d(i,j,km)
-     . +kappaf(temp(i,j,km),saln(i,j,km),p(i,j,k),th3d(i,j,km)
-     .                                         ,wgtkap(i,j))
+      if (kappa) then
+        thstar(i,j,k)=sigstar(temp(i,j,k),saln(i,j,k),p(i,j,k))
+      else
+        thstar(i,j,k)=th3d(i,j,k)
+      end if
  82   p(i,j,k+1)=p(i,j,k)+dp(i,j,km)
 c
       do 80 i=ifp(j,l),ilp(j,l)

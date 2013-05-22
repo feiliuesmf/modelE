@@ -26,7 +26,7 @@ Preprocessor Options
 #define TRDIAG_WETDEPO           ! additional wet deposition diags for tracers
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
-#define RAD_O3_GCM_HRES     ! Use GCM horiz resl to input rad code clim Ozone
+#define RAD_O3_2010              ! 2010 ozone dataset
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
@@ -65,13 +65,16 @@ QUS3D                               ! advection of Q and tracers
 TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shared_source_files"
 #include "tracer_shindell_source_files"
+TomasTracersMetadata
+ShindellTracersMetadata
+sharedTracersMetadata
+MiscTracersMetadata
 #include "tracer_TOMAS_aerosols_source_files"
 TRDIAG
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
 CLD_AEROSOLS_Menon_MBLK_MAT_E29q BLK_DRV ! aerosol-cloud interactions
-RAD_native_O3                       ! for reading ozone to rad code at native GCM horiz res.
 lightning                           ! Colin Price lightning model
 ! flammability_drv flammability       ! Olga's fire model
 
@@ -88,16 +91,16 @@ OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
-#include "IC_144x90_input_files_nc"
+#include "IC_144x90_input_files"
 #include "static_ocn_2000_144x90_input_files"
 VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculations
-RVR=RD_modelE_Fa.RVR.bin          ! river direction file
+
+RVR=RD_modelE_Fa.nc             ! river direction file
+NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "TAero2008_input_files"
-#include "O3_2010_144x90_input_files"
-!#include "O3_2005_input_files"
+#include "rad_144x90_input_files"
 
 #include "chemistry_input_files_nosoa"
 #include "chemistry_144x90_input_files"

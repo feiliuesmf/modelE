@@ -55,7 +55,7 @@ ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                              ! ocean function look up table
 SNOW_DRV SNOW                          ! snow model
 RAD_COM RAD_DRV RADIATION              ! radiation modules
-RAD_UTILS ALBEDO                       ! radiation and albedo
+RAD_UTILS ALBEDO READ_AERO             ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT          ! diagnostics
 DIAG_ZONAL GCDIAGb                     ! grid-dependent code for lat-circle diags
 DIAG_RES_F                             ! diagnostics (resolution dependent)
@@ -67,17 +67,21 @@ Components:
 MPI_Support shared
 
 Data input files:
-AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
-GIC=GIC.144X90.DEC01.1.ext   ! initial ground conditions      ISTART=2
+AIC=AIC.RES_F40.D771201.nc  ! observed init cond (atm. only) ISTART=2
+GIC=GIC.144X90.DEC01.1.ext_1.nc   ! initial ground conditions      ISTART=2
 OIC=OIC144X90LD.ZN_nocasp.CLEV94.DEC01S
 OFTAB=OFTABLE_NEW                   ! ocean function table
 AVR=AVR144X90N_nocasp.L13.modelE    ! ocean filter
-KBASIN=KB144X90.modelE              ! ocean basin designations
-TOPO_OC=Z2HX2fromZ1QX1N   ! ocean bdy.cond
-CDN=CD144X90.ext VEG=V144X90_no_crops.ext CROPS=CROPS2007_144X90N_nocasp
-SOIL=S144X900098M.ext TOPO=Z2HX2fromZ1QX1N   ! bdy.cond
+KBASIN=KB144X90.modelE.nc           ! ocean basin designations
+TOPO_OC=OZ2HX2fromZ1QX1N.nc   ! ocean bdy.cond
+CDN=CD144X90.ext.nc
+VEG=V144X90_no_crops.ext.nc
+CROPS=CROPS2007_144X90N_nocasp.nc
+SOIL=S144X900098M.ext.nc
+TOPO=Z2HX2fromZ1QX1N.nc   ! bdy.cond
 REG=REG2X2.5          ! special regions-diag
-RVR=RD_modelE_F.RVR.bin      ! river direction file
+RVR=RD_modelE_F.nc             ! river direction file
+NAMERVR=RD_modelE_F.names.txt  ! named river outlets
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files
 RADN4=LWTables33k.1b              ! rad.tables and history files
@@ -88,29 +92,17 @@ TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
 TAero_OCI=sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial organic carbons
 TAero_BCI=sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial black carbons
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
 RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux_hdr     ! need KSOLAR=2
 RADNE=topcld.trscat8
 ISCCP=ISCCP.tautables
-! ozone files (minimum 1, maximum 9 files + 1 trend file)
-O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
-O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
-O3file_03=mar2004_o3_shindelltrop_72x46x49x12_1910
-O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
-O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
-O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
-O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
-O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
-O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
-O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
+#include "rad_144x90_input_files"
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
-BC_dep=BC.Dry+Wet.depositions.ann
-TOP_INDEX=top_index_144x90_a.ij.ext
+TOP_INDEX=top_index_144x90_a.ij.ext.nc
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_144X90_gas.OCN   ! glacial melt distribution
+GLMELT=GLMELT_144X90_gas.OCN.nc   ! glacial melt distribution
 
 Label and Namelist:
 E1F40o13 (1850 atm.,the current modelE version)

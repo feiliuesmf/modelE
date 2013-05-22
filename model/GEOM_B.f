@@ -56,6 +56,12 @@ C**** Note that this is not the exact area, but is what is required for
 C**** some B-grid conservation quantities
       REAL*8, PUBLIC, DIMENSION(JM) :: DXYP,BYDXYP
       REAL*8, PUBLIC, DIMENSION(IM,JM) :: aDXYP
+
+!@var  i-index (longitude) of each grid cell
+      INTEGER, PUBLIC, ALLOCATABLE :: indx(:,:)
+!@var  j-index (latitude) of each grid cell
+      INTEGER, PUBLIC, ALLOCATABLE :: jndx(:,:)
+
       REAL*8, PUBLIC, DIMENSION(:,:), ALLOCATABLE ::
      &     AXYP,BYAXYP,LAT2D,LON2D,LAT2D_DG,LON2D_DG,SINLAT2D,COSLAT2D
      &    ,ddx_ci,ddx_cj,ddy_ci,ddy_cj
@@ -134,6 +140,11 @@ C**** some B-grid conservation quantities
       j_1s = grid%j_stop_skp
 
       allocate(idij(im,im,grid%j_strt_halo:grid%j_stop_halo))
+
+      allocate(indx(i_0h:i_1h, j_0h:j_1h))
+      allocate(jndx(i_0h:i_1h, j_0h:j_1h))
+      print *,'GEOM_SPECS',i_0h, i_1h, j_0h, j_1h,
+     &      i_0, i_1, j_0, j_1, j_0s, j_1s
 
       allocate(
      &       axyp(i_0h:i_1h,j_0h:j_1h)
@@ -360,6 +371,16 @@ C**** Conditions at non-polar points
 c
 c temporary
 c
+      ! Fill in indices for grid cells, so we can
+      ! halo-update them with our neighbors
+      do j=j_0h,j_1h
+      do i=i_0h,i_1h
+        indx(i,j) = i
+        jndx(i,j) = j
+      end do    ! i
+      end do    ! j
+
+
       do j=max(1,j_0h),min(jm,j_1h)
       do i=i_0h,i_1h
         axyp(i,j) = dxyp(j)

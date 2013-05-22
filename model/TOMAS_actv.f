@@ -1,15 +1,23 @@
 #include "rundeck_opts.h"
+
+!@sum TOMAS_act : this subroutine computes clouds microphysical 
+!@+    properties based on Nenes and Seinfeld (2003) and Fountoukis and 
+!@+    Nenes (2005). 
+!@+   NOTE from Yunha Lee : ModelE-style in-code documentation is only 
+!@+    done for the main subroutine CALCND. For the other subroutines, 
+!@+    original in-code comments from Georgia Tech are kept.   
+          
 C=======================================================================
 C
-C *** SUBROUTINE CALCNd
-C *** WRITTEN BY ATHANASIOS NENES
-C *** GISS GCM (TOMAS microphys) interface
-C *** This subroutine calls the Nenes and Seinfeld (2003) sectional
-C     activation parameterization, with the water vapor condensation
-C     modifications of Fountoukis and Nenes (2005).
+!@sum   SUBROUTINE CALCNd
+!@auth  ATHANASIOS NENES
+!@+     GISS GCM (TOMAS microphys) interface
+!@+     This subroutine calls the Nenes and Seinfeld (2003) sectional
+!@+     activation parameterization, with the water vapor condensation
+!@+     modifications of Fountoukis and Nenes (2005).
 !
-! *** Modified by YUNHA LEE (JUNE 2011)
-! *** ALL variables defined with IMPLICIT are re-defined accordingly.
+!@+   Modified by YUNHA LEE (JUNE 2011)
+!@+   ALL variables defined with IMPLICIT are re-defined accordingly.
 !     Common block is removed as well (TOMAS_ACTV module is used instead)
 !
 C
@@ -18,11 +26,13 @@ C
       MODULE TOMAS_ACTV
       
 C======================================================================C
-C *** INCLUDE FILE 'PARAMETR.INC'
-C *** THIS FILE CONTAINS THE DECLARATIONS OF THE GLOBAL CONSTANTS
-C     AND VARIABLES. 
-C
-C *** WRITTEN BY ATHANASIOS NENES
+!@+ *** INCLUDE FILE 'PARAMETR.INC'
+!@+ *** THIS FILE CONTAINS THE DECLARATIONS OF THE GLOBAL CONSTANTS
+!@+     AND VARIABLES. 
+!@+
+!@auth  ATHANASIOS NENES
+!@+     Modified by YUNHA LEE (JUNE 2011) 
+!@+     PARAMETR.INC is moved to MODULE TOMAS_ACTV 
 C
 C======================================================================C
 !YUNHA      IMPLICIT DOUBLE PRECISION (A-H,O-Z)

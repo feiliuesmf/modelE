@@ -30,7 +30,7 @@ cddd      END subroutine init_MOM
       USE RESOLUTION, only : im,jm,lm,ls1,psfmpt
       USE DIAG_COM, only : modd5k
       USE GEOM, only : fcor,dxyp,dxv,ravpn,ravps
-      USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt,dsig,mrch
+      USE DYNAMICS, only : pu,pv,sd,spa,dut,dvt,dsig,mrch
       !USE DIAG, only : diagcd
       USE DOMAIN_DECOMP_ATM, only : grid
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, CHECKSUM, GET
@@ -477,7 +477,7 @@ cgsfc      DO J=2,JM
       END DO
 C**** CALL DIAGNOSTICS
          IF(MODD5K.LT.MRCH) CALL DIAG5D (4,MRCH,DUT,DVT)
-         IF(MRCH.GT.0) CALL DIAGCD (GRID,1,U,V,DUT,DVT,DT1,PIT)
+         IF(MRCH.GT.0) CALL DIAGCD (GRID,1,U,V,DUT,DVT,DT1)
       DO L=1,LM
       DO J = J_0SG, J_1SG
       DO I=1,IM

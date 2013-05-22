@@ -119,20 +119,17 @@ c**** wind speed
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: ers_data
 !@var dustSourceFunction distribution of preferred dust sources
       real(kind=8),allocatable,dimension(:,:) :: dustSourceFunction
+
+      ! note that Lim,Ljm happen to match kim,kjm in wspdf_mod
       INTEGER,PARAMETER :: Lim=234,Ljm=234,Lkm=22
-!@param kim dimension 1 of lookup table for mean surface wind speed integration
-!@param kjm dimension 2 of lookup table for mean surface wind speed integration
-      INTEGER,PARAMETER :: kim=234,kjm=234
-!@var table1 array for lookup table for calculation of mean surface wind speed
-!@+          local to each grid box
-      REAL*8, DIMENSION(Kim,Kjm) :: table1
-!@var x11 index of table1 for GCM surface wind speed from 0 to 50 m/s
-!@var x21 index of table1 for sub grid scale velocity scale (sigma)
-      REAL*8 :: x11(kim),x21(kjm)
 !@var x1,x2,x3 indices of lock up table for emission
       REAL*8 :: x1(Lim),x2(Ljm),x3(Lkm)
 !@var table array of lock up table for emission local to each grid box
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: table
+      real*8 table(Lim,Ljm,Lkm)
+
+      !REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: table
+      !ALLOCATE(table(Lim,Ljm,Lkm),STAT=ier)
+
 !@var wsubtke_com distributed array of subscale turbulent term
 !@var wsubwd_com distributed array of subscale dry convective term
 !@var wsubwm_com distributed array of subscale moist convective term
@@ -294,8 +291,6 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
      &     mineralFractions( i_0h:i_1h, j_0h:j_1h, ntm_dust ),
 #endif
      &     STAT=ier)
-
-      ALLOCATE(table(Lim,Ljm,Lkm),STAT=ier)
 
       d_dust(i_0h:i_1h,j_0h:j_1h,:,:)=0.D0
 

@@ -40,7 +40,7 @@ endif
 # starting machine - specific options
 #
 
-NO_COMMAND = echo "*****  Requested target is not supported on $(UNAME)"; \
+NO_COMMAND = @echo "*****  This architecture is not supported "; \
              echo "*****  or compiler is not specified properly."; \
              echo "*****  You have COMPILER=$(COMPILER)" ; exit 1;
 F90 = $(NO_COMMAND)
@@ -64,6 +64,12 @@ CFLAGS = -O2 -m64
 M4 = m4
 # default runlib
 RANLIB = ranlib
+# default name for lib directory for current ABI
+ifeq ($(ABI),64)
+  LIBABI = lib64
+else
+  LIBABI = lib
+endif
 
 # RFLAGS returns rundeck options for the current object (i.e. for $*)
 # it has effect only of OBJ_LIST_O is defined
@@ -88,20 +94,17 @@ endif
 
 # hack to keep Intel8 name valid (only temporarily)
 ifeq ($(COMPILER),Intel8)
-  COMPILER=intel
+  $(error please set "COMPILER=intel" in your ~/.modelErc)
 endif
 
 # include machine-specific options
 MACHINE = $(shell uname)
 include $(CONFIG_DIR)/machine.$(MACHINE).mk
 
-# if COMPILER is not defined try default
-ifndef COMPILER
-  COMPILER = $(MACHINE)
-endif
-
 #include compiler-specific options
-include $(CONFIG_DIR)/compiler.$(COMPILER).mk
+ifneq ($(COMPILER),)
+  include $(CONFIG_DIR)/compiler.$(COMPILER).mk
+endif
 
 ifeq ($(MPI),YES)
   CPPFLAGS += -DUSE_MPI
@@ -124,7 +127,7 @@ ifeq ($(FVCUBED),YES)
   
   # Cubed-sphere requires FVCORE and MPP enabled
   FVCORE=YES
-  MPP=YES
+  #MPP=YES but current FVcubed has its own MPP already
 
   # Testing options: ADIABATIC
   ADIABATIC=YES
@@ -141,7 +144,7 @@ ifeq ($(FVCUBED),YES)
   else
     SYSTEM_MOD_DIRS = $(FVINCSx)
   endif
-  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lMAPL_Base_stubs2 -lGEOS_Shared -lMAPL_cfio -lMAPL_Base -lGMAO_mpeu -lFVdycoreCubed_GridComp -lfvdycore
+  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lMAPL_cfio -lMAPL_Base -lFVdycoreCubed_GridComp -lfvdycore -lGMAO_mpeu
   # this extra -lesmf would not be needed if the ESMF stuff came after this section
   LIBS += $(ESMFLIBDIR)/libesmf.a
   ifdef NETCDFHOME
@@ -151,6 +154,7 @@ ifeq ($(FVCUBED),YES)
     NETCDFLIB ?= -L$(NETCDFHOME)/lib -lnetcdf
   endif
   LIBS += $(subst ",,$(NETCDFLIB))
+  #"
   NETCDFINCLUDE ?= -I$(NETCDFHOME)/include
   FFLAGS += $(NETCDFINCLUDE)
   F90FLAGS += $(NETCDFINCLUDE)
@@ -210,25 +214,54 @@ ifdef PNETCDFHOME
 endif
 
 ifneq ($(CUBED_SPHERE),YES)
+
 ifdef NETCDFHOME
-  ifeq ($(MACHINE),IRIX64)
-    NETCDFLIB ?= -L$(NETCDFHOME)/lib64 -lnetcdf
+  ifneq ($(wildcard $(NETCDFHOME)/include/netcdf.inc),)
+    NETCDFINCLUDEDIR ?= $(NETCDFHOME)/include
   else
-    NETCDFLIB ?= -L$(NETCDFHOME)/lib -lnetcdf
+    ifneq ($(wildcard $(NETCDFHOME)/include/netcdf-3/netcdf.inc),)
+      NETCDFINCLUDEDIR ?= $(NETCDFHOME)/include/netcdf-3
+    else
+      $(error NetCDF include files not found)
+    endif
   endif
-  LIBS += $(subst ",,$(NETCDFLIB))
-  NETCDFINCLUDE ?= -I$(NETCDFHOME)/include
-  FFLAGS += $(NETCDFINCLUDE)
-  F90FLAGS += $(NETCDFINCLUDE)
-  INCS += $(NETCDFINCLUDE)
-endif
+
+  ifneq ($(wildcard $(NETCDFHOME)/$(LIBABI)/libnetcdf*),)
+    NETCDFLIBDIR ?= $(NETCDFHOME)/$(LIBABI)
+  else
+    NETCDFLIBDIR ?= $(NETCDFHOME)/lib
+  endif
 endif
 
-ifeq ($(USE_ENT),YES)
-  CPPFLAGS += -DUSE_ENT
-  FFLAGS += -$(I)Ent
-  F90FLAGS += -$(I)Ent
+ifdef NETCDFINCLUDEDIR
+  FFLAGS += -I$(NETCDFINCLUDEDIR)
+  F90FLAGS += -I$(NETCDFINCLUDEDIR)
+  INCS += -I$(NETCDFINCLUDEDIR)
 endif
+
+ifdef NETCDFLIBDIR
+  LIBS += -L$(NETCDFLIBDIR) -lnetcdf
+  ifeq ($(wildcard $(NETCDFLIBDIR)/libnetcdff.*),)
+    LIBS += -L$(NETCDFLIBDIR) -lnetcdf
+  else
+    LIBS += -L$(NETCDFLIBDIR) -L/opt/local/lib -lnetcdff -lnetcdf
+  endif
+endif
+
+endif
+
+
+ifdef GLINT2INCLUDEDIR
+  FFLAGS += -I$(GLINT2INCLUDEDIR)
+  F90FLAGS += -I$(GLINT2INCLUDEDIR)
+  INCS += -I$(GLINT2INCLUDEDIR)
+endif
+
+ifdef GLINT2LIBDIR
+  LIBS += -L$(GLINT2LIBDIR) -lglint2 -L/opt/local/lib -lproj -lblitz -lCGAL -lmpfr -lgmp
+endif
+
+
 
 ifeq ($(ADIABATIC),YES)
   CPPFLAGS += -DADIABATIC
@@ -244,15 +277,7 @@ ifeq ($(MPI),YES)
   endif
 endif
 
-#
-# Check for extra options specified in modelErc
-#
 
-# access new interfaces in sub-directory.
-ifdef MPI_Support
-  FFLAGS += -$(I)$(MPI_Support)
-  F90FLAGS += -$(I)$(MPI_Support)
-endif
 CPPFLAGS += $(INCS)
 
 # path to the modules dir if present
@@ -263,13 +288,6 @@ endif
 
 ifdef INCLUDE_DIR
   CPPFLAGS += -I$(INCLUDE_DIR)
-endif
-
-# add path to MPI includes
-ifeq ($(MPI),YES)
-ifdef MPIDIR
-  CPPFLAGS += -I$(MPIDIR)/include
-endif
 endif
 
 ifeq ($(COMPARE_MODULES_HACK),NO)

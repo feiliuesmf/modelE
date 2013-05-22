@@ -43,7 +43,7 @@ SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_COM LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 RAD_COM RAD_DRV RADIATION           ! radiation modules
-RAD_UTILS ALBEDO                    ! radiation and albedo
+RAD_UTILS ALBEDO READ_AERO          ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_F                          ! diagnostics (resolution dependent)
@@ -86,13 +86,13 @@ OPTS_Ent = ONLINE=YES PS_MODEL=FBB
 OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
-AIC=AIC.RES_F40.D771201           ! observed init cond (atm. only) ISTART=2
-GIC=GIC.144X90.DEC01.1.ext        ! initial ground conditions      ISTART=2
+AIC=AIC.RES_F40.D771201.nc           ! observed init cond (atm. only) ISTART=2
+GIC=GIC.144X90.DEC01.1.ext_1.nc        ! initial ground conditions      ISTART=2
 TOPO=Z144X90N.2deghycom           ! 2deg hycom
-CDN=CD144X90.ext                  ! neutral drag coefficient
-VEG=V144X90_no_crops.ext          ! vegatation file 
-CROPS=CROPS2007_144X90N_nocasp    ! crops
-SOIL=S144X900098M.ext             ! soil properties
+CDN=CD144X90.ext.nc               ! neutral drag coefficient
+VEG=V144X90_no_crops.ext.nc       ! vegatation file 
+CROPS=CROPS2007_144X90N_nocasp.nc ! crops
+SOIL=S144X900098M.ext.nc          ! soil properties
 REG=REG2X2.5                      ! special regions-diag
 RVR=rvr_atm2x2h_hycom2deg.bin     ! 2deg hycom
 RADN1=sgpgxg.table8               ! rad.tables and history files
@@ -101,35 +101,23 @@ RADN4=LWTables33k.1b              ! rad.tables and history files
 RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 RADN3=miescatpar.abcdv2
 ! updated aerosols need MADAER=3
-TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_SSA=SSA_Koch2008_kg_m2_72x46x20h
-TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000h
-TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
+TAero_SUL=SUL_Koch2008_kg_m2_144x90x20_1890-2000h.nc
+TAero_SSA=SSA_Koch2008_kg_m2_144x90x20h.nc
+TAero_NIT=NIT_Bauer2008_kg_m2_144x90x20_1890-2000h.nc
+TAero_OCA=OCA_Koch2008_kg_m2_144x90x20_1890-2000h.nc
+TAero_BCA=BCA_Koch2008_kg_m2_144x90x20_1890-2000h.nc
+TAero_BCB=BCB_Koch2008_kg_m2_144x90x20_1890-2000h.nc
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
 RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux_hdr     ! need KSOLAR=2
 RADNE=topcld.trscat8
 ISCCP=ISCCP.tautables
-! ozone files (minimum 1, maximum 9 files + 1 trend file)
-O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
-O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
-O3file_03=mar2004_o3_shindelltrop_72x46x49x12_1910
-O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
-O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
-O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
-O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
-O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
-O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
-O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
+#include "rad_144x90_input_files"
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
-BC_dep=BC.Dry+Wet.depositions.ann
-TOP_INDEX=top_index_144x90_a.ij.ext
-ZVAR=ZVAR2X25A               ! topographic variation for gwdrag
+TOP_INDEX=top_index_144x90_a.ij.ext.nc
+ZVAR=ZVAR2X25A.nc               ! topographic variation for gwdrag
 MSU_wts=MSU.RSS.weights.data
 GLMELT=GLMELT_144X90.OCN     ! glacial melt distribution
 latlonij=latlon195x180.4bin  ! lat & lon at each i,j
@@ -148,7 +136,7 @@ kpar=seawifs_kpar_195x180.tbin        !monthly/annual seawifs_kpar data
 
 ! probably need these (should convert to 144x90)
 soil_textures=soil_textures_top30cm_2x2.5
-SOILCARB_global=soilcarb_top30cm_nmaps_2x2.5bin.dat
+SOILCARB_global=soilcarb_top30cm_2x2.5.nc
 
 Label and Namelist:
 E4a2h2a (2x2.5x40, 1850 atm.;  26 layer 2deg HYCOM ocean)

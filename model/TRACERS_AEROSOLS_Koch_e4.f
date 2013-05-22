@@ -563,11 +563,14 @@ c want kg seasalt/m2/s, for now in 2 size bins
 #ifdef TRACERS_AEROSOLS_OCEAN
      &                          ,OC_SS_enrich_fact
 #endif  /* TRACERS_AEROSOLS_OCEAN */
+#ifdef TRACERS_TOMAS
+      USE TOMAS_EMIS, only : scalesizeSalt
+#endif
       !USE FLUXES, only: gtemp !Jaegle
       use Dictionary_mod, only: sync_param
       implicit none
       REAL*8 erate,swind_cap
-      integer jread
+      integer jread,nb
       integer, INTENT(IN)::itype,ibin,i,j
       REAL*8, INTENT(IN)::swind
       REAL*8, INTENT(OUT)::ss
@@ -633,61 +636,7 @@ c if after Feb 28 skip the leapyear day
       if (OFFLINE_DMS_SS.ne.1.and.OFFLINE_SS.ne.1) then
         if (itype.eq.1) then
           erate=1.373d0*swind**3.41d0 !Gong
-#ifdef TOMAS_12_10NM
-          if (ibin.eq.1) then 
-            ss=tune_ss1*erate*3.7028916e-23 ! wrong 2.6656153e-21 !Gong
-          elseif (ibin.eq.2)then
-            ss=tune_ss1*erate*5.7123891e-22 ! wrong 5.8887602e-20 !Gong
-          elseif (ibin.eq.3)then
-            ss=tune_ss1*erate*1.1839277e-20 !wrong 1.2690423e-18 !Gong
-          elseif (ibin.eq.4)then
-            ss=tune_ss1*erate*2.8514155e-19 !wrong 1.5477057e-17 !Gong
-          elseif (ibin.eq.5)then
-            ss=tune_ss1*erate*4.5906335e-18 !wrong 9.6921813e-17 !Gong
-          elseif (ibin.eq.6)then
-            ss=tune_ss1*erate*4.388824e-17 ! wrong 3.1987962e-16 !Gong
-          elseif (ibin.eq.7)then
-            ss=tune_ss1*erate*1.8982601e-16 !wrong 5.8656553e-16 !Gong
-          elseif (ibin.eq.8)then
-            ss=tune_ss1*erate*4.6295965e-16 ! wrong 9.8777984e-16 !Gong
-          elseif (ibin.eq.9)then
-            ss=tune_ss1*erate*7.409149e-16 !wrong 2.3027083e-15 !Gong
-          elseif (ibin.eq.10)then
-            ss=tune_ss1*erate*1.4321188e-15 ! wrong 9.1869805e-15 !Gong
-          elseif (ibin.eq.11)then
-            ss=tune_ss1*erate*3.6773131e-14 ! wrong 7.5069310e-14 !Gong
-          elseif (ibin.eq.12)then
-            ss=tune_ss1*erate*7.6566702e-14 ! wrong1.1860428e-13 !Gong
-          endif
-#endif
-#ifdef TOMAS_12_3NM
-          if (ibin.le.3)  ss=0.0  ! zeor below 10nm for now 
-          if (ibin.eq.4) then 
-            ss=tune_ss1*erate*3.7028916e-23 ! wrong 2.6656153e-21 !Gong
-          elseif (ibin.eq.5)then
-            ss=tune_ss1*erate*5.7123891e-22 ! wrong 5.8887602e-20 !Gong
-          elseif (ibin.eq.6)then
-            ss=tune_ss1*erate*1.1839277e-20 !wrong 1.2690423e-18 !Gong
-          elseif (ibin.eq.7)then
-            ss=tune_ss1*erate*2.8514155e-19 !wrong 1.5477057e-17 !Gong
-          elseif (ibin.eq.8)then
-            ss=tune_ss1*erate*4.5906335e-18 !wrong 9.6921813e-17 !Gong
-          elseif (ibin.eq.9)then
-            ss=tune_ss1*erate*4.388824e-17 ! wrong 3.1987962e-16 !Gong
-          elseif (ibin.eq.10)then
-            ss=tune_ss1*erate*1.8982601e-16 !wrong 5.8656553e-16 !Gong
-          elseif (ibin.eq.11)then
-            ss=tune_ss1*erate*4.6295965e-16 ! wrong 9.8777984e-16 !Gong
-          elseif (ibin.eq.12)then
-            ss=tune_ss1*erate*7.409149e-16 !wrong 2.3027083e-15 !Gong
-          elseif (ibin.eq.13)then
-            ss=tune_ss1*erate*1.4321188e-15 ! wrong 9.1869805e-15 !Gong
-          elseif (ibin.eq.14)then
-            ss=tune_ss1*erate*3.6773131e-14 ! wrong 7.5069310e-14 !Gong
-          elseif (ibin.eq.15)then
-            ss=tune_ss1*erate*7.6566702e-14 ! wrong1.1860428e-13 !Gong
-          endif
-#endif
+          ss=tune_ss1*erate*scalesizeSalt(ibin)
 !#ifdef TRACERS_AEROSOLS_OCEAN
 !            if (trim(tr).eq.'OCocean') then
 !              ss=ss*OC_SS_enrich_fact(i,j)
@@ -710,6 +659,7 @@ C TOMAS don't allow offline SS!
 
       SUBROUTINE aerosol_gas_chem
 !@sum aerosol gas phase chemistry
+!@vers 2013/03/27
 !@auth Dorothy Koch
       use OldTracer_mod, only: trname, tr_mm
       use TRACER_COM, only: ntm, oh_live, no3_live, trm
@@ -724,6 +674,9 @@ C TOMAS don't allow offline SS!
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_AECOB, n_AECIL, n_AOCOB, n_AOCIL
       use TRACER_COM, only: n_AECIL, n_H2SO4, nbins
+#endif
+#ifdef TRACERS_AMP
+      use TRACER_COM, only: n_H2SO4
 #endif
       USE TRDIAG_COM, only : 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
@@ -741,7 +694,7 @@ C TOMAS don't allow offline SS!
       use atm_com, only : t,q
       use model_com, only: modelEclock
       USE MODEL_COM, only: dtsrc
-      USE ATM_COM, only: pmid,am,pk,LTROPO,byam
+      USE ATM_COM, only: pmid,MA,pk,LTROPO,byMA
       USE PBLCOM, only : dclev
       USE GEOM, only: axyp,imaxj,BYAXYP
       USE FLUXES, only: tr3Dsource
@@ -945,7 +898,7 @@ c       maxl = ltropo(i,j)
 c     if(l.le.maxl) then
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
-      mm=am(l,i,j)*axyp(i,j)
+      mm = MA(l,i,j)*axyp(i,j)
       tt = 1.d0/te
 
 c DMM is number density of air in molecules/cm3
@@ -963,7 +916,7 @@ c    Aging of industrial carbonaceous aerosols
 #ifdef TRACERS_AEROSOLS_VBS
         case ('vbsAm2') ! This handles all VBS tracers
           kg2ugm3=1.d9*(1.d2*pmid(l,i,j))*mair/
-     &            (am(l,i,j)*axyp(i,j)*gasc*te)
+     &            (MA(l,i,j)*axyp(i,j)*gasc*te)
           vbs_cond%dt=dtsrc
           vbs_cond%OH=ohmc
           vbs_cond%temp=te
@@ -1132,15 +1085,15 @@ c     if(l.le.maxl) then
 
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
-      mm=am(l,i,j)*axyp(i,j)
+      mm = MA(l,i,j)*axyp(i,j)
       tt = 1.d0/te
       dmm=ppres/(.082d0*te)*6.02d20
       ohmc = oh(i,j,l)          !oh is alread in units of molecules/cm3
 #ifdef TRACERS_HETCHEM
       if (COUPLED_CHEM.ne.1) then
-      o3mc=o3_offline(i,j,l)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*BYAM(L,I,J)
+      o3mc=o3_offline(i,j,l)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*byMA(L,I,J)
       else
-        o3mc=trm(i,j,l,n_Ox)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*BYAM(L,I,J)
+        o3mc=trm(i,j,l,n_Ox)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*byMA(L,I,J)
       endif
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\

@@ -43,12 +43,14 @@
 #ifdef NEW_IO
       use pario, only: defvar,read_dist_data,write_dist_data
 #endif
+      use PolynomialInterpolator_mod, only: interpolator3D
 
       implicit none
 
       include 'netcdf.inc'
 
       integer :: i_0,i_1,j_0,j_1
+      type(interpolator3D), save :: wsgInterp
 
 #endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM || TRACERS_AMP || TRACERS_TOMAS*/
 
@@ -125,10 +127,10 @@ c tracer_ic_soildust
 
       IMPLICIT NONE
 
-      integer :: i,ierr,j,io_data,k,ires,m
+      integer :: i,ierr,j,io_data,k,ires
       INTEGER startd(3),countd(3),statusd
       INTEGER idd1,idd2,idd3,idd4,ncidd1,ncidd2,ncidd3,ncidd4
-      REAL*8 :: zsum,tabsum
+      REAL*8 :: zsum
 c**** temporary array to read in data
       REAL*4,DIMENSION(grid%i_strt:grid%i_stop,
      &                 grid%j_strt:grid%j_stop) :: work ! no halo
@@ -142,41 +144,6 @@ c**** temporary array to read in data
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1, 
      &     I_STRT=I_0, I_STOP=I_1)
-
-c**** read in lookup table for calculation of mean surface wind speed from PDF
-      IF (am_i_root()) THEN
-        CALL openunit('LKTAB1',io_data,.TRUE.,.TRUE.)
-        READ (io_data,IOSTAT=ierr) table1
-        name=TRIM(nameunit(io_data))
-        CALL closeunit(io_data)
-        IF (ierr == 0) then
-          write(6,*) ' Read from file '//TRIM(name)
-        ELSE
-          WRITE(cierr,'(I2)') ierr
-          write(6,*) ' READ ERROR ON FILE '//TRIM(name)//' rc='//cierr
-        END IF
-      END IF
-      CALL broadcast(grid,ierr)
-      IF (ierr.ne.0) CALL stop_model('init_dust: READ ERROR',255)
-      CALL broadcast(grid,table1)
-
-c**** index of table for sub grid scale velocity (sigma) from 0.0001 to 50 m/s
-      zsum=0.D0
-      DO j=1,Kjm
-        IF (j <= 30) THEN
-          zsum=zsum+0.0001d0+FLOAT(j-1)*0.00008d0
-          x21(j)=zsum
-        ELSE IF (j > 30) THEN
-          zsum=zsum-0.055254d0+0.005471d0*FLOAT(j)-
-     &         1.938365d-4*FLOAT(j)**2.d0+
-     &         3.109634d-6*FLOAT(j)**3.d0-
-     &         2.126684d-8*FLOAT(j)**4.d0+
-     &         5.128648d-11*FLOAT(j)**5.d0
-          x21(j)=zsum
-        END IF
-      END DO
-c**** index of table for GCM surface wind speed from 0.0001 to 50 m/s
-      x11(:)=x21(:)
 
 c**** prescribed AEROCOM dust emissions
       IF (imDust == 1) THEN
@@ -646,6 +613,7 @@ c**** index of table for GCM surface wind speed from 0.0001 to 30 m/s
         CALL stop_model
      &     ('Stopped in init_dust: parameter imDUST must be <= 2',255)
       END IF
+      wsgInterp = interpolator3D(x1,x2,x3,table)
 
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 !     read mineral fractions from input file
@@ -885,7 +853,7 @@ c accSubddDust
 !@sum  accSubddDust accumulates specific soil dust aerosol variables for
 !@+                 subdaily diagnostics
 !@auth Jan Perlwitz
-      use atm_com, only : t,byam,pk,pmid
+      use atm_com, only : t,byMA,pk,pmid
       implicit none
 
       type(dustDiagSubdd),intent(inout) :: dustDiagSubdd_acc
@@ -930,7 +898,7 @@ c accSubddDust
         do l=1,lm
           dustDiagSubdd_acc%dustConc(:,:,l,n) =
      &         dustDiagSubdd_acc%dustConc(:,:,l,n) + trm(:,:,l,n1)
-     &         *byam(l,:,:)*1d2*pmid(l,:,:)/(rgas*t(:,:,l)*pk(l,:,:))
+     &         *byMA(l,:,:)*1d2*pmid(l,:,:)/(rgas*t(:,:,l)*pk(l,:,:))
         end do
       end do
 

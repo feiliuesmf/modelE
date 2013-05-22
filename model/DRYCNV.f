@@ -24,7 +24,7 @@
 
       integer, intent(in) :: LBASE_MIN,LBASE_MAX
       real*8, intent(in) :: dtime  ! dummy variable
-      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LM) :: 
+      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LM) ::
      &        UT,VT
       REAL*8, DIMENSION(LM) :: DP
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
@@ -151,7 +151,7 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       END DO
   150 L=LM+1
   160 LMAX=L-1
-      RDP=1./(PEDN(LMIN,I,J)-PEDN(LMAX+1,I,J)) 
+      RDP=1./(PEDN(LMIN,I,J)-PEDN(LMAX+1,I,J))
       QMS=QMS*RDP
       THM=TVMS/(PKMS*(1.+QMS*deltx))
 #ifdef TRACERS_ON
@@ -234,9 +234,9 @@ C
 C     NOW REALLY UPDATE THE MODEL WINDS
 C
 C***  ...first update halo (J_0-1 values) of UKM,VKM, and PLIJ.
-      call halo_update_column(grid, UKM, from=SOUTH) 
-      call halo_update_column(grid, VKM, from=SOUTH) 
-      call halo_update_column(grid,PLIJ, from=SOUTH) 
+      call halo_update_column(grid, UKM, from=SOUTH)
+      call halo_update_column(grid, VKM, from=SOUTH)
+      call halo_update_column(grid,PLIJ, from=SOUTH)
       call halo_update_column(grid,LRANG,from=SOUTH)
 
 #ifdef SCM
@@ -357,7 +357,7 @@ C**** First half of loop cycle for j=j_1 for internal blocks
               V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)*RA(K)
               CALL INC_AJL(IDI(K),IDJ(K),L,JL_DAMDC,UKM(K,I,J,L)*PLIJ(L
      *             ,I,J)*RA(K))
-            END DO 
+            END DO
           END DO
         END DO
       ENDIF   !END NORTH POLE
@@ -371,13 +371,14 @@ C***
 
       subroutine apply_fluxes_to_atm(dt)
 !@sum applies earth fluxes to the first layer of the atmosphere
+!@vers 2013/03/27
 !@auth Original Development Team
       USE MODEL_COM, only : qcheck
 #ifdef SCM
      *                      ,I_TARG,J_TARG
 #endif
       USE RESOLUTION, only : im,jm
-      USE ATM_COM, only : u,v,t,q,byam,am,pk
+      USE ATM_COM, only : u,v,t,q,byMA,MA,pk
       USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds
       USE DOMAIN_DECOMP_ATM, only : halo_update,checksum
       USE DOMAIN_DECOMP_ATM, only : halo_update_column,checksum_column
@@ -396,7 +397,7 @@ C***
       integer i,j,k,n
       real*8, intent(in) :: dt
       real*8 hemi,trmin
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: 
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &                       usave,vsave
       INTEGER :: J_0,J_1,J_0S,J_1S,J_0STG,J_1STG,I_0,I_1
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
@@ -426,8 +427,8 @@ C****
             trm(i,j,1,n) = trm(i,j,1,n) + trflux1(i,j,n)*dt*axyp(i,j)
             trmin=0.d0
 #ifdef TRACERS_WATER
-            IF(tr_wd_TYPE(n).eq.nWATER) trmin = 
-     &      qmin*trw0(n)*am(1,i,j)*axyp(i,j)
+            IF(tr_wd_TYPE(n).eq.nWATER) trmin =
+     &         qmin*trw0(n)*MA(1,i,j)*axyp(i,j)
 #endif
             if (t_qlimit(n).and.trm(i,j,1,n).lt.trmin) then
               if (qcheck) write(99,*) trname(n),I,J,' TR1:',
@@ -444,10 +445,10 @@ c**** add in surface friction to first layer wind
 c****
       usave=u(:,:,1) ; vsave=v(:,:,1)
 
-C   *....update halo (J_0-1 values) of  byam, uflux1, vflux1.
+C   *....update halo (J_0-1 values) of  byMA, uflux1, vflux1.
       Call HALO_UPDATE(grid, uflux1, from=SOUTH)
       Call HALO_UPDATE(grid, vflux1, from=SOUTH)
-      Call HALO_UPDATE(grid, byam(1,:,:), from=SOUTH)
+      Call HALO_UPDATE(grid, byMA(1,:,:), from=SOUTH)
 
 
 #ifdef SCM
@@ -456,9 +457,9 @@ cccc if SCM - update winds ????
       j= J_TARG
       do k=1,2
          u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
-     *          ravj(k,j)*uflux1(i,j)*dt*byam(1,I,J)
+     *          ravj(k,j)*uflux1(i,j)*dt*byMA(1,I,J)
          v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
-     *          ravj(k,j)*vflux1(i,j)*dt*byam(1,I,J)
+     *          ravj(k,j)*vflux1(i,j)*dt*byMA(1,I,J)
       enddo
 #else
 c**** SOUTH POLE BOX
@@ -469,10 +470,10 @@ c**** SOUTH POLE BOX
         do k=1,kmaxj(j)
           u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
      *     ravj(k,j)*(uflux1(i,j)*cosiv(k)+vflux1(i,j)*siniv(k)*hemi)
-     *     *dt*byam(1,I,J)
+     *     *dt*byMA(1,I,J)
           v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
      *     ravj(k,j)*(vflux1(i,j)*cosiv(k)-uflux1(i,j)*siniv(k)*hemi)
-     *     *dt*byam(1,I,J)
+     *     *dt*byMA(1,I,J)
         end do
         end do
       Else
@@ -482,9 +483,9 @@ c**** SOUTH POLE BOX
         do k=3,4
            If (idjj(k,j) == j_0) Then
               u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
-     *             ravj(k,j)*uflux1(i,j)*dt*byam(1,I,J)
+     *             ravj(k,j)*uflux1(i,j)*dt*byMA(1,I,J)
               v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
-     *             ravj(k,j)*vflux1(i,j)*dt*byam(1,I,J)
+     *             ravj(k,j)*vflux1(i,j)*dt*byMA(1,I,J)
            end if
         end do
         end do
@@ -498,10 +499,10 @@ c**** SOUTH POLE BOX
           do k=1,kmaxj(j)
             u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
      *       ravj(k,j)*(uflux1(i,j)*cosiv(k)+vflux1(i,j)*siniv(k)*hemi)
-     *       *dt*byam(1,I,J)
+     *       *dt*byMA(1,I,J)
             v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
      *       ravj(k,j)*(vflux1(i,j)*cosiv(k)-uflux1(i,j)*siniv(k)*hemi)
-     *       *dt*byam(1,I,J)
+     *       *dt*byMA(1,I,J)
           end do
         end do
       End If
@@ -511,9 +512,9 @@ c**** non polar boxes
         do i=1,imaxj(j)
         do k=1,kmaxj(j)
           u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
-     *           ravj(k,j)*uflux1(i,j)*dt*byam(1,I,J)
+     *           ravj(k,j)*uflux1(i,j)*dt*byMA(1,I,J)
           v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
-     *           ravj(k,j)*vflux1(i,j)*dt*byam(1,I,J)
+     *           ravj(k,j)*vflux1(i,j)*dt*byMA(1,I,J)
         end do
         end do
       end do
@@ -527,10 +528,10 @@ c***        do i=1,imaxj(j)
 c***          do k=1,kmaxj(j)
 c***            u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
 c***     *       ravj(k,j)*(uflux1(i,j)*cosiv(k)+vflux1(i,j)*siniv(k)*hemi)
-c***     *       *dt*byam(1,I,J)
+c***     *       *dt*byMA(1,I,J)
 c***            v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
 c***     *       ravj(k,j)*(vflux1(i,j)*cosiv(k)-uflux1(i,j)*siniv(k)*hemi)
-c***     *       *dt*byam(1,I,J)
+c***     *       *dt*byMA(1,I,J)
 c***          end do
 c***        end do
       Else
@@ -538,9 +539,9 @@ c***        end do
           do i=1,imaxj(j)
             do k=1,2
               u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
-     *               ravj(k,j)*uflux1(i,j)*dt*byam(1,I,J)
+     *               ravj(k,j)*uflux1(i,j)*dt*byMA(1,I,J)
               v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
-     *               ravj(k,j)*vflux1(i,j)*dt*byam(1,I,J)
+     *               ravj(k,j)*vflux1(i,j)*dt*byMA(1,I,J)
             end do
           end do
         ENDIF   !.not. NORTH POLE

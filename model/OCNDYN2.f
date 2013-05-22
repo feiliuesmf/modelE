@@ -907,15 +907,17 @@ c
 c
 c fill pole
 c
-      if(qnp .and. l <= lmom(1,jm)) then
-        j = jm
-        do i=2,im
-          dh(i,j) = dh(1,j)
-          p(i,j) = p(1,j)
-          zg(i,j) = zg(1,j)
-          ke(i,j) = ke(1,j)
-          ua(i,j) = .5*(usmooth(i-1,j)+usmooth(i,j))
-        enddo
+      if(qnp) then
+        if(l <= lmom(1,jm)) then
+          j = jm
+          do i=2,im
+            dh(i,j) = dh(1,j)
+            p(i,j) = p(1,j)
+            zg(i,j) = zg(1,j)
+            ke(i,j) = ke(1,j)
+            ua(i,j) = .5*(usmooth(i-1,j)+usmooth(i,j))
+          enddo
+        endif
       endif
 
 c
@@ -1224,12 +1226,14 @@ C****
         enddo
 
 C**** Copy to all longitudes at north pole
-        If (QNP .and. l <= lmom(1,jm)) Then
-          DH3D(2:IM,JM,L) = DH3D(1,JM,L)
-          VBAR(2:IM,JM,L) = VBAR(1,JM,L)
-          dZGdP(2:IM,JM,L) = dZGdP(1,JM,L)
-          MO(2:IM,JM,L) = MO(1,JM,L)
-        EndIf
+        if(QNP) then
+          if(l <= lmom(1,jm)) then
+            DH3D(2:IM,JM,L) = DH3D(1,JM,L)
+            VBAR(2:IM,JM,L) = VBAR(1,JM,L)
+            dZGdP(2:IM,JM,L) = dZGdP(1,JM,L)
+            MO(2:IM,JM,L) = MO(1,JM,L)
+          endif
+        endif
 
 c initialize polar velocities
         call polevel(uo(1,j1a,l),vo(1,j1a,l),l)
@@ -1674,15 +1678,17 @@ C**** Extract domain decomposition band parameters
 c
 c average the pole
 c
-        if(qnp .and. l<=lmom(1,jm)) then
-          j = jm
-          mo(:,j,l) = sum(mo(:,j,l))/im
-          rm(:,j,l) = sum(rm(:,j,l))/im
-          rz(:,j,l) = sum(rz(:,j,l))/im
-          do i=1,im
-            rx(i,j,l) = 0.
-            ry(i,j,l) = 0.
-          enddo
+        if(qnp) then
+          if(l<=lmom(1,jm)) then
+            j = jm
+            mo(:,j,l) = sum(mo(:,j,l))/im
+            rm(:,j,l) = sum(rm(:,j,l))/im
+            rz(:,j,l) = sum(rz(:,j,l))/im
+            do i=1,im
+              rx(i,j,l) = 0.
+              ry(i,j,l) = 0.
+            enddo
+          endif
         endif
 
       enddo ! l

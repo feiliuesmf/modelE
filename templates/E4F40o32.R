@@ -22,7 +22,7 @@ End Preprocessor Options
 Object modules:
      ! resolution-specific source codes
 RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
-RES_2Hx2_L32                        ! ocean horiz res 2x2.5deg, 32 vert layers
+ORES_2Hx2_L32                       ! ocean horiz res 2x2.5deg, 32 vert layers
 OSTRAITS_F_COM                      ! dynamic ocean modules
 DIAG_RES_F                          ! diagnostics
 FFT144 OFFT144E                     ! Fast Fourier Transform
@@ -51,12 +51,12 @@ Data input files:
 #include "IC_144x90_input_files"
 #include "dynamic_ocn_144x90_input_files"
 
-RVR=RD_modelE_Fa.RVR.bin          ! river direction file
+RVR=RD_modelE_Fa.nc             ! river direction file
+NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "TAero2008_input_files"
-#include "O3_2005_input_files"
+#include "rad_144x90_input_files"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag

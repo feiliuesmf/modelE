@@ -1,47 +1,58 @@
+#define HAS_PRINT
+#define TYPE Tracer
+#include <AssociativeArrayTemplate.h>
+
+#define VALUE_TYPE Tracer
+#undef ITERATOR_TYPE
+#define ITERATOR_TYPE TracerIterator
+#include <HashMapTemplate.h>
+
+
 module TracerBundle_mod
-  use Dictionary_mod, only: Dictionary_type, Dictionary
-  use KeyValuePair_mod, only: MAX_LEN_KEY
+  use AttributeDictionary_mod, only: AttributeDictionary
   use Tracer_mod
+  use TracerHashMap_mod ! Extend this
   implicit none
   private
 
-  public :: TracerBundle_type ! derived type
-  public :: TracerBundle      ! constructor
-  public :: addTracer
-  public :: addDefault
-  public :: readFromText      
-  public :: writeFormatted
-  public :: readUnformatted
-  public :: writeUnformatted
-  public :: getTracer
-  public :: getCount
-  public :: getProperty
-  public :: getProperties
-  public :: setProperty
-  public :: getIndex
-  public :: getNumTracers
-  public :: makeSubset
-  public :: hasProperty
-  public :: addMandatoryProperty
+  public :: TracerBundle ! derived type
+  public :: newTracerBundle      ! constructor
+  public :: readFromText ! constructor
+  public :: readUnformattedBundle ! constructor
   public :: operator(==)
   public :: clean
+  public :: assignment(=) ! re-export from hash package
 
   public :: NOT_FOUND
 
-  ! legacy support for index access
-  public :: ntsurfsrc
-  public :: setNtsurfsrc
-
-  type TracerBundle_type
-    private
-    type (Dictionary_type) :: defaultValues
-!TODO pointer for mandatoryProperties should be allocatable
-! but does not work with ifort 12.1.  Pointer is just a workaround.
-! Need to add -assume realloc_lhs for intel ...
-    character(len=MAX_LEN_KEY), pointer :: mandatoryProperties(:) => null()
-
-    type (Tracer_type), pointer :: tracers(:) => null()
-  end type TracerBundle_type
+!!$  type, extends(TracerHashMap) :: TracerBundle
+  type, extends(TracerHashMap) :: TracerBundle
+!!$    private
+    type (AttributeDictionary) :: defaultValues
+    character(len=MAX_LEN_KEY), allocatable :: mandatoryAttributes(:)
+    logical :: locked = .false.
+    type (AttributeDictionary) :: attributeVectorCache
+  contains
+    procedure :: insertEntry ! override base class method
+    procedure :: insertGetName ! extend generic
+    generic :: insert => insertGetName
+    procedure :: findAttribute
+    procedure :: getAttribute
+    procedure :: setAttribute
+    procedure :: hasAttribute
+    procedure :: addDefault_integer
+    procedure :: addDefault_logical
+    procedure :: addDefault_real64
+    procedure :: addDefault_string
+    generic :: addDefault => addDefault_integer, addDefault_logical, &
+         & addDefault_real64, addDefault_string
+    procedure :: countHaveAttribute
+    procedure :: makeSubset
+    procedure :: getAttributeVector
+    procedure :: addMandatoryAttribute
+    procedure :: writeFormatted
+    procedure :: writeUnformatted => writeUnformatted_bundle
+  end type TracerBundle
 
   interface clean
     module procedure cleanBundle
@@ -49,243 +60,187 @@ module TracerBundle_mod
 
   integer, parameter :: NOT_FOUND = -1
 
-  interface getProperty
-    module procedure getProperty_multi
-  end interface
-
-  interface getProperties
-    module procedure getProperties_multi
-  end interface
-
-  interface hasProperty
-    module procedure hasProperty_multi
-  end interface
-
-  interface setProperty
-    module procedure setProperty_multi_integer, setProperty_multi_integerArr
-    module procedure setProperty_multi_real64,  setProperty_multi_real64Arr
-    module procedure setProperty_multi_logical, setProperty_multi_logicalArr
-    module procedure setProperty_multi_string,  setProperty_multi_stringArr
-  end interface
-
-  interface getCount
-    module procedure getCount_
-    module procedure getCount_property
-  end interface
-
   interface operator(==)
     module procedure equals
   end interface
-
-  interface writeFormatted
-    module procedure writeFormatted_bundle
-  end interface
-
-  interface writeUnformatted
-    module procedure writeUnformatted_bundle
-  end interface
-
-  interface readUnformatted
-    module procedure readUnformatted_bundle
-  end interface
-
-  interface addDefault
-    module procedure addDefault_integer
-    module procedure addDefault_logical
-    module procedure addDefault_real64
-    module procedure addDefault_string
-  end interface
-
-  interface getTracer
-    module procedure getTracer_byName
-    module procedure getTracer_byIndex
-  end interface getTracer
 
   integer, parameter :: LEN_HEADER = 80
   integer, parameter :: VERSION = 1
   character(len=*), parameter :: DESCRIPTION = 'TracerBundle'
 
-  ! temporary support of legacy interface
-  interface ntsurfsrc
-    module procedure ntsurfsrc_1
-    module procedure ntsurfsrc_all
-  end interface ntsurfsrc
+  interface assignment(=)
+     module procedure copyBundle
+  end interface assignment(=)
+
 
 contains
 
-  function TracerBundle()
+  function newTracerBundle()
 !@sum Construct empty tracer    
-    use Dictionary_mod, only: Dictionary
-    type (TracerBundle_type) :: TracerBundle
+    use AttributeDictionary_mod
+    type (TracerBundle) :: newTracerBundle
 
-    allocate(TracerBundle%tracers(0))
-    allocate(TracerBundle%mandatoryProperties(0))
-    TracerBundle%defaultValues = Dictionary()
+    allocate(newTracerBundle%mandatoryAttributes(0))
 
-  end function TracerBundle
+    newTracerBundle%TracerHashMap = newTracerHashMap(100)
+!!$    newTracerBundle%TracerHashMap = newTracerHashMap(1)
+    newTracerBundle%defaultValues = newAttributeDictionary()
+    
+    newTracerBundle%attributeVectorCache = newAttributeDictionary()
+    newTracerBundle%locked = .false.
+    
+  end function newTracerBundle
 
+  subroutine setAttribute(this, species, attributeName, attributeValue)
+    use AbstractAttribute_mod
+    class (TracerBundle), intent(inout) :: this
+    character(len=*), intent(in) :: species
+    character(len=*), intent(in) :: attributeName
+    class (AbstractAttribute), intent(in) :: attributeValue
+
+    class (Tracer), pointer :: t
+
+    t => this%getReference(species)
+    call t%insert(attributeName, attributeValue)
+
+  end subroutine setAttribute
+ 
   function readFromText(unit, defaultValues) result(bundle)
 !@sum Populate a TracerBundle from a unit attached to a formatted
 !@+ file.  Optionally apply default values.
+    use AttributeDictionary_mod
     use Parser_mod
-    use Dictionary_mod
     integer, intent(in) :: unit
-    type (Dictionary_type), optional, intent(in) :: defaultValues
-    type (TracerBundle_type) :: bundle
-    type (Tracer_type) :: tracer
+    type (AttributeDictionary), optional, intent(in) :: defaultValues
+    type (TracerBundle) :: bundle
+    type (Tracer), pointer :: aTracer
     type (Parser_type) :: parser
 
     integer :: status
 
-    bundle = TracerBundle()
-    if (present(defaultValues)) bundle%defaultValues = Dictionary(defaultValues)
-
+    bundle = newTracerBundle()
+    if (present(defaultValues)) then
+      ! TODO might need a deep copy here?
+      bundle%defaultValues = defaultValues
+    else
+      bundle%defaultValues = newAttributeDictionary()
+    end if
+    
     do
-      tracer = readOneTracer(unit, status)
+      aTracer => readOneTracer(unit, status)
       if (status /= 0) exit
-
-      call addTracer(bundle, tracer)
-      call clean(tracer)
+      call bundle%insert(getName(aTracer), aTracer)
+      deallocate(aTracer)
     end do
 
   end function readFromText
 
-  subroutine addTracer(this, aTracer)
-!@sum Insert one tracer into a bundle.  Optionally
-!@+ apply default values to the tracer dictionary.
-    use Dictionary_mod
-    type (TracerBundle_type), intent(inout) :: this
-    type (Tracer_type), intent(in) :: aTracer
+  subroutine mergeDefaults(this, attributeName, attribute)
+    use AbstractAttribute_mod
+    type (TracerBundle), intent(inout) :: this
+    character(len=*), intent(in) :: attributeName
+    class (AbstractAttribute), intent(in) :: attribute
 
-    type (Tracer_type), allocatable :: oldList(:)
-    integer :: count
+    type (TracerIterator) :: iter
+    class (Tracer), pointer :: p
 
-
-    call assertHasProperties(aTracer, this%mandatoryProperties) 
-
-    count = getNumTracers(this)
-
-    allocate(oldList(count))
-    oldList = this%tracers ! shallow copy ok
-    deallocate(this%tracers)
-    allocate(this%tracers(count+1))
-    this%tracers(1:count) = oldList
-    deallocate(oldList)
-
-    this%tracers(count+1) = Tracer(aTracer)
-    call merge(this%tracers(count+1), this%defaultValues)
-
-  end subroutine addTracer
-
-  subroutine mergeDefaults(this, pair)
-    use Dictionary_mod, only: merge
-    use KeyValuePair_mod, only: KeyValuePair_type
-    type (TracerBundle_type), intent(inout) :: this
-    type (KeyValuePair_type), intent(in) :: pair
-
-    integer :: i
-
-    do i = 1, getNumTracers(this)
-      call merge(this%tracers(i), pair)
+    iter = this%begin()
+    do while (iter /= this%last())
+      p => iter%value()
+      if (.not. p%has(attributeName)) then
+        call p%insert(attributeName, attribute)
+      end if
+      call iter%next()
     end do
 
   end subroutine mergeDefaults
 
-  subroutine addDefault_integer(this, property, value)
-!@sum Add a default property that applies to all tracers in bundle,
+  subroutine addDefault_integer(this, attribute, value)
+!@sum Add a default attribute that applies to all tracers in bundle,
 !@+ unless overridden with specific value for a given tracer.
-    use Dictionary_mod, only: insert, merge
-    use KeyValuePair_mod, only: KeyValuePair
-    use GenericType_mod, only: GenericType
-    type (TracerBundle_type), intent(inout) :: this
-    character(len=*), intent(in) :: property
+    use Attributes_mod
+    use AbstractAttribute_mod
+    class (TracerBundle), target, intent(inout) :: this
+    character(len=*), intent(in) :: attribute
     integer, intent(in) :: value
 
-    call insert(this%defaultValues, property, value)
-    call mergeDefaults(this, KeyValuePair(property, GenericType(value)))
+    call mergeDefaults(this, attribute, newAttribute(value))
+    call this%defaultValues%insert(attribute, value)
 
   end subroutine addDefault_integer
 
-  subroutine addDefault_logical(this, property, value)
-!@sum Add a default property that applies to all tracers in bundle,
+  subroutine addDefault_logical(this, attribute, value)
+!@sum Add a default attribute that applies to all tracers in bundle,
 !@+ unless overridden with specific value for a given tracer.
-    use Dictionary_mod, only: insert
-    use KeyValuePair_mod, only: KeyValuePair
-    use GenericType_mod, only: GenericType
-    type (TracerBundle_type), intent(inout) :: this
-    character(len=*), intent(in) :: property
+    use Attributes_mod
+    class (TracerBundle), target, intent(inout) :: this
+    character(len=*), intent(in) :: attribute
     logical, intent(in) :: value
 
-    call insert(this%defaultValues, property, value)
-    call mergeDefaults(this, KeyValuePair(property, GenericType(value)))
+    call mergeDefaults(this, attribute, newAttribute(value))
+    call this%defaultValues%insert(attribute, value)
 
   end subroutine addDefault_logical
 
-  subroutine addDefault_real64(this, property, value)
-!@sum Add a default property that applies to all tracers in bundle,
+  subroutine addDefault_real64(this, attribute, value)
+!@sum Add a default attribute that applies to all tracers in bundle,
 !@+ unless overridden with specific value for a given tracer.
-    use Dictionary_mod, only: insert
-    use KeyValuePair_mod, only: KeyValuePair
-    use GenericType_mod, only: GenericType
-    type (TracerBundle_type), intent(inout) :: this
-    character(len=*), intent(in) :: property
+    use Attributes_mod
+    class (TracerBundle), target, intent(inout) :: this
+    character(len=*), intent(in) :: attribute
     real*8, intent(in) :: value
 
-    call insert(this%defaultValues, property, value)
-    call mergeDefaults(this, KeyValuePair(property, GenericType(value)))
+    call mergeDefaults(this, attribute, newAttribute(value))
+    call this%defaultValues%insert(attribute, value)
 
   end subroutine addDefault_real64
 
-  subroutine addDefault_string(this, property, value)
-!@sum Add a default property that applies to all tracers in bundle,
+  subroutine addDefault_string(this, attribute, value)
+!@sum Add a default attribute that applies to all tracers in bundle,
 !@+ unless overridden with specific value for a given tracer.
-    use Dictionary_mod, only: insert
-    use KeyValuePair_mod, only: KeyValuePair
-    use GenericType_mod, only: GenericType
-    type (TracerBundle_type), intent(inout) :: this
-    character(len=*), intent(in) :: property
+    use Attributes_mod
+    class (TracerBundle), target, intent(inout) :: this
+    character(len=*), intent(in) :: attribute
     character(len=*), intent(in) :: value
 
-    call insert(this%defaultValues, property, value)
-    call mergeDefaults(this, KeyValuePair(property, GenericType(value)))
+    call mergeDefaults(this, attribute, newAttribute(value))
+    call this%defaultValues%insert(attribute, value)
 
   end subroutine addDefault_string
 
-  integer function getNumTracers(this)
-!@sum Returns number of tracers in a bundle.
-    type (TracerBundle_type), intent(in) :: this
-    getNumTracers = size(this%tracers)
-  end function getNumTracers
-
   subroutine writeUnformatted_bundle(this, unit)
 !@sum Write a bundle to a unit attached to an unformatted sequential file.
-    type (TracerBundle_type), intent(in) :: this
+    class (TracerBundle), intent(in) :: this
     integer, intent(in) :: unit
 
-    integer :: i, n
+    integer :: n
+    type (TracerIterator) :: iter
 
     character(len=LEN_HEADER) :: header
 
     write(header, '(a," - version:",1x,i5.0)') DESCRIPTION, VERSION
     write(unit) header
 
-    n = getNumTracers(this)
+    n = this%size()
     write(unit) n
-    do i = 1, n
-      call writeUnformatted(this%tracers(i), unit)
+    iter = this%begin()
+    do while (iter /= this%last())
+      call writeUnformatted(iter%value(), unit)
+      call iter%next()
     end do
 
   end subroutine writeUnformatted_bundle
 
-  subroutine readUnformatted_bundle(this, unit)
+  function readUnformattedBundle(unit) result(this)
 !@sum Read a bundle to a unit attached to an unformatted sequential file.
-    type (TracerBundle_type), intent(out) :: this
+    type (TracerBundle) :: this
     integer, intent(in) :: unit
 
     integer :: i, n
     integer :: oldVersion
     character(len=len(DESCRIPTION)) :: tag
     character(len=LEN_HEADER) :: header
+    type (Tracer), pointer :: t
 
     read(unit) header
     read(header, '(a,11x,i10.0)') tag, oldVersion
@@ -299,395 +254,314 @@ contains
     end if
       
     read(unit) n
-    this = TracerBundle()
-    allocate(this%tracers(n))
+    this = newTracerBundle()
     do i = 1, n
-      call readUnformatted(this%tracers(i), unit)
+      t => newTracer()
+      call readUnformattedTracer(t, unit)
+      call this%insert(getName(t), t)
     end do
 
-  end subroutine readUnformatted_bundle
+  end function readUnformattedBundle
 
-  subroutine writeFormatted_bundle(this, unit)
-    use Parser_mod
-    type (TracerBundle_type), intent(in) :: this
+  subroutine writeFormatted(this, unit)
+    use Parser_mod, only: Parser_type, setBeginData, setEndData, setTokenSeparators
+    use Parser_mod, only: parserWriteFormatted => writeFormatted
+    class (TracerBundle), intent(in) :: this
     integer, intent(in) :: unit
 
     type (Parser_type) :: parser
-    type (Dictionary_type), pointer :: properties
-    integer :: i
+    class (Tracer), pointer :: t
+    type (TracerIterator) :: iter
 
     call setBeginData(parser, '{')
     call setEndData(parser, '}')
     call setTokenSeparators(parser, '=,')
 
-    do i = 1, getCount(this)
-      properties => getProperties(this%tracers(i))
-      call writeFormatted(parser, unit, properties)
+    iter = this%begin()
+    do while (iter /= this%last())
+      t => iter%value()
+      call parserWriteFormatted(parser, unit, t)
+      call iter%next()
     end do
 
-  end subroutine writeFormatted_bundle
+  end subroutine writeFormatted
 
-  integer function getIndex(this, name) result(index)
-    use Dictionary_mod, only: lookup
-    use KeyValuePair_mod, only: MAX_LEN_KEY
-    use GenericType_mod
-    type (TracerBundle_type), intent(in) :: this
-    character(len=*), intent(in) :: name
+  function hasAttribute(this, attribute) result(has)
+!@sum  This function returns a logical array of length equal to
+!@+    the total number of tracers in the bundle.  Values are .true.
+!@+    for those tracers that have the specified attribute.
+!@+    Use should be limited, as order of tracers in bundle is meant to be
+!@+    hidden from clients.
+    class (TracerBundle), intent(in) :: this
+    character(len=*), intent(in) :: attribute
+    logical, pointer :: has(:)
 
-    integer :: i, j
-    character(len=MAX_LEN_KEY) :: found
-
-    index = NOT_FOUND
-
-    j = getCount(this)
-
-    do i = 1, j
-      found = lookup(getProperties(this%tracers(i)), 'name')
-      if (name == found) then
-        index = i
-        exit
-      end if
-    end do
-
-  end function getIndex
-
-  function hasProperty_multi(this, property) result(has)
-    use Dictionary_mod, only: hasKey
-    type (TracerBundle_type), intent(in) :: this
-    character(len=*), intent(in) :: property
-    logical :: has(size(this%tracers))
-
+    type (TracerIterator) :: iter
+    class (Tracer), pointer :: t
     integer :: i
 
-    has = (/ (hasProperty(this%tracers(i), property), i = 1, getCount(this)) /)
-  end function hasProperty_multi
+    allocate(has(this%size()))
+    iter = this%begin()
+    i = 0
+    do while (iter /= this%last())
+      i = i + 1
+      t => iter%value()
+      has(i) = t%has(attribute)
+      call iter%next()
+    end do
 
-  subroutine addMandatoryProperty(this, property)
-    type (TracerBundle_type), intent(inout) :: this
-    character(len=*), intent(in) :: property
+  end function hasAttribute
 
-    character(len=MAX_LEN_KEY), allocatable :: oldProperties(:)
+  subroutine addMandatoryAttribute(this, attributeName)
+    class (TracerBundle), intent(inout) :: this
+    character(len=*), intent(in) :: attributeName
+
+    character(len=MAX_LEN_KEY), allocatable :: oldAttributes(:)
     integer :: n
-    integer :: i
+    type (TracerIterator) :: iter
 
-    n = size(this%mandatoryProperties)
+    n = size(this%mandatoryAttributes)
 
-    allocate(oldProperties(n))
-    oldProperties = this%mandatoryProperties
-    deallocate(this%mandatoryProperties)
-    allocate(this%mandatoryProperties(n+1))
-    this%mandatoryProperties(1:n) = oldProperties
-    deallocate(oldProperties)
+    allocate(oldAttributes(n))
+    oldAttributes = this%mandatoryAttributes
+    deallocate(this%mandatoryAttributes)
+    allocate(this%mandatoryAttributes(n+1))
+    this%mandatoryAttributes(1:n) = oldAttributes
+    deallocate(oldAttributes)
 
-    this%mandatoryProperties(n+1) = property
+    this%mandatoryAttributes(n+1) = attributeName
 
-    do i = 1, getNumTracers(this)
-      if (.not. assertHasProperty(this%tracers(i), property)) return
+    iter = this%begin()
+    do while (iter /= this%last())
+      if (.not. assertHasAttribute(iter%value(), attributeName)) return
+      call iter%next()
     end do
 
-  end subroutine addMandatoryProperty
+  end subroutine addMandatoryAttribute
 
-  subroutine assertHasProperties(this, properties)
-    type (Tracer_type), intent(in) :: this
-    character(len=MAX_LEN_KEY), intent(in) :: properties(:)
+  subroutine assertHasAttributes(this, attributes)
+    type (Tracer), intent(in) :: this
+    character(len=MAX_LEN_KEY), intent(in) :: attributes(:)
     character(len=MAX_LEN_KEY) :: name
 
     integer :: i
 
-    do i = 1, size(properties)
-      if (.not. assertHasProperty(this, properties(i))) return
+    do i = 1, size(attributes)
+      if (.not. assertHasAttribute(this, attributes(i))) return
     end do
 
-  end subroutine assertHasProperties
+  end subroutine assertHasAttributes
 
-  logical function assertHasProperty(this, property)
-    type (Tracer_type), intent(in) :: this
-    character(len=*), intent(in) :: property
+  logical function assertHasAttribute(this, attribute)
+    type (Tracer), intent(in) :: this
+    character(len=*), intent(in) :: attribute
 
     character(len=MAX_LEN_KEY) :: name
 
-    assertHasProperty = .true.
-    if (.not. hasProperty(this, property)) then
+    assertHasAttribute = .true.
+    if (.not. this%has(attribute)) then
       name = getName(this)
       call throwException("TracerBundle_mod - species '" // trim(name) // &
-        & "' is missing mandatory property '" // trim(property) // "'.", 14)
-      assertHasProperty = .false.
+        & "' is missing mandatory attribute '" // trim(attribute) // "'.", 14)
+      assertHasAttribute = .false.
     end if
 
-  end function assertHasProperty
+  end function assertHasAttribute
 
-  function getTracer_byName(this, species) result(tracer)
-    type (TracerBundle_type), target, intent(in) :: this
+  function getAttribute(this, species, attribute) result (attributeValue)
+    use AbstractAttribute_mod
+    class (TracerBundle), intent(in) :: this
     character(len=*), intent(in) :: species
-    type (Tracer_type), pointer :: tracer
+    character(len=*), intent(in) :: attribute
+    class (AbstractAttribute), pointer :: attributeValue
 
+    class (Tracer), pointer :: t
 
-    integer :: index
+    t => this%getReference(trim(species))
+    attributeValue => t%getReference(attribute)
 
-    index = getIndex(this, species)
-    if (index /= NOT_FOUND) then
-      tracer => this%tracers(index)
-    else
-      tracer => null()
-    end if
-  end function getTracer_byName
+  end function getAttribute
 
-  function getTracer_byIndex(this, index) result(tracer)
-    type (TracerBundle_type), target, intent(in) :: this
-    integer, intent(in) :: index
-    type (Tracer_type), pointer :: tracer
+  integer function countHaveAttribute(this, withAttribute) result(number)
+    class (TracerBundle), intent(in) :: this
+    character(len=*), intent(in) :: withAttribute
 
-    if (index > 0 .and. index <= size(this%tracers)) then
-      tracer => this%tracers(index)
-    else
-      tracer => null()
-    end if
-    
-  end function getTracer_byIndex
+    number = count(hasAttribute(this, withAttribute))
 
-  function getProperties_multi(this, species) result(properties)
-    type (TracerBundle_type), target, intent(in) :: this
-    character(len=*), intent(in) :: species
-    type (Dictionary_type), pointer :: properties
+  end function countHaveAttribute
 
-    integer :: index
-
-    index = getIndex(this, species)
-    if (index /= NOT_FOUND) then
-      properties => getProperties(this%tracers(index))
-    else
-      allocate(properties)
-      properties = Dictionary()
-    end if
-
-  end function getProperties_multi
-
-  function getProperty_multi(this, species, property) result (propertyValues)
-    use GenericType_mod
-    use Dictionary_mod, only: lookup
-    type (TracerBundle_type), intent(in) :: this
-    character(len=*), intent(in) :: species
-    character(len=*), intent(in) :: property
-    type (GenericType_type), pointer :: propertyValues(:)
-
-    integer :: index
-
-    index = getIndex(this, species)
-    if (index /= NOT_FOUND) then
-      propertyValues => getProperty(this%tracers(index), property)
-    else
-      allocate(propertyValues(0))
-    end if
-
-  end function getProperty_multi
-
-
-  ! Select a tracer from list
-  subroutine setProperty_multi_integer(this, name, property, value)
-    use Dictionary_mod, only: insert
-    type (TracerBundle_type), intent(inout) :: this
-    character(len=*), intent(in) :: name
-    character(len=*), intent(in) :: property
-    integer, intent(in) :: value
-
-    integer :: index
-
-    index = getIndex(this, name)
-    call setProperty(this%tracers(index), property, value)
-
-  end subroutine setProperty_multi_integer
-
-  subroutine setProperty_multi_integerArr(this, name, property, values)
-    use Dictionary_mod, only: insert
-    type (TracerBundle_type), intent(inout) :: this
-    character(len=*), intent(in) :: name
-    character(len=*), intent(in) :: property
-    integer, intent(in) :: values(:)
-
-    integer :: index
-
-    index = getIndex(this, name)
-    call setProperty(this%tracers(index), property, values)
-
-  end subroutine setProperty_multi_integerArr
-
-  subroutine setProperty_multi_real64(this, name, property, value)
-    use Dictionary_mod, only: insert
-    type (TracerBundle_type), intent(inout) :: this
-    character(len=*), intent(in) :: name
-    character(len=*), intent(in) :: property
-    real*8, intent(in) :: value
-
-    integer :: index
-
-    index = getIndex(this, name)
-    call setProperty(this%tracers(index), property, value)
-
-  end subroutine setProperty_multi_real64
-
-  subroutine setProperty_multi_real64Arr(this, name, property, values)
-    use Dictionary_mod, only: insert
-    type (TracerBundle_type), intent(inout) :: this
-    character(len=*), intent(in) :: name
-    character(len=*), intent(in) :: property
-    real*8, intent(in) :: values(:)
-
-    integer :: index
-
-    index = getIndex(this, name)
-    call setProperty(this%tracers(index), property, values)
-  end subroutine setProperty_multi_real64Arr
-
-  subroutine setProperty_multi_logical(this, name, property, value)
-    use Dictionary_mod, only: insert
-    type (TracerBundle_type), intent(inout) :: this
-    character(len=*), intent(in) :: name
-    character(len=*), intent(in) :: property
-    logical, intent(in) :: value
-
-    integer :: index
-
-    index = getIndex(this, name)
-    call setProperty(this%tracers(index), property, value)
-  end subroutine setProperty_multi_logical
-
-  subroutine setProperty_multi_logicalArr(this, name, property, values)
-    use Dictionary_mod, only: insert
-    type (TracerBundle_type), intent(inout) :: this
-    character(len=*), intent(in) :: name
-    character(len=*), intent(in) :: property
-    logical, intent(in) :: values(:)
-
-    integer :: index
-
-    index = getIndex(this, name)
-    call setProperty(this%tracers(index), property, values)
-  end subroutine setProperty_multi_logicalArr
-
-  subroutine setProperty_multi_string(this, name, property, value)
-    use Dictionary_mod, only: insert
-    type (TracerBundle_type), intent(inout) :: this
-    character(len=*), intent(in) :: name
-    character(len=*), intent(in) :: property
-    character(len=*), intent(in) :: value
-
-    integer :: index
-
-    index = getIndex(this, name)
-    call setProperty(this%tracers(index), property, value)
-  end subroutine setProperty_multi_string
-
-  subroutine setProperty_multi_stringArr(this, name, property, values)
-    use Dictionary_mod, only: insert
-    type (TracerBundle_type), intent(inout) :: this
-    character(len=*), intent(in) :: name
-    character(len=*), intent(in) :: property
-    character(len=*), intent(in) :: values(:)
-
-    integer :: index
-
-    index = getIndex(this, name)
-    call setProperty(this%tracers(index), property, values)
-  end subroutine setProperty_multi_stringArr
-
-  integer function getCount_(this) result(number)
-    type (TracerBundle_type), intent(in) :: this
-
-    number = size(this%tracers)
-
-  end function getCount_
-
-  integer function getCount_property(this, withProperty) result(number)
-    type (TracerBundle_type), intent(in) :: this
-    character(len=*), intent(in) :: withProperty
-
-    number = count(hasProperty(this, withProperty))
-
-  end function getCount_property
-
-  subroutine makeSubset(this, withProperty, subset)
-    use Dictionary_mod, only: Dictionary
-    type (TracerBundle_type), target, intent(in) :: this
-    character(len=*), intent(in) :: withProperty
-    type (TracerBundle_type) :: subset
+  function makeSubset(this, withAttribute) result(subset)
+    class (TracerBundle), target, intent(in) :: this
+    character(len=*), intent(in) :: withAttribute
+    type (TracerBundle) :: subset
 
     integer :: i
+    type (TracerIterator) :: iter
+    class (Tracer), pointer :: t
 
-    subset = TracerBundle()
-    subset%defaultValues = Dictionary(this%defaultValues)
+    subset = newTracerBundle()
+    subset%defaultValues = this%defaultValues
 
-    do i = 1, getCount(this)
-      if (hasProperty(this%tracers(i), withProperty)) then
-        call addTracer(subset, this%tracers(i))
+    iter = this%begin()
+    do while (iter /= this%last())
+      t => iter%value()
+      if (t%has(withAttribute)) then
+        call subset%insertReference(trim(iter%key()), iter%value())
       end if
+      call iter%next()
     end do
 
-  end subroutine makeSubset
+    ! no further modifications are permitted
+    subset%locked = .true. 
+
+  end function makeSubset
+
+  function getAttributeVector(this, attributeName) result(vector)
+    use AbstractAttribute_mod
+    use AttributeReference_mod
+    class (TracerBundle), intent(inout) :: this
+    character(len=*), intent(in) :: attributeName
+    type (AttributeReference), pointer :: vector(:)
+
+    class (Tracer), pointer :: t
+    type (VectorAttribute) :: reference
+    type (TracerIterator) :: iter
+    class (AbstractAttribute), pointer :: attribute
+    integer :: i
+
+    ! must be at least one tracer to determine type of result
+    if (this%size() == 0) then
+      vector => null()
+      return
+    end if
+
+    if (this%attributeVectorCache%has(attributeName)) then
+      ! Should be doable in 1 step, but compiler struggles ...
+      attribute => this%attributeVectorCache%getReference(attributeName)
+      vector = attribute
+      return
+    end if
+
+    this%locked = .true.  ! attributeVectorCache will be invalid if new tracers are added to bundle
+
+    allocate(vector(this%size()))
+
+    iter = this%begin()
+    i = 1
+
+    do while (iter /= this%last())
+      t => iter%value()
+      if (.not. t%has(attributeName)) then
+        call throwException('All tracers must have specified attribute to use getAttributeVector() method.',14)
+        return
+      end if
+      call vector(i)%set(t%getReference(attributeName))
+      i = i + 1
+      call iter%next()
+    end do
+
+    reference = newVectorAttribute(vector)
+    call this%attributeVectorCache%insert(attributeName, reference) ! save for efficient reference next time
+
+  end function getAttributeVector
 
   logical function equals(bundleA, bundleB) result(isEqual)
-    use GenericType_mod
-    use Dictionary_mod, only: operator(==)
     use Parser_mod, only: MAX_LEN_TOKEN
-    type (TracerBundle_type), target, intent(in) :: bundleA
-    type (TracerBundle_type), target, intent(in) :: bundleB
+    type (TracerBundle), target, intent(in) :: bundleA
+    type (TracerBundle), target, intent(in) :: bundleB
 
-    integer :: i
     character(len=MAX_LEN_TOKEN) :: name
 
+    type (TracerIterator) :: iter
+    class (Tracer), pointer :: t
+
     isEqual = .true.
-    do i = 1, getCount(bundleA)
-      name = getProperty(bundleA%tracers(1), 'name')
-      if (.not. (getProperties(bundleA, name) == getProperties(bundleB, name))) then
+
+    iter = bundleA%begin()
+    do while (iter /= bundleA%last())
+      name = trim(iter%key())
+      t => iter%value()
+      if (.not. (t%equals(bundleB%getReference(name)))) then
         isEqual = .false.
         exit
       end if
+      call iter%next()
     end do
 
   end function equals
 
   subroutine cleanBundle(this)
-    use Dictionary_mod, only: clean
-    type (TracerBundle_type), intent(inout) :: this
+    type (TracerBundle), intent(inout) :: this
     integer :: i
-    do i = 1, getCount(this)
-      call clean(this%tracers(i))
-    end do
-    deallocate(this%tracers)
+
     call clean(this%defaultValues)
-    !    if (size(this%mandatoryProperties)>0) then
-    !       print *, 'SIZE = ',size(this%mandatoryProperties)
-    deallocate(this%mandatoryProperties)
+    !    if (size(this%mandatoryAttributes)>0) then
+    !       print *, 'SIZE = ',size(this%mandatoryAttributes)
+    deallocate(this%mandatoryAttributes)
     !    end if
   end subroutine cleanBundle
-  
-  integer function ntsurfsrc_1(this, index) result(n)
-    use Tracer_mod
-    type (TracerBundle_type), intent(in) :: this
-    integer, intent(in) :: index
 
-    n = this%tracers(index)%ntSurfSrc
+  subroutine insertEntry(this, key, value)
+    class (TracerBundle), target, intent(inout) :: this
+    character(len=*), intent(in) :: key ! name
+    class (Tracer) :: value ! tracer
 
-  end function ntsurfsrc_1
+    class (Tracer), pointer :: p
 
-  integer function ntsurfsrc_all(this) result(n)
-    use Tracer_mod
-    type (TracerBundle_type), intent(in) :: this
-    type (Tracer_type), pointer :: pTracer
+    if (this%locked) then
+      call throwException("TracerBundle_mod - cannot insert new tracer into subset. " // &
+           & "Subsets are locked from modification.",14)
+    end if
 
+    call assertHasAttributes(value, this%mandatoryAttributes)
 
-    n = sum(this%tracers(:)%ntSurfSrc)
+    call this%TracerHashMap%insertEntry(key, value) ! invoke parent method
+    p => this%getReference(key)
 
-  end function ntsurfsrc_all
+    call p%merge(this%defaultValues)
 
-  subroutine setNtsurfsrc(this, index, value)
-    use Tracer_mod
-    type (TracerBundle_type), intent(in) :: this
-    integer, intent(in) :: index
-    integer, intent(in) :: value
+  end subroutine insertEntry
 
-! TODO - this should be the same as the length of list of sources
-    this%tracers(index)%ntSurfSrc = value
+  subroutine insertGetName(this, value)
+    class (TracerBundle), intent(inout) :: this
+    class (Tracer) :: value ! tracer
 
-  end subroutine setNtsurfsrc
+    class (Tracer), pointer :: p
+
+    call this%insertEntry(getName(value), value)
+
+  end subroutine insertGetName
+
+  function findAttribute(this, species, attributeName) result(attribute)
+    use AbstractAttribute_mod
+    class (TracerBundle), intent(in) :: this
+    character(len=*), intent(in) :: species
+    character(len=*), intent(in) :: attributeName
+
+    class (AbstractAttribute), pointer :: attribute
+
+    class (Tracer), pointer :: t
+    
+    t => this%getReference(species)
+    attribute => t%getReference(attributeName)
+    
+  end function findAttribute
+
+  subroutine copyBundle(a, b)
+    use TracerHashMap_mod, only: assignment(=)
+    type (TracerBundle), intent(inout) :: a
+    type (TracerBundle), intent(in) :: b
+    a%TracerHashMap = b%TracerHashMap
+    a%defaultValues = b%defaultValues
+    if (allocated(b%mandatoryAttributes)) then
+#ifdef COMPILER_Intel8
+      allocate(a%mandatoryAttributes, source=b%mandatoryAttributes)
+#else
+      a%mandatoryAttributes = b%mandatoryAttributes
+#endif
+    end if
+    a%locked = b%locked
+    a%attributeVectorCache = b%attributeVectorCache
+  end subroutine copyBundle
 
 end module TracerBundle_mod

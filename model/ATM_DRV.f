@@ -6,8 +6,8 @@
       use resolution, only : im,jm,lm,ls1,ptop
       USE MODEL_COM
       USE ATM_COM, only : p,wm
-      USE ATM_COM, only : pua,pva,sd_clouds,ptold,ps,kea
-      USE DYNAMICS, only : nstep,nidyn,nfiltr,mfiltr,dt,conv
+      USE ATM_COM, only : MUs,MVs,sd_clouds,ptold,ps,kea
+      Use DYNAMICS,   Only: nstep,nidyn,nfiltr,mfiltr,dt
       USE DOMAIN_DECOMP_ATM, only: grid
       use domain_decomp_atm, only: writei8_parallel
       USE RANDOM
@@ -124,14 +124,13 @@ C**** Currently energy is put in uniformly weighted by mass
       finalTotalEnergy = getTotalEnergy()
       call addEnergyAsDiffuseHeat(finalTotalEnergy - initialTotalEnergy)
 #ifndef CUBED_SPHERE
-      call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(PUA, PVA, DT)
+      call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(MUs, MVs, DT)
 #endif
+
 #ifdef SCM
-       do L=1,LM
-          CONV(I_TARG,J_TARG,L) = SG_CONV(L)
-       enddo
+      Do L=1,LM  ;  SD_CLOUDS(:,:,L) = SG_CONV(L)  ;  EndDo
 #endif
-      SD_CLOUDS(:,:,:) = CONV(:,:,:)
+
       call COMPUTE_WSAVE
 C**** Scale WM mixing ratios to conserve liquid water
       DO L=1,LS1-1
@@ -391,7 +390,7 @@ c
       USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,
      &    iu_scm_prt,iu_scm_diag
 #endif
-      USE FLUXES, only : atmice
+      USE FLUXES, only : atmocn,atmice
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
       use SystemTimers_mod
@@ -400,7 +399,7 @@ c
       REAL*8 start,now
 
       call seaice_to_atmgrid(atmice)
-      CALL ADVSI_DIAG ! needed to update qflux model, dummy otherwise
+      CALL ADVSI_DIAG(atmocn,atmice) ! needed to update qflux model, dummy otherwise
 C**** SAVE some noon GMT ice quantities
       IF (MOD(Itime+1,NDAY).ne.0 .and. MOD(Itime+1,NDAY/2).eq.0)
      &        call vflx_OCEAN
@@ -516,6 +515,9 @@ C****
 #ifdef IRRIGATION_ON
       use irrigate_crop, only : init_irrigate
 #endif
+#ifdef USE_ESMF
+      use ATM_COM, only : atmclock
+#endif
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: fvstate,initialize
 #endif
@@ -570,6 +572,10 @@ C****
       call set_param("PLBOT",Plbot,LM+1,'o')
 
       if(istart.eq.2) call read_nmc()
+
+#ifdef USE_ESMF
+      call init_esmf_clock_for_modelE( int(dtsrc), atmclock )
+#endif
 
 C****
 C**** IRANDI seed for random perturbation of current state (if/=0)
@@ -717,6 +723,11 @@ C****
 c Driver to allocate arrays that become dynamic as a result of
 c set-up for MPI implementation
       USE DOMAIN_DECOMP_ATM, ONLY : grid,init_grid
+#ifdef GLINT2
+      USE DOMAIN_DECOMP_ATM, ONLY : glint2
+      use MpiSupport_mod, only: ROOT_PROCESS
+      Use glint2_modele
+#endif
       USE RESOLUTION, only : im,jm,lm
 #ifndef CUBED_SPHERE
       USE MOMENTS, only : initMoments
@@ -726,10 +737,8 @@ c set-up for MPI implementation
       use ghy_tracers, only: initGhyTracers
 #endif
       IMPLICIT NONE
-
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      call initTracerCom
-      call initGhyTracers
+#ifdef GLINT2
+      include 'mpif.h'      ! Needed for GLINT2
 #endif
 
 #ifdef SCM
@@ -741,6 +750,21 @@ c initialize the atmospheric domain decomposition
 c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call init_grid(grid, im, jm, lm, CREATE_CAP=.true.)
 #endif
+
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      call initTracerCom
+      call initGhyTracers
+#endif
+
+#ifdef GLINT2
+      glint2 = glint2_modele_new('GLINT2', 6, 'm', 1,
+     &    im, jm,
+     &    grid%i_strt_halo, grid%i_stop_halo,
+     &    grid%j_strt_halo, grid%j_stop_halo,
+     &    grid%i_strt, grid%i_stop, grid%j_strt, grid%j_stop,
+     &    grid%j_strt_skp, grid%j_stop_skp,
+     &    MPI_COMM_WORLD, ROOT_PROCESS)
+#endif  ! GLINT2
 
       call alloc_dynamics(grid)
       call alloc_atm_com(grid)
@@ -754,9 +778,6 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call alloc_diag_loc(grid)
       call alloc_strat_com(grid)
       call alloc_rad_com(grid)
-#ifdef RAD_O3_GCM_HRES
-      call alloc_RAD_native_O3(grid)
-#endif
       call alloc_lakes(grid)
       call alloc_lakes_com(grid)
       call alloc_landice_com(grid)

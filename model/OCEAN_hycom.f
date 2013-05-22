@@ -13,6 +13,8 @@
      &  , nstep0, nstep, time0, time, itest, jtest
      &  , iocnmx, brntop, brnbot, ocnmx_factor_s, ocnmx_factor_t
      &  , diapyn, diapyc, jerlv0, thkdff
+     &  , bolus_biharm_constant, bolus_laplc_constant
+     &  , bolus_laplc_exponential
 #if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
      || (defined TRACERS_ZEBRA)
      .  , diag_counter,itest_trac,jtest_trac
@@ -56,23 +58,25 @@ C**** (hycom ocean dynamics does not feel the weight of sea ice).
       osurf_tilt = 0
 #endif
 
-      call sync_param( "itest", itest)
-      call sync_param( "jtest", jtest)
-      call sync_param( "iocnmx", iocnmx)
-      call sync_param( "brntop", brntop)
-      call sync_param( "brnbot", brnbot)
-      call sync_param( "ocnmx_factor_s", ocnmx_factor_s)
-      call sync_param( "ocnmx_factor_t", ocnmx_factor_t)
-      call sync_param( "diapyn", diapyn)
-      call sync_param( "diapyc", diapyc)
-      call sync_param( "jerlv0", jerlv0)
-      call sync_param( "thkdff", thkdff)
+      call sync_param("itest", itest)
+      call sync_param("jtest", jtest)
+      call sync_param("iocnmx", iocnmx)
+      call sync_param("brntop", brntop)
+      call sync_param("brnbot", brnbot)
+      call sync_param("ocnmx_factor_s", ocnmx_factor_s)
+      call sync_param("ocnmx_factor_t", ocnmx_factor_t)
+      call sync_param("diapyn", diapyn)
+      call sync_param("diapyc", diapyc)
+      call sync_param("jerlv0", jerlv0)
+      call sync_param("thkdff", thkdff)
+      call sync_param("bolus_biharm_constant",  bolus_biharm_constant)
+      call sync_param("bolus_laplc_constant",   bolus_laplc_constant)
+      call sync_param("bolus_laplc_exponential",bolus_laplc_exponential)
 
 #ifdef TRACERS_OceanBiology
       call obio_forc_init
 #endif
 c
-
       if (iocnmx.ge.0.and.iocnmx.le.2 .or. iocnmx.eq.5 .or. iocnmx.eq.6) 
      .                                                              then
         call inikpp
@@ -83,7 +87,16 @@ c
       endif
 c
       if (AM_I_ROOT()) then ! work on global grids here
-      
+        if ((bolus_laplc_constant*bolus_laplc_exponential==1)
+     . .or. (bolus_laplc_constant*bolus_biharm_constant==1)
+     . .or. (bolus_laplc_exponential*bolus_biharm_constant==1)) then
+          print *,' wrong bolus setting: only one can be true'
+          stop 'wrong bolus setting: only one can be true'
+        elseif (bolus_laplc_constant==0 .and. bolus_laplc_exponential==0
+     .    .and. bolus_biharm_constant==0) then
+          stop 'wrong bolus setting: one has to be true'
+        end if
+c
 css   if (istart.eq.2 .or. nstep0.eq.0) call geopar
       call inicon
 c

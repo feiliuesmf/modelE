@@ -61,24 +61,18 @@ module Dictionary_mod
 !@+ divisible by 4 (needed for portability SGI,LINUX <-> IBM,COMPAQ).
 !@+ Header renamed to "PARAM02 "
   use StringUtilities_mod, only: toLowerCase
-  use KeyValuePair_mod
-  use GenericType_mod
+  use KeyValuePair_mod, only: KeyValuePair_type, KeyValuePair
+  use GenericType_mod, only: GenericType_type, GenericType
+  use GenericType_mod, only: assignment(=), operator(==)
   implicit none
   save
   private
 
   ! Dictionary
-  public :: Dictionary_type ! data type
-  public :: Dictionary      ! constructor
+  public :: Dictionary ! data type/Constructor
+  public :: Dictionary_copy
   public :: clean           ! destructor
-  public :: insert
-  public :: getNumEntries
-  public :: lookup
-  public :: merge
-  public :: hasKey
-  public :: getKeys
   public :: readUnformatted
-  public :: writeUnformatted
   public :: operator(==)
 
 
@@ -99,15 +93,70 @@ module Dictionary_mod
 
   integer, parameter :: NOT_FOUND = -1
 
-  type Dictionary_type
+  type Dictionary
     private
     type (KeyValuePair_type), pointer :: pairs(:) => null()
-  end type Dictionary_type
+  contains
+    procedure :: hasKey
+    procedure :: getKeys
+    procedure :: getNumEntries
+    procedure :: lookup
+    procedure :: writeUnformatted => writeUnformattedDictionary
+
+
+    ! generic insert
+    procedure :: insert_pair
+    procedure :: insert_integer
+    procedure :: insert_real64
+    procedure :: insert_logical
+    procedure :: insert_string
+    procedure :: insert_integerArray
+    procedure :: insert_real64Array
+    procedure :: insert_logicalArray
+    procedure :: insert_stringArray
+    generic :: insert => insert_pair, insert_integer, &
+         & insert_real64, insert_logical, insert_string, &
+         & insert_integerArray, insert_real64Array, &
+         & insert_logicalArray, insert_stringArray
+    procedure :: print
+    ! generic merge
+    procedure :: merge_dictionary
+    procedure :: merge_pair
+    procedure :: merge_integer
+    procedure :: merge_real64
+    procedure :: merge_logical
+    procedure :: merge_string
+    procedure :: merge_integerArray
+    procedure :: merge_real64Array
+    procedure :: merge_logicalArray
+    procedure :: merge_stringArray
+    generic :: merge => merge_dictionary, merge_pair, &
+         & merge_integer, merge_real64, merge_logical, &
+         & merge_string, merge_integerArray, merge_real64Array, &
+         & merge_logicalArray, merge_stringArray
+
+    ! generic set
+    procedure :: set_pair
+    procedure :: set_integer
+    procedure :: set_real64
+    procedure :: set_logical
+    procedure :: set_string
+    procedure :: set_integerArray
+    procedure :: set_real64Array
+    procedure :: set_logicalArray
+    procedure :: set_stringArray
+    generic :: set => set_pair, &
+         & set_integer, set_real64, set_logical, &
+         & set_string, set_integerArray, set_real64Array, &
+         & set_logicalArray, set_stringArray
+
+  end type Dictionary
 
   integer, parameter :: MAX_PARAMS =500 
-  integer, parameter :: MAX_RPARAMS =300
+  integer, parameter :: MAX_RPARAMS =430
   integer, parameter :: MAX_IPARAMS = 1000 
   integer, parameter :: MAX_CPARAMS = 350
+
   integer, parameter :: MAX_NAME_LEN = 32
   integer, parameter :: MAX_CHAR_LEN = 128
 
@@ -161,31 +210,6 @@ module Dictionary_mod
     module procedure cleanDictionary
   end interface
 
-  interface insert
-    module procedure insert_pair
-    module procedure insert_integer
-    module procedure insert_real64
-    module procedure insert_logical
-    module procedure insert_string
-    module procedure insert_integerArray
-    module procedure insert_real64Array
-    module procedure insert_logicalArray
-    module procedure insert_stringArray
-  end interface
-
-  interface merge
-    module procedure merge_dictionary
-    module procedure merge_pair
-    module procedure merge_integer
-    module procedure merge_real64
-    module procedure merge_logical
-    module procedure merge_string
-    module procedure merge_integerArray
-    module procedure merge_real64Array
-    module procedure merge_logicalArray
-    module procedure merge_stringArray
-  end interface
-  
   interface operator(==)
     module procedure equals
   end interface
@@ -194,29 +218,21 @@ module Dictionary_mod
     module procedure readUnformatted_dictionary
   end interface
 
-  interface writeUnformatted
-    module procedure writeUnformatted_dictionary
-  end interface
-
-  interface getKeys
-    module procedure getKeys_dictionary
-  end interface
-
 contains
 
   function Dictionary_empty() 
-    type (Dictionary_type) :: Dictionary_empty
+    type (Dictionary) :: Dictionary_empty
     allocate(Dictionary_empty%pairs(0))
   end function Dictionary_empty
 
   function Dictionary_copy(original) result(copy)
-    type (Dictionary_type), intent(in) :: original
-    type (Dictionary_type) :: copy
+    type (Dictionary), intent(in) :: original
+    type (Dictionary) :: copy
 
     integer :: i
 
-    allocate(copy%pairs(getNumEntries(original)))
-    do i = 1, getNumEntries(original)
+    allocate(copy%pairs(original%getNumEntries()))
+    do i = 1, original%getNumEntries()
       copy%pairs(i) = KeyValuePair(original%pairs(i))
     end do
 
@@ -399,7 +415,7 @@ contains
     implicit none
     character*(*), intent(in) ::  name
     integer, intent(out) ::  value
-    integer, intent(out), optional ::  default
+    integer, intent(in), optional ::  default
     integer v(1)
 
     if ( present(default) ) then
@@ -992,19 +1008,19 @@ contains
 !@sum Creates space for new entry in dictionary.
 !@+ Could be altered to grow the list by multiple entries
 !@+ which would result in fewer allocations.
-    type (Dictionary_type), intent(inout) :: this
+    type (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
 
     type (KeyValuePair_type), pointer :: oldPairs(:)
     integer :: numEntries
 
-    if (hasKey(this, key)) then
+    if (this%hasKey(key)) then
       call throwException('Dictionary: duplicate key - <'//trim(key)//'>.',14)
       return
     end if
 
     oldPairs => this%pairs
-    numEntries = getNumEntries(this)
+    numEntries = this%getNumEntries()
     allocate(this%pairs(numEntries+1))
     this%pairs(1:numEntries) = oldPairs  ! shallow copy
     deallocate(oldPairs)
@@ -1015,117 +1031,260 @@ contains
 
   subroutine insert_pair(this, pair)
 !@sum Insert a KeyValuePair into dictionary.
-    type (Dictionary_type), intent(inout) :: this
+    use KeyValuePair_mod, only: MAX_LEN_KEY
+    class (Dictionary), intent(inout) :: this
     type (KeyValuePair_type), intent(in) :: pair
 
     character(len=MAX_LEN_KEY) :: key
 
     call addEntry(this, key)
-    this%pairs(getNumEntries(this)) = KeyValuePair(pair) ! deep copy
+    this%pairs(this%getNumEntries()) = KeyValuePair(pair) ! deep copy
 
   end subroutine insert_pair
 
   subroutine insert_integer(this, key, value)
 !@sum Insert an integer into dictionary.
-    type (Dictionary_type), intent(inout) :: this
+    class (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
     integer, intent(in) :: value
 
     call addEntry(this, key)
-    this%pairs(getNumEntries(this)) = KeyValuePair(key, GenericType(value))
+    this%pairs(this%getNumEntries()) = KeyValuePair(key, GenericType(value))
 
   end subroutine insert_integer
 
   subroutine insert_real64(this, key, value)
 !@sum Insert a double into dictionary.
-    type (Dictionary_type), intent(inout) :: this
+    class (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
     real*8, intent(in) :: value
     
     call addEntry(this, key)
-    this%pairs(getNumEntries(this)) = KeyValuePair(key, GenericType(value))
+    this%pairs(this%getNumEntries()) = KeyValuePair(key, GenericType(value))
 
   end subroutine insert_real64
 
   subroutine insert_logical(this, key, value)
 !@sum Insert a logical into dictionary.
-    type (Dictionary_type), intent(inout) :: this
+    class (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
     logical, intent(in) :: value
     
     call addEntry(this, key)
-    this%pairs(getNumEntries(this)) = KeyValuePair(key, GenericType(value))
+    this%pairs(this%getNumEntries()) = KeyValuePair(key, GenericType(value))
 
   end subroutine insert_logical
 
   subroutine insert_string(this, key, value)
 !@sum Insert a string into dictionary.
-    type (Dictionary_type), intent(inout) :: this
+    class (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
     character(len=*), intent(in) :: value
     
     call addEntry(this, key)
-    this%pairs(getNumEntries(this)) = KeyValuePair(key, GenericType(value))
+    this%pairs(this%getNumEntries()) = KeyValuePair(key, GenericType(value))
 
   end subroutine insert_string
 
   subroutine insert_integerArray(this, key, values)
 !@sum Insert an integer array into dictionary.
-    type (Dictionary_type), intent(inout) :: this
+    class (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
     integer, intent(in) :: values(:)
     
     call addEntry(this, key)
-    this%pairs(getNumEntries(this)) = KeyValuePair(key, GenericType(values))
+    this%pairs(this%getNumEntries()) = KeyValuePair(key, GenericType(values))
 
   end subroutine insert_integerArray
 
   subroutine insert_real64Array(this, key, values)
 !@sum Insert a real array into dictionary.
-    type (Dictionary_type), intent(inout) :: this
+    class (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
     real*8, intent(in) :: values(:)
     
     call addEntry(this, key)
-    this%pairs(getNumEntries(this)) = KeyValuePair(key, GenericType(values))
+    this%pairs(this%getNumEntries()) = KeyValuePair(key, GenericType(values))
 
   end subroutine insert_real64Array
 
   subroutine insert_logicalArray(this, key, values)
 !@sum Insert a logical array into dictionary.
-    type (Dictionary_type), intent(inout) :: this
+    class (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
     logical, intent(in) :: values(:)
     
     call addEntry(this, key)
-    this%pairs(getNumEntries(this)) = KeyValuePair(key, GenericType(values))
+    this%pairs(this%getNumEntries()) = KeyValuePair(key, GenericType(values))
 
   end subroutine insert_logicalArray
 
   subroutine insert_stringArray(this, key, values)
 !@sum Insert a string array into dictionary.
-    type (Dictionary_type), intent(inout) :: this
+    class (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
     character(len=*), intent(in) :: values(:)
     
     call addEntry(this, key)
-    this%pairs(getNumEntries(this)) = KeyValuePair(key, GenericType(values))
+    this%pairs(this%getNumEntries()) = KeyValuePair(key, GenericType(values))
 
   end subroutine insert_stringArray
   ! End overload interface for insert()
+
+  ! Begin overload interface for set()
+
+  subroutine set_pair(this, pair)
+!@sum Set a KeyValuePair into dictionary.
+    use KeyValuePair_mod, only: getKey
+    use KeyValuePair_mod, only: MAX_LEN_KEY
+    class (Dictionary), intent(inout) :: this
+    type (KeyValuePair_type), intent(in) :: pair
+
+    character(len=MAX_LEN_KEY) :: key
+
+    key = getKey(pair)
+    if (this%hasKey(key)) then
+      this%pairs(getIndex(this,key)) = pair
+    else
+      call addEntry(this, key)
+      this%pairs(this%getNumEntries()) = KeyValuePair(pair) ! deep copy
+    end if
+
+  end subroutine set_pair
+
+  subroutine set_integer(this, key, value)
+!@sum Set an integer into dictionary.
+    class (Dictionary), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    integer, intent(in) :: value
+
+    if (this%hasKey(key)) then
+      this%pairs(getIndex(this,key)) = KeyValuePair(key, GenericType(value))
+    else
+      call addEntry(this, key)
+      this%pairs(this%getNumEntries()) = KeyValuePair(key, GenericType(value))
+    end if
+
+  end subroutine set_integer
+
+  subroutine set_real64(this, key, value)
+!@sum Set a double into dictionary.
+    class (Dictionary), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    real*8, intent(in) :: value
+    
+    if (this%hasKey(key)) then
+      this%pairs(getIndex(this,key)) = KeyValuePair(key, GenericType(value))
+    else
+      call addEntry(this, key)
+      this%pairs(this%getNumEntries()) = KeyValuePair(key, GenericType(value))
+    end if
+
+  end subroutine set_real64
+
+  subroutine set_logical(this, key, value)
+!@sum Set a logical into dictionary.
+    class (Dictionary), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    logical, intent(in) :: value
+    
+    if (this%hasKey(key)) then
+      this%pairs(getIndex(this,key)) = KeyValuePair(key, GenericType(value))
+    else
+      call addEntry(this, key)
+      this%pairs(this%getNumEntries()) = KeyValuePair(key, GenericType(value))
+    end if
+
+  end subroutine set_logical
+
+  subroutine set_string(this, key, value)
+!@sum Set a string into dictionary.
+    class (Dictionary), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    character(len=*), intent(in) :: value
+    
+    if (this%hasKey(key)) then
+      this%pairs(getIndex(this,key)) = KeyValuePair(key, GenericType(value))
+    else
+      call addEntry(this, key)
+      this%pairs(this%getNumEntries()) = KeyValuePair(key, GenericType(value))
+    end if
+
+  end subroutine set_string
+
+  subroutine set_integerArray(this, key, values)
+!@sum Set an integer array into dictionary.
+    class (Dictionary), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    integer, intent(in) :: values(:)
+    
+    if (this%hasKey(key)) then
+      this%pairs(getIndex(this,key)) = KeyValuePair(key, GenericType(values))
+    else
+      call addEntry(this, key)
+      this%pairs(this%getNumEntries()) = KeyValuePair(key, GenericType(values))
+    end if
+
+  end subroutine set_integerArray
+
+  subroutine set_real64Array(this, key, values)
+!@sum Set a real array into dictionary.
+    class (Dictionary), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    real*8, intent(in) :: values(:)
+    
+    if (this%hasKey(key)) then
+      this%pairs(getIndex(this,key)) = KeyValuePair(key, GenericType(values))
+    else
+      call addEntry(this, key)
+      this%pairs(this%getNumEntries()) = KeyValuePair(key, GenericType(values))
+    end if
+
+  end subroutine set_real64Array
+
+  subroutine set_logicalArray(this, key, values)
+!@sum Set a logical array into dictionary.
+    class (Dictionary), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    logical, intent(in) :: values(:)
+    
+    if (this%hasKey(key)) then
+      this%pairs(getIndex(this,key)) = KeyValuePair(key, GenericType(values))
+    else
+      call addEntry(this, key)
+      this%pairs(this%getNumEntries()) = KeyValuePair(key, GenericType(values))
+    end if
+
+  end subroutine set_logicalArray
+
+  subroutine set_stringArray(this, key, values)
+!@sum Set a string array into dictionary.
+    class (Dictionary), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    character(len=*), intent(in) :: values(:)
+    
+    if (this%hasKey(key)) then
+      this%pairs(getIndex(this,key)) = KeyValuePair(key, GenericType(values))
+    else
+      call addEntry(this, key)
+      this%pairs(this%getNumEntries()) = KeyValuePair(key, GenericType(values))
+    end if
+
+  end subroutine set_stringArray
+  ! End overload interface for set()
   
   ! Begin overload interface for merge()
   subroutine merge_dictionary(this, other)
 !@sum Merge two dictionaries. Where duplicate keys exist
 !@+ result has values from the original (1st argument).
 !@+ Analogous behavior to old 'sync_param'.
-    type (Dictionary_type), intent(inout) :: this
-    type (Dictionary_type), intent(in) :: other
+    class (Dictionary), intent(inout) :: this
+    type (Dictionary), intent(in) :: other
 
     integer :: i
 
     do i = 1, getNumEntries(other)
-      call merge(this, other%pairs(i))
+      call this%merge(other%pairs(i))
     end do
   end subroutine merge_dictionary
 
@@ -1133,132 +1292,132 @@ contains
 !@sum Merge pair into dictionary.   If key not already
 !@+ present, this is equivalent to insert(), otherwise
 !@+ it does nothing.
-    type (Dictionary_type), intent(inout) :: this
+    use KeyValuePair_mod, only: getKey
+    class (Dictionary), intent(inout) :: this
     type (KeyValuePair_type), intent(in) :: pair
 
-    if (hasKey(this, getKey(pair))) return
-    call insert(this, pair)
+    if (this%hasKey(getKey(pair))) return
+    call this%insert(pair)
 
   end subroutine merge_pair
 
   subroutine merge_integer(this, key, value)
 !@sum Merge key+integer.
-    type (Dictionary_type), intent(inout) :: this
+    class (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
     integer, intent(inout) :: value
 
-    if (hasKey(this, key)) then
-      value = lookup(this, key)
+    if (this%hasKey(key)) then
+      value = this%lookup(key)
     else
-      call insert(this, key, value)
+      call this%insert(key, value)
     end if
 
   end subroutine merge_integer
 
   subroutine merge_real64(this, key, value)
 !@sum Merge key+double.
-    type (Dictionary_type), intent(inout) :: this
+    class (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
     real*8, intent(inout) :: value
 
-    if (hasKey(this, key)) then
-      value = lookup(this, key)
+    if (this%hasKey(key)) then
+      value = this%lookup(key)
     else
-      call insert(this, key, value)
+      call this%insert(key, value)
     end if
 
   end subroutine merge_real64
 
   subroutine merge_logical(this, key, value)
 !@sum Merge key+logical
-    type (Dictionary_type), intent(inout) :: this
+    class (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
     logical, intent(inout) :: value
 
-    if (hasKey(this, key)) then
-      value = lookup(this, key)
+    if (this%hasKey(key)) then
+      value = this%lookup(key)
     else
-      call insert(this, key, value)
+      call this%insert(key, value)
     end if
 
   end subroutine merge_logical
 
   subroutine merge_string(this, key, value)
 !@sum Merge key+string
-    type (Dictionary_type), intent(inout) :: this
+    class (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
     character(len=*), intent(inout) :: value
 
-    if (hasKey(this, key)) then
-      value = lookup(this, key)
+    if (this%hasKey(key)) then
+      value = this%lookup(key)
     else
-      call insert(this, key, value)
+      call this%insert(key, value)
     end if
 
   end subroutine merge_string
 
   subroutine merge_integerArray(this, key, values)
 !@sum Merge key+integer array
-    type (Dictionary_type), intent(inout) :: this
+    class (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
     integer, intent(inout) :: values(:)
 
-    if (hasKey(this, key)) then
-      values = lookup(this, key)
+    if (this%hasKey(key)) then
+      values = this%lookup(key)
     else
-      call insert(this, key, values)
+      call this%insert(key, values)
     end if
 
   end subroutine merge_integerArray
 
   subroutine merge_real64Array(this, key, values)
 !@sum Merge key+double array
-    type (Dictionary_type), intent(inout) :: this
+    class (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
     real*8, intent(inout) :: values(:)
 
-    if (hasKey(this, key)) then
-      values = lookup(this, key)
+    if (this%hasKey(key)) then
+      values = this%lookup(key)
     else
-      call insert(this, key, values)
+      call this%insert(key, values)
     end if
 
   end subroutine merge_real64Array
 
   subroutine merge_logicalArray(this, key, values)
 !@sum Merge key+logical array
-    type (Dictionary_type), intent(inout) :: this
+    class (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
     logical, intent(inout) :: values(:)
 
-    if (hasKey(this, key)) then
-      values = lookup(this, key)
+    if (this%hasKey(key)) then
+      values = this%lookup(key)
     else
-      call insert(this, key, values)
+      call this%insert(key, values)
     end if
 
   end subroutine merge_logicalArray
 
   subroutine merge_stringArray(this, key, values)
 !@sum Merge key+stringarray
-    type (Dictionary_type), intent(inout) :: this
+    class (Dictionary), intent(inout) :: this
     character(len=*), intent(in) :: key
     character(len=*), intent(inout) :: values(:)
 
 
-    if (hasKey(this, key)) then
-      values = lookup(this, key)
+    if (this%hasKey(key)) then
+      values = this%lookup(key)
     else
-      call insert(this, key, values)
+      call this%insert(key, values)
     end if
 
   end subroutine merge_stringArray
   ! End of overload of merge()
-
   
   integer function getNumEntries(this)
 !@sum Returns number of entries in dictionary.
-    type (Dictionary_type), intent(in) :: this
+    class (Dictionary), intent(in) :: this
     getNumEntries = size(this%pairs)
   end function getNumEntries
 
@@ -1267,15 +1426,16 @@ contains
 !@+ note that overloading of "=" in GenericType_mod
 !@+ allows the result to be given to an appropriate
 !@+ intrinsic type.  
-    type (Dictionary_type), intent(in) :: this
+    use KeyValuePair_mod, only: getNumValues, getValues
+    class (Dictionary), intent(in) :: this
     character(len=*), intent(in) :: key
     type (GenericType_type), pointer :: values(:)
     integer :: i
 
     i = getIndex(this, key)
     if (i /= NOT_FOUND) then
-      allocate(values(getNumValues(this%pairs(i))))
-      values = getValues(this%pairs(i))
+!!$      allocate(values(getNumValues(this%pairs(i))))
+      values => getValues(this%pairs(i))
     else
       ! need to allocate something to prevent a crash
       allocate(values(0))
@@ -1286,7 +1446,8 @@ contains
 
   subroutine cleanDictionary(this)
 !@sum Restore data structure to pristine state
-    type (Dictionary_type), intent(inout) :: this
+    use KeyValuePair_mod, only: clean
+    type (Dictionary), intent(inout) :: this
     integer :: i
     do i = 1, size(this%pairs)
       call clean(this%pairs(i))
@@ -1296,13 +1457,14 @@ contains
 
   logical function hasKey(this, key)
 !@sum Returns true iff dictionary has given key.
-    type (Dictionary_type), intent(in) :: this
+    use KeyValuePair_mod, only: getKey
+    class (Dictionary), intent(in) :: this
     character(len=*), intent(in) :: key
 
     integer :: i
 
     hasKey = .false.
-    do i = 1, getNumEntries(this)
+    do i = 1, this%getNumEntries()
       if (trim(key) == getKey(this%pairs(i))) then
         hasKey = .true.
         return
@@ -1311,23 +1473,27 @@ contains
 
   end function hasKey
 
-  function getKeys_dictionary(this) result(keys)
+  function getKeys(this) result(keys)
 !@sum Returns pointer aray of keys in dictioary.
-    type (Dictionary_type), intent(in) :: this
+    use KeyValuePair_mod, only: getKeys_pair => getKeys
+    use KeyValuePair_mod, only: MAX_LEN_KEY
+    class (Dictionary), intent(in) :: this
     character(len=MAX_LEN_KEY), pointer :: keys(:)
-    keys => getKeys(this%pairs)
-  end function getKeys_dictionary
+    keys => getKeys_pair(this%pairs)
+  end function getKeys
 
   integer function getIndex(this, key) result(index)
 !@sum Returns index in array of pairs where provided key
 !@+ can be found.   Returns parameter "NOT_FOUND" if
 !@+ key is not present.  
 !@+ NOTE:: THIS METHOD SHOULD NOT BE MADE PUBLIC
-    type (Dictionary_type), intent(in) :: this
+    use KeyValuePair_mod, only: getKey
+    type (Dictionary), intent(in) :: this
     character(len=*), intent(in) :: key
 
+
     integer :: i
-    do i = 1, getNumEntries(this)
+    do i = 1, this%getNumEntries()
       if (toLowerCase(key) == toLowerCase(getKey(this%pairs(i)))) then
         index = i
         return
@@ -1341,7 +1507,8 @@ contains
 !@sum Populates a dicitonary from unformatted sequential file.
 !@+ NOTE: No header is used, so this procedure should always
 !@+ be wrapped in logic that checks for a higher level header.
-    type (Dictionary_type), intent(out) :: this
+    use KeyValuePair_mod, only: readUnformatted
+    type (Dictionary), intent(out) :: this
     integer, intent(in) :: unit
     
     type (KeyValuePair_type) :: pair
@@ -1352,43 +1519,45 @@ contains
     read(unit) n
     do i = 1, n
       call readUnformatted(pair, unit)
-      call insert(this, pair)
+      call this%insert(pair)
     end do
 
   end subroutine readUnformatted_dictionary
 
-  subroutine writeUnformatted_dictionary(this, unit)
+  subroutine writeUnformattedDictionary(this, unit)
 !@sum Stores a dicitonary to an unformatted sequential file.
 !@+ NOTE: No header is used, so this procedure should always
 !@+ be wrapped in logic that provides such a safe header.
+    use KeyValuePair_mod, only: writeUnformatted_pair => writeUnformatted
 
-    type (Dictionary_type), intent(in) :: this
+    class (Dictionary), intent(in) :: this
     integer, intent(in) :: unit
 
     integer :: i, n
-    n = getNumEntries(this)
+    n = this%getNumEntries()
     write(unit) n
     do i = 1, n
-      call writeUnformatted(this%pairs(i), unit)
+      call writeUnformatted_pair(this%pairs(i), unit)
     end do
 
-  end subroutine writeUnformatted_dictionary
+  end subroutine writeUnformattedDictionary
 
   logical function equals(a, b)
 !@sum Returns .true. if two dictionaries are identical.
 !@+ I.e. if both dictionaries have the same keys, and
 !@+ for each key the corresponding values are the same.
 !@+ Note that no assumption about ordering of keys is made.
-    type (Dictionary_type), intent(in) :: a
-    type (Dictionary_type), intent(in) :: b
+    use KeyValuePair_mod, only: MAX_LEN_KEY, getValues, getNumValues
+    type (Dictionary), intent(in) :: a
+    type (Dictionary), intent(in) :: b
 
     integer :: i, j
     integer :: numA, numB
     character(len=MAX_LEN_KEY), pointer :: keys(:)
     character(len=MAX_LEN_KEY) :: key
 
-    numA = getNumEntries(a)
-    numB = getNumEntries(b)
+    numA = a%getNumEntries()
+    numB = b%getNumEntries()
     equals = (numA == numB)
 
     if (equals) then
@@ -1409,6 +1578,16 @@ contains
     end if
 
   end function equals
+
+  subroutine print(this)
+    class (Dictionary), intent(in) :: this
+    integer :: i
+    print*,__LINE__,__FILE__,' Dictionary - num entries =',size(this%pairs)
+    
+    do i = 1, size(this%pairs)
+      call this%pairs(i)%print()
+    end do
+  end subroutine print
 
 end module Dictionary_mod
 
@@ -1431,5 +1610,4 @@ subroutine swap_bytes_4( c, ndim )
     c(3,n) = temp
   end do
 end subroutine swap_bytes_4
-
 

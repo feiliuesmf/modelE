@@ -200,6 +200,11 @@ C endif
       real*8 :: Iron_BC = -0.005
 #endif
 
+#ifdef OBIO_ON_GARYocean
+      real*8, allocatable :: focean_glob(:,:)
+      integer, allocatable :: lmom_glob(:,:)
+#endif
+
       END MODULE obio_com
 
 !------------------------------------------------------------------------------

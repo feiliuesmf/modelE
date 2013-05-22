@@ -1,0 +1,230 @@
+#include "rundeck_opts.h"
+changequote([,])dnl
+include([m4Iteration.m4])dnl
+define([downcase], [translit([$*], [A-Z], [a-z])])dnl
+
+define([m4_KIND_TYPES],
+ [(Integer,,1,),
+  (Integer,,0,),
+  (Logical,,1,),
+  (Logical,,0,),
+  (Real,(kind=DP),1,RealDP),
+  (Real,(kind=DP),0,RealDP),
+  (Character,(len=MAX_LEN_ATTRIBUTE_STRING),1,String),
+  (Character,(len=MAX_LEN_ATTRIBUTE_STRING),0,String)])dnl
+
+define([m4_type], [$1])dnl
+define([m4_kind], [$2])dnl
+define([m4_rank], [$3])dnl
+define([m4_dimensions],[ifelse($1,0,,ifelse($1,1,(:),(:,:)))])dnl
+define([m4_shape],[ifelse($1,0,,ifelse($1,1,(size($2,1)),(size($2,1),size($2,2))))])dnl
+
+define([m4_attributeType],[ifelse($4,,$1,$4)[]ifelse($3,0,,$3d)Attribute])dnl
+
+define([m4_AttributeModule],
+[
+module m4_attributeType($1,$2,$3,$4)_mod
+  use AbstractAttribute_mod
+  implicit none
+  private
+
+[#define] TYPE m4_attributeType($1,$2,$3,$4)
+
+  public :: TYPE
+  public :: newAttribute
+  public :: assignment(=)
+
+  type, extends(AbstractAttribute) :: TYPE
+    ifelse($3,0,
+    [downcase($1)[]$2 :: value],
+    [downcase($1)[]$2, allocatable :: value m4_dimensions($3)]
+)
+  contains   
+    procedure :: equals
+    procedure :: clean
+    procedure :: print => printIt ! gfortran workaround
+    procedure :: writeUnformatted
+    procedure :: readUnformatted
+    procedure :: toString
+  end type TYPE
+
+  interface newAttribute
+    module procedure constructor
+  end interface
+
+  interface assignment(=)
+    module procedure toType
+    module procedure toTypeUnwrap
+    ifelse($3,0,module procedure toTypeVector)
+  end interface
+
+contains
+
+  function constructor(value) result(entry)
+    type (TYPE) :: entry
+    downcase($1)[]ifelse($1,Character,(len=*),$2), intent(in) :: value m4_dimensions($3)
+    ifelse($3,0,,allocate(entry%value m4_shape($3,value)))
+    entry%value = value
+  end function constructor
+
+  subroutine toType(value, entry)
+    downcase($1)[]$2, pointer, intent(inout) :: value m4_dimensions($3)
+    class (AbstractAttribute), target, intent(in) :: entry
+
+    select type (q => entry)
+    type is (m4_attributeType($1,$2,$3,$4))
+      value => q%value
+    class default
+!!$      call entry%print()
+      call throwException('Illegal conversion of m4_attributeType($1,$2,$3,$4).',255)
+    end select
+  end subroutine toType
+
+  subroutine toTypeUnwrap(value, reference)
+    use AttributeReference_mod
+    downcase($1)[]$2, pointer, intent(inout) :: value m4_dimensions($3)
+    type (AttributeReference), intent(in) :: reference
+
+    class (AbstractAttribute), pointer :: p
+
+    p => reference%get()
+    value = p
+
+  end subroutine toTypeUnwrap
+
+ifelse($3,0,
+[  subroutine toTypeVector(value, references)
+    use AttributeReference_mod
+    downcase($1)[]$2, pointer, intent(inout) :: value(:)
+    type (AttributeReference), intent(in) :: references(:)
+
+    class (AbstractAttribute), pointer :: p
+    downcase($1)[]$2, pointer :: q
+    integer :: i, n
+
+    n = size(references)
+    allocate(value(n))
+
+    do i = 1, n
+!!$      p => references(i)%get()
+      q = references(i)!%get()
+      value(i) = q
+      nullify(q)
+    end do
+
+  end subroutine toTypeVector
+]
+)
+
+  logical function equals(this, b)
+    class (m4_attributeType($1,$2,$3,$4)), intent(in) :: this
+    class (AbstractAttribute), intent(in) :: b
+
+    select type (p => b)
+    class is (m4_attributeType($1,$2,$3,$4))
+      if (ifelse($3,0,,all)(this%value ifelse($1,Logical,.eqv.,==) p%value)) then
+        equals = .true.
+      else
+        equals = .false.
+      end if
+    class default
+      equals = .false.
+    end select
+
+  end function equals
+
+  subroutine printIt(this)
+    class (m4_attributeType($1,$2,$3,$4)), intent(in) :: this
+    print*,'  Type:  ', 'm4_attributeType($1,$2,$3,$4)'
+    print*,'  Value: <', this%value,'>'
+    print*,'--------------'
+  end subroutine printIt
+
+  function toString(this) result(string)
+    use StringUtilities_mod, only: toStringElemental => toString
+    class (m4_attributeType($1,$2,$3,$4)), intent(in) :: this
+    character(len=MAX_LEN_LINE) :: string
+
+    ifelse($3,0,
+    string = toStringElemental(this%value),
+    string = join(reshape(toStringElemental(this%value),(/size(this%value)/)),', '))
+
+  contains
+
+    function join(strArray, separator) result(string)
+      character(len=*), intent(in) :: strArray(:)
+      character(len=*), intent(in) :: separator
+      character(len=MAX_LEN_LINE) :: string
+
+      integer :: i
+      string = trim(strArray(1))
+      do i = 2, size(strArray)
+        string = trim(string) // trim(separator) // trim(strArray(i))
+      end do
+    end function join
+
+  end function toString
+
+  subroutine writeUnformatted(this, unit)
+    class (m4_attributeType($1,$2,$3,$4)), intent(in) :: this
+    integer, intent(in) :: unit
+
+    ifelse($3,0,,
+    write(unit) shape(this%value))
+    ifelse($4,String,write(unit) len_trim(this%value))
+    write(unit) this%value
+
+  end subroutine writeUnformatted
+
+  function readUnformatted(this, unit) result(new)
+    ifelse($4,String,[use StringUtilities_mod, only: forceTrim])
+    class (m4_attributeType($1,$2,$3,$4)), intent(in) :: this
+    integer, intent(in) :: unit
+    class (AbstractAttribute), pointer :: new
+
+    integer :: rank
+    downcase($1)[]$2, pointer :: value m4_dimensions($3)
+    ifelse($4,String,[integer, pointer] :: lengths m4_dimensions($3))
+
+    ifelse($3,0, allocate(value ifelse($4,String,[,] lengths)),
+
+    integer :: attributeShape($3)
+
+    read(unit) attributeShape
+    allocate(value(attributeShape(1)ifelse($3,2,[,]attributeShape(2))))
+    ifelse($4,String,
+      allocate(lengths(attributeShape(1)ifelse($3,2,[,]attributeShape(2))))
+    ))
+    ifelse($4,String, read(unit) lengths)
+
+    read(unit) value
+
+    ifelse($4,String,call forceTrim(value,lengths))
+
+    allocate(new, source=newAttribute(value))
+    deallocate(value)
+    ifelse($4,String,deallocate(lengths))
+
+  end function readUnformatted
+
+  subroutine clean(this)
+    class (m4_attributeType($1,$2,$3,$4)), intent(inout) :: this
+    ifelse($3,0,,
+    deallocate(this%value))
+  end subroutine clean
+
+end module m4_attributeType($1,$2,$3,$4)_mod
+#undef TYPE
+
+])dnl
+
+foreachq([case],[m4_KIND_TYPES],[_cat([m4_AttributeModule],case)])
+
+module Attributes_mod
+  use AbstractAttribute_mod
+foreachq([case],[m4_KIND_TYPES],[  use _cat([m4_attributeType],case)_mod
+])dnl
+  implicit none
+  public :: assignment(=)
+
+end module Attributes_mod  

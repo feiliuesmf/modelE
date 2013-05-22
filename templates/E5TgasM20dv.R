@@ -57,7 +57,7 @@ ICEDYN_DRV ICEDYN  ! or: ICEDYN_DUM ! dynamic sea ice modules
 OCEAN OCNML                         ! ocean modules
 ! SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
-RAD_UTILS ALBEDO                    ! radiation and albedo
+RAD_UTILS ALBEDO READ_AERO          ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_M                          ! diagnostics (resolution dependent)
@@ -74,28 +74,35 @@ OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
     ! the first group of files is specific to prescribed ocean runs
-AIC=AIC.RES_M20A.D771201           ! initial conditions (atm.)
-GIC=GIC.E046D3M20A.1DEC1955       ! initial conditions (ground)
+AIC=AIC.RES_M20A.D771201.nc           ! initial conditions (atm.)
+GIC=GIC.E046D3M20A.1DEC1955.ext_1.nc  ! initial conditions (ground)
 ! AIC=1DEC1951.rsfE000   ! or:    ! initial conditions (atm./ground), no GIC, ISTART=8
 !AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)     needs GIC, ISTART=2
 !GIC=GIC.E046D3M20A.1DEC1955       ! initial conditions (ground)
 !AIC=1JAN1956.rsfE021TgasCM20
 ! 1880 OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 ! 1880 SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
-OSST=OST4X5.B.1975-84avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
-SICE=SICE4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological sea ice
+! prescr. climatological ocean (1 yr of data)
+OSST=OST4X5.B.1975-84avg.Hadl1.1.nc
+OSST_eom=OST4X5.B.1975-84avg.Hadl1.1.nc
+! prescr. climatological sea ice
+SICE=SICE4X5.B.1975-84avg.Hadl1.1.nc
+SICE_eom=SICE4X5.B.1975-84avg.Hadl1.1.nc
+ZSIFAC=SICE4X5.B.1975-84avg.Hadl1.1.nc
     ! if the prescr. ocean varies from year to year use instead:
 ! OSST=OST4X5.B.1871.M02.Hadl1.1  ! ocean data   Feb 1871 - 2002
 ! SICE=SICE4X5.B.1871.M02.Hadl1.1 ! ocean data   Feb 1871 - 2002
     ! the next group files are specific to q-flux ocean runs
 ! AIC=E001M20A/1JAN1960.rsfE001M20A.MXL65m   ! AIC/OHT made by aux/mkOTSPEC
 ! OHT=E001M20A/OTSPEC.E001M20A.MXL65m.1951-1960 ! horizontal ocean heat transport
-OCNML=Z1O.B4X5.cor                ! mixed layer depth (use for post processing)
+OCNML=Z1O.B4X5.cor.nc                ! mixed layer depth (use for post processing)
     ! files needed for all models
-CDN=CD4X500S                      ! surf.drag coefficient
+CDN=CD4X500S.ext.nc               ! surf.drag coefficient
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
-VEG=V72X46.1.cor2_no_crops CROPS=CROPS2007_72X46N.cor4_nocasp  ! veg. fractions, crops history
-SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp   ! soil/topography bdy.conds
+VEG=V72X46.1.cor2_no_crops.ext.nc
+CROPS=CROPS2007_72X46N.cor4_nocasp.nc  ! veg. fractions, crops history
+SOIL=S4X50093.ext.nc
+TOPO=Z72X46N.cor4_nocasp.nc   ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
 RVR=RD4X525.RVR.1.bin                   ! river direction file
 RADN1=sgpgxg.table8               ! rad.tables and history files
@@ -110,33 +117,21 @@ TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
 TAero_OCI=sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial organic carbons
 TAero_BCI=sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial black carbons
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
 RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux_hdr      ! need KSOLAR=2
 RADNE=topcld.trscat8
-! new ozone files (minimum 1, maximum 9 files)
-O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
-O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
-O3file_03=mar2004_o3_shindelltrop_72x46x49x12_1910
-O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
-O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
-O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
-O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
-O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
-O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
-O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
+#include "rad_72x46_input_files"
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
-BC_dep=BC.Dry+Wet.depositions.ann
-TOP_INDEX=top_index_72x46_a.ij.ext
+TOP_INDEX=top_index_72x46_a.ij.ext.nc
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
+GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
 ISCCP=ISCCP.tautables
 !         NUDGING INPUT
 u0.nc=uwnd.2000.GISS4x5_MANIP.nc
 v0.nc=vwnd.2000.GISS4x5_MANIP.nc
-SOILCARB_global=soilcarb_top30cm_nmaps_2x2.5bin.dat
+SOILCARB_global=soilcarb_top30cm_2x2.5.nc
   
  
 Label and Namelist:

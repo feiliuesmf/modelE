@@ -41,7 +41,7 @@ ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION COSZ_2D   ! radiation modules
-RAD_UTILS ALBEDO                    ! radiation and albedo
+RAD_UTILS ALBEDO READ_AERO          ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONALcs GCDIAGcs               ! grid-dependent code for lat-circle diags
                                     ! utilities
@@ -56,8 +56,8 @@ Data input files:
 ! AICfv=1DECxxxx.fvEyyyy          ! initial conditions (fv internal) only for ISTART=9
 ! AICdfv=1DECxxxx.dfvEyyyy        ! tendencies                       only for ISTART=9
     ! or start up from observed conditions
-AIC=AIC_CS32                      ! initial conditions (atm.)      needs GIC, ISTART=2
-GIC=GIC.E046D3M20A.1DEC1955       ! initial conditions (ground)
+AIC=AIC_CS32.nc                   ! initial conditions (atm.)      needs GIC, ISTART=2
+GIC=GIC.E046D3M20A.1DEC1955.ext_1.nc ! initial conditions (ground)
     ! ocean data for "prescribed ocean" runs : climatological ocean
 OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
@@ -66,13 +66,16 @@ SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
 !                                             (end of section 1 of data input files)
     ! resolution dependent files
-TOPO=Z72X46N.cor4_nocasp SOIL=S4X50093 ! soil/topography bdy.conds
+TOPO=Z72X46N.cor4_nocasp.nc
+SOIL=S4X50093.ext.nc ! soil/topography bdy.conds
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
-VEG=V72X46.1.cor2_no_crops CROPS=CROPS2007_72X46N.cor4_nocasp  ! veg. fractions, crops history
-CDN=CD4X500S                      ! surf.drag coefficient
+VEG=V72X46.1.cor2_no_crops.ext.nc
+CROPS=CROPS2007_72X46N.cor4_nocasp  ! veg. fractions, crops history
+CDN=CD4X500S.ext.nc                 ! surf.drag coefficient
 REG=REG4X5                        ! special regions-diag
-RVR=RD_modelE_M.RVR.bin               ! river direction file
-TOP_INDEX=top_index_72x46_a.ij.ext      ! only used if #define DO_TOPMODEL_RUNOFF
+RVR=RD_modelE_M.nc                ! river direction file
+NAMERVR=RD_modelE_M.names.txt     ! named river outlets
+TOP_INDEX=top_index_72x46_a.ij.ext.nc      ! only used if #define DO_TOPMODEL_RUNOFF
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files
@@ -88,7 +91,7 @@ TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
 TAero_OCI=sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial organic carbons
 TAero_BCI=sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial black carbons
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
+DUSTaer=dust_mass_CakmurMillerJGR06_72x46x20x7x12
 RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux_hdr      ! need KSOLAR=2
@@ -109,7 +112,7 @@ GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
+GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
 
 Label and Namelist:
 E1fvcM20 (ModelE1 4x5, 20 lyrs, 1880 atm/ocn; use up to 72 (or 80) columns and ??

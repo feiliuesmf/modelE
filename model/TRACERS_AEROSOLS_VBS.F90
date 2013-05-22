@@ -8,8 +8,14 @@ module TRACERS_VBS
 !===============================================================================
 implicit none
 private
-public :: vbs_bins, vbs_tracers, vbs_conditions, vbs_init, vbs_calc
+public :: vbs_bins, vbs_tracers, vbs_conditions, vbs_init, vbs_calc, &
+          ivbs_m2, ivbs_m1, ivbs_m0, ivbs_p1, ivbs_p2, ivbs_p3, ivbs_p4, &
+          ivbs_p5, ivbs_p6
 !-------------------------------------------------------------------------------
+!@param ivbs_m2,ivbs_m1,ivbs_m0,ivbs_p1,ivbs_p2,ivbs_p3,ivbs_p4,ivbs_p5,ivbs_p6
+!@+ indices of vbs tracers
+integer, parameter :: ivbs_m2=1, ivbs_m1=2, ivbs_m0=3, ivbs_p1=4, &
+                      ivbs_p2=5, ivbs_p3=6, ivbs_p4=7, ivbs_p5=8, ivbs_p6=9
 !@param vbs_bins Number of bins in the volatility basis set
 integer, parameter :: vbs_bins=9
 !-------------------------------------------------------------------------------

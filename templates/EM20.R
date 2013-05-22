@@ -33,15 +33,15 @@ OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
-#include "IC_72x46_input_files.nc"
+#include "IC_72x46_input_files"
 #include "static_ocn_1880_72x46_input_files"
 
-RVR=RD_modelE_M.RVR.bin           ! river direction file
+RVR=RD_modelE_M.nc                ! river direction file
+NAMERVR=RD_modelE_M.names.txt     ! named river outlets
 
 #include "land72x46_input_files"
 #include "rad_input_files"
-#include "TAero2008_input_files"
-#include "O3_2005_input_files"
+#include "rad_72x46_input_files"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG4X5                      ! special regions-diag

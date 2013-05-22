@@ -1,866 +1,5 @@
 #include "rundeck_opts.h"
 
-      module IndirectAerParam_mod
-!@sum  Module for containing related procedures which manipulate
-!@+    quantities associated with indirect aerosols.
-!@auth T. Clune
-
-
-      implicit none
-      private
-
-      public :: AerosolTables_type
-      public :: dCDNC_est
-      public :: updateAerosol
-      public :: updateAerosol2
-      public :: DRYM2G, aermix
-      public :: readTable
-      public :: ima, jma, lma
-
-      type AerosolTables_type
-        real*8, pointer :: anssdd(:,:) => null()
-        real*8, pointer :: mdpi(:,:,:) => null()
-        real*8, pointer :: mdcur(:,:,:) => null()
-      end type AerosolTables_type
-
-      real*8 :: DRYM2G(8) =
-     &     (/4.667, 0.866, 4.448, 5.017, 9.000, 9.000, 1.000,1.000/)
-
-C     Layer  1    2    3    4    5    6    7    8    9
-      INTEGER :: La720=3 ! top low cloud level (aerosol-grid)
-                         ! =3 for original hard-coded 9-level aerosols
-
-      REAL*8, dimension(13) :: AERMIX=(/
-C      Pre-Industrial+Natural 1850 Level  Industrial Process  BioMBurn
-C      ---------------------------------  ------------------  --------
-C       1    2    3    4    5    6    7    8    9   10   11   12   13
-C      SNP  SBP  SSP  ANP  ONP  OBP  BBP  SUI  ANI  OCI  BCI  OCB  BCB
-     + 1.0, 1.0, 1.0, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9/)
-
-      integer, save :: ima, jma, lma
-
-      contains
-
-      subroutine dCDNC_EST(i,j,pland, dCDNC, table)
-!@sum  finds change in cloud droplet number concentration since 1850
-!@auth R. Ruedy
-      USE CONSTANT, only : pi
-      implicit none
-      integer, intent(in)  :: i,j ! grid coordinates w.r. 72x46 grid
-      real*8 , intent(in)  :: pland ! land fraction
-      real*8 , intent(out) :: dCDNC ! CDNC(cur)-CDNC(1850)
-      type (AerosolTables_type) :: table
-
-      real*8, parameter, dimension(5) ::
-C                TROPOSPHERIC AEROSOL PARAMETERS
-C                  SO4     NO3    OCX    BCB   BCI
-     &  f_act=(/ 1.0d0,  1.0d0, 0.8d0, 0.6d0, .8d0/), ! soluble fraction
-     &  dens =(/1769d0, 1700d0,  1.d3,  1.d3, 1.d3/)  ! density
-
-      real*8, parameter, dimension(2) ::
-C                    Ocean         Land      ! r**3: r=.085,.052 microns
-     &  radto3 =(/ 614.125d-24, 140.608d-24/),  ! used for SO4,NO3,OC,BC
-     &  scl    =(/     162d0,       298d0/),  ! for Gultepe's formula
-     &  offset =(/     273d0,       595d0/)   ! for Gultepe's formula
-
-      integer it, n
-      real*8  An,An0,cdnc(2),cdnc0(2),fbymass1
-
-      do it=1,2  ! ocean, land
-        An0 = table%anssdd(i,j)  !  aerosol number of sea salt and dust
-        An  = An0          !  aerosol number of sea salt and dust
-        do n=1,4
-          fbymass1 =  F_act(n)*(.75d0/pi)/(dens(n)*radto3(it))
-          An0 = An0 + table%mdpi (n,i,j)*fbymass1   ! +fact*tot_mass/part_mass
-          An  = An  + table%mdcur(n,i,j)*fbymass1
-        end do
-        fbymass1 =  F_act(5)*(.75d0/pi)/(dens(5)*radto3(it))
-        An  = An  + table%mdcur(5,i,j)*fbymass1
-
-        if(An0.lt.1.) An0=1.
-        if(An .lt.1.) An =1.
-        cdnc0(it) = max( 20d0, scl(it)*log10(AN0)-offset(it))
-        cdnc (it) = max( 20d0, scl(it)*log10(AN )-offset(it))
-      end do
-
-      dCDNC = (1-pland)*(cdnc(1)-cdnc0(1))+pland *(cdnc(2)-cdnc0(2))
-      return
-      end subroutine dCDNC_EST
-
-      SUBROUTINE updateAerosol(JYEARA,JJDAYA, a6jday, plbaer, table)
-
-cc    INCLUDE 'rad00def.radCOMMON.f'
-C     ------------------------------------------------------------------
-C     Reads: sep2003_XXX_Koch_kg_m2_72x46x9_1850-1990 aerosol kg/m2 data
-C     for SUI,OCI,BCI, and PRE (PRE=SNP,SBP,SSP,ANP,ONP,OBP,ANI,OCB,BCB)
-C
-C     Makes: A6YEAR(72,46,9,0:12,6), A6JDAY(9,6,72,46) (dry aerosol Tau)
-C     ------------------------------------------------------------------
-
-      USE FILEMANAGER, only : openunit,closeunit
-      implicit none
-
-      INTEGER, intent(in) :: jyeara,jjdaya
-      real*8, pointer :: a6jday(:,:,:,:)
-      real*8, dimension(:), pointer ::  plbaer
-      type (AerosolTables_type) :: table
-
-      real*4, allocatable, dimension(:,:,:,:,:) :: A6YEAR,
-     &     PREDD, SUIDD, OCIDD, BCIDD
-      REAL*8  md1850(4,72,46,0:12),anfix(72,46,0:12)
-      save A6YEAR,PREDD,SUIDD,OCIDD,BCIDD,md1850,anfix ! ,mddust
-
-      CHARACTER*80 XTITLE
-      CHARACTER*40 :: RDFILE(5) = (/                !  Input file names
-     1            'sep2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850'
-     2           ,'sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990'
-     3           ,'sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990'
-     4           ,'sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990'
-     5           ,'low.dust.72x46.monthly.bin              '/)
-
-      CHARACTER*40 :: RDFGEN(5) = (/                ! generic names
-     * 'TAero_PRE','TAero_SUI','TAero_OCI','TAero_BCI','M_LowDust'/)
-
-C                TROPOSPHERIC AEROSOL COMPOSITIONAL/TYPE PARAMETERS
-C                   SO4    SEA    ANT    OCX    BCI    BCB   *BCB  *BCB
-C     DATA REFDRY/0.200, 1.000, 0.300, 0.300, 0.100, 0.100, 0.200,0.050/
-C
-C     DATA REFWET/0.272, 1.808, 0.398, 0.318, 0.100, 0.100, 0.200,0.050/
-C
-C     DATA DRYM2G/4.667, 0.866, 4.448, 5.018, 9.000, 9.000, 5.521,8.169/
-C
-CKoch DATA DRYM2G/5.000, 2.866, 8.000, 8.000, 9.000, 9.000, 5.521,8.169/
-C
-C     DATA RHTMAG/1.788, 3.310, 1.756, 1.163, 1.000, 1.000, 1.000,1.000/
-C
-CRH70 DATA WETM2G/8.345, 2.866, 7.811, 5.836, 9.000, 9.000, 5.521,8.169/
-C
-C     DATA Q55DRY/2.191, 2.499, 3.069, 3.010, 1.560, 1.560, 1.914,0.708/
-C
-C     DATA DENAER/1.760, 2.165, 1.725, 1.500, 1.300, 1.300, 1.300,1.300/
-C
-C     ------------------------------------------------------------------
-C          DRYM2G(I) = 0.75/DENAER(I)*Q55DRY(I)/REFDRY(I)
-C          WETM2G(I) = DRYM2G(I)*RHTMAG(I)
-C          RHTMAG(I) = Rel Humidity TAU Magnification factor  at RH=0.70
-C          REFWET(I) = Rel Humidity REFDRY Magnification      at RH=0.70
-C     ------------------------------------------------------------------
-
-C     TROP AEROSOL 1850 BACKGROUND, INDUSTRIAL & BIO-BURNING PARAMETERS
-C     DATA AERMIX/
-C       Pre-Industrial+Natural 1850 Level  Industrial Process  BioMBurn
-C       ---------------------------------  ------------------  --------
-C        1    2    3    4    5    6    7    8    9   10   11   12   13
-C       SNP  SBP  SSP  ANP  ONP  OBP  BBP  SUI  ANI  OCI  BCI  OCB  BCB
-C    +  1.0, 1.0, 1.0, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9/
-
-C      A6YEAR          PRE                  SUI         OCI        BCI
-C     ------------------------------------------------------------------
-C     NAER=1=SO4 = SNP*1+SBP*2         +  SUI*I,J
-C          2=SEA = SSP*3
-C          3=ANT = ANP*4+ANI*0,8
-C          4=OCX = ONP*5+OBP*6+OCB*0,9             +  OCI*I,J
-C          5=BCI =                                               BCI*I,J
-C          6=BCB = BBP*7,BCB*0,10
-C     ------------------------------------------------------------------
-C     Aerosol input data is from designated source files PRE SUI OCI BCI
-C     Aerosol output is accumulated for 6-A6YEAR designated compositions
-C           SNP*1 represents AERMIX(1)*PRE(I,J,L,M,1) = 1850 Natural SO4
-C           SBP*2 represents AERMIX(2)*PRE(I,J,L,M,2) = 1850 BioBurn SO4
-C         SUI*I,J represents AERMIX(8)*(SUI(I,J,L,M,I)intSUI(I,J,L,M,J))
-C           SSP*1 represents AERMIX(3)*PRE(I,J,L,M,3) = 1850 SeaSalt
-C         BCB*0,10represents AERMIX(11)*(0_interpol_PRE(I,J,L,M,10)) BCB
-C         (which is interpolated linearly in time from 0 amount in 1850)
-C
-C         1850 Background   Sulfate  SO4 = 0.870 Natural + 0.130 BioBurn
-C         1850 Background  Sea Salt  SEA =  all Natural-Mean SSP SeaSalt
-C         1850 Background AmmNitrate ANT = ANP=(1.26/5.27)*1990(ANP+ANI)
-C         1850 Background Org Carbon OCX = 0.162 Natural + 0.838 BioBurn
-C         1850 Background Blk Carbon BCI = 0  (No Industrial BC in 1850)
-C         1850 Background Blk Carbon BCB = BBP,all of 1850 BC is BioBurn
-C     ------------------------------------------------------------------
-      logical qexist
-      INTEGER, save :: IFILE=11, IFIRST=1, JYRNOW=0
-
-      INTEGER ia,idd,ndd,m,mi,mj,i,j,l,n,jyearx,iys,jys,iyc,jyc
-      REAL*8 WTANI,WTOCB,WTBCB,wt75,swti,swtj,cwti,cwtj,xmi,wtmi,wtmj
-      REAL*8 , PARAMETER :: Za720=2635. ! depth of low cloud region (m)
-      REAL*8 xsslt,byz ! ,xdust
-      IF(IFIRST==1) THEN
-
-        allocate(A6YEAR(72,46,9,0:12,6))
-        allocate(PREDD(72,46,9,12,10))
-        allocate(SUIDD(72,46,9,12,8))
-        allocate(OCIDD(72,46,9,12,8))
-        allocate(BCIDD(72,46,9,12,8))
-        allocate(A6JDAY(9,6,72,46))
-
-        allocate(table%anssdd(72,46))
-        allocate(table%mdpi(4,72,46))
-        allocate(table%mdcur(5,72,46))
-
-C                                       READ Input PRE,SUI,OCI,BCI Files
-C                                       --------------------------------
-      inquire (file=RDFGEN(1),exist=qexist) ! decide whether specific or
-      if(qexist) RDFILE=RDFGEN              !     generic names are used
-      inquire (file=RDFILE(1),exist=qexist) !     stop if neither exist
-      if(.not.qexist)
-     &     call stop_model('updateAerosol: no TropAero files',255)
-
-!**** Pre-industrial data
-      call openunit (RDFILE(1),ifile,.true.,.true.)    ! unformatted,old
-      DO 101 IDD=1,10
-      DO 101 M=1,12
-  101 READ (IFILE) XTITLE,PREDD(:,:,:,M,IDD)
-      call closeunit (ifile)
-!**** Industrial Sulfates
-      call openunit (RDFILE(2),ifile,.true.,.true.)
-      DO 102 IDD=1,8
-      DO 102 M=1,12
-  102 READ (IFILE) XTITLE,SUIDD(:,:,:,M,IDD)
-      call closeunit (ifile)
-!**** Industrial Organic Carbons
-      call openunit (RDFILE(3),ifile,.true.,.true.)
-      DO 103 IDD=1,8
-      DO 103 M=1,12
-  103 READ (IFILE) XTITLE,OCIDD(:,:,:,M,IDD)
-      call closeunit (ifile)
-!**** Industrial Black Carbons
-      call openunit (RDFILE(4),ifile,.true.,.true.)
-      DO 104 IDD=1,8
-      DO 104 M=1,12
-  104 READ (IFILE) XTITLE,BCIDD(:,:,:,M,IDD)
-      call closeunit (ifile)
-
-C**** Prepare for aerosol indirect effect parameterization:
-C     - Collect the monthly aerosol number densities (an) for the time
-C       independent aerosols (desert dust and sea salt)       an:  /cm^3
-C     - Save the monthly 1850 mass densities (md) for the time dependent
-C       aerosols (Sulfates,Nitrates,Organic & Black Carbons)  md: kg/cm3
-
-!!!   call openunit (RDFILE(5),ifile,.true.,.true.) !neglect desert dust
-!!!   xdust=.33/(2000.*4.1888*(.40d-6)**3)     ! f/[rho*4pi/3*r^3] (/kg)
-      xsslt=aermix(3)/(2000.*4.1888*(.44d-6)**3) ! x/particle-mass (/kg)
-      byz = 1d-6/za720 ! 1d-6/depth in m (+conversion /m3 -> /cm3)
-      DO M=1,12
-!!!     READ (IFILE) XTITLE,mddust
-      DO J=1,46
-      DO I=1,72
-        anfix(i,j,m) = 0. !!! xdust*mddust(i,j) ! aerosol number (/cm^3)
-     +               +    byz * SUM(PREDD(I,J,1:la720,M,3)) * Xsslt
-C****   md1850(1:4,i,j,m)  !  mass density (kg/cm^3): SO4, NO3, OC, BCB
-        md1850(1,i,j,m) = byz * SUM(AERMIX(1)*PREDD(I,J,1:La720,M,1) +
-     +                              AERMIX(2)*PREDD(I,J,1:La720,M,2))
-        md1850(2,i,j,m) = byz * SUM(AERMIX(4)*PREDD(I,J,1:La720,M,4))
-        md1850(3,i,j,m) = byz * SUM(AERMIX(5)*PREDD(I,J,1:La720,M,5) +
-     +                              AERMIX(6)*PREDD(I,J,1:La720,M,6))
-        md1850(4,i,j,m) = byz * SUM(AERMIX(7)*PREDD(I,J,1:La720,M,7))
-      end do
-      end do
-      end do
-      anfix(:,:,0) = anfix(:,:,12) ; md1850(:,:,:,0) = md1850(:,:,:,12)
-!!!   call closeunit (ifile)
-
-      IFIRST=0
-      ENDIF
-
-
-C     To time input data READs, JYEARX is set ahead of JYEARA by 15 days
-C     ------------------------------------------------------------------
-      if(JYEARA<0) then
-        JYEARX = -JYEARA
-      else
-        JYEARX=MIN(JYEARA+(JJDAYA+15)/366,2050)
-      end if
-
-      IF(JYEARX==JYRNOW) GO TO 500    ! Get A6JDAY from current A6YEAR
-
-C     Begin current A6YEAR  with 1850 Background SO4,SEA,ANT,OCX,BCI,BCB
-      DO 114 M=1,12
-      A6YEAR(:,:,:,M,1) = AERMIX(1)*PREDD(:,:,:,M,1)*1000*DRYM2G(1)
-     +                   +AERMIX(2)*PREDD(:,:,:,M,2)*1000*DRYM2G(1)
-      A6YEAR(:,:,:,M,2) = AERMIX(3)*PREDD(:,:,:,M,3)*1000*DRYM2G(2)
-      A6YEAR(:,:,:,M,3) = AERMIX(4)*PREDD(:,:,:,M,4)*1000*DRYM2G(3)
-      A6YEAR(:,:,:,M,4) = AERMIX(5)*PREDD(:,:,:,M,5)*1000*DRYM2G(4)
-     +                   +AERMIX(6)*PREDD(:,:,:,M,6)*1000*DRYM2G(4)
-      A6YEAR(:,:,:,M,5) = 0
-      A6YEAR(:,:,:,M,6) = AERMIX(7)*PREDD(:,:,:,M,7)*1000*DRYM2G(6)
-  114 CONTINUE
-!****                                   Define 1849 Background  Dec data
-      DO N=1,6
-        A6YEAR(:,:,:,0,N)=A6YEAR(:,:,:,12,N)
-      END DO
-
-      IF(JYEARX > 1850) THEN                           !   (JYEAR>1850)
-        WTANI=GLOPOP(JYEARX)
-        WTOCB=min( 1d0 , (JYEARX-1850)/140.D0 )
-        WTBCB=min( 1d0 , (JYEARX-1850)/140.D0 )
-        DO M=1,12            !  Add time dependent JYEAR ANI,OCB,BCB
-          A6YEAR(:,:,:,M,3) = A6YEAR(:,:,:,M,3)+
-     +        AERMIX( 9)*WTANI*PREDD(:,:,:,M, 8)*1000*DRYM2G(3)
-          A6YEAR(:,:,:,M,4) = A6YEAR(:,:,:,M,4)+
-     +        AERMIX(12)*WTOCB*PREDD(:,:,:,M, 9)*1000*DRYM2G(4)
-          A6YEAR(:,:,:,M,6) = A6YEAR(:,:,:,M,6)+
-     +        AERMIX(13)*WTBCB*PREDD(:,:,:,M,10)*1000*DRYM2G(6)
-        END DO
-        WTANI=GLOPOP(JYEARX-1)
-        WTOCB=min( 139/140d0 , (JYEARX-1851)/140.D0 )
-        WTBCB=min( 139/140d0 , (JYEARX-1851)/140.D0 )
-        M=12        !  Add time dependent JYEAR-1 ANI,OCB,BCB Dec data
-        A6YEAR(:,:,:,0,3) = A6YEAR(:,:,:,0,3)+
-     +      AERMIX( 9)*WTANI*PREDD(:,:,:,M, 8)*1000*DRYM2G(3)
-        A6YEAR(:,:,:,0,4) = A6YEAR(:,:,:,0,4)+
-     +      AERMIX(12)*WTOCB*PREDD(:,:,:,M, 9)*1000*DRYM2G(4)
-        A6YEAR(:,:,:,0,6) = A6YEAR(:,:,:,0,6)+
-     +      AERMIX(13)*WTBCB*PREDD(:,:,:,M,10)*1000*DRYM2G(6)
-      ENDIF
-
-      IF(JYEARX > 1850.and.JYEARX < 1876) THEN   !   (1850<JYEAR<1876)
-       WT75=(JYEARX-1850)/25.D0
-       DO M=1,12          !    Add time dependent JYEAR SUI,OCI,BCI
-       A6YEAR(:,:,:,M,1) = A6YEAR(:,:,:,M,1)+
-     +                 WT75*SUIDD(:,:,:,M,1)*AERMIX( 8)*1000*DRYM2G(1)
-       A6YEAR(:,:,:,M,4) = A6YEAR(:,:,:,M,4)+
-     +                 WT75*OCIDD(:,:,:,M,1)*AERMIX(10)*1000*DRYM2G(4)
-       A6YEAR(:,:,:,M,5) = A6YEAR(:,:,:,M,5)+
-     +                 WT75*BCIDD(:,:,:,M,1)*AERMIX(11)*1000*DRYM2G(5)
-       END DO
-
-       WT75=(JYEARX-1851)/25.D0
-       M=12          !  Add time dependent JYEAR-1 SUI,OCI,BCI Dec data
-       A6YEAR(:,:,:,0,1) = A6YEAR(:,:,:,0,1)+
-     +                 WT75*SUIDD(:,:,:,M,1)*AERMIX( 8)*1000*DRYM2G(1)
-       A6YEAR(:,:,:,0,4) = A6YEAR(:,:,:,0,4)+
-     +                 WT75*OCIDD(:,:,:,M,1)*AERMIX(10)*1000*DRYM2G(4)
-       A6YEAR(:,:,:,0,5) = A6YEAR(:,:,:,0,5)+
-     +                 WT75*BCIDD(:,:,:,M,1)*AERMIX(11)*1000*DRYM2G(5)
-      ENDIF
-
-      IF(JYEARX > 1875) THEN                         !     (JYEAR>1875)
-      CALL STREND(JYEARX,IYS,JYS,SWTI,SWTJ)
-      CALL CTREND(JYEARX,IYC,JYC,CWTI,CWTJ)
-      DO 141 M=1,12            !    Add time dependent JYEAR SUI,OCI,BCI
-      DO 141 L=1,9
-      DO 141 J=1,46
-      DO 141 I=1,72
-      A6YEAR(I,J,L,M,1)=A6YEAR(I,J,L,M,1)+AERMIX( 8)*1000.D0*DRYM2G(1)*
-     +                 (SWTI*SUIDD(I,J,L,M,IYS)+SWTJ*SUIDD(I,J,L,M,JYS))
-      A6YEAR(I,J,L,M,4)=A6YEAR(I,J,L,M,4)+AERMIX(10)*1000.D0*DRYM2G(4)*
-     +                 (CWTI*OCIDD(I,J,L,M,IYC)+CWTJ*OCIDD(I,J,L,M,JYC))
-      A6YEAR(I,J,L,M,5)=A6YEAR(I,J,L,M,5)+AERMIX(11)*1000.D0*DRYM2G(5)*
-     +                 (CWTI*BCIDD(I,J,L,M,IYC)+CWTJ*BCIDD(I,J,L,M,JYC))
-      IF(A6YEAR(I,J,L,M,1) < 0.) A6YEAR(I,J,L,M,1)=0.
-      IF(A6YEAR(I,J,L,M,4) < 0.) A6YEAR(I,J,L,M,4)=0.
-      IF(A6YEAR(I,J,L,M,5) < 0.) A6YEAR(I,J,L,M,5)=0.
-  141 CONTINUE
-
-      CALL STREND(JYEARX-1,IYS,JYS,SWTI,SWTJ)
-      CALL CTREND(JYEARX-1,IYC,JYC,CWTI,CWTJ)
-      M=12            !  Add time dependent JYEAR-1 SUI,OCI,BCI Dec data
-      DO 145 L=1,9
-      DO 145 J=1,46
-      DO 145 I=1,72
-      A6YEAR(I,J,L,0,1)=A6YEAR(I,J,L,0,1)+AERMIX( 8)*1000.D0*DRYM2G(1)*
-     +                 (SWTI*SUIDD(I,J,L,M,IYS)+SWTJ*SUIDD(I,J,L,M,JYS))
-      A6YEAR(I,J,L,0,4)=A6YEAR(I,J,L,0,4)+AERMIX(10)*1000.D0*DRYM2G(4)*
-     +                 (CWTI*OCIDD(I,J,L,M,IYC)+CWTJ*OCIDD(I,J,L,M,JYC))
-      A6YEAR(I,J,L,0,5)=A6YEAR(I,J,L,0,5)+AERMIX(11)*1000.D0*DRYM2G(5)*
-     +                 (CWTI*BCIDD(I,J,L,M,IYC)+CWTJ*BCIDD(I,J,L,M,JYC))
-      IF(A6YEAR(I,J,L,0,1) < 0.) A6YEAR(I,J,L,0,1)=0.
-      IF(A6YEAR(I,J,L,0,4) < 0.) A6YEAR(I,J,L,0,4)=0.
-      IF(A6YEAR(I,J,L,0,5) < 0.) A6YEAR(I,J,L,0,5)=0.
-  145 CONTINUE
-      ENDIF
-      JYRNOW=JYEARX
-      if(jyeara<0) then  ! cyclic case
-        DO N=1,6
-          A6YEAR(:,:,:,0,N)=A6YEAR(:,:,:,12,N)
-        END DO
-      end if
-
-C      A6JDAY is interpolated daily from A6YEAR seasonal data via JJDAYA
-C      -----------------------------------------------------------------
-
-  500 CONTINUE
-      XMI=(JJDAYA+JJDAYA+31-(JJDAYA+15)/61+(JJDAYA+14)/61)/61.D0
-      MI=XMI
-      WTMJ=XMI-MI       !   Intra-year interpolation is linear in JJDAYA
-      WTMI=1.D0-WTMJ
-      IF(MI > 11) MI=0
-      MJ=MI+1
-      DO 510 J=1,46
-      DO 510 I=1,72
-      DO 510 N=1,6
-      DO 510 L=1,9
-      A6JDAY(L,N,I,J)=WTMI*A6YEAR(I,J,L,MI,N)+WTMJ*A6YEAR(I,J,L,MJ,N)
-  510 CONTINUE
-
-C**** Needed for aerosol indirect effect parameterization in GCM
-      byz=1d-9/za720
-      do j=1,46
-      do i=1,72
-C**** sea salt, desert dust
-         table%anssdd(i,j) = WTMI*anfix(i,j,mi)+WTMJ*anfix(i,j,mj)
-C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
-         table%mdpi(:,i,j) =
-     &        WTMI*md1850(:,i,j,mi) + WTMJ*md1850(:,i,j,mj) !1:4
-         table%mdcur(1,i,j) = SUM(A6JDAY(1:La720,1,I,J)) * byz/drym2g(1)
-         table%mdcur(2,i,j) = SUM(A6JDAY(1:La720,3,I,J)) * byz/drym2g(3)
-         table%mdcur(3,i,j) = SUM(A6JDAY(1:La720,4,I,J)) * byz/drym2g(4)
-         table%mdcur(4,i,j) = SUM(A6JDAY(1:La720,6,I,J)) * byz/drym2g(6)
-         table%mdcur(5,i,j) = SUM(A6JDAY(1:La720,5,I,J)) * byz/drym2g(5)
-      end do
-      end do
-
-      RETURN        !  A6JDAY(9,6,72,46) is used in GETAER via ILON,JLAT
-      END SUBROUTINE updateAerosol
-
-      subroutine updateAerosol2(jYearA, jjDaya, a6jday, plbaer, table)
-
-C     ------------------------------------------------------------------
-C     Reads: XXX_Koch2008_kg_m2_72x46x20_1880-2000 aerosol kg/m2 data
-C     for SUL,NIT,OCA,BCA,BCB and
-C            SSA_Koch2008_kg_m2_72x46x20
-C
-C    Makes: A6YEAR2(72,46,12,0:12,6),A6JDAY(20,6,72,46) (dry aerosol Tau)
-C     ------------------------------------------------------------------
-
-      USE FILEMANAGER, only : openunit,closeunit
-      implicit none
-
-      INTEGER, intent(in) :: jyeara,jjdaya
-      real*8, pointer :: a6jday(:,:,:,:)
-      real*8, dimension(:), pointer ::  plbaer
-      type (AerosolTables_type) :: table
-
-      character*80 :: aertitle ! aerosol info
-      REAL*4, SAVE, allocatable :: A6YEAR2(:,:,:,:,:)
-      REAL*4, dimension(:,:,:,:,:), save, allocatable :: SULDD,NITDD,
-     *        OCADD,BCADD,BCBDD
-      REAL*4, dimension(:,:,:,:), save, allocatable :: SSADD
-      integer, save :: ndeca, fdeca, ldeca ! dimensions needed for aerosols
-      REAL*8, SAVE, allocatable :: md1850(:,:,:,:),anfix(:,:,:)
-c     save A6YEAR2,SULDD,NITDD,OCADD,BCADD,BCBDD,SSADD,md1850,anfix ! ,mddust
-
-      CHARACTER*40 :: RDFILE(7) = (/                !  Input file names
-     1            'SUL_Koch2008_kg_m2_72x46x20_1890-2000h  '
-     2           ,'SSA_Koch2008_kg_m2_72x46x20h            '
-     3           ,'NIT_Bauer2008_kg_m2_72x46x20_1890-2000h '
-     4           ,'OCA_Koch2008_kg_m2_72x46x20_1890-2000h  '
-     5           ,'BCA_Koch2008_kg_m2_72x46x20_1890-2000h  '
-     6           ,'BCB_Koch2008_kg_m2_72x46x20_1890-2000h  '
-     7           ,'low.dust.72x46.monthly.bin              '/)
-
-      CHARACTER*40 :: RDFGEN(7) = (/                ! generic names
-     * 'TAero_SUL','TAero_SSA','TAero_NIT','TAero_OCA','TAero_BCA',
-     * 'TAero_BCB','M_LowDust'/)
-
-C                TROPOSPHERIC AEROSOL COMPOSITIONAL/TYPE PARAMETERS
-C                   SO4    SEA    ANT    OCX    BCI    BCB   *BCB  *BCB
-C     DATA REFDRY/0.200, 1.000, 0.300, 0.300, 0.100, 0.100, 0.200,0.050/
-C
-C     DATA REFWET/0.272, 1.808, 0.398, 0.318, 0.100, 0.100, 0.200,0.050/
-C
-C     DATA DRYM2G/4.667, 0.866, 4.448, 5.018, 9.000, 9.000, 5.521,8.169/
-C
-CKoch DATA DRYM2G/5.000, 2.866, 8.000, 8.000, 9.000, 9.000, 5.521,8.169/
-C
-C     DATA RHTMAG/1.788, 3.310, 1.756, 1.163, 1.000, 1.000, 1.000,1.000/
-C
-CRH70 DATA WETM2G/8.345, 2.866, 7.811, 5.836, 9.000, 9.000, 5.521,8.169/
-C
-C     DATA Q55DRY/2.191, 2.499, 3.069, 3.010, 1.560, 1.560, 1.914,0.708/
-C
-C     DATA DENAER/1.760, 2.165, 1.725, 1.500, 1.300, 1.300, 1.300,1.300/
-C
-C     ------------------------------------------------------------------
-C          DRYM2G(I) = 0.75/DENAER(I)*Q55DRY(I)/REFDRY(I)
-C          WETM2G(I) = DRYM2G(I)*RHTMAG(I)
-C          RHTMAG(I) = Rel Humidity TAU Magnification factor  at RH=0.70
-C          REFWET(I) = Rel Humidity REFDRY Magnification      at RH=0.70
-C     ------------------------------------------------------------------
-      integer :: ifile
-      INTEGER, save :: JYRNOW=0
-
-      INTEGER ia,idd,ndd,m,mi,mj,i,j,l,n,jyearx,iy,jy,iyc,jyc,iyp,jyp
-      REAL*8 wti,wtj,cwti,cwtj,pwti,pwtj,xmi,wtmi,wtmj
-      REAL*8 , PARAMETER :: Za720=2635. ! depth of low cloud region (m)
-      real*8, parameter :: byz_cm3 = 1.d-6 / Za720 ! 1d-6/depth in m (+conversion /m3 -> /cm3)
-      real*8, parameter :: byz_gcm3 = 1.d-3 * byz_cm3 ! g vs kg
-      REAL*8 xsslt ! ,xdust
-
-
-      logical, save :: init = .false.
-      integer :: idxMonth0, idxMonth1
-      integer :: idxDecade0, idxDecade1
-      logical :: updateTable,qexist
-
-      integer, save :: decadeNow = -9999
-      integer, save :: yearNow = -9999
-      integer, save :: monthNow = -1
-
-      integer :: im, id, mm
-
-      if (.not. init) then
-        init = .true.
-        inquire (file=RDFGEN(1),exist=qexist) ! decide whether specific or
-        if(qexist) RDFILE=RDFGEN              !     generic names are used
-        inquire (file=RDFILE(1),exist=qexist) !     stop if neither exist
-        if(.not.qexist)
-     &     call stop_model('updateAerosol: no TropAero files',255)
-
-c read table sizes then close
-        call openunit (RDFILE(1),ifile,.true.,.true.) ! unformatted,old
-        read(ifile) aertitle, ima, jma, lma, ndeca, fdeca, ldeca
-
-!!    check whether the newer input files are being used
-        if(aertitle(1:26)=='                          ') call
-     *       stop_model('updateAerosol2: use newer input files',255)
-
-        if (.not. associated(plbaer)) allocate( plbaer(lma+1) )
-        allocate( suldd (ima,jma,lma,2,2)
-     *       ,nitdd(ima,jma,lma,2,2)
-     *       ,ocadd(ima,jma,lma,2,2),bcadd(ima,jma,lma,2,2)
-     *       ,bcbdd(ima,jma,lma,2,2) )
-        allocate( ssadd (ima,jma,lma,2) )
-        if (.not.associated(A6JDAY)) allocate(A6JDAY(lma,6,ima,jma))
-        allocate( A6YEAR2 (ima,jma,lma,2,6) )
-        allocate( md1850 (4,ima,jma,0:12) )
-        allocate( anfix (ima,jma,2) )
-
-        allocate(table%anssdd(ima,jma))
-        allocate(table%mdpi(4,ima,jma))
-        allocate(table%mdcur(5,ima,jma))
-
-        read(ifile) plbaer
-        call closeUnit(ifile)
-
-!**** Find top aerosol level in the low cloud region (surface->720mb)
-        la720 = 1
-        do while (plbaer(la720+1) .gt. 720.)
-          la720 = la720 + 1
-        end do
-        if (la720 > 1) then
-          if (720.-plbaer(la720+1) > plbaer(la720)-720.)
-     *      la720 = la720 - 1
-        end if
-        
-!**** Pre-industrial mass densities
-        do m = 1, 12
-          call readTable(RDFILE(1), SULDD(:,:,:,1,1), month=m,decade=1)
-          md1850(1,:,:,m) = byz_cm3 * SUM(SULDD(:,:,1:la720,1,1), DIM=3)
-          call readTable(RDFILE(3), NITDD(:,:,:,1,1), month=m,decade=1)
-          md1850(2,:,:,m) = byz_cm3 * SUM(NITDD(:,:,1:la720,1,1), DIM=3)
-          call readTable(RDFILE(4), OCADD(:,:,:,1,1), month=m,decade=1)
-          md1850(3,:,:,m) = byz_cm3 * SUM(OCADD(:,:,1:la720,1,1), DIM=3)
-          call readTable(RDFILE(5), BCBDD(:,:,:,1,1), month=m,decade=1)
-          call readTable(RDFILE(6), BCADD(:,:,:,1,1), month=m,decade=1)
-          md1850(4,:,:,m) = byz_cm3 * (
-     &         SUM(BCBDD(:,:,1:la720,1,1), DIM=3) +
-     &         SUM(BCADD(:,:,1:la720,1,1), DIM=3) )
-        end do
-        md1850(:,:,:,0) = md1850(:,:,:,12)
-
-      end if
-
-      call getRefMonth(jjdaya, idxMonth0)
-      call getRefDecade(jjdaya, jyeara, idxMonth0, ndeca, fdeca, ldeca,
-     &     idxDecade0)
-
-      updateTable = (idxMonth0 /= monthNow .or.
-     &     idxDecade0 /= decadeNow )
-
-      if (updateTable) then
-        monthNow = idxMonth0
-        decadeNow = idxDecade0
-
-        do im = 1, 2
-          select case (im)
-          case (1)
-            mm = idxMonth0
-            m = mm
-            if (m == 0) m = 12
-            call getRefDecade(jjdaya, jyeara, idxMonth0,
-     &         ndeca, fdeca, ldeca,
-     &         idxDecade0)
-          case (2)
-            mm = idxMonth0 + 1
-            m = mm
-            call getRefDecade(jjdaya, jyeara, idxMonth0+1,
-     &         ndeca, fdeca, ldeca,
-     &         idxDecade0)
-          end select
-
-!**** Sea salt
-          call readTable(RDFILE(2), SSADD(:,:,:,im), month=m,
-     &         decade=1)
-
-          do id = 1, 2
-            select case (id)
-            case (1)
-              idd = idxDecade0
-            case (2)
-              idd = min(idxDecade0+1, ndeca)
-            end select
-
-!**** Sulfate
-            call readTable(RDFILE(1), SULDD(:,:,:,im,id), month=m,
-     &           decade=idd)
-!**** Nitrate
-            call readTable(RDFILE(3), NITDD(:,:,:,im,id), month=m,
-     &           decade=idd)
-!**** Organic Carbon
-            call readTable(RDFILE(4), OCADD(:,:,:,im,id), month=m,
-     &           decade=idd)
-!**** Black Carbon from Fossil and bio fuel
-            call readTable(RDFILE(5), BCADD(:,:,:,im,id), month=m,
-     &           decade=idd)
-!**** Black Carbon from Biomass burning
-            call readTable(RDFILE(6), BCBDD(:,:,:,im,id), month=m,
-     &           decade=idd)
-          end do
-
-C**** Prepare for aerosol indirect effect parameterization:
-C     - Collect the monthly aerosol number densities (an) for the time
-C       independent aerosols (desert dust and sea salt)       an:  /cm^3
-C     - Save the monthly 1850 mass densities (md) for the time dependent
-C       aerosols (Sulfates,Nitrates,Organic & Black Carbons)  md: kg/cm3
-
-!!!   xdust=.33/(2000.*4.1888*(.40d-6)**3)     ! f/[rho*4pi/3*r^3] (/kg)
-        xsslt=1.d0/(2000.*4.1888*(.44d-6)**3) ! x/particle-mass (/kg)
-
-        do J=1,jma
-          do I=1,ima
-c SUM to L=5 for low clouds only
-c Using 1890 not 1850 values here
-            anfix(i,j,im) = 0.   !!! xdust*mddust(i,j) ! aerosol number (/cm^3)
-     +           +    byz_cm3 * SUM(SSADD(I,J,1:la720,im)) * Xsslt
-          end do
-        end do
-
-      end do
-
-      end if
-
-C                                                   0            12
-C     Collect 13 months of data for time period Dec/15/(yr-1)-Dec/15/yr:
-C     To time input data READs, JYEARX is set ahead of JYEARA by 15 days
-C     ------------------------------------------------------------------
-      if(JYEARA<0) then
-        JYEARX = -JYEARA
-      else
-!TODO - hardwired for 365 days?   Year 2050?
-        JYEARX=MIN(JYEARA+(JJDAYA+15)/366,2050)
-      end if
-
-      DO iM=1,2
-      A6YEAR2(:,:,:,im,2) = SSADD(:,:,:,im)*1000*DRYM2G(2) !*AERMIX(3)
-      END DO
-!****
-
-      IF(JYEARX < fdeca .or. JYEARX > ldeca) THEN   !   (use first/last decadal mean)
-        DO iM=1,2               !    Set time dependent JYEAR SU,NIT,OC,BC
-          A6YEAR2(:,:,:,im,1) = SULDD(:,:,:,im,1)*1000*DRYM2G(1) !*AERMIX( 8)
-          A6YEAR2(:,:,:,im,3) = NITDD(:,:,:,im,1)*1000*DRYM2G(3) !*AERMIX( 4)
-          A6YEAR2(:,:,:,im,4) = OCADD(:,:,:,im,1)*1000*DRYM2G(4) !*AERMIX(10)
-          A6YEAR2(:,:,:,im,5) = BCADD(:,:,:,im,1)*1000*DRYM2G(5) !*AERMIX(11)
-          A6YEAR2(:,:,:,im,6) = BCBDD(:,:,:,im,1)*1000*DRYM2G(6) !*AERMIX(13)
-        END DO
-
-      ELSE  !  IF(JYEARX.ge.fdeca.and.JYEARX.LE.ldeca) THEN
-        iyc=INT((JYEARX-fdeca)/10.d0)+1 ! current year
-        jyc=min(ndeca,iyc+1)    ! have only ndeca decades
-        cwtj=(JYEARX-fdeca)/10.d0-INT((JYEARX-fdeca)/10.d0)
-        cwti=1.d0-cwtj
-        iyp=INT((JYEARX-(fdeca+1))/10.d0)+1 ! previous year
-        jyp=iyp+1
-        pwtj=(JYEARX-(fdeca+1))/10.d0-INT((JYEARX-(fdeca+1))/10.d0)
-        if(JYEARX==fdeca) then
-          iyp=1 ; jyp=1 ; pwtj=0
-        end if
-        pwti=1.d0-pwtj
-        DO 141 im=1,2           !    Set time dependent JYEAR SU,NIT,OC,BC
-          wti=cwti ; if (idxMonth0 == 0 .and. im == 1) wti=pwti
-          wtj=cwtj ; if (idxMonth0 == 0 .and. im == 1) wtj=pwtj
-
-          iy = 1
-          jy = 2
-
-          DO 141 L=1,lma        !   AERMIX scalings are removed
-            DO 141 J=1,jma
-              DO 141 I=1,ima
-                A6YEAR2(I,J,L,im,1) = 1000.D0*DRYM2G(1)* ! AERMIX( 8)*
-     +               (WTI*SULDD(I,J,L,im,IY)+WTJ*SULDD(I,J,L,im,JY))
-                A6YEAR2(I,J,L,im,3) = 1000.D0*DRYM2G(3)* ! AERMIX( 4)*
-     +               (WTI*NITDD(I,J,L,im,IY)+WTJ*NITDD(I,J,L,im,JY))
-                A6YEAR2(I,J,L,im,4) = 1000.D0*DRYM2G(4)* ! AERMIX(10)*
-     +               (WTI*OCADD(I,J,L,im,IY)+WTJ*OCADD(I,J,L,im,JY))
-                A6YEAR2(I,J,L,im,5) = 1000.D0*DRYM2G(5)* ! AERMIX(11)*
-     +               (WTI*BCADD(I,J,L,im,IY)+WTJ*BCADD(I,J,L,im,JY))
-                A6YEAR2(I,J,L,im,6) = 1000.D0*DRYM2G(6)* ! AERMIX(13)*
-     +               (WTI*BCBDD(I,J,L,im,IY)+WTJ*BCBDD(I,J,L,im,JY))
- 141          CONTINUE
-      ENDIF
-      JYRNOW=JYEARX
-
-C      A6JDAY is interpolated daily from A6YEAR2 seasonal data via JJDAYA
-C      -----------------------------------------------------------------
-
-  500 CONTINUE
-      XMI=(JJDAYA+JJDAYA+31-(JJDAYA+15)/61+(JJDAYA+14)/61)/61.D0
-      MI=XMI
-      WTMJ=XMI-MI       !   Intra-year interpolation is linear in JJDAYA
-      WTMI=1.D0-WTMJ
-      IF(MI > 11) MI=0
-      MJ=MI+1
-
-      DO 510 J=1,jma
-      DO 510 I=1,ima
-      DO 510 N=1,6
-      DO 510 L=1,lma
-      A6JDAY(L,N,I,J)=WTMI*A6YEAR2(I,J,L,1,N)+WTMJ*A6YEAR2(I,J,L,2,N)
-  510 CONTINUE
-
-C**** Needed for aerosol indirect effect parameterization in GCM
-      do j=1,jma
-      do i=1,ima
-C**** sea salt, desert dust
-        table%anssdd(i,j) = WTMI*anfix(i,j,1)+WTMJ*anfix(i,j,2)
-C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
-        table%mdpi(:,i,j) =
-     &       WTMI*md1850(:,i,j,mi) + WTMJ*md1850(:,i,j,mj) !1:4
-        table%mdcur(1,i,j) = SUM (A6JDAY(1:la720,1,I,J)) * 
-     *    byz_gcm3/drym2g(1)
-        table%mdcur(2,i,j) = SUM (A6JDAY(1:la720,3,I,J)) * 
-     *    byz_gcm3/drym2g(3)
-        table%mdcur(3,i,j) = SUM (A6JDAY(1:la720,4,I,J)) * 
-     *    byz_gcm3/drym2g(4)
-        table%mdcur(4,i,j) = SUM (A6JDAY(1:la720,6,I,J)) * 
-     *    byz_gcm3/drym2g(6)
-        table%mdcur(5,i,j) = SUM (A6JDAY(1:la720,5,I,J)) * 
-     *    byz_gcm3/drym2g(5)
-      end do
-      end do
-
-      return        !  A6JDAY(9,6,72,46) is used in GETAER via ILON,JLAT
-      end subroutine updateAerosol2
-
-      subroutine getRefMonth(day, idxMonth0)
-      integer, intent(in) :: day
-      integer, intent(out) :: idxMonth0
-
-      idxMonth0 = (day + day + 31 - (day+15)/61 + (day+14)/61) / 61.d+0
-      if (idxMonth0 > 11) idxMonth0 = 0
-
-      end subroutine getRefMonth
-
-      subroutine getRefDecade(day, year, month, ndeca, fdeca, ldeca,
-     &     idxDecade0)
-      integer, intent(in) :: day
-      integer, intent(in) :: year
-      integer, intent(in) :: month
-      integer, intent(in) :: ndeca, fdeca, ldeca
-      integer, intent(out) :: idxDecade0
-
-      integer :: refYear
-      integer :: iyc, jyc, iyp, jyp
-
-      if (year < 0) then
-        refYear = -year
-      else
-        refYear = min(year + (day+15)/366,2050)
-      end if
-
-      if (refYear < fdeca) then
-        idxDecade0 = 1
-      else if (refYear > ldeca) then
-        idxDecade0 = ndeca
-      else
-        iyc = int((refYear - fdeca)/10.d0) + 1
-        jyc = min(ndeca,idxDecade0 + 1)
-
-        iyp = int((refYear - (fdeca+1))/10.d0)+1
-        jyp = iyp + 1
-
-        if (month == 0) then
-          idxDecade0 = iyp
-        else
-          idxDecade0 = iyc
-        end if
-
-      end if
-
-      end subroutine getRefDecade
-
-      subroutine readTable(fileName, table, month, decade)
-      use FileManager, only: openUnit, closeUnit
-      character(len=*), intent(in) :: fileName
-      real*4, intent(inout) :: table(:,:,:)
-      integer, intent(in) :: month
-      integer, intent(in) :: decade
-
-      character*80 :: title
-      integer :: ifile
-      integer :: ima, jma, lma, ndeca, fdeca, ldeca
-      integer :: idd, m
-
-      call openunit (fileName, ifile, .true., .true.)    ! unformatted,old
-      read(ifile) title, ima, jma, lma, ndeca, fdeca, ldeca
-      read(ifile) ! skip plbaer
-
-      ! skip earlier decades
-      do idd = 1, decade - 1
-        do m = 1, 12
-          read (ifile) ! skip
-        end do
-      end do
-      ! skip earlier month in requested decade
-      do m = 1, month - 1
-        read (ifile) ! skip
-      end do
-
-      ! read actual month
-      read (ifile) table(:,:,:)
-
-      call closeunit (ifile)
-      end subroutine readTable
-
-      REAL*8 FUNCTION GLOPOP(JYEAR)
-      IMPLICIT none
-
-C     ----------------------------------------------------------------
-C     GLOPOP = normalized global population trend set to unity in 1990
-C              based on UN statistics & population projections to 2050
-C
-C     GLOPOP = 0.000 for 1850 and earlier
-C            = 1.000 for 1990
-C            = 1.658 for 2050 and later
-C     ----------------------------------------------------------------
-
-      INTEGER, intent(in) :: jyear
-      REAL*8 :: GPNORM = 5.27-1.26 ,DNGPOP(21), GPOP(21) = (/
-C               1850                     1900                     1950
-     A          1.26,1.33,1.41,1.49,1.57,1.65,1.75,1.86,2.07,2.30,2.52
-C                                        2000                     2050
-     B              ,3.02,3.70,4.44,5.27,6.06,6.79,7.50,8.11,8.58,8.91/)
-      INTEGER i,iy
-      REAL*8 xy,dy
-
-      DO 110 I=1,21
-      DNGPOP(I)=(GPOP(I)-GPOP(1))/GPNORM
-  110 CONTINUE
-      XY=(JYEAR-1840)/10.D0
-      IY=XY
-      DY=XY-IY
-      if (IY <  1) then ; IY =  1 ; DY = 0 ; endif
-      if (IY > 20) then ; IY = 20 ; DY = 1 ; endif
-      GLOPOP=DNGPOP(IY)+DY*(DNGPOP(IY+1)-DNGPOP(IY))
-      RETURN
-      END FUNCTION GLOPOP
-!!!   GLOPOP and STREND,CTREND(in RAD_UTILS.f) are only needed by updateAerosol
-
-      end module IndirectAerParam_mod
-
       MODULE RADPAR
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
@@ -871,7 +10,6 @@ C                                        2000                     2050
 #ifdef HEALY_LM_DIAGS
       USE RESOLUTION, only : JM_DIAG=>jm
 #endif
-      use IndirectAerParam_mod
       IMPLICIT NONE
 
 C--------------------------------------------------
@@ -939,9 +77,11 @@ C----------------
 !@var COSZ          cosine of zenith angle  (1)
       REAL*8 cosz
 !@var JLAT,ILON     lat,lon index  w.r.to 72x46 lon-lat grid
+!@var JGCM,IGCM     host GCM grid indices
 !@var NL,L1         highest and lowest above ground layer
 !@var LS1_loc       local tropopause level, used to limit H2O-scaling
       INTEGER   :: JLAT,ILON, NL,L1, LS1_loc ! Offline deflts L1=LS1_loc=1
+      INTEGER   :: JGCM, IGCM
 !@var JYEAR,JDAY    current year, Julian date
       INTEGER :: JYEAR=1980, JDAY=1
 
@@ -1014,8 +154,6 @@ C----------------
 !@var FSTOPX,FTTOPX switches on/off aerosol for diagnostics (solar,thermal component)
 !@var FSTASC,FTASC scales optional aerosols (solar,thermal component)
       REAL*8    :: FSTOPX(ITRMAX),FTTOPX(ITRMAX)
-      INTEGER, PARAMETER :: NLO3=49 !  # of layers in ozone data files
-      REAL*8, dimension(NLO3) :: O3natL,O3natLref
 !@var chem_IN column variable for importing ozone(1) and methane(2)
 !@+   fields from rest of model
 !@var use_tracer_chem:set U0GAS(L, )=chem_IN( ,L), L=L1,use_tracer_chem( )
@@ -1212,22 +350,7 @@ C--------------------------------------   have to handle 1 point in time
      *          ,KYEARO=0,KJDAYO=0, KYEARA=0,KJDAYA=0, KYEARD=0,KJDAYD=0
      *          ,KYEARV=0,KJDAYV=0, KYEARE=0,KJDAYE=0, KYEARR=0,KJDAYR=0
 
-!@var O3YR_max last year before O3 data repeat last ann. cycle
-#ifdef RAD_O3_GCM_HRES
-      INTEGER :: O3YR_max=2000
-#else
-      INTEGER :: O3YR_max=1997
-      REAL*8, dimension(NLO3,MLON72,MLAT46) :: O3JDAY,O3JREF
-#endif
-C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
-      REAL*8 :: PLBO3(NLO3+1) = (/ ! plbo3(1) depends on plb0  ! ??
-     *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
-     *       150d0, 125d0, 100d0,  80d0,  60d0,  55d0,  50d0,
-     *        45d0,  40d0,  35d0,  30d0,  25d0,  20d0,  15d0,
-     *       10.d0,  7.d0,  5.d0,  4.d0,  3.d0,  2.d0,  1.5d0,
-     *        1.d0,  7d-1,  5d-1,  4d-1,  3d-1,  2d-1,  1.5d-1,
-     *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2,
-     *        1d-2,  7d-3,  5d-3,  4d-3,  3d-3,  1d-3,  1d-7/)
+      REAL*8, dimension(:,:,:), pointer :: o3jday,o3jref
 
 !@var PLBA21 Vert. Layering for tropospheric aerosols (reference)
       REAL*8, PARAMETER :: PLBA20(21)=(/
@@ -1238,22 +361,15 @@ C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
      *  1010.,934.,854.,720.,550.,390.,255.,150., 70., 10./)
       real*8, dimension(:), pointer ::  plbaer => null()
       real*8, dimension(:,:,:,:), pointer :: A6JDAY => null()
-      ! workaround for xlf bug
-#ifdef COMPILER_XLF
-      type (AerosolTables_type), save :: table
-#else
-      type (AerosolTables_type) :: table
-#endif
 
 
 C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6
 !      REAL*4 TDUST(72,46,9,8,12)                                   !ron
 !      REAL*8 DDJDAY(9,8,72,46)                                     !ron
-      REAL*4, dimension(:,:,:,:,:), allocatable :: TDUST            !ron
+      REAL*4, dimension(:,:,:,:,:), pointer :: TDUST            !ron
       REAL*8, dimension(:,:,:,:  ), allocatable :: DDJDAY           !ron
       integer :: imd, jmd, lmd, nsized, nmond ! dimensions of TDUST !ron
-      character*80 :: dtitle ! dust info                            !ron
-      real*8, dimension(:), allocatable :: redust, rodust, plbdust  !ron
+      real*8, dimension(:), pointer :: redust, rodust, plbdust  !ron
 
 C            RADMAD4_VOLCAER_DECADAL          (user SETVOL)     radfile7
       REAL*8 FDATA(80),GDATA(80)
@@ -1686,6 +802,7 @@ C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
 
       SUBROUTINE RCOMP1(NRFUN)
       use DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      use DustParam_mod, only : read_alloc_dust
       IMPLICIT NONE
 C     ------------------------------------------------------------------
 C     Solar,GHG Trend, VolcAer Size Selection Parameters:    Defaults
@@ -2092,31 +1209,15 @@ C                  -----------------------------------------------------
 !     then allocate arrays                                            !ron
 
       IF(MADDST < 1) GO TO 699
-      NRFU=NRFUN(6)
 !      READ (NRFU) TDUST                                              !ron
-      if(am_i_root())
-     & write(*,*) 'READ Offline DUST Distribution:'                   !ron
-      read(nrfu) dtitle, imd, jmd, lmd, nsized, nmond ! offline dims  !ron
-      if(am_i_root()) then
-      write(*,*) trim(dtitle)                                         !ron
-      write(*,*) 'Offline Dust Dims: imd, jmd, lmd, nsized, nmond: ', !ron
-     *     imd, jmd, lmd, nsized, nmond                               !ron
-      endif
-      if (imd.eq.0)
-     *     call stop_model('Please update dust file RADN6', 255)
-      if (imd.ne.mlon72 .or. jmd.ne.mlat46) call stop_model(
-     *     'RCOMP1 offline DUST file has different'//
-     *     ' horizontal resolution that assumed: IMD=/=72 or JMD=/=46',
-     *     255)
-
-      allocate( plbdust(lmd+1) )                                      !ron
-      allocate( redust(nsized), rodust(nsized) )                      !ron
-      allocate( tdust (imd,jmd,lmd,nsized,nmond) )                    !ron
-      allocate( ddjday(lmd,nsized,imd,jmd)       )                    !ron
+      call read_alloc_dust(imd,jmd,lmd,nsized,nmond,
+     &     plbdust,rodust,redust, tdust)
       allocate( QXDUST(6,nsized), QSDUST(6,nsized), QCDUST(6,nsized), !ron
      *   ATDUST(33,nsized), QDST55(nsized) )                          !ron
-
-      read(nrfu) plbdust, redust, rodust, tdust ! read offline dust   !ron
+c      allocate( ddjday(lmd,nsized,imd,jmd)       )                    !ron
+      allocate( ddjday(lmd,nsized,
+     &     lbound(tdust,1):ubound(tdust,1),
+     &     lbound(tdust,2):ubound(tdust,2)) )
 
   699 CONTINUE
 
@@ -2404,6 +1505,8 @@ C--------------------------------
 
       SUBROUTINE RCOMPT
       use SURF_ALBEDO, only : UPDSUR
+      use AerParam_mod, only : updateAerosol,updateAerosol2
+      use O3mod, only : updO3d,updO3d_solar,plbo3,nlo3
       IMPLICIT NONE
 C-----------------------------------------------------------------------
 C
@@ -2472,11 +1575,8 @@ C----------------------------------------------
       IF(KJDAYO.ne.0)             JJDAYO=KJDAYO
       IF(KYEARO.ne.0)             JYEARO=KYEARO
 C----------------------------------------------
-#ifdef RAD_O3_GCM_HRES
-               CALL native_UPDO3D(JYEARO,JJDAYO)
-#else
-                      CALL UPDO3D(JYEARO,JJDAYO)
-#endif
+      CALL UPDO3D(JYEARO,JJDAYO,O3JDAY,O3JREF)
+      CALL UPDO3D_solar(JJDAYO,S00WM2*RATLS0,O3JDAY)
 C----------------------------------------------
 
       JJDAYA=JDAY
@@ -2485,9 +1585,9 @@ C----------------------------------------------
       IF(KYEARA.ne.0)            JYEARA=KYEARA
 C----------------------------------------------
       IF(MADAER.eq.3) THEN
-        CALL updateAerosol2(JYEARA,JJDAYA, a6jday, plbaer, table)
+        CALL updateAerosol2(JYEARA,JJDAYA, a6jday, plbaer)
       ELSE IF(MADAER.ne.0) THEN
-        CALL updateAerosol(JYEARA,JJDAYA, a6jday, plbaer, table)
+        CALL updateAerosol(JYEARA,JJDAYA, a6jday, plbaer)
       ENDIF
 C----------------------------------------------
 
@@ -2528,6 +1628,7 @@ C----------------------------------------------
 
       SUBROUTINE RCOMPX
       use SURF_ALBEDO, only : getsur
+      use O3mod, only : plbo3,nlo3
       IMPLICIT NONE
 C     ------------------------------------------------------------------
 C     MADVEL  Model Add-on Data of Extended Climatology Enable Parameter
@@ -2564,22 +1665,12 @@ C      -----------------------------------------------------------------
 C--------------------------------
 !!!                   CALL GETO3D(ILON,JLAT) ! may have to be changed ??
       if(use_o3_ref > 0 )then
-#ifdef RAD_O3_GCM_HRES
-        CALL REPART (O3natLref          ,PLBO3,NLO3+1, ! in
+        CALL REPART (O3JREF(1,IGCM,JGCM),PLBO3,NLO3+1, ! in
      *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
-#else
-        CALL REPART (O3JREF(1,ILON,JLAT),PLBO3,NLO3+1, ! in
-     *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
-#endif
         FULGAS(3)=1.d0
       else
-#ifdef RAD_O3_GCM_HRES
-        CALL REPART (O3natL             ,PLBO3,NLO3+1, ! in
+        CALL REPART (O3JDAY(1,IGCM,JGCM),PLBO3,NLO3+1, ! in
      *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
-#else
-        CALL REPART (O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1, ! in
-     *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
-#endif
         ! considering this move to here from setgas:
         ! chem_out(:,1)=U0GAS(:,3)*FULGAS(3) ! save climatology O3 for chem
         ! and might then need something like:
@@ -3027,408 +2118,6 @@ C
 C
       RETURN
       end subroutine UPDGHG
-
-
-#ifndef RAD_O3_GCM_HRES /* note NOT defined */
-
-      SUBROUTINE UPDO3D(JYEARO,JJDAYO)
-
-!!!   use RADPAR, only : MLON72,MLAT46,NL,PLB0,U0GAS,MADO3M
-      USE FILEMANAGER, only : openunit,closeunit
-      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-#ifndef USE_RAD_OFFLINE
-      USE Dictionary_mod
-#endif
-      IMPLICIT NONE
-
-!     In 2003, 9 decadal files and an ozone trend data file have been
-!     defined using 49-layer PLB pressure levels. Because of strange
-!     discontinuities in the stratosphere, they were replaced in 2004
-
-      INTEGER, PARAMETER ::
-     *     NFO3x=9,      !  max. number of decadal ozone files used
-!!!  *     NLO3=49,      !  number of layers of ozone data files
-     *     IYIO3=1850, IYEO3=2050, ! beg & end year of O3 trend file
-     *     LMONTR=12*(IYEO3-IYIO3+1) ! length of O3 trend file
-
-      REAL*4 O3YEAR(MLON72,MLAT46,NLO3,0:12),OTREND(MLAT46,NLO3,LMONTR)
-      REAL*4 O3ICMA(MLON72,MLAT46,NLO3,12),O3JCMA(MLON72,MLAT46,NLO3,12)
-      INTEGER LJTTRO(MLAT46)
-      real*4, dimension(MLON72,MLAT46,NLO3,0:12) :: delta_O3_max_min
-      real*4, dimension(NLO3) :: delta_O3_now
-
-C     UPDO3D CALLs GTREND to get CH4 to interpolate tropospheric O3
-C     -----------------------------------------------------------------
-
-      CHARACTER*80 TITLE
-      logical qexist
-!@dbparam use_sol_Ox_cycle if =1, a cycle of ozone is appled to
-!@+ o3year, as a function of the solar constant cycle.
-!@var add_sol is [S00WM2(now)-1/2(S00WM2min+S00WM2max)]/
-!@+ [S00WM2max-S00WM2min] so that O3(altered) = O3(default) +
-!@+ add_sol*delta_O3_max_min
-      integer :: use_sol_Ox_cycle = 0
-      save use_sol_Ox_cycle
-      real*8 :: add_sol
-      real*8 :: S0min, S0max
-
-C**** The data statements below are only used if  MADO3M > -1
-      CHARACTER*40, DIMENSION(NFO3X) :: DDFILE = (/
-     1            'aug2003_o3_shindelltrop_72x46x49x12_1850'
-     2           ,'aug2003_o3_shindelltrop_72x46x49x12_1890'
-     3           ,'aug2003_o3_shindelltrop_72x46x49x12_1910'
-     4           ,'aug2003_o3_shindelltrop_72x46x49x12_1930'
-     5           ,'aug2003_o3_shindelltrop_72x46x49x12_1950'
-     6           ,'aug2003_o3_shindelltrop_72x46x49x12_1960'
-     7           ,'aug2003_o3_shindelltrop_72x46x49x12_1970'
-     8           ,'aug2003_o3_shindelltrop_72x46x49x12_1980'
-     9           ,'aug2003_o3_shindelltrop_72x46x49x12_1990'/)
-      INTEGER, DIMENSION(NFO3X) :: IYEAR =
-     *     (/1850,1890,1910,1930,1950,1960,1970,1980,1990/)
-      INTEGER :: NFO3 = NFO3X
-      CHARACTER*40 :: OTFILE ='aug2003_o3timetrend_46x49x2412_1850_2050'
-      INTEGER :: IFILE=11            ! not used in GCM runs
-      integer :: idfile
-
-!!!   REAL*8 :: PLBO3(NLO3+1) = (/ ! could be read off the titles
-!!!  *      1010d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
-!!!  *       150d0, 125d0, 100d0,  80d0,  60d0,  55d0,  50d0,
-!!!  *        45d0,  40d0,  35d0,  30d0,  25d0,  20d0,  15d0,
-!!!  *       10.d0,  7.d0,  5.d0,  4.d0,  3.d0,  2.d0,  1.5d0,
-!!!  *        1.d0,  7d-1,  5d-1,  4d-1,  3d-1,  2d-1,  1.5d-1,
-!!!  *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2,
-!!!  *        1d-2,  7d-3,  5d-3,  4d-3,  3d-3,  1d-3,  1d-7/)
-C**** LJTTRO(MLAT46) below layer 1+LJTTRO,  O3-interp is based on CH4
-      DATA LJTTRO/9*0,4*7,20*8,7*7,6*6/ ! does not work well near S.Pole
-      INTEGER, SAVE :: IYR=0, JYRNOW=0, IYRDEC=0, IFIRST=1, JYR
-
-      save nfo3,iyear,ljttro,otrend,o3year,delta_O3_max_min
-!!!   save plbo3
-      save ddfile,ifile,idfile,S0min,S0max
-
-      INTEGER :: JYEARO,JJDAYO
-      INTEGER I,J,L,M,N,IY,JY,MI,MJ,MN,NLT,JYEARX  !! ,ILON,JLAT
-      REAL*8 WTTI,WTTJ, WTSI,WTSJ,WTMJ,WTMI, XMI,DSO3
-
-C**** Deal with out-of-range years (incl. starts before 1850)
-      if(abs(jyearo) < abs(jyrnow)) jyearo=-jyrnow ! keep cycling
-      if(abs(jyearo) > O3YR_max) jyearo=-O3YR_max ! cycle thru O3YR_max
-
-      IF(IFIRST==1) THEN
-
-#ifndef USE_RAD_OFFLINE
-      call sync_param("use_sol_Ox_cycle",use_sol_Ox_cycle)
-
-      if(use_sol_Ox_cycle==1)then
-        call openunit ("delta_O3",idfile,.true.,.true.)
-        read(idfile)S0min,S0max
-        do m=1,12; do L=1,NLO3
-          read(idfile)TITLE,delta_O3_max_min(:,:,L,M)
-        enddo    ; enddo
-        delta_O3_max_min(:,:,:,0)=delta_O3_max_min(:,:,:,12)
-        call closeunit (idfile)
-      endif
-#endif
-      if(plbo3(1) < plb0(1)) plbo3(1)=plb0(1)                  ! ??
-      IF(MADO3M < 0) then
-C****   Find O3 data files and fill array IYEAR from title(1:4)
-        nfo3=0
-        if (AM_I_ROOT()) write(6,'(/a)') ' List of O3 files used:'
-        do n=1,nfo3X    !  files have the generic names O3file_01,....
-          ddfile(n)=' '
-          write (ddfile(n),'(a7,i2.2)') 'O3file_',n
-          inquire (file=trim(ddfile(n)),exist=qexist)
-          if(.not.qexist) go to 10 !  exit
-          call openunit (ddfile(n),ifile,.true.,.true.)
-          read(ifile) title
-          call closeunit (ifile)
-          if (AM_I_ROOT())
-     *         write(6,'(a,a)') ' read O3 file, record 1: ',title
-          read(title(1:4),*) IYEAR(n)
-          nfo3=nfo3+1
-        end do
-
-   10   continue
-        if(nfo3==1) JYEARO=-IYEAR(1)
-        if(nfo3==0) call stop_model('updo3d: no Ozone files',255)
-        OTFILE='O3trend '
-      END IF
-
-C**** Prior to first year of data, cycle through first year of data
-      if(abs(jyearo) < IYEAR(1)) jyearo=-IYEAR(1)
-
-      IY=0
-      IF(JYEARO < 0) THEN ! 1 year of O3 data is used in a cyclical way
-        do n=1,nfo3        ! check whether we need the O3 trend array
-           if(IYEAR(n)==-JYEARO) IY=n
-        end do
-      end if
-
-      if(IY <= 1.and.nfo3 > 1) then
-                       ! READ strat O3 time trend for strat O3 interpol.
-        call openunit (OTFILE,ifile,.true.,.true.)
-        READ (IFILE) OTREND
-        call closeunit (ifile)
-        if (AM_I_ROOT()) then
-           if(MADO3M < 0) write(6,'(a,a)') ' read ',OTfile
-        end if
-      end if
-
-      if(IY > 0) then
-        call openunit (ddfile(IY),ifile,.true.,.true.)
-        DO 30 M=1,12
-        DO 30 L=1,NLO3
-   30   READ (IFILE) TITLE,O3YEAR(:,:,L,M)
-        O3YEAR(:,:,:,0)=O3YEAR(:,:,:,12)
-        call closeunit (ifile)
-        JYRNOW=-JYEARO  ! insures that O3YEAR is no longer changed
-      end if
-
-#ifdef TRACERS_SPECIAL_Shindell
-! read the 3D field for O3 RCOMPX reference calls
-      call openunit ('Ox_ref',ifile,.true.,.true.)
-      if (AM_I_ROOT()) print *, 'Reading ozone reference field file:'
-      do L=1,NLO3
-        read(ifile)title,O3JREF(L,:,:)
-        if (AM_I_ROOT()) print *, trim(title)
-      end do
-      call closeunit(ifile)
-#endif
-
-      IFIRST=0
-      ENDIF
-
-C     To time input data READs, JYEARX is set ahead of JYEARO by 15 days
-C     ------------------------------------------------------------------
-      IF(JYEARO < 0) THEN    !              ... except in cyclical case
-        JYEARX=-JYEARO        ! Use fixed-year decadal climatology
-      ELSE
-        JYEARX=MIN(JYEARO+(JJDAYO+15)/366,IYEO3+1) ! +1 for continuity
-      END IF                                       !         at Dec 15
-
-      IF(JYEARX==JYRNOW) GO TO 500    ! Get O3JDAY from current O3YEAR
-      IF(JYRNOW > O3YR_max) GO TO 500  ! cyclical case
-
-C****
-C**** Get 13 months of O3 data O3YEAR starting with the leading December
-C****
-      do jy=1,nfo3                  ! nfo3 is at least 2, if we get here
-        if(iyear(jy) > JYEARx) go to 100
-      end do
-      jy=nfo3
-  100 if(jy <= 1) jy=2
-      iy=jy-1
-      IYR=IYEAR(IY)
-      JYR=IYEAR(JY)
-
-C**** Get first decadal file
-      call openunit (ddfile(IY),ifile,.true.,.true.)               ! IYR
-      DO 110 M=1,12
-      DO 110 L=1,NLO3
-  110 READ (IFILE) TITLE,O3ICMA(:,:,L,M)
-      call closeunit (ifile)
-
-      IF(JYEARX == IYR.and.IYRDEC.ne.JYEARX-1 .and. IY > 1 .and.
-     *   JYEARO > 0.and.JYEARX <= O3YR_max) THEN
-C        READ and use prior decadal file to define prior year December
-C        (only when starting up with JYEARO=1890,1910,1930,...1980
-C         and only for non-cyclical cases)
-      call openunit (ddfile(IY-1),ifile,.true.,.true.)             ! KYR
-      DO 210 M=1,12
-      DO 210 L=1,NLO3
-  210 READ(IFILE) TITLE,O3JCMA(:,:,L,M)
-      call closeunit (ifile)
-
-C     Tropospheric & stratospheric ozone timetrend interpolation weights
-C       Tropospheric ozone time variability is proportional to CH4 trend
-C          Stratospheric ozone (above level LJTTRO(J)) is linear in time
-C     ------------------------------------------------------------------
-
-      CALL O3_WTS (IYIO3,LMONTR, IYR,IYEAR(IY-1), JYEARX-1,12,     ! in
-     *             WTTI,WTTJ, WTSI,WTSJ, MI,MJ,MN)                 ! out
-
-      DO 290 J=1,MLAT46
-      NLT=LJTTRO(J)     !      NLT=LJTTRO(J) is top layer of troposphere
-      DO 250 L=1,NLT
-      DO 250 I=1,MLON72
-      O3YEAR(I,J,L,0)=WTTI*O3ICMA(I,J,L,12)+WTTJ*O3JCMA(I,J,L,12)
-      IF(O3YEAR(I,J,L,0) < 0.) O3YEAR(I,J,L,0)=0.
-  250 CONTINUE
-
-C     DSO3 = add-on residual intra-decadal stratospheric O3 variability
-C     ------------------------------------------------------------------
-      DO 270 L=NLT+1,NLO3
-      DSO3=OTREND(J,L,MN)-WTSI*OTREND(J,L,MI)-WTSJ*OTREND(J,L,MJ)
-      DO 270 I=1,MLON72
-      O3YEAR(I,J,L,0)=WTSI*O3ICMA(I,J,L,12)+WTSJ*O3JCMA(I,J,L,12)+ DSO3
-      IF(O3YEAR(I,J,L,0) < 0.) O3YEAR(I,J,L,0)=0.
-  270 CONTINUE
-
-  290 CONTINUE
-      IYRDEC=JYEARX    !   Set flag to indicate December data is current
-      ENDIF
-
-C**** Get next  decadal file
-      call openunit (ddfile(JY),ifile,.true.,.true.)               ! JYR
-      DO 310 M=1,12
-      DO 310 L=1,NLO3
-  310 READ(IFILE) TITLE,O3JCMA(:,:,L,M)
-      call closeunit (ifile)
-
-      IF(JYEARX==IYRDEC) GO TO 410    ! done with prior December
-
-      IF(JYEARX==IYRDEC+1) THEN      ! copy data from M=12 -> M=0
-        O3YEAR(:,:,:,0)=O3YEAR(:,:,:,12)      !     DEC from prior year
-        IF(JYEARX > O3YR_max) JYEARX=O3YR_max
-        IYRDEC=JYEARX   !  Set flag to indicate December data is current
-      ELSE IF(JYEARO > IYEAR(1)) THEN
-C       Interpolate prior December from the decadal files - start-up
-        CALL O3_WTS (IYIO3,LMONTR, IYR,JYR, JYEARX-1,12,        ! in
-     *               WTTI,WTTJ, WTSI,WTSJ, MI,MJ,MN)            ! out
-
-        DO 400 J=1,MLAT46
-        NLT=LJTTRO(J)     !    NLT=LJTTRO(J) is top layer of troposphere
-        DO 360 L=1,NLT
-        DO 360 I=1,MLON72
-        O3YEAR(I,J,L,0)=WTTI*O3ICMA(I,J,L,12)+WTTJ*O3JCMA(I,J,L,12)
-        IF(O3YEAR(I,J,L,0) < 0.) O3YEAR(I,J,L,0)=0.
-  360   CONTINUE
-
-        DO 370 L=NLT+1,NLO3
-        DSO3=OTREND(J,L,MN)-WTSI*OTREND(J,L,MI)-WTSJ*OTREND(J,L,MJ)
-        DO 370 I=1,MLON72
-        O3YEAR(I,J,L,0)=WTSI*O3ICMA(I,J,L,12)+WTSJ*O3JCMA(I,J,L,12)+DSO3
-        IF(O3YEAR(I,J,L,0) < 0.) O3YEAR(I,J,L,0)=0.
-  370   CONTINUE
-
-  400   CONTINUE
-        IYRDEC=JYEARX  !   Set flag to indicate December data is current
-      END IF
-
-C            Fill in a full year of O3 data by interpolation
-C            -----------------------------------------------
-  410 CONTINUE
-      IF(JYEARX > O3YR_max) JYEARX=O3YR_max
-      CALL O3_WTS (IYIO3,LMONTR, IYR,JYR, JYEARX,0,           ! in
-     *             WTTI,WTTJ, WTSI,WTSJ, MI,MJ,MN)            ! out
-
-C            Tropospheric O3 interpolation is in proportion to CH4 trend
-C                         ----------------------------------------------
-      DO 490 M=1,12
-      DO 490 J=1,MLAT46
-      NLT=LJTTRO(J)     !      NLT=LJTTRO(J) is top layer of troposphere
-      DO 440 L=1,NLT
-      DO 440 I=1,MLON72
-      O3YEAR(I,J,L,M)=WTTI*O3ICMA(I,J,L,M)+WTTJ*O3JCMA(I,J,L,M)
-      IF(O3YEAR(I,J,L,M) < 0.) O3YEAR(I,J,L,M)=0.
-  440 CONTINUE
-
-C     DSO3 = add-on residual intra-decadal stratospheric O3 variability
-C     ------------------------------------------------------------------
-      DO 460 L=NLT+1,NLO3
-      DSO3=OTREND(J,L,M+MN)-WTSI*OTREND(J,L,M+MI)-WTSJ*OTREND(J,L,M+MJ)
-      DO 460 I=1,MLON72
-      O3YEAR(I,J,L,M)=WTSI*O3ICMA(I,J,L,M)+WTSJ*O3JCMA(I,J,L,M) + DSO3
-      IF(O3YEAR(I,J,L,M) < 0.) O3YEAR(I,J,L,M)=0.
-  460 CONTINUE
-
-  490 CONTINUE
-
-      IF(JYEARX.ne.IYRDEC) THEN               ! cyclical start-up case
-        O3YEAR(:,:,:,0)=O3YEAR(:,:,:,12)      ! DEC from current year
-        IYRDEC=JYEARX   !  Set flag to indicate December data is current
-      END IF
-      JYRNOW=JYEARX
-
-C****
-C**** O3JDAY is interpolated daily from O3YEAR seasonal data via JJDAYO
-C****
-
-  500 CONTINUE
-C     the formula below yields M near the middle of month M
-      XMI=(JJDAYO+JJDAYO+31-(JJDAYO+15)/61+(JJDAYO+14)/61)/61.D0
-      MI=XMI
-      WTMJ=XMI-MI       !   Intra-year interpolation is linear in JJDAYO
-      WTMI=1.D0-WTMJ
-      IF(MI > 11) MI=0
-      MJ=MI+1
-      if(use_sol_Ox_cycle==1)then
-        add_sol = (S00WM2*RATLS0-0.5d0*(S0min+S0max))/(S0max-S0min)
-        write(6,661)JJDAYO,S00WM2*RATLS0,S0min,S0max,add_sol
-      endif
-  661 format('JJDAYO,S00WM2*RATLS0,S0min,S0max,frac=',I4,3F9.2,F7.3)
-      DO 510 J=1,MLAT46
-      DO 510 I=1,MLON72
-      O3JDAY(:,I,J)=WTMI*O3YEAR(I,J,:,MI)+WTMJ*O3YEAR(I,J,:,MJ)
-      if(use_sol_Ox_cycle==1) then
-        delta_O3_now(:) = WTMI*delta_O3_max_min(I,J,:,MI) +
-     &                    WTMJ*delta_O3_max_min(I,J,:,MJ)
-        O3JDAY(:,I,J) = O3JDAY(:,I,J) + add_sol*delta_O3_now(:)
-      endif
-  510 CONTINUE
-      RETURN
-
-!!    ENTRY GETO3D (ILON,JLAT)
-C
-
-!!    CALL REPART(O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1,U0GAS(1,3),PLB0,NL+1)
-
-!!    RETURN
-      END SUBROUTINE UPDO3D
-
-      SUBROUTINE O3_WTS (IYI,MONTHS, IY1,IY2, IYX,MON,        !  input
-     *                   WTTI,WTTJ, WTSI,WTSJ, MI,MJ,MN)      ! output
-!@sum O3_WTS finds the weights needed for Ozone interpolation
-!@auth A. Lacis/R. Ruedy
-      implicit none
-      INTEGER IYI,MONTHS  ! first year, length of O3-trend data - input
-      INTEGER IY1,IY2     ! 2 distinct years with O3 data       - input
-      INTEGER IYX,MON     ! current year and month              - input
-      INTEGER MI, MJ, MN  ! indices for ozone trend array       - output
-      REAL*8  WTTI,WTTJ   ! tropospheric weights                - output
-      REAL*8  WTSI,WTSJ   ! stratospheric weights               - output
-
-      REAL*8  GHGAS(6)     ! greenhouse gas conentrations (3=CH4)
-      REAL*8  dYEAR,CH4IY1,CH4IY2,CH4NOW  ! dummies
-
-C     Tropospheric O3 interpolation is in proportion to CH4 trend
-C                    GTREND returns mid-year (annual mean) values
-C     -----------------------------------------------------------
-      CALL GTREND(GHGAS,IY1+.5d0)
-      CH4IY1=GHGAS(3)
-
-      CALL GTREND(GHGAS,IY2+.5d0)
-      CH4IY2=GHGAS(3)
-
-      CALL GTREND(GHGAS,IYX+.5d0)
-      CH4NOW=GHGAS(3)
-
-      WTTI=(CH4IY2-CH4NOW)/(CH4IY2-CH4IY1)      !  Trop O3 varies as CH4
-      WTTJ=1.D0-WTTI
-
-C     Strat O3 interpolation uses relative monthly variability in OTREND
-C     ------------------------------------------------------------------
-      DYEAR=IY2-IY1
-      WTSI=(IY2-IYX)/DYEAR                      ! Strat O3 = time linear
-      IF(WTSI < 0.D0) WTSI=0.D0
-      IF(WTSI > 1.D0) WTSI=1.D0
-      WTSJ=1.d0-WTSI
-
-      MI=    (IY1-IYI)*12 + MON
-      MJ=    (IY2-IYI)*12 + MON
-      MN=MAX((IYX-IYI)*12,0)
-      IF(MN > MONTHS-12) MN=MONTHS-12
-      MN=MN+MON
-c     write(0,*) 'IYI,MON,IY1,IY2,IYX,MON',IYI,MONTHS,IY1,IY2,IYX,MON
-c     write(0,*) 'MI,MJ,MN',MI,MJ,MN
-c     write(0,*) 'WTTI,WTTJ, WTSI,WTSJ',WTTI,WTTJ, WTSI,WTSJ
-
-
-      RETURN
-      END SUBROUTINE O3_WTS
-
-#endif  /* RAD_O3_GCM_HRES NOT defined */
-
 
       subroutine GETGAS
       call SETGAS(1)
@@ -3988,6 +2677,8 @@ cc    INCLUDE  'rad00def.radCOMMON.f'
 #if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       USE RESOLUTION, only :LM
 #endif
+      use AerParam_mod, only : DRYM2G
+      use AerParam_mod, only : LMA
       IMPLICIT NONE
       INTEGER, optional :: GETAER_flag
 C     ---------------------------------------------------------------
@@ -4160,7 +2851,7 @@ C-----------------
 
       DO NA=1,6
       IF(MADAER.eq.3) THEN
-      CALL REPART (A6JDAY(1,NA,ILON,JLAT),PLBAER,lma+1,    ! in
+      CALL REPART (A6JDAY(1,NA,IGCM,JGCM),PLBAER,lma+1,    ! in
      *             ATAULX(1,NA),PLB,NL+1)               ! out
       ELSE
       CALL REPART (A6JDAY(1,NA,ILON,JLAT),PLBA09,10,    ! in
@@ -4361,8 +3052,8 @@ C      -----------------------------------------------------------------
 !      DO 510 I=1,72    !ron
 !      DO 510 N=1,8     !ron
 !      DO 510 L=1,9     !ron
-      DO 510 J=1,jmd    !ron
-      DO 510 I=1,imd    !ron
+      DO 510 J=lbound(ddjday,4),ubound(ddjday,4)    !ron
+      DO 510 I=lbound(ddjday,3),ubound(ddjday,3)    !ron
       DO 510 N=1,nsized !ron
       DO 510 L=1,lmd    !ron
       DDJDAY(L,N,I,J)=WTMI*TDUST(I,J,L,N,MI)+WTMJ*TDUST(I,J,L,N,MJ)
@@ -4382,7 +3073,7 @@ C-----------------
 !      DO 200 N=1,8                                                      !ron
       DO 200 N=1,nsized                                                  !ron
 !      CALL REPART(DDJDAY(1,N,ILON,JLAT),PLBA09,10,DTAULX(1,N),PLB,NL+1) !ron
-         CALL REPART(DDJDAY(1,N,ILON,JLAT),PLBdust,lmd+1,                !ron
+         CALL REPART(DDJDAY(1,N,IGCM,JGCM),PLBdust,lmd+1,                !ron
      *        DTAULX(1,N),PLB,NL+1)                                      !ron
   200 CONTINUE
 
@@ -8947,6 +7638,8 @@ C
       END SUBROUTINE WRITER
 
       SUBROUTINE WRITET(KWRU,INDEX,JYRREF,JYRNOW,JMONTH,KLIMIT)
+      use AerParam_mod, only : updateAerosol,updateAerosol2
+      use O3mod, only : updO3d,updO3d_solar,plbo3,nlo3
       IMPLICIT NONE
 C
 C
@@ -9195,10 +7888,10 @@ C-------------
   400 CONTINUE
 C-------------
 C
-#ifndef RAD_O3_GCM_HRES
       JJDAYO=JMONTH*30-15
       IF(JMONTH < 1) JJDAYO=JDAY
-      CALL UPDO3D(JYRREF,JJDAYO)
+      CALL UPDO3D(JYRREF,JJDAYO,O3JDAY,O3JREF)
+      CALL UPDO3D_solar(JJDAYO,S00WM2*RATLS0,O3JDAY)
       DO 450 J=1,46
       DO 410 L=1,NL
       O3(J,L)=0.D0
@@ -9207,7 +7900,7 @@ C
       DO 430 I=1,72
       ILON=I
 !!!   CALL GETO3D(ILON,JLAT)
-      CALL REPART(O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1,U0GAS(1,3),PLB0,NL+1)
+      CALL REPART(O3JDAY(1,IGCM,JGCM),PLBO3,NLO3+1,U0GAS(1,3),PLB0,NL+1)
       DO 420 L=1,NL
       O3(J,L)=O3(J,L)+U0GAS(L,3)/72.D0
   420 CONTINUE
@@ -9267,7 +7960,6 @@ C
       IF(KLIMIT < 1) WRITE(KW,6402)
       WRITE(KW,6405) O3COL(49),(O3(49,L),L=1,NL)
  6405 FORMAT( 7X,'GLOBAL',F9.5,4X,15(1x,F6.5)/26X,15(1x,F6.5))
-#endif /* skipping this for now for RAD_O3_GCM_HRES */
       GO TO 9999
 C
 C
@@ -9275,10 +7967,10 @@ C-------------
   500 CONTINUE
 C-------------
 C
-#ifndef RAD_O3_GCM_HRES
       JJDAYO=JMONTH*30-15
       IF(JMONTH < 1) JJDAYO=JDAY
-      CALL UPDO3D(JYRREF,JJDAYO)
+      CALL UPDO3D(JYRREF,JJDAYO,O3JDAY,O3JREF)
+      CALL UPDO3D_solar(JJDAYO,S00WM2*RATLS0,O3JDAY)
       DO 590 N=1,3
       N1=1
       N2=8
@@ -9289,7 +7981,7 @@ C
       DO 520 I=1,72
       ILON=I
 !!!   CALL GETO3D(ILON,JLAT)
-      CALL REPART(O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1,U0GAS(1,3),PLB0,NL+1)
+      CALL REPART(O3JDAY(1,IGCM,JGCM),PLBO3,NLO3+1,U0GAS(1,3),PLB0,NL+1)
       SUMO3=0.D0
       DO 510 L=N1,N2
       SUMO3=SUMO3+U0GAS(L,3)
@@ -9344,7 +8036,6 @@ C
  6501 FORMAT(I4,1X,36I4)
   580 CONTINUE
   590 CONTINUE
-#endif /* skipping this for now for RAD_O3_GCM_HRES */
 C
       GO TO 9999
 C
@@ -9363,10 +8054,10 @@ C
       K=6
       IF (MADAER.eq.3) THEN ! newer aerosol fields
       IF(KAEROS==1.OR.KAEROS > 3)
-     &       CALL updateAerosol2(JYRREF,JJDAY,a6jday, plbaer, table)
+     &       CALL updateAerosol2(JYRREF,JJDAY,a6jday, plbaer)
       ELSE
       IF(KAEROS==1.OR.KAEROS > 3)
-     &       CALL updateAerosol(JYRREF,JJDAY, a6jday, plbaer, table)
+     &       CALL updateAerosol(JYRREF,JJDAY, a6jday, plbaer)
       ENDIF
       IF(KAEROS==2.OR.KAEROS > 3) CALL UPDDST(JYRREF,JJDAY)
       IF(KAEROS==3.OR.KAEROS > 3) CALL UPDVOL(JYRREF,JJDAY)

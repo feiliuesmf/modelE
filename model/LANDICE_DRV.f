@@ -13,7 +13,6 @@
 !@auth Original Development Team
       USE CONSTANT, only : lhm,tf
       use TimeConstants_mod, only: SECONDS_PER_DAY,EARTH_DAYS_PER_YEAR
-      USE FILEMANAGER
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : dtsrc
       USE FLUXES, only : flice,focean
@@ -36,6 +35,11 @@
      *     ,trsnowli,trlndi,trdwnimp
 #endif
       USE FLUXES, only : atmgla,atmglas,atmocn
+#ifdef GLINT2
+      use fluxes, only : atmglas_hp, flice
+      use hp2hc
+      use landice_com, only : fhp_approx
+#endif
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_OCEAN_INDEP
 #else
@@ -46,9 +50,9 @@
      *     ,icon_MICB,icon_HICB
       USE Dictionary_mod
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds, 
-     &     GLOBALSUM, READT_PARALLEL
-     &     ,AM_I_ROOT
+     &     GLOBALSUM,AM_I_ROOT
       USE EXCHANGE_TYPES, only : avg_patches_srfstate_exports
+      use pario, only : par_open,par_close,read_dist_data
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER, INTENT(IN) :: istart
@@ -59,11 +63,16 @@
      *                    GRID%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     LOC_GLM  !  mask for GLMELT around Antarctica and Greenland
       LOGICAL :: do_glmelt = .false.
-      INTEGER I,J,N, IHC, iu_GL, I72
+      INTEGER I,J,N, IHC, fid
       INTEGER :: I_0,I_1, J_0,J_1
       Real*8  :: DTSRCzY,byoarea
-      CHARACTER*1, DIMENSION(IM,JM) :: CGLM   ! global array
-      CHARACTER*72 :: TITLE
+
+! Change the variable we'll initialize depending on GLINT2 existence
+#ifdef GLINT2
+#define ATMGLAX atmglas_hp
+#else
+#define ATMGLAX atmglas
+#endif
 
       call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT
@@ -73,9 +82,19 @@
       do ihc=1+lbound(atmglas,1),ubound(atmglas,1)
         do j=j_0,j_1
         do i=i_0,i_1
-          atmglas(ihc)%ftype_rel(i,j) = fhc(i,j,ihc)
+#ifdef GLINT2
+          ! Set height point "area" equal to amount that total value
+          ! will increase when we increase this height point value by
+          ! 1.  This was obtained in glint2_modele_init_landice_com()
+          ! by summing over the hp_to_hc matrix, combined with fhc
+          ! The "area" here is used by certain diagnostics.
+          atmglas_hp(ihc)%fhc(i,j) = fhp_approx(i,j,ihc)
+          atmglas_hp(ihc)%ftype(i,j) =
+     &         flice(i,j)*atmglas_hp(ihc)%fhc(i,j)
+#endif
+          atmglas(ihc)%fhc(i,j) = fhc(i,j,ihc)
           atmglas(ihc)%ftype(i,j) =
-     &         flice(i,j)*atmglas(ihc)%ftype_rel(i,j)
+     &         flice(i,j)*atmglas(ihc)%fhc(i,j)
         enddo
         enddo
       enddo
@@ -85,16 +104,17 @@ C**** set GTEMP array for landice
       DO J=J_0,J_1
         DO I=I_0,I_1
           IF (FLICE(I,J).gt.0) THEN
-            atmglas(ihc)%SNOW(I,J)=SNOWLI(I,J,IHC)
-            atmglas(ihc)%GTEMP(I,J)=TLANDI(1,I,J,IHC)
-            atmglas(ihc)%GTEMP2(I,J)=TLANDI(2,I,J,IHC)
-            atmglas(ihc)%GTEMPR(I,J)   =TLANDI(1,I,J,IHC)+TF
+            ATMGLAX(ihc)%SNOW(I,J)=SNOWLI(I,J,IHC)
+            ATMGLAX(ihc)%GTEMP(I,J)=TLANDI(1,I,J,IHC)
+            ATMGLAX(ihc)%GTEMP2(I,J)=TLANDI(2,I,J,IHC)
+            ATMGLAX(ihc)%GTEMPR(I,J)=TLANDI(1,I,J,IHC)+TF
+
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
                 if (SCM_SURFACE_FLAG.ge.1) then
-                    atmglas(ihc)%GTEMP(I,J) = ATSKIN
-                    atmglas(ihc)%GTEMP2(I,J) = ATSKIN
-                    atmglas(ihc)%GTEMPR(I,J) = ATSKIN + TF
+                    ATMGLAX(ihc)%GTEMP(I,J) = ATSKIN
+                    ATMGLAX(ihc)%GTEMP2(I,J) = ATSKIN
+                    ATMGLAX(ihc)%GTEMPR(I,J) = ATSKIN + TF
                 endif
             endif
 #endif
@@ -103,10 +123,10 @@ C**** set GTEMP array for landice
 !TODO and may be different for each individual tracer (reto) 
             if (istart.ge.9) then ! ok if all tracers start at beg.of run
             IF (SNOWLI(I,J,IHC).gt.SNMIN) THEN
-              atmglas(ihc)%GTRACER(:,I,J)=
+              ATMGLAX(ihc)%GTRACER(:,I,J)=
      &             TRSNOWLI(:,I,J,IHC)/SNOWLI(I,J,IHC)
             ELSE
-              atmglas(ihc)%GTRACER(:,I,J)=
+              ATMGLAX(ihc)%GTRACER(:,I,J)=
      &             TRLNDI(:,I,J,IHC)/(ACE1LI+ACE2LI)
             END IF
             end if
@@ -115,6 +135,11 @@ C**** set GTEMP array for landice
         END DO
       END DO
       END DO ! ihc
+#undef ATMGLAX
+#ifdef GLINT2
+      call bundle_hp_to_hc(bundle_init_li,
+     &     atmglas_hp(1:), atmglas(1:))
+#endif
       call avg_patches_srfstate_exports(grid,
 c     &     atmglas,atmgla, ! gfortran prob. if passed as class() args
      &     atmglas(:)%atmsrf_xchng_vars,atmgla%atmsrf_xchng_vars,
@@ -125,45 +150,14 @@ C**** Calculate (fixed) iceberg melt terms from Antarctica and Greenland
       call sync_param("glmelt_fac_nh",glmelt_fac_nh)
       call sync_param("glmelt_fac_sh",glmelt_fac_sh)
 
-C**** Note these parameters are highly resolution dependent!
-C**** Around Antarctica, fresh water is added from 78S to 62S
-C**** and from 0-60W and 135W to 165E
-C**** Around Greenland the freshwater is added to both the east and
-C**** west coasts in the one grid box closest to the coast which is
-C**** determined by the direction in the river flow file.
-C**** This information is now read in from the GLMELT file.
-
-C**** Read in GLMELT file to distribute glacial melt (CGLM is global)
-      IF (JM.gt.24) THEN ! for finer that old 8x10
+C**** Read in GLMELT file to distribute glacial melt
+      IF (JM.gt.24) THEN ! for finer than old 8x10
          do_glmelt=.true.
 
-#ifdef CUBED_SPHERE
-c read a binary version of GLMELT
-      call openunit("GLMELT",iu_GL,.true.,.true.)
-      call readt_parallel(grid,iu_gl,nameunit(iu_gl),r8mask,1)
+      fid = par_open(grid,'GLMELT','read')
+      call read_dist_data(grid,fid,'mask',r8mask)
+      call par_close(grid,fid)
       loc_glm(i_0:i_1,j_0:j_1) = r8mask(i_0:i_1,j_0:j_1).eq.1d0
-#else
-c every PE reads the ascii version of GLMELT
-      call openunit("GLMELT",iu_GL,.false.,.true.)
-      READ  (iu_GL,'(A72)') TITLE
-      IF(AM_I_ROOT())
-     &     WRITE (6,*) 'Read on unit ',iu_GL,': ',TITLE
-      READ  (iu_GL,*)
-C**** assumes a 72-column width slab - will need adjusting for CS
-      DO I72=1,1+(IM-1)/72
-        DO J=JM,1,-1
-          READ (iu_GL,'(72A1)')
-     *         (CGLM(I,J),I=72*(I72-1)+1,MIN(IM,I72*72))
-        END DO
-      END DO
-      DO J=J_0,J_1
-        DO I=I_0,I_1
-          LOC_GLM(I,J)=CGLM(I,J).eq."1"
-        ENDDO
-      ENDDO
-C****
-#endif
-      call closeunit(iu_GL)
 
 C**** Calculate hemispheric fractions (weighted by area and landmask)
 C**** This could be extended by a different number in GLMELT to
@@ -502,18 +496,23 @@ c
       USE LANDICE, only: ace1li,ace2li,precli,snmin
       USE LANDICE_COM, only : snowli,tlandi
 #ifdef TRACERS_WATER
-     *     ,trsnowli,trlndi,ntm
+     *     ,trsnowli,trlndi
+      USE TRACER_COM, only : NTM
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE EXCHANGE_TYPES
       USE LANDICE_COM, only : ijhc,ijhc_frac,IJHC_PRECLI,IJHC_RUNLI
+#ifdef GLINT2
+      use fluxes, only : flice
+      use landice_com, only : usedhp
+#endif
       IMPLICIT NONE
       type(atmgla_xchng_vars) :: atmgla
       integer :: ihc
 
       real*8, dimension(:,:), pointer :: prec,eprec
 
-      REAL*8 SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0,PLICE
+      REAL*8 SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0
 #ifdef TRACERS_WATER
 !@var TRSNOW tracer amount in snow (kg/m^2)
       REAL*8, DIMENSION(NTM) :: TRSNOW
@@ -536,16 +535,9 @@ C**** Get useful grid parameters
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-       prec => atmgla%prec
-      eprec => atmgla%eprec
-#ifdef TRACERS_WATER
-      trprec => atmgla%trprec
-#endif
-
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
-      PLICE=atmgla%FTYPE(I,J)
-      PRCP=PREC(I,J)
+      PRCP=atmgla%prec(i,j)
       atmgla%RUNO(I,J)=0
 #ifdef TRACERS_WATER
       atmgla%TRUNO(:,I,J)=0.
@@ -556,19 +548,23 @@ C**** Get useful grid parameters
       atmgla%IMPLT(:,I,J)=0.
 #endif
       ! demo diagnostic
-      ijhc(i,j,ihc,ijhc_frac) = ijhc(i,j,ihc,ijhc_frac)+plice
-      IF (PLICE.gt.0 .and. PRCP.gt.0) THEN
-
-        ENRGP=EPREC(I,J)      ! energy of precipitation
+      ijhc(i,j,ihc,ijhc_frac) = ijhc(i,j,ihc,ijhc_frac) +
+     &       atmgla%ftype(i,j)	! A bit bogus...
+#ifdef GLINT2
+      IF (usedhp(i,j,ihc) /= 0 .and. PRCP.gt.0) THEN
+#else
+      IF (atmgla%ftype(i,j).gt.0 .and. PRCP.gt.0) THEN
+#endif
+        ENRGP=atmgla%eprec(I,J)      ! energy of precipitation
         SNOW=SNOWLI(I,J,IHC)
         TG1=TLANDI(1,I,J,IHC)
         TG2=TLANDI(2,I,J,IHC)
 #ifdef TRACERS_WATER
         TRLI(:)=TRLNDI(:,I,J,IHC)
         TRSNOW(:)=TRSNOWLI(:,I,J,IHC)
-        TRPRCP(:)=TRPREC(:,I,J)
+        TRPRCP(:)=atmgla%trprec(:,I,J)
 #endif
-
+        ! PRECLI() uses nothing, no globals involved.
         CALL PRECLI(SNOW,TG1,TG2,PRCP,ENRGP,
 #ifdef TRACERS_WATER
      *       TRSNOW,TRLI,TRPRCP,TRDIFS,TRUN0,
@@ -643,7 +639,8 @@ C**** ACCUMULATE DIAGNOSTICS
       USE SEAICE, only : rhos
       USE LANDICE_COM, only : snowli,tlandi
 #ifdef TRACERS_WATER
-     *     ,ntm,trsnowli,trlndi
+     *     ,trsnowli,trlndi
+      USE TRACER_COM, only : NTM
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE TimerPackage_mod, only: startTimer => start
@@ -654,12 +651,16 @@ C**** ACCUMULATE DIAGNOSTICS
       USE LANDICE_COM, only : IJHC_SHDTLI,IJHC_EVHDT,IJHC_TRHDT
       USE LANDICE_COM, only : IJHC_F0LI,IJHC_EVAPLI,IJHC_TSLI
       USE LANDICE_COM, only : IJHC_IMPMLI,IJHC_IMPHLI, IJHC_RUNLI
+#ifdef GLINT2
+      use fluxes, only : flice
+      use landice_com, only : usedhp
+#endif
 
       IMPLICIT NONE
       type(atmgla_xchng_vars) :: atmgla
       integer :: ihc
 
-      REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,EDIFS,DIFS,RUN0,PLICE
+      REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,EDIFS,DIFS,RUN0
      *     ,SCOVLI
 #ifdef TRACERS_WATER
 !@var TRSNOW tracer amount in snow (kg/m^2)
@@ -684,10 +685,12 @@ C**** ACCUMULATE DIAGNOSTICS
 
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
-      PLICE=atmgla%FTYPE(I,J)
       atmgla%RUNO(I,J)=0.
-      IF (PLICE.gt.0) THEN
-
+#ifdef GLINT2
+      if (usedhp(i,j,ihc) /= 0) then
+#else
+      if (atmgla%ftype(i,j) > 0) then
+#endif
         SNOW=SNOWLI(I,J,IHC)
         TG1=TLANDI(1,I,J,IHC)
         TG2=TLANDI(2,I,J,IHC)
@@ -974,7 +977,8 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
       Use LANDICE_COM, Only: TLANDI,SNOWLI, MDWNIMP,EDWNIMP,
      *                       FSHGLM,FNHGLM
 #ifdef TRACERS_WATER
-     *     ,ntm,trsnowli,trlndi,trdwnimp
+     *     ,trsnowli,trlndi,trdwnimp
+      USE TRACER_COM, only : NTM
 #endif
       USE FLUXES, only : atmocn,flice,focean
       USE Dictionary_mod

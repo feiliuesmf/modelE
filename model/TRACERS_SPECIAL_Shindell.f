@@ -159,6 +159,7 @@
 #ifdef SHINDELL_STRAT_EXTRA
       subroutine overwrite_GLT
 !@sum L=1 overwriting of generic linear tracer    
+!@vers 2013/03/26
 !@auth Greg Faluvegi
 C****
 C**** Right now, there is just one L=1 source that changes 
@@ -166,7 +167,7 @@ C**** linearly in time (at 1% increase per year)
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only: itime,itimei,DTsrc
       USE GEOM, only: axyp,IMAXJ  
-      USE ATM_COM, only: am
+      USE ATM_COM, only: MA
       use OldTracer_mod, only: trname, vol2mass, itime_tr0
       USE TRACER_COM, only: trm,n_GLT
       USE TRACER_SOURCES, only: GLTic
@@ -199,7 +200,7 @@ C we change that.)
       new_mr = GLTic * (1.d0 +
      &(Itime-ItimeI-itime_tr0(n_GLT))*DTsrc*by_s_in_yr*1.d-2) !pppv
       do j=J_0,J_1; do i=I_0,imaxj(j)
-        new_mass=new_mr*vol2mass(n_GLT)*am(1,i,j)*AXYP(i,j) ! kg
+        new_mass = new_mr*vol2mass(n_GLT)*MA(1,i,j)*AXYP(i,j) ! kg
         tr3Dsource(i,j,1,1,n_GLT)=(new_mass-trm(i,j,1,n_GLT))*bydtsrc
         !i.e. tr3Dsource in kg/s 
       end do   ; end do
@@ -213,9 +214,11 @@ C we change that.)
 !@sum  get_aircraft_tracer to define the 3D source of tracers from aircraft
 !@auth Drew Shindell? / Greg Faluvegi / Jean Learner
 !@ver  2.0 (based on DB396Tds3M23 -- adapted for AR5 emissions)
-      USE RESOLUTION, only : im,jm,lm
+      USE RESOLUTION, only : im,jm
+      USE RESOLUTION, only : lm
       use model_com, only: itime
-      use domain_decomp_atm, only: GRID, getDomainBounds, write_parallel
+      use domain_decomp_atm, only: GRID
+      use domain_decomp_atm, only: getDomainBounds, write_parallel
       use constant, only: bygrav
       use filemanager, only: openunit,closeunit
       use fluxes, only: tr3Dsource
@@ -376,13 +379,12 @@ C we change that.)
 !@sum check_aircraft_sectors checks parameters for user-
 !@+ set sector for NOx aircraft source.
 !@auth Greg Faluvegi
+      use TracerSource_mod, only: TracerSource3D
+      use Tracer_mod, only: Tracer
       use tracer_com, only: nAircraft, tracers,
      & sect_name,num_sectors,
      & n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
       use Dictionary_mod, only: sync_param
-      use TracerSource_mod, only: TracerSource3D
-      use TracerBundle_mod, only: getTracer
-      use Tracer_mod, only: Tracer_type
       IMPLICIT NONE
       integer, intent(in) :: n_NOx
       integer :: i,j,ns,nsect,nn
@@ -390,11 +392,11 @@ C we change that.)
       character*32 :: pname
 
       type (TracerSource3D), pointer :: source
-      type (Tracer_type), pointer :: tracer
+      class (Tracer), pointer :: pTracer
 
       tr_sectors_are = ' '
-      tracer => getTracer(tracers,'NOx')
-      source => tracer%sources3D(nAircraft)
+      pTracer => tracers%getReference('NOx')
+      source => pTracer%sources3D(nAircraft)
 
       pname='NOx_AIRC_sect'
       call sync_param(pname,tr_sectors_are)
@@ -444,14 +446,19 @@ C we change that.)
 !@+    call read_aero(so2_offline,'SO2_FIELD')
 !@auth Drew Shindell / Greg Faluvegi
       USE RESOLUTION, only : ptop,psf
-      USE RESOLUTION, only : im,jm,lm
+      USE RESOLUTION, only : lm
+      USE RESOLUTION, only : im,jm
       use model_com, only: modelEclock
       USE DYNAMICS, only : sig
-      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: GRID
+      USE DOMAIN_DECOMP_ATM, only: getDomainBounds, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       use TRACER_SOURCES, only: Lsulf
  
       IMPLICIT NONE
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::field
+      CHARACTER(LEN=*),  INTENT(IN) :: fn
 
 !@var nmons: number of monthly input files
 !@param Psulf pressure levels of the input file
@@ -465,15 +472,12 @@ C we change that.)
       integer, dimension(ncalls):: mon_units
       integer i,j,iu,k,l,nc
       character*80 :: title
-      CHARACTER(LEN=*),  INTENT(IN) :: fn
       character(len=300) :: out_line
       logical, dimension(ncalls) :: mon_bins=(/.true.,.true.,.true./)
       REAL*8, DIMENSION(LM)    :: pres,srcLout
       REAL*8, DIMENSION(Lsulf) :: srcLin
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Lsulf,ncalls):: src
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::field
       logical :: trans_emis=.false.
       INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 
@@ -700,6 +704,7 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
 
       subroutine get_CH4_IC(icall)
 !@sum get_CH4_IC to generate initial conditions for methane.
+!@vers 2013/03/26
 !@auth Greg Faluvegi/Drew Shindell
       USE RESOLUTION, only : ls1
       USE RESOLUTION, only : im,jm,lm
@@ -707,7 +712,7 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds,
      *     write_parallel,am_i_root
       USE GEOM, only       : axyp,lat2d_dg
-      USE ATM_COM, only   : am
+      USE ATM_COM, only: MA
       USE CONSTANT, only: mair
       use OldTracer_mod, only: vol2mass
       USE TRACER_COM, only : trm, n_CH4, nOverwrite
@@ -716,6 +721,7 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
      *     ch4_init_nh,fix_CH4_chemistry
  
       IMPLICIT NONE
+      integer, intent(in) :: icall
  
 !@var CH4INIT temp variable for ch4 initial conditions
 !@var I,J,L dummy loop variables
@@ -723,7 +729,7 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
 !@var icall =1 (during run) =0 (first time)
       REAL*8, PARAMETER :: bymair = 1.d0/mair
       REAL*8 CH4INIT,bydtsrc
-      INTEGER I, J, L, icall
+      INTEGER I, J, L
       integer :: J_0, J_1, I_0, I_1
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
@@ -742,11 +748,11 @@ C       Initial latitudinal gradient for CH4:
         select case(icall)
         case(0) ! initial conditions
           DO L=1,LS1-1
-            trm(i,j,l,n_CH4)=am(L,I,J)*CH4INIT*AXYP(I,J)
+            trm(i,j,l,n_CH4) = MA(L,I,J)*CH4INIT*AXYP(I,J)
           END DO
         case(1) ! overwriting
           DO L=1,LS1-1
-            tr3Dsource(i,j,l,nOverwrite,n_CH4) = (am(L,I,J)*
+            tr3Dsource(i,j,l,nOverwrite,n_CH4) = (MA(L,I,J)*
      &           CH4INIT*AXYP(I,J)-trm(i,j,l,n_CH4))*bydtsrc
           END DO
         end select
@@ -773,9 +779,9 @@ c     mixing ratios to 1.79 (observed):
         END IF
         select case(icall)
         case(0) ! initial conditions
-          trm(i,j,l,n_CH4)=am(L,I,J)*CH4INIT*AXYP(I,J)
+          trm(i,j,l,n_CH4) = MA(L,I,J)*CH4INIT*AXYP(I,J)
         case(1) ! overwriting
-          tr3Dsource(i,j,l,nOverwrite,n_CH4) = (am(L,I,J)*
+          tr3Dsource(i,j,l,nOverwrite,n_CH4) = (MA(L,I,J)*
      &    CH4INIT*AXYP(I,J)-trm(i,j,l,n_CH4))*bydtsrc
         end select
       end do   ! i
@@ -799,8 +805,10 @@ c     mixing ratios to 1.79 (observed):
       USE TRCHEM_Shindell_COM, only: byradian
       use geom, only : lon2d_dg,lat2d_dg
       use domain_decomp_atm, only : grid,hasSouthPole, hasNorthPole
-
+  
       IMPLICIT NONE
+      REAL*8, INTENT(OUT) :: tempsza
+      INTEGER, INTENT(IN) :: I,J
 
 !@param ANG1 ?
 !@var DX degree width of a model grid cell (360/IM)
@@ -812,8 +820,6 @@ c     mixing ratios to 1.79 (observed):
 !@var FACT,temp are temp variables
       REAL*8, PARAMETER ::  ANG1 = 90.d0/91.3125d0
       REAL*8 P1,P2,P3,VLAT,VLON,TIMEC,FACT,temp
-      REAL*8, INTENT(OUT) :: tempsza
-      INTEGER, INTENT(IN) :: I,J
       INTEGER DY
 
       DY   = NINT(180./REAL(JM)) ! only used for latlon grid

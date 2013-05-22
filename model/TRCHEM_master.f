@@ -1,6 +1,7 @@
 #include "rundeck_opts.h"
       SUBROUTINE masterchem
 !@sum masterchem main chemistry routine
+!@vers 2013/03/26
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@calls photoj,Crates,Oxinit,HOxfam,NOxfam,chemstep
 C
@@ -401,11 +402,11 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
               if(use_rad_ch4 > 0) then
                 avgTT_CH4_part(I,J) =
      &          rad_to_chem(4,LTROPO(I,J),I,J)
-     &          *2.69d20*byavog*mair*BYAM(LTROPO(I,J),I,J)
+     &          *2.69d20*byavog*mair*byMA(LTROPO(I,J),I,J)
               else
                 avgTT_CH4_part(I,J) =
      &          trm(I,J,LTROPO(I,J),n_CH4)
-     &          *mass2vol(n_CH4)*BYAXYP(I,J)*BYAM(LTROPO(I,J),I,J)
+     &          *mass2vol(n_CH4)*BYAXYP(I,J)*byMA(LTROPO(I,J),I,J)
               endif
               countTT_part(I,J) = 1.d0
             end if
@@ -422,7 +423,7 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
       do j=J_0,J_1
         do i=I_0,IMAXJ(j)
           surfIsop(i,j)=trm(i,j,1,n_Isoprene)*mass2vol(n_Isoprene)*
-     &         byaxyp(i,j)*byAM(1,i,j)
+     &         byaxyp(i,j)*byMA(1,i,j)
         enddo
       enddo
       call zonalmean_ij2ij(surfIsop,zonalIsop)
@@ -437,7 +438,7 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
             acetone(i,j,L)=max(0.d0, ! in molec/cm3
      &      (1.25d0*(
      &        zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
-     &        byaxyp(i,j)*byAM(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
+     &        byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
           enddo
           do L=maxl+1,LM
             acetone(i,j,L)=0.d0
@@ -483,7 +484,7 @@ c Calculate M and set fixed ratios for O2 & H2:
 c Tracers (converted from mass to number density):
        do igas=1,ntm_chem
          y(igas,L)=trm(I,J,L,igas)*y(nM,L)*mass2vol(igas)*
-     &   BYAXYP(I,J)*BYAM(L,I,J)
+     &   BYAXYP(I,J)*byMA(L,I,J)
        enddo
 
 ! If we are fixing methane for chemistry purposes set it's y here:
@@ -514,9 +515,9 @@ c Tracers (converted from mass to number density):
 C Concentrations of DMS and SO2 for sulfur chemistry:
        if (coupled_chem == 1) then
          ydms(i,j,l)=trm(i,j,l,n_dms)*y(nM,L)*(28.0D0/62.0D0)*
-     &   BYAXYP(I,J)*BYAM(L,I,J)
+     &   BYAXYP(I,J)*byMA(L,I,J)
          yso2(i,j,l)=trm(i,j,l,n_so2)*y(nM,L)*(28.0D0/64.0D0)*
-     &   BYAXYP(I,J)*BYAM(L,I,J)
+     &   BYAXYP(I,J)*byMA(L,I,J)
        else
          ! Convert from pptv to molecule cm-3:
          ydms(i,j,l)=dms_offline(i,j,l)*1.0D-12*y(nM,L)
@@ -526,7 +527,7 @@ C Concentrations of DMS and SO2 for sulfur chemistry:
 
 c Save initial ClOx amount for use in ClOxfam:
        ClOx_old(L)=trm(I,J,L,n_ClOx)*y(nM,L)*mass2vol(n_ClOx)*
-     & BYAXYP(I,J)*BYAM(L,I,J)
+     & BYAXYP(I,J)*byMA(L,I,J)
 
 c Limit N2O5 number density:
        if(y(n_N2O5,L) < 1.) y(n_N2O5,L)=1.d0
@@ -908,7 +909,7 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
      &      *max(0.1d0,rh(L)*1.33333d0)
         endif
 
-        pfactor=axyp(I,J)*AM(L,I,J)/y(nM,L)
+        pfactor = axyp(I,J)*MA(L,I,J)/y(nM,L)
         bypfactor=1.D0/pfactor
         RVELN2O5=SQRT(TX(I,J,L)*RKBYPIM)*100.d0
 C       Calculate sulfate sink, and cap it at 20% of N2O5:
@@ -1468,13 +1469,13 @@ c 1.8 ppbv CFC plus 0.8 ppbv background which is tied to methane) :
           !WARNING: RESETTING SOME Y's HERE; SO DON'T USE THEM BELOW!     
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           y(n_ClOx,L)=(trm(I,J,L,n_ClOx)+changeL(L,n_ClOx))*y(nM,L)*
-     &    mass2vol(n_ClOx)*BYAXYP(I,J)*BYAM(L,I,J)
+     &    mass2vol(n_ClOx)*BYAXYP(I,J)*byMA(L,I,J)
           y(n_HCl,L)= (trm(I,J,L,n_HCl)+changeL(L,n_HCl))*y(nM,L)*
-     &    mass2vol(n_HCl)*BYAXYP(I,J)*BYAM(L,I,J)
+     &    mass2vol(n_HCl)*BYAXYP(I,J)*byMA(L,I,J)
           y(n_HOCl,L)=(trm(I,J,L,n_HOCl)+changeL(L,n_HOCl))*y(nM,L)*
-     &    mass2vol(n_HOCl)*BYAXYP(I,J)*BYAM(L,I,J)
+     &    mass2vol(n_HOCl)*BYAXYP(I,J)*byMA(L,I,J)
           y(n_ClONO2,L)=(trm(I,J,L,n_ClONO2)+changeL(L,n_ClONO2))*
-     &    y(nM,L)*mass2vol(n_ClONO2)*BYAXYP(I,J)*BYAM(L,I,J)
+     &    y(nM,L)*mass2vol(n_ClONO2)*BYAXYP(I,J)*byMA(L,I,J)
           CLTOT=((y(n_CFC,1)/y(nM,1)-y(n_CFC,L)/y(nM,L))*(3.0d0/1.8d0)*
      &    y(n_CFC,1)/(1.8d-9*y(nM,1)))
           CLTOT=CLTOT+0.8d-9*(y(n_CH4,1)/y(nM,1)-y(n_CH4,L)/y(nM,L))/
@@ -1511,13 +1512,13 @@ C from complete oxidation of 1.8 ppbv CFC plus 0.5 pptv background) :
           !WARNING: RESETTING SOME Y's HERE; SO DON'T USE THEM BELOW!     
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           y(n_BrOx,L)=(trm(I,J,L,n_BrOx)+changeL(L,n_BrOx))*y(nM,L)*
-     &    mass2vol(n_BrOx)*BYAXYP(I,J)*BYAM(L,I,J)
+     &    mass2vol(n_BrOx)*BYAXYP(I,J)*byMA(L,I,J)
           y(n_HBr,L)= (trm(I,J,L,n_HBr)+changeL(L,n_HBr))*y(nM,L)*
-     &    mass2vol(n_HBr)*BYAXYP(I,J)*BYAM(L,I,J)
+     &    mass2vol(n_HBr)*BYAXYP(I,J)*byMA(L,I,J)
           y(n_HOBr,L)=(trm(I,J,L,n_HOBr)+changeL(L,n_HOBr))*y(nM,L)*
-     &    mass2vol(n_HOBr)*BYAXYP(I,J)*BYAM(L,I,J)
+     &    mass2vol(n_HOBr)*BYAXYP(I,J)*byMA(L,I,J)
           y(n_BrONO2,L)=(trm(I,J,L,n_BrONO2)+changeL(L,n_BrONO2))*
-     &    y(nM,L)*mass2vol(n_BrONO2)*BYAXYP(I,J)*BYAM(L,I,J)
+     &    y(nM,L)*mass2vol(n_BrONO2)*BYAXYP(I,J)*byMA(L,I,J)
      
           CLTOT=((y(n_CFC,1)/y(nM,1)-y(n_CFC,L)/y(nM,L))*(4.5d-3/1.8d0)
      &    *y(n_CFC,1)/(1.8d-9*y(nM,1)))
@@ -1551,13 +1552,13 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         endif ! i.e. y(nH2O,L)/y(nM,L) <= 10.d-6 
 
 #ifdef TRACERS_AEROSOLS_SOA
-        pfactor=axyp(I,J)*AM(L,I,J)/y(nM,L)
+        pfactor = axyp(I,J)*MA(L,I,J) / y(nM,L)
         bypfactor=1.D0/pfactor
         call soa_aerosolphase(I,J,L,changeL,bypfactor)
 #endif  /* TRACERS_AEROSOLS_SOA */
 
         tempChangeNOx= ! this needed for several diags below:
-     &  changeL(L,n_NOx)*mass2vol(n_NOx)*y(nM,L)/(axyp(I,J)*AM(L,I,J))
+     &  changeL(L,n_NOx)*mass2vol(n_NOx)*y(nM,L)/(axyp(I,J)*MA(L,I,J))
 
 ! Accumulate NO2 10:30am/1:30pm tropo column diags:
 ! -- moved from sunlight/darkness sections because needed changeNOx
@@ -1737,7 +1738,7 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
       do j=J_0,J_1
        do i=I_0,IMAXJ(j)
         fact6=2.69d20*axyp(i,j)*byavog
-        fact1=bymair*am(1,i,j)*axyp(i,j)
+        fact1 = bymair*MA(1,i,j)*axyp(i,j)
         fact5=fact6 
         fact4=fact6
         if(use_rad_n2o == 0)fact4=fact1 
@@ -1779,17 +1780,17 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
 #endif
             ! -- ClOx --
             tr3Dsource(i,j,L,nOverwrite,n_ClOx)=(1.d-11*ClOxalt(l)
-     &      *vol2mass(n_CLOx)*am(L,i,j)*axyp(i,j) - (
+     &      *vol2mass(n_CLOx)*MA(L,i,j)*axyp(i,j) - (
      &      trm(i,j,L,n_ClOx)+tr3Dsource(i,j,L,nChemistry,n_ClOx)*dtsrc
      &      ))*bydtsrc    
             ! -- BrOx --
             tr3Dsource(i,j,L,nOverwrite,n_BrOx)=(1.d-11*BrOxalt(l)
-     &      *vol2mass(n_BrOx)*am(L,i,j)*axyp(i,j) - (
+     &      *vol2mass(n_BrOx)*MA(L,i,j)*axyp(i,j) - (
      &      trm(i,j,L,n_BrOx)+tr3Dsource(i,j,L,nChemistry,n_BrOx)*dtsrc
      &      ))*bydtsrc
             ! -- NOx --
             tr3Dsource(i,j,L,nOverwrite,n_NOx)=(75.d-11 !75=1*300*2.5*.1
-     &      *am(L,i,j)*axyp(i,j)*PIfact(n_NOx)-(trm(i,j,L,n_NOx)+ 
+     &      *MA(L,i,j)*axyp(i,j)*PIfact(n_NOx)-(trm(i,j,L,n_NOx)+ 
      &      tr3Dsource(i,j,L,nChemistry,n_NOx)*dtsrc))*bydtsrc
           end do ! I 
         end do   ! J

@@ -13,7 +13,7 @@
       public alloc_pbl_args, dealloc_pbl_args
       contains
 
-      SUBROUTINE PBL(I,J,ITYPE,PTYPE,pbl_args,atm)
+      SUBROUTINE PBL(I,J,IHC,ITYPE,PTYPE,pbl_args,atm)
 !@sum  PBL calculate pbl profiles for each surface type
 !@+        Contains code common for all surfaces
 !@auth Greg. Hartke/Ye Cheng
@@ -35,8 +35,8 @@
 #endif
 #endif
 #ifdef TRACERS_AMP
-      use TRACER_COM, only:
-     & ,AMP_MODES_MAP,AMP_NUMB_MAP,ntmAMPi,ntmAMPe
+      USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_NUMB_MAP
+      USE TRACER_COM, only: ntmAMPi, ntmAMPe
       USE AMP_AEROSOL, only : DIAM, AMP_dens,AMP_TR_MM
       USE AERO_SETUP,  only : CONV_DPAM_TO_DGN
 #endif
@@ -47,6 +47,7 @@
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: I,J  !@var I,J grid point
+      INTEGER, INTENT(IN) :: IHC  !@var Height class (or 1)
       INTEGER, INTENT(IN) :: ITYPE  !@var ITYPE surface type
       REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
       type (t_pbl_args) :: pbl_args
@@ -297,7 +298,7 @@ C        roughness lengths from Brutsaert for rough surfaces
       call advanc( pbl_args,coriol,utop,vtop,qtop,ztop,mdf
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
      &     ,dtdt_gcm,u1_after_aturb(i,j),v1_after_aturb(i,j)
-     &     ,i,j,itype
+     &     ,i,j,ihc,itype
      &     ,kms,kqs,z0m,z0h,z0q,w2_1,ufluxs,vfluxs,tfluxs,qfluxs
      &     ,upbl,vpbl,tpbl,qpbl,epbl
 #if defined(TRACERS_ON)
@@ -530,7 +531,7 @@ C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       use constant, only : by3
       use fluxes, only : pprec,pevap
       use tracers_dust, only : hbaij,ricntd
-      use clouds_com, only : ddml,fss
+      use clouds_com, only : ddml
       implicit none
       integer, intent(in) :: i,j  !@var i,j grid point
       integer, intent(in) :: itype  !@var itype surface type
@@ -546,7 +547,7 @@ c**** layer. It's only needed to constrain dust emission due to
 c**** downdrafts for soil type earth, but it's needed here to calculate
 c**** wspdf in PBL.f for the other soil types.
       IF (ddml(i,j) == 1) THEN
-        pbl_args%mcfrac=(1.D0-fss(1,i,j))*By3
+        pbl_args%mcfrac=By3
       ELSE
         pbl_args%mcfrac=0.D0
       END IF
@@ -634,7 +635,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
             tmp(idd_wtke)=pbl_args%wsubtke*ptype
             tmp(idd_wd)=pbl_args%wsubwd*ptype
             tmp(idd_wm)=pbl_args%wsubwm*ptype
-            if(itype==4) then
+            if(itype==4) then        ! land
               tmp(idd_wtrsh)=pbl_args%wtrsh*ptype
 #ifdef TRACERS_DUST
               tmp(idd_emis)=0.D0
@@ -708,17 +709,14 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
       end module PBL_DRV
       
       subroutine read_pbl_tsurf_from_nmcfile
-      USE FILEMANAGER
-      USE DOMAIN_DECOMP_ATM, only : GRID, READT_PARALLEL
-      use resolution, only : lm
+      USE DOMAIN_DECOMP_ATM, only : GRID
       use fluxes, only : atmsrf
+      use pario, only : par_open,par_close,read_dist_data
       implicit none
-      integer :: iu_NMC,tsurf_record
-      call openunit("AIC",iu_NMC,.true.,.true.)
-      tsurf_record = 1+4*lm +1  ! skip over psrf,u,v,t,q
-      CALL READT_PARALLEL(grid,iu_NMC,NAMEUNIT(iu_NMC),atmsrf%TSAVG,
-     &     tsurf_record)
-      call closeunit(iu_NMC)
+      integer :: fid
+      fid = par_open(grid,'AIC','read')
+      call read_dist_data(grid,fid,'tsurf',atmsrf%tsavg)
+      call par_close(grid,fid)
       atmsrf%tgvavg(:,:) = atmsrf%tsavg(:,:) ! not used for init. set anyway.
       return
       end subroutine read_pbl_tsurf_from_nmcfile
@@ -733,7 +731,6 @@ c  fields are obtained by solving the static equations of the
 c  Level 2 model. This is used when starting from a restart
 c  file that does not have this data stored.
 c -------------------------------------------------------------
-      USE FILEMANAGER
       USE Dictionary_mod
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
       USE ATM_COM, only : u,v,p,t,q
@@ -744,10 +741,10 @@ c -------------------------------------------------------------
 !      USE SOCPBL, only : dpdxr,dpdyr,dpdxr0,dpdyr0
 
       USE SOCPBL, only : npbl=>n,zgs,inits,XCDpbl,ccoeff0,skin_effect
-     &     ,xdelt, maxNTM
+     &     ,xdelt, maxNTM, calc_wspdf
       USE GHY_COM, only : fearth
       USE PBLCOM
-      USE DOMAIN_DECOMP_ATM, only : GRID, READT_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_1D, only : WRITET_PARALLEL, getDomainBounds
       USE ATM_COM, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
@@ -759,7 +756,7 @@ c -------------------------------------------------------------
       use ent_mod, only: ent_get_exports
       use ent_com, only : entcells
 #endif
-
+      use pario, only : par_open,par_close,read_dist_data
 
       IMPLICIT NONE
 C**** ignore ocean currents for initialisation.
@@ -769,8 +766,8 @@ C**** ignore ocean currents for initialisation.
 !@var istart what kind of (re)start is being done
       integer, intent(in) :: istart
 
-!@var iu_CDN unit number for roughness length input file
-      integer :: iu_CDN
+!@var fid unit number for roughness length input file
+      integer :: fid
       integer :: ilong  !@var ilong  longitude identifier
       integer :: jlat   !@var jlat  latitude identifier
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -800,6 +797,16 @@ C**** ignore ocean currents for initialisation.
        real*8 rrr(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &            grid%J_STRT_HALO:grid%J_STOP_HALO)
 
+
+      ! todo: perhaps use presence of LKTAB file to automatically determine this
+      call sync_param( 'calc_wspdf', calc_wspdf )
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
+      calc_wspdf = 1
+#endif
+
+      if(calc_wspdf == 1) call init_wspdf_mod
 
 #ifdef TRACERS_ON
        maxNTM = NTM
@@ -852,9 +859,10 @@ C things to be done regardless of inipbl
 !!#if ( ! defined ROUGHL_HACK ) || ( ! defined USE_ENT )
       if ( roughl_from_file .ne. 0 ) then
         allocate ( buf(I_0H:I_1H, J_0H:J_1H) )
-        call openunit("CDN",iu_CDN,.TRUE.,.true.)
-        CALL READT_PARALLEL(grid,iu_CDN,NAMEUNIT(iu_CDN),buf,1)
-        call closeunit(iu_CDN)
+        buf = 0.
+        fid = par_open(grid,'CDN','read')
+        call read_dist_data(grid,fid,'al30rl',buf)
+        call par_close(grid,fid)
         roughl(:,:)=30./(10.**buf(:,:))
         deallocate ( buf )
       endif
@@ -1036,7 +1044,14 @@ c ----------------------------------------------------------------------
       USE MODEL_COM
       USE GEOM, only : imaxj
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
-      USE FLUXES, only : asflx,atmocns,atmices,atmglas,atmlnds
+      USE FLUXES, only : asflx,atmocns,atmices,atmlnds
+#ifdef GLINT2
+#define ATMGLAX atmglas_hp
+#else
+#define ATMGLAX atmglas
+#endif
+      USE FLUXES, only : ATMGLAX
+
       IMPLICIT NONE
       integer i,j,ip  !@var i,j,ip loop variable
       type(atmsrf_xchng_vars), pointer :: ain,aout
@@ -1088,9 +1103,10 @@ c ******* itype=2: Ocean ice
           enddo
 
 c ******* itype=3: Land ice
-
-          do ip=1,ubound(atmglas,1)
-            aout => atmglas(ip)%atmsrf_xchng_vars
+! We use atmglas_hp here because PBL() is run on
+! atmglas_hp, not atmglas
+          do ip=1,ubound(ATMGLAX,1)
+            aout => ATMGLAX(ip)%atmsrf_xchng_vars
             if (aout%ipbl(i,j).eq.0) then
               if (atmlnds(1)%ipbl(i,j).eq.1) then
                 ain => atmlnds(1)%atmsrf_xchng_vars
@@ -1104,8 +1120,8 @@ c ******* itype=4: Land
           do ip=1,ubound(atmlnds,1)
             aout => atmlnds(ip)%atmsrf_xchng_vars
             if (aout%ipbl(i,j).eq.0) then
-              if (atmglas(1)%ipbl(i,j).eq.1) then
-                ain => atmglas(1)%atmsrf_xchng_vars
+              if (ATMGLAX(1)%ipbl(i,j).eq.1) then
+                ain => ATMGLAX(1)%atmsrf_xchng_vars
                 call setbl(ain,aout,i,j)
               elseif (atmocns(1)%ipbl(i,j).eq.1) then
                 ain => atmocns(1)%atmsrf_xchng_vars
@@ -1323,4 +1339,318 @@ c     &     SUBR,'ustar')
      &     I_0,I_1,J_0,J_1,NJPOL,1,SUBR,'w2_l1')
 
       END SUBROUTINE CHECKPBL
+
+C**** Functions and subroutines for sub-gridscale wind distribution calc
+
+      module wspdf_mod
+      use PolynomialInterpolator_mod, only: interpolator2D
+
+!@param kim dimension 1 of lookup table for mean surface wind speed integration
+!@param kjm dimension 2 of lookup table for mean surface wind speed integration
+      INTEGER,PARAMETER :: kim=234,kjm=234
+!@var table1 array for lookup table for calculation of mean surface wind speed
+!@+          local to each grid box
+      REAL*8, DIMENSION(Kim,Kjm) :: table1
+!@var x11 index of table1 for GCM surface wind speed from 0 to 50 m/s
+!@var x21 index of table1 for sub grid scale velocity scale (sigma)
+      REAL*8 :: x11(kim),x21(kjm)
+      type(interpolator2D), save :: wsgInterp
+
+      end module wspdf_mod
+
+      subroutine init_wspdf_mod
+      use wspdf_mod
+      use filemanager
+      use domain_decomp_atm, only : grid,broadcast,am_i_root
+      implicit none
+      integer :: i,j,k,ierr,io_data
+      REAL*8 :: zsum
+      CHARACTER :: cierr*3,name*256
+
+c**** read in lookup table for calculation of mean surface wind speed from PDF
+      IF (am_i_root()) THEN
+        CALL openunit('LKTAB1',io_data,.TRUE.,.TRUE.)
+        READ (io_data,IOSTAT=ierr) table1
+        name=TRIM(nameunit(io_data))
+        CALL closeunit(io_data)
+        IF (ierr == 0) then
+          write(6,*) ' Read from file '//TRIM(name)
+        ELSE
+          WRITE(cierr,'(I2)') ierr
+          write(6,*) ' READ ERROR ON FILE '//TRIM(name)//' rc='//cierr
+        END IF
+      END IF
+      CALL broadcast(grid,ierr)
+      IF (ierr.ne.0) CALL stop_model('init_wspdf_mod: READ ERROR',255)
+      CALL broadcast(grid,table1)
+
+c**** index of table for sub grid scale velocity (sigma) from 0.0001 to 50 m/s
+      zsum=0.D0
+      DO j=1,Kjm
+        IF (j <= 30) THEN
+          zsum=zsum+0.0001d0+FLOAT(j-1)*0.00008d0
+          x21(j)=zsum
+        ELSE IF (j > 30) THEN
+          zsum=zsum-0.055254d0+0.005471d0*FLOAT(j)-
+     &         1.938365d-4*FLOAT(j)**2.d0+
+     &         3.109634d-6*FLOAT(j)**3.d0-
+     &         2.126684d-8*FLOAT(j)**4.d0+
+     &         5.128648d-11*FLOAT(j)**5.d0
+          x21(j)=zsum
+        END IF
+      END DO
+c**** index of table for GCM surface wind speed from 0.0001 to 50 m/s
+      x11(:)=x21(:)
+      wsgInterp = interpolator2D(x11,x21,table1)
+
+      end subroutine init_wspdf_mod
+
+      subroutine sig(tke,mdf,dbl,delt,ch,ws,tsv,wtke,wd,wm)
+!@sum calculate sub grid scale velocities
+!@auth Reha Cakmur/Gavin Schmidt
+      use constant, only : by3,grav
+      implicit none
+!@var tke local turbulent kinetic energy at surface (J/kg)
+!@var mdf downdraft mass flux from moist convection (m/s)
+!@var dbl boundary layer height (m)
+!@var delt difference between surface and ground T (ts-tg) (K)
+!@var tsv virtual surface temperature (K)
+!@var ch local heat exchange coefficient
+!@var ws grid box mean wind speed (m/s)
+      real*8, intent(in):: tke,mdf,dbl,delt,tsv,ch,ws
+      real*8, intent(out):: wtke,wd,wm
+
+C**** TKE contribution  ~ sqrt( 2/3 * tke)
+      wtke=sqrt(2d0*tke*by3)
+
+C**** dry convection/turbulence contribution ~(Qsens*g*H/rho*cp*T)^(1/3)
+      if (delt.lt.0d0) then
+        wd=(-delt*ch*ws*grav*dbl/tsv)**by3
+      else
+        wd=0.d0
+      endif
+C**** moist convection contribution beta/frac_conv = 200.
+      wm=200.d0*mdf
+      return
+      end SUBROUTINE sig
+
+      subroutine integrate_sgswind(sig,wt,wmin,wmax,ws,icase,wint)
+!@sum Integrate sgswind distribution for different cases
+!@auth Reha Cakmur/Gavin Schmidt
+      use constant, only : by3
+      implicit none
+!@var sig distribution parameter (m/s)
+!@var wt threshold velocity (m/s)
+!@var ws resolved wind speed (m/s)
+!@var wmin,wmax min and max wind speed for integral
+      real*8, intent(in):: sig,wt,ws,wmin,wmax
+      real*8, intent(out) :: wint
+      integer, intent(in) :: icase
+      integer, parameter :: nstep = 100
+      integer i
+      real*8 x,sgsw,bysig2
+
+C**** integrate distribution from wmin to wmax using Simpsons' rule
+C**** depending on icase, integral is done on w, w^2 or w^3
+C**** Integration maybe more efficient with a log transform (putting
+C**** more points near wmin), but that's up to you...
+C**** Use approximate value for small sig and unresolved delta function
+      if ((wmax-wmin).lt.sig*dble(nstep)) then
+        bysig2=1./(sig*sig)
+        wint=0
+        do i=1,nstep+1
+          x=wmin+(wmax-wmin)*(i-1)/dble(nstep)
+          if (i.eq.1.or.i.eq.nstep+1) then
+            wint=wint+sgsw(x,ws,wt,bysig2,icase)*by3
+          elseif (mod(i,2).eq.0) then
+            wint=wint+4d0*sgsw(x,ws,wt,bysig2,icase)*by3
+          else
+            wint=wint+2d0*sgsw(x,ws,wt,bysig2,icase)*by3
+          end if
+        end do
+        wint=wint*(wmax-wmin)/dble(nstep)
+      else                      ! approximate delta function
+        if (ws.ge.wmin.and.ws.le.wmax) then
+          wint = ws**(icase-1)*(ws-wt)
+        else
+          wint = 0.
+        end if
+      end if
+
+      return
+      end
+
+      real*8 function sgsw(x,ws,wt,bysig2,icase)
+!@sum sgsw function to be integrated for sgs wind calc
+!@auth Reha Cakmur/Gavin Schmidt
+      use constant, only : pi
+      implicit none
+      real*8, intent(in) :: x,ws,wt,bysig2
+      integer, intent(in) :: icase
+      real*8 :: besf,exx
+
+      besf=x*ws*bysig2
+      if (besf.lt.200d0 ) then
+        exx=exp(-0.5d0*(x*x+ws*ws)*bysig2)
+        sgsw=(x)**(icase)*(x-wt)*bysig2*BESSI0(besf)*exx
+      else ! use bessel function expansion for large besf
+        sgsw=(x)**(icase)*(x-wt)*bysig2*exp(-0.5d0*(x-ws)**2*bysig2)
+     *       /sqrt(besf*2*pi)
+      end if
+
+      return
+
+      contains
+
+      real*8 function bessi0(x)
+!@sum Bessel's function I0
+!@auth  Numerical Recipes
+      implicit none
+      real*8 ax,y
+      real*8, parameter:: p1=1.0d0, p2=3.5156229d0, p3=3.0899424d0,
+     *     p4=1.2067492d0, p5=0.2659732d0, p6=0.360768d-1,
+     *     p7=0.45813d-2
+      real*8, parameter:: q1=0.39894228d0,q2=0.1328592d-1,
+     *     q3=0.225319d-2, q4=-0.157565d-2, q5=0.916281d-2,
+     *     q6=-0.2057706d-1, q7=0.2635537d-1, q8=-0.1647633d-1,
+     *     q9=0.392377d-2
+      real*8, intent(in)::x
+
+      if (abs(x).lt.3.75d0) then
+        y=(x/3.75d0)**2.d0
+        bessi0=(p1+y*(p2+y*(p3+y*(p4+y*(p5+y*(p6+y*p7))))))
+      else
+        ax=abs(x)
+        y=3.75d0/ax
+        bessi0=(exp(ax)/sqrt(ax))*(q1+y*(q2+y*(q3+y*(q4
+     *       +y*(q5+y*(q6+y*(q7+y*(q8+y*q9))))))))
+      end if
+      end function bessi0
+
+      end function sgsw
+
+      SUBROUTINE get_wspdf(wsubtke,wsubwd,wsubwm,mcfrac,wsgcm,wspdf)
+!@sum calculates mean surface wind speed using the integral over the
+!@sum probability density function of the wind speed from lookup table
+!@auth Reha Cakmur/Jan Perlwitz
+      use wspdf_mod, only : kim,kjm,table1,x11,x21
+      use wspdf_mod, only : wsgInterp
+
+      implicit none
+
+c Input:
+!@var wsubtke velocity scale of sub grid scale turbulence
+!@var wsubwd velocity scale of sub grid scale dry convection
+!@var wsubwm velocity scale of sub grid scale moist convection
+!@var wsgcm GCM surface wind
+
+      REAL(KIND=8),INTENT(IN) :: wsubtke,wsubwd,wsubwm,mcfrac,wsgcm
+
+c Output:
+!@var wspdf mean surface wind speed from integration over PDF
+
+      REAL*8,INTENT(OUT) :: wspdf
+
+!@var sigma standard deviation of sub grid fluctuations
+      REAL*8 :: sigma,ans,dy
+
+      REAL*8 :: work_wspdf1,work_wspdf2,wsgcm1
+      CHARACTER(14) :: fname='WARNING_in_PBL'
+      CHARACTER(9) :: subr='get_wspdf'
+      CHARACTER(5) :: vname1='wsgcm',vname2='sigma'
+
+      wsgcm1=wsgcm
+
+c     This is the case when wsgcm is very small and we set it
+c     equal to one of the smallest values in the table index
+
+      IF (wsgcm1 < 0.0005) wsgcm1=0.0005D0
+
+c     If sigma <= 0.0005:
+
+      wspdf=wsgcm1
+
+      CALL check_upper_limit(wsgcm1,x11(Kim),fname,subr,vname1)
+c     There is no moist convection, sigma is composed of TKE and DRY
+c     convective velocity scale
+      IF (wsubwm == 0.) THEN
+        sigma=wsubtke+wsubwd
+        IF (sigma > 0.0005) THEN
+          CALL check_upper_limit(sigma,x21(Kjm),fname,subr,vname2)
+c     Linear Polynomial fit (Default)
+          ans = wsgInterp%interpolate2dlin([wsgcm1,sigma])
+          wspdf=exp(ans)
+        END IF
+      ELSE
+
+c     When there is moist convection, the sigma is the combination of
+c     all three subgrid scale parameters (i.e. independent or dependent)
+c     Takes into account that the moist convective velocity scale acts
+c     only over the area with downdrafts (mcfrac).
+
+        work_wspdf1=0.D0
+        sigma=wsubtke+wsubwd+wsubwm
+        IF (sigma > 0.0005) THEN
+          CALL check_upper_limit(sigma,x21(Kjm),fname,subr,vname2)
+c     Linear Polynomial fit (Default)
+          ans = wsgInterp%interpolate2dlin([wsgcm1,sigma])
+          work_wspdf1=exp(ans)*mcfrac
+        END IF
+
+        work_wspdf2=0.D0
+        sigma=wsubtke+wsubwd
+        IF (sigma > 0.0005) THEN
+          CALL check_upper_limit(sigma,x21(Kjm),fname,subr,vname2)
+c     Linear Polynomial fit (Default)
+          ans = wsgInterp%interpolate2dlin([wsgcm1,sigma])
+          work_wspdf2=exp(ans)*(1.d0-mcfrac)
+        END IF
+        wspdf=work_wspdf1+work_wspdf2
+
+      END IF
+
+      RETURN
+      END SUBROUTINE get_wspdf
+
+      SUBROUTINE check_upper_limit(var,varm,cwarn,subr,vname)
+!@sum checks whether variable var exceeds maximum value varm. If it does
+!@+   set it to maximum value and writes warning message to file cwarn
+!@auth Jan Perlwitz
+!@ver 1.0
+
+      USE filemanager,ONLY : openunit,closeunit
+      USE model_com,ONLY : itime
+
+      IMPLICIT NONE
+
+!@var var Variable to be checked and set to maximum value if larger (inout)
+!@var varm Maximum value of variable to be checked (in)
+!@var cwarn File name for warning message (in)
+!@var subr Name of subroutine (in)
+!@var vname Name of variable (in)
+      REAL(KIND=8),INTENT(IN) :: varm
+      CHARACTER(*),INTENT(IN) :: cwarn,subr,vname
+
+      REAL(KIND=8),INTENT(INOUT) :: var
+
+      INTEGER :: iu
+
+      IF (var > varm) THEN
+        CALL openunit(cwarn,iu)
+        DO
+          READ(iu,*,END=1)
+          CYCLE
+ 1        EXIT
+        END DO
+        WRITE(iu,*) 'Warning in ',subr,':'
+        WRITE(iu,*) ' Variable ',vname,' exceeds allowed maximum value.'
+        WRITE(iu,*) ' ',vname,' set to maximum value.'
+        WRITE(iu,*) ' itime, max of ',vname,', ',vname,':',itime,varm
+     &       ,var
+        CALL closeunit(iu)
+        var=varm        
+      END IF
+
+      RETURN
+      END SUBROUTINE check_upper_limit
 

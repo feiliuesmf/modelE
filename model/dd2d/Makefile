@@ -3,7 +3,7 @@
 
 SUPPORTED_OPTIONS = ESMF NC_IO
 
-FSRCS = cdl_mod.f
+FSRCS = cdl_mod.f timestream_mod.f
 
 ifeq ($(NC_IO),PNETCDF)
 ifeq ($(MPI),YES)

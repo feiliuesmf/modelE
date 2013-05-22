@@ -41,7 +41,7 @@ ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
-RAD_UTILS ALBEDO                    ! radiation and albedo
+RAD_UTILS ALBEDO READ_AERO          ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
                                     ! utilities
@@ -54,47 +54,37 @@ Data input files:
     ! start up from restart file of earlier run
 ! AIC=1DECxxxx.rsfEyyyy           ! initial conditions (atm./ground), no GIC, ISTART=8
     ! or start up from observed conditions
-AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
-GIC=GIC.E046D3M20A.1DEC1955.ext.nc ! initial conditions (ground)
+AIC=AIC.RES_M20A.D771201.nc          ! initial conditions (atm.)      needs GIC, ISTART=2
+GIC=GIC.E046D3M20A.1DEC1955.ext_1.nc ! initial conditions (ground)
     ! ocean data for "prescribed ocean" runs : climatological ocean
-OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
-SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
+! prescr. climatological ocean (1 yr of data)
+OSST=OST4X5.B.1876-85avg.Hadl1.1.nc
+OSST_eom=OST4X5.B.1876-85avg.Hadl1.1.nc
+! prescr. climatological sea ice
+SICE=SICE4X5.B.1876-85avg.Hadl1.1.nc
+SICE_eom=SICE4X5.B.1876-85avg.Hadl1.1.nc
+ZSIFAC=SICE4X5.B.1876-85avg.Hadl1.1.nc
 !? for 1979 OSST=OST4X5.B.1975-84avg.Hadl1.1
 !? for 1979 SICE=SICE4X5.B.1975-84avg.Hadl1.1
-OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
+OCNML=Z1O.B4X5.cor.nc                ! mixed layer depth (needed for post processing)
 !                                             (end of section 1 of data input files)
     ! resolution dependent files
-TOPO=Z72X46N.cor4_nocasp          ! topography
-SOIL=S4X50093.ext                 ! soil bdy.conds
+TOPO=Z72X46N.cor4_nocasp.nc       ! topography
+SOIL=S4X50093.ext.nc              ! soil bdy.conds
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
-VEG=V72X46.1.cor2_no_crops.ext    ! veg. fractions
-CROPS=CROPS2007_72X46N.cor4_nocasp       ! crops history
-CDN=CD4X500S.ext                  ! surf.drag coefficient
+VEG=V72X46.1.cor2_no_crops.ext.nc ! veg. fractions
+CROPS=CROPS2007_72X46N.cor4_nocasp.nc       ! crops history
+CDN=CD4X500S.ext.nc               ! surf.drag coefficient
 REG=REG4X5                        ! special regions-diag
-RVR=RD_modelE_M.RVR.bin           ! river direction file
-TOP_INDEX=top_index_72x46_a.ij.ext  ! only used if #define DO_TOPMODEL_RUNOFF
+RVR=RD_modelE_M.nc                ! river direction file
+NAMERVR=RD_modelE_M.names.txt     ! named river outlets
+TOP_INDEX=top_index_72x46_a.ij.ext.nc  ! only used if #define DO_TOPMODEL_RUNOFF
 !                                             (end of section 2 of data input files)
 #include "rad_input_files"
+#include "rad_72x46_input_files"
 !GHG=GHG.Mar2004.txt
-TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_SSA=SSA_Koch2008_kg_m2_72x46x20h
-TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000h
-TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
-! ozone files (minimum 1, maximum 9 files + 1 trend file)
-O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
-O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
-O3file_03=mar2004_o3_shindelltrop_72x46x49x12_1910
-O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
-O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
-O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
-O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
-O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
-O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
-O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
+GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
 
 Label and Namelist:
 E1M20 (ModelE1 4x5, 20 lyrs, 1850 atm/ocn)

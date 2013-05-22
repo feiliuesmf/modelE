@@ -372,6 +372,10 @@ c      END SUBROUTINE io_bldat
       USE PBLCOM
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, getDomainBounds
       USE FLUXES, only : atmocns,atmices,atmglas,atmlnds,asflx
+#ifdef GLINT2
+      USE FLUXES, only : atmglas_hp
+#endif
+
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -414,6 +418,12 @@ C**** SET LAYER THROUGH WHICH DRY CONVECTION MIXES TO 1
      &         atmices(1)%atmsrf_xchng_vars,asflx(k))
         case (3)
           ip3 = ip3 + 1
+#ifdef GLINT2
+          call alloc_atmsrf_pbl_vars(grid,
+     &         atmglas_hp(ip3)%atmsrf_xchng_vars,asflx(k))
+#endif
+      ! dest in alloc_atmsrf_pbl_vars() should point to atmglas
+      ! in the end, not atmglas_hp
           call alloc_atmsrf_pbl_vars(grid,
      &         atmglas(ip3)%atmsrf_xchng_vars,asflx(k))
         case (4)

@@ -62,7 +62,7 @@ ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                              ! ocean function look up table
 SNOW_DRV SNOW                          ! snow model
 RAD_COM RAD_DRV RADIATION COSZ_2D   ! radiation modules
-RAD_UTILS ALBEDO                       ! radiation and albedo
+RAD_UTILS ALBEDO READ_AERO             ! radiation and albedo
 DIAG_COM DIAG DEFACC QUICKPRT          ! diagnostics
 DIAG_RES_F
 DIAG_ZONALcs
@@ -75,20 +75,23 @@ Components:
 MPI_Support shared dd2d CS_Support
 
 Data input files:
-AIC=AIC_CS90         ! initial conditions (atm.)      needs GIC, ISTART=2
-GIC=GIC_CS90.nc      ! initial conditions (ground)
-OIC=OIC288X180.D1201         ! Levitus ocean intial conditions
-TOPO_OC=Z288X180N            ! ocean fraction and topography
+AIC=AIC_CS90.nc      ! initial conditions (atm.)      needs GIC, ISTART=2
+GIC=GIC_CS90_1.nc      ! initial conditions (ground)
+OIC=OIC288X180.D1201.nc      ! Levitus ocean intial conditions
+TOPO_OC=OZ288X180N.nc        ! ocean fraction and topography
 OFTAB=OFTABLE_NEW               ! ocean function table
 AVR=OPF.E1QX1.L32            ! ocean filter
-KBASIN=KB288X180.modelE      ! ocean basin designations
-TOPO=Z_CS90 SOIL=SOIL_CS90 ! soil/topography bdy.conds
-VEG=V_CS90 CROPS=CROPS_CS90 
-CDN=CD_CS90                      ! surf.drag coefficient
+KBASIN=KB288X180.modelE.nc   ! ocean basin designations
+TOPO=Z_C90fromZ1QX1N.nc
+SOIL=SOIL_CS90.nc ! soil/topography bdy.conds
+VEG=V_CS90_144X90_5percent.nc
+CROPS=CROPS_CS90.nc
+CDN=CD_CS90.nc                     ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
-RVR=RDdistocean_CS90_EM.bin           ! river direction file
-TOP_INDEX=top_index_CS90      ! only used if #define DO_TOPMODEL_RUNOFF
-GLMELT=GLMELT_CS90  ! glacial melt distribution
+RVR=RDdistocean_CS90_EM.nc             ! river direction file
+NAMERVR=RDdistocean_CS90_EM.names.txt  ! named river outlets
+TOP_INDEX=top_index_CS90.nc      ! only used if #define DO_TOPMODEL_RUNOFF
+GLMELT=GLMELT_CS90.nc  ! glacial melt distribution
 REMAP=remap288-180C90-90.nc
 RADN1=sgpgxg.table8             ! rad.tables and history files
 RADN2=LWTables33k.1a            ! rad.tables and history files
@@ -103,26 +106,14 @@ TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h
 TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h
 TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
 RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux_hdr     ! need KSOLAR=2
 RADNE=topcld.trscat8
 ISCCP=ISCCP.tautables
-! ozone files (minimum 1, maximum 9 files + 1 trend file)
-O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
-O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
-O3file_03=mar2004_o3_shindelltrop_72x46x49x12_1910
-O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
-O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
-O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
-O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
-O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
-O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
-O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
+#include "rad_C90_input_files"
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
-BC_dep=BC.Dry+Wet.depositions.ann
 MSU_wts=MSU.RSS.weights.data
 
 Label and Namelist:

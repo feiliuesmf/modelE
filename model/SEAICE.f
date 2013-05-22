@@ -44,7 +44,7 @@ C**** snow/ice thermal diffusivity (Pringle et al, 2007)
       REAL*8, PARAMETER :: FLEADLK = 0.
 !@var FLEADMX maximum thickness for lead fraction (m)
       REAL*8, PARAMETER :: FLEADMX = 5.
-!@param BYRLS reciprical of snow density*lambda
+!@param BYRLS reciprocal of snow density*lambda
       REAL*8, PARAMETER :: BYRLS = 1./(RHOS*ALAMS)
 !@param MU coefficient of seawater freezing point w.r.t. salinity
       REAL*8, PARAMETER :: MU = 0.054d0   ! C/ppt
@@ -295,7 +295,7 @@ C**** relayer upper two layers
 #endif 
      *       )
 
-C**** reconsitute upper snow and ice layers
+C**** reconstitute upper snow and ice layers
         call set_snow_ice_layer(HSNOW,HICE,SICE,MICE,SNOWL,
 #ifdef TRACERS_WATER
      *       TRSNOW,TRICE,TRSIL, 
@@ -593,7 +593,7 @@ C**** relayer upper two layers
 #endif 
      *     )
 
-C**** reconsitute snow and ice layers
+C**** reconstitute snow and ice layers
       call set_snow_ice_layer(HSNOW,HICE,SICE,MICE,SNOWL,
 #ifdef TRACERS_WATER
      *     TRSNOW,TRICE,TRSIL, 
@@ -773,7 +773,14 @@ C**** Add new ice to ice variables
         MICE(1:2)=((1.-ROICE)*ACEFO*XSI(1:2)*ACE1I/(ACE1I+AC2OIM)+ROICE
      $       *MICE(1:2))/ROICEN
 
-C**** reconsitute snow and ice layers
+C**** relayer upper two layers
+        call relayer_12(HSNOW,HICE,SICE,MICE,SNOWL
+#ifdef TRACERS_WATER
+     *       ,TRSNOW,TRICE 
+#endif 
+     *       )
+
+C**** reconstitute snow and ice layers
         call set_snow_ice_layer(HSNOW,HICE,SICE,MICE,SNOWL,
 #ifdef TRACERS_WATER
      *       TRSNOW,TRICE,TRSIL, 
@@ -830,6 +837,7 @@ C****
       END IF
 C****
       END IF
+
 C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-3) => rsi=(1-OPNOCN))
       IF (ROICE.gt.0) THEN
       OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2)))    ! -BYZICX)
@@ -875,7 +883,14 @@ C**** Add new ice to ice variables
 #endif
         MICE(1:2)=(ROICE/ROICEN)*(FMSI4*FRI(1:2)+MICE(1:2))
 
-C**** reconsitute snow and ice layers
+C**** relayer upper two layers
+        call relayer_12(HSNOW,HICE,SICE,MICE,SNOWL
+#ifdef TRACERS_WATER
+     *       ,TRSNOW,TRICE 
+#endif 
+     *       )
+
+C**** reconstitute snow and ice layers
         call set_snow_ice_layer(HSNOW,HICE,SICE,MICE,SNOWL,
 #ifdef TRACERS_WATER
      *       TRSNOW,TRICE,TRSIL, 
@@ -1151,7 +1166,7 @@ C**** add fluxes in upper layers
 #endif
       END IF
 
-C**** reconsitute snow and ice layers
+C**** reconstitute snow and ice layers
       call set_snow_ice_layer(HSNOW,HICE,SICE,MICE,SNOWL,
 #ifdef TRACERS_WATER
      *     TRSNOW,TRICE,TRSIL, 
@@ -1698,7 +1713,7 @@ C**** relayer upper two layers
 #endif 
      *       )
 
-C**** reconsitute upper snow and ice layers
+C**** reconstitute upper snow and ice layers
         call set_snow_ice_layer(HSNOW,HICE,SICE,MICE,SNOWL,
 #ifdef TRACERS_WATER
      *       TRSNOW,TRICE,TRSIL, 
@@ -2230,6 +2245,7 @@ c        Em= 0.
       USE SEAICE, only : lmi
       USE EXCHANGE_TYPES, only : iceocn_xchng_vars
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
+      USE TIMESTREAM_MOD, only : timestream
       IMPLICIT NONE
 
       type icestate
@@ -2284,6 +2300,29 @@ C**** albedo calculations
       type(iceocn_xchng_vars) :: iceocn
 
       type(dist_grid), pointer :: sigrid
+
+!@var RSIstream,ZSIstream interfaces for reading and time-interpolating
+!@+   ice cover and ice thickness files when kocean=0
+!@+   See general usage notes in timestream_mod.
+!@+   Selection of time period occurs as per the comments concerning
+!@+   seaice_yr in init_oceanice.
+!@+   Note regarding comparison of results to runs that use traditional I/O:
+!@+   if SICE datafiles contain monthly means and the piecewise parabolic
+!@+   method is used for monthly->daily interpolation, the presence of OSST_eom
+!@+   in the rundeck will prompt read_stream to read end-of-month values from
+!@+   OSST_eom rather than computing them on the fly.  SICE and SICE_eom may
+!@+   refer to the same file or directory.  The on-the-fly result will differ
+!@+   due to roundoff effects.
+      type(timestream) :: RSIstream,ZSIstream
+!@var ZSI_exists flag indicating availability of an input file ZSI containing
+!@+   ice thickness (only applicable to kocean=0 netcdf-input case).
+!@var dm empirical factor relating ice thickness and ice fraction for kocean=0
+!@+   (only applicable when ZSI_exists=.false.)
+!@+   The presence of ZSIFAC in a rundeck indicates that the factor dm should
+!@+   be read from that file and used; otherwise ZSI must be present in the
+!@+   rundeck.
+      logical :: ZSI_exists=.true.
+      real*8, allocatable, dimension(:,:) :: dm
 
       CONTAINS
 
@@ -2370,6 +2409,7 @@ C**** albedo calculations
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
       USE SEAICE_COM, ONLY : iceocn, si_ocn, alloc_icestate_type
       USE EXCHANGE_TYPES, only : alloc_xchng_vars
+      use seaice_com, only : dm
       IMPLICIT NONE
       TYPE(DIST_GRID), INTENT(IN) :: GRID
       !INTEGER, INTENT(IN) :: IM_in,JM_in
@@ -2383,6 +2423,9 @@ C**** albedo calculations
 #endif
       call alloc_xchng_vars(grid,iceocn)
       deallocate(iceocn%rsi); iceocn%rsi => si_ocn%rsi
+
+      allocate(dm(grid%i_strt_halo:grid%i_stop_halo,
+     &            grid%j_strt_halo:grid%j_stop_halo))
 
       RETURN
       END SUBROUTINE ALLOC_SEAICE_COM

@@ -17,7 +17,11 @@
 #endif
       IMPLICIT NONE
       SAVE
+#ifdef OBIO_ON_GARYocean
       INTEGER, PARAMETER :: KOIJ=350,KOIJL=38,KOL=6,KOLNST=12,KOIJmm=10
+#else
+      INTEGER, PARAMETER :: KOIJ=71,KOIJL=41,KOL=6,KOLNST=14,KOIJmm=11
+#endif
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJmm lat-lon ocean min/max diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
@@ -38,7 +42,7 @@
 !@var IJ_xxx Names for OIJ diagnostics
       INTEGER IJ_HBL,IJ_BO,IJ_BOSOL,IJ_USTAR,IJ_SSH,IJ_PB,IJ_SF,
      *     IJ_SRHFLX,IJ_SRWFLX,IJ_SRHFLXI,IJ_SRWFLXI,IJ_SRSFLXI,IJ_ERVR
-     *     ,IJ_MRVR,IJ_EICB,IJ_MICB,IJ_GMSC 
+     *     ,IJ_MRVR,IJ_EICB,IJ_MICB,IJ_GMSC,ij_mld 
 #ifdef OCN_Mesoscales
      .     ,ij_eke,ij_rd
 #endif
@@ -101,7 +105,7 @@
 #endif
 
 !@var IJ_xxx Names for OIJmm diagnostics
-      INTEGER IJ_HBLmax
+      INTEGER IJ_HBLmax,ij_mldmax
 
 !@var [lname,sname,units,scale]_oijmm Longnames/Shortnames/Units/Scales for
 !@+    min/max OIJ diagnostics
@@ -116,7 +120,7 @@
      *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV,IJL_MFW2,IJL_AREA
      *     ,IJL_MFUB,IJL_MFVB,IJL_MFWB
 #ifdef OCN_GISSMIX
-     *     ,ijl_ri,ijl_rrho,ijl_otke,ijl_kvs
+     *     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
 #endif
 #ifdef OCN_Mesoscales
      .     ,ijl_ueddy,ijl_veddy,ijl_n2
@@ -141,7 +145,7 @@
       INTEGER LN_KVM,LN_KVG,LN_WGFL,LN_WSFL,LN_MFLX,LN_GFLX,LN_SFLX
      *     ,LN_ICFL
 #ifdef OCN_GISSMIX
-     *     ,ln_ri,ln_rrho,ln_otke,ln_kvs
+     *     ,ln_ri,ln_rrho,ln_bv2,ln_otke,ln_kvs,ln_buoy
 #endif
 !@var lname_olnst Long names for OLNST diagnostics
       CHARACTER(len=lname_strlen), DIMENSION(KOLNST) :: LNAME_OLNST
@@ -163,7 +167,7 @@
 !@var icon_xx indexes for conservation quantities
       INTEGER icon_OCE,icon_OKE,icon_OAM,icon_OMS,icon_OSL
 !@var kbasin integer index of which basin a particular ocean point is in
-      INTEGER, DIMENSION(IM,JM) :: KBASIN
+      INTEGER, DIMENSION(:,:), allocatable :: KBASIN,KBASIN_glob
 !@var XLB label for diagnostic titles
       CHARACTER XLB*30
 !@var FLAT latitude values on primary and secondary ocean grids
@@ -676,13 +680,13 @@ c straits arrays
       use odiag
       use pario, only : write_dist_data,write_data
       USE OCEANR_DIM, only : grid=>ogrid
-      use ocean, only : oxyp,focean_loc
+      use ocean, only : oxyp,focean
       use cdl_mod, only : write_cdl
       implicit none
       integer :: fid         !@var fid file id
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: tmp
 
-      tmp = oxyp*focean_loc
+      tmp = oxyp*focean
       call write_dist_data(grid,fid,'oxyp',tmp)
 
       call write_data(grid,fid,'ia_oij',ia_oij)
@@ -926,6 +930,12 @@ c
       ln_rrho = k
 c
       k=k+1
+      ln_bv2 = k
+c
+      k=k+1
+      ln_buoy = k
+c
+      k=k+1
       ln_otke = k
 #endif
 c
@@ -1147,6 +1157,15 @@ c
       lgrid_oijl(k) = 2
 c
       k=k+1
+      ijl_kvc = k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'kvc'
+      units_oijl(k) = 'cm^2/s'
+      lname_oijl(k) = 'VERT. SCALAR DIFF.'
+      scale_oijl(k) = 1d4*byrho2
+      lgrid_oijl(k) = 2
+c
+      k=k+1
       ijl_ri= k
       denom_oijl(k) = IJL_AREA
       sname_oijl(k) = 'ri'
@@ -1161,6 +1180,24 @@ c
       sname_oijl(k) = 'rrho'
       units_oijl(k) = '1'
       lname_oijl(k) = 'Salt to heat density ratio'
+      scale_oijl(k) = 1
+      lgrid_oijl(k) = 2
+c
+      k=k+1
+      ijl_bv2= k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'bv2'
+      units_oijl(k) = '1/s**2'
+      lname_oijl(k) = 'Brunt Vaisala frequency squared'
+      scale_oijl(k) = 1
+      lgrid_oijl(k) = 2
+c
+      k=k+1
+      ijl_buoy= k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'buoy'
+      units_oijl(k) = 'm**2/s**3'
+      lname_oijl(k) = 'Buoyancy flux'
       scale_oijl(k) = 1
       lgrid_oijl(k) = 2
 c
@@ -1303,6 +1340,14 @@ c
       IJ_HBL=k
       lname_oij(k)="Ocean Boundary layer depth (KPP)"
       sname_oij(k)="oij_hbl"
+      units_oij(k)="m"
+      ia_oij(k)=ia_src
+      scale_oij(k) = 1
+
+      k=k+1
+      ij_mld=k
+      lname_oij(k)="Ocean Mixed layer depth"
+      sname_oij(k)="oij_mld"
       units_oij(k)="m"
       ia_oij(k)=ia_src
       scale_oij(k) = 1
@@ -1828,6 +1873,13 @@ c
       sname_oijmm(k) = "oij_hblmax"
       units_oijmm(k) = "m"
       scale_oijmm(k) = 1
+c
+      k=k+1
+      ij_mldmax=k
+      lname_oijmm(k) = "Maximum Ocean Mixed layer depth"
+      sname_oijmm(k) = "oij_mldmax"
+      units_oijmm(k) = "m"
+      scale_oijmm(k) = 1
 
       if (k.gt.KOIJmm) then
         write(6,*)
@@ -2242,6 +2294,7 @@ c
 
       call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
+      ALLOCATE(        KBASIN (IM,J_0H:J_1H), STAT=IER )
       ALLOCATE(        OIJ_loc (IM,J_0H:J_1H,KOIJ), STAT=IER )
       ALLOCATE(        OIJmm (IM,J_0H:J_1H,KOIJmm), STAT=IER )
       ALLOCATE(       OIJL_loc (IM,J_0H:J_1H,LMO,KOIJL), STAT=IER )
@@ -2254,6 +2307,7 @@ c
 #endif
 
       if(am_i_root()) then
+        ALLOCATE( KBASIN_glob (IM,JM), STAT=IER )
         ALLOCATE( OIJ (IM,JM,KOIJ), STAT=IER )
         ALLOCATE(OIJL (IM,JM,LMO,KOIJL), STAT=IER )
 #ifdef TRACERS_OCEAN

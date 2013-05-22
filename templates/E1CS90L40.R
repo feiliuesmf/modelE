@@ -48,7 +48,7 @@ ICEDYN_DUM
 OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION COSZ_2D   ! radiation modules
-RAD_UTILS ALBEDO                    ! radiation and albedo
+RAD_UTILS ALBEDO READ_AERO          ! radiation and albedo
 DIAG_COM DIAG DEFACC QUICKPRT       ! diagnostics
 DIAG_ZONALcs GCDIAGcs cs2ll_utils
 
@@ -61,22 +61,30 @@ Data input files:
 ! AICfv=1DECxxxx.fvEyyyy          ! initial conditions (fv internal) only for ISTART=9
 ! AICdfv=1DECxxxx.dfvEyyyy        ! tendencies                       only for ISTART=9
     ! or start up from observed conditions
-AIC=AIC_CS90         ! initial conditions (atm.)      needs GIC, ISTART=2
-GIC=GIC_CS90.nc      ! initial conditions (ground)
+AIC=AIC_CS90.nc      ! initial conditions (atm.)      needs GIC, ISTART=2
+GIC=GIC_CS90_1.nc      ! initial conditions (ground)
     ! ocean data for "prescribed ocean" runs : climatological ocean
-OSST=OST_CS90  ! prescr. climatological ocean (1 yr of data)
-SICE=SICE_CS90 ! prescr. climatological sea ice
+! prescr. climatological ocean (1 yr of data)
+OSST=OST_C90.1975-1984avg.HadISST1.1.nc
+OSST_eom=OST_C90.1975-1984avg.HadISST1.1.nc
+! prescr. climatological sea ice
+SICE=SICE_C90.1975-1984avg.HadISST1.1.nc
+SICE_eom=SICE_C90.1975-1984avg.HadISST1.1.nc
+ZSIFAC=SICE_C90.1975-1984avg.HadISST1.1.nc
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
 !                                             (end of section 1 of data input files)
     ! resolution dependent files
-TOPO=Z_CS90 SOIL=SOIL_CS90 ! soil/topography bdy.conds
+TOPO=Z_C90fromZ1QX1N.nc
+SOIL=SOIL_CS90.nc ! soil/topography bdy.conds
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
-VEG=V_CS90 CROPS=CROPS_CS90 
-CDN=CD_CS90                      ! surf.drag coefficient
+VEG=V_CS90_144X90_5percent.nc
+CROPS=CROPS_CS90.nc 
+CDN=CD_CS90.nc                     ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
-RVR=RDdistocean_CS90_EM.bin           ! river direction file
-TOP_INDEX=top_index_CS90      ! only used if #define DO_TOPMODEL_RUNOFF
-GLMELT=GLMELT_CS90   ! glacial melt distribution
+RVR=RDdistocean_CS90_EM.nc             ! river direction file
+NAMERVR=RDdistocean_CS90_EM.names.txt  ! named river outlets
+TOP_INDEX=top_index_CS90.nc      ! only used if #define DO_TOPMODEL_RUNOFF
+GLMELT=GLMELT_CS90.nc   ! glacial melt distribution
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files
 !RADN2=radfil33k
@@ -93,26 +101,14 @@ TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
 TAero_OCI=sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial organic carbons
 TAero_BCI=sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial black carbons
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
 RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux_hdr      ! need KSOLAR=2
 RADNE=topcld.trscat8
 ISCCP=ISCCP.tautables
-! ozone files (minimum 1, maximum 9 files + 1 trend file)
-O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
-O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
-O3file_03=mar2004_o3_shindelltrop_72x46x49x12_1910
-O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
-O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
-O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
-O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
-O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
-O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
-O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
+#include "rad_C90_input_files"
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
-BC_dep=BC.Dry+Wet.depositions.ann
 MSU_wts=MSU.RSS.weights.data
 
 Label and Namelist:

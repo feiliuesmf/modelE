@@ -44,26 +44,32 @@ Data input files:
     ! start up from restart file of earlier run
 ! AIC=1DECxxxx.rsfEyyyy           ! initial conditions (atm./ground), no GIC, ISTART=8
     ! or start up from observed conditions
-AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
-GIC=GIC.E046D3M20A.1DEC1955.ext.nc ! initial conditions (ground)
-OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
-SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
+AIC=AIC.RES_M20A.D771201.nc          ! initial conditions (atm.)      needs GIC, ISTART=2
+GIC=GIC.E046D3M20A.1DEC1955.ext_1.nc ! initial conditions (ground)
+! prescr. climatological ocean (1 yr of data)
+OSST=OST4X5.B.1876-85avg.Hadl1.1.nc
+OSST_eom=OST4X5.B.1876-85avg.Hadl1.1.nc
+! prescr. climatological sea ice
+SICE=SICE4X5.B.1876-85avg.Hadl1.1.nc
+SICE_eom=SICE4X5.B.1876-85avg.Hadl1.1.nc
+ZSIFAC=SICE4X5.B.1876-85avg.Hadl1.1.nc
 ! For q-flux ocean, replace lines above by the next 2 lines & set KOCEAN=1, ISTART=8
 !! AIC=1JAN1961.rsfE4M20.MXL65m   ! = end of preliminary run with KOCEAN=0,Kvflxo=1
 !! OHT=OTSPEC.E4M20.MXL65m.1956-1960 ! ocean horizontal heat transport
-OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
-TOPO=Z72X46N.cor4_nocasp          ! topography
-SOIL=S4X50093.ext                 ! soil bdy.conds
+OCNML=Z1O.B4X5.cor.nc                ! mixed layer depth (needed for post processing)
+TOPO=Z72X46N.cor4_nocasp.nc       ! topography
+SOIL=S4X50093.ext.nc              ! soil bdy.conds
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
-VEG=V72X46.1.cor2_no_crops.ext    ! veg. fractions
-CROPS=CROPS2007_72X46N.cor4_nocasp       ! crops history
+VEG=V72X46.1.cor2_no_crops.ext.nc ! veg. fractions
+CROPS=CROPS2007_72X46N.cor4_nocasp.nc       ! crops history
 soil_textures=soil_textures_top30cm
-SOILCARB_global=soilcarb_top30cm_nmaps_4x5bin.dat
-CDN=CD4X500S.ext                  ! surf.drag coefficient
+SOILCARB_global=soilcarb_top30cm_4x5.nc
+CDN=CD4X500S.ext.nc               ! surf.drag coefficient
 REG=REG4X5                        ! special regions-diag
-RVR=RD_modelE_M.RVR.bin           ! river direction file
-TOP_INDEX=top_index_72x46_a.ij.ext  ! only used if #define DO_TOPMODEL_RUNOFF
-GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
+RVR=RD_modelE_M.nc                ! river direction file
+NAMERVR=RD_modelE_M.names.txt     ! named river outlets
+TOP_INDEX=top_index_72x46_a.ij.ext.nc  ! only used if #define DO_TOPMODEL_RUNOFF
+GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
     ! resolution independent files
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files
@@ -75,33 +81,21 @@ RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 !    RADN5=H2Ocont_Ma_2008
 RADN3=miescatpar.abcdv2
 ! updated aerosols need MADAER=3
-TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_SSA=SSA_Koch2008_kg_m2_72x46x20h
-TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000h
-TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
+TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000h.nc
+TAero_SSA=SSA_Koch2008_kg_m2_72x46x20h.nc
+TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000h.nc
+TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h.nc
+TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h.nc
+TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h.nc
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
 RADN7=STRATAER.VOL.1850-1999.Apr02_hdr
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux_hdr      ! need KSOLAR=2
 RADNE=topcld.trscat8
 ISCCP=ISCCP.tautables
-! ozone files (minimum 1, maximum 9 files + 1 trend file)
-O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
-O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
-O3file_03=mar2004_o3_shindelltrop_72x46x49x12_1910
-O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
-O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
-O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
-O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
-O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
-O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
-O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
+#include "rad_72x46_input_files"
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
-BC_dep=BC.Dry+Wet.depositions.ann
 MSU_wts=MSU.RSS.weights.data
 
 Label and Namelist:

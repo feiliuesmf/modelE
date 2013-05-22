@@ -260,9 +260,8 @@ module FV_LatLon_Mod
   Subroutine Copy_FV_export_to_modelE(fv)
     use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
     Use Resolution, only: IM,JM,LM,LS1
-    USE DYNAMICS, ONLY: PUA,PVA,SDA, PU, PV, SD
-    Use MODEL_COM, only: U, V, T, P, PSFMPT, Q
-    Use MODEL_COM, only : Ptop, P
+    Use DYNAMICS,   Only: PU, PV, SD
+    Use MODEL_COM,  Only: U, V, T, Q, P, PTOP,PSFMPT
     USE DOMAIN_DECOMP_1D, only: grid, GET
     USE GEOM
 
@@ -536,7 +535,7 @@ module FV_LatLon_Mod
     Use Resolution, only: IM,JM,LM,LS1
     USE GEOM, ONLY: AXYP
     USE GEOM, ONLY: DYP, DXV
-    USE DYNAMICS, ONLY: PUA,PVA,SDA
+    USE DYNAMICS, ONLY: MUs,MVs,MWs
     USE DYNAMICS, ONLY: PU,PV,CONV,SD,PIT
     USE MODEL_COM, only: DTsrc,DT,DSIG
     USE DOMAIN_DECOMP_1D, only: get, grid
@@ -662,9 +661,9 @@ module FV_LatLon_Mod
     CONV(I_0:I_1,J_0:J_1,1) = PIT(I_0:I_1,J_0:J_1)
     CONV(I_0:I_1,J_0:J_1,2:LM) = SD(I_0:I_1,J_0:J_1,1:LM-1)
 
-    PUA(I_0:I_1,J_0:J_1,:) = PUA(I_0:I_1,J_0:J_1,:) + PU(I_0:I_1,J_0:J_1,:)*DTfac
-    PVA(I_0:I_1,J_0:J_1,:) = PVA(I_0:I_1,J_0:J_1,:) + PV(I_0:I_1,J_0:J_1,:)*DTfac
-    SDA(I_0:I_1,J_0:J_1,1:LM-1) = SDA(I_0:I_1,J_0:J_1,1:LM-1) + SD(I_0:I_1,J_0:J_1,1:LM-1)*DTfac
+    MUs(I_0:I_1,J_0:J_1,:) = MUs(I_0:I_1,J_0:J_1,:) + PU(I_0:I_1,J_0:J_1,:)*DTfac
+    MVs(I_0:I_1,J_0:J_1,:) = MVs(I_0:I_1,J_0:J_1,:) + PV(I_0:I_1,J_0:J_1,:)*DTfac
+    MWs(I_0:I_1,J_0:J_1,1:LM-1) = MWs(I_0:I_1,J_0:J_1,1:LM-1) + SD(I_0:I_1,J_0:J_1,1:LM-1)*DTfac
   end subroutine accumulate_mass_fluxes
 
 end module FV_LatLon_Mod

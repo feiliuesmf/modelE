@@ -53,16 +53,16 @@ FVCUBED = YES
 Data input files:
 #include "IC_CS90_input_files"
 #include "dynamic_ocn_288x180_input_files"
-TOPO=Z_C90fromZ1QX1N             ! atm topog and surf type fractions
+TOPO=Z_C90fromZ1QX1N.nc          ! atm topog and surf type fractions
 
 REMAP=remap288-180C90-90.nc      ! weights for atm-ocean regridding
 
-RVR=RDdistocean_CS90_EM.bin         ! river direction file
+RVR=RDdistocean_CS90_EM.nc             ! river direction file
+NAMERVR=RDdistocean_CS90_EM.names.txt  ! named river outlets
 
 #include "landCS90_input_files"
 #include "rad_input_files"
-#include "TAero2008_input_files"
-#include "O3_2005_input_files"
+#include "rad_C90_input_files"
 
 MSU_wts=MSU.RSS.weights.data     ! MSU-diag
 REG=REG.txt                      ! special regions-diag

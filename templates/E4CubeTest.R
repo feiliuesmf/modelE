@@ -53,29 +53,29 @@ FVCUBED = YES
 
 Data input files:
   ! atmosphere, land surface, and sea ice
-AIC=AIC_CS32                     ! initial conditions (atm.)      needs GIC, ISTART=2
-GIC=GIC_CS32.nc                  ! I.C. for land surface and sea ice
-TOPO=Z_CS32_4X5                  ! topography
-SOIL=SOIL_CS32                   ! soil types
-VEG=V_CS32_144X90_1percent       ! veg. fractions
-CROPS=CROPS_CS32_4X5             ! crops history
-CDN=CD_CS32                      ! surf.drag coefficient
+AIC=AIC_CS32.nc                  ! initial conditions (atm.)      needs GIC, ISTART=2
+GIC=GIC_CS32_1.nc                  ! I.C. for land surface and sea ice
+TOPO=Z_CS32_4X5.nc               ! topography
+SOIL=SOIL_CS32.nc                ! soil types
+VEG=V_CS32_144X90_1percent.nc    ! veg. fractions
+CROPS=CROPS_CS32_4X5.nc          ! crops history
+CDN=CD_CS32.nc                   ! surf.drag coefficient
 REG=REG.txt                      ! special regions-diag
-RVR=RDdistocean_CS32_4X5.bin     ! river directions
-TOP_INDEX=top_index_CS32         ! only used if #define DO_TOPMODEL_RUNOFF
+RVR=RDdistocean_CS32.nc             ! river direction file
+NAMERVR=RDdistocean_CS32.names.txt  ! named river outlets
+TOP_INDEX=top_index_CS32.nc         ! only used if #define DO_TOPMODEL_RUNOFF
 
   ! ocean
-OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01   ! ocean initial conditions
+OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01.nc ! ocean initial conditions
 OFTAB=OFTABLE_NEW                    ! ocean function table
 AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
-KBASIN=KB4X513.OCN.gas1              ! ocean basin designations
-TOPO_OC=Z72X46N_gas.1_nocasp         ! ocean bdy.cond
-GLMELT=GLMELT_CS32                   ! glacial melt distribution (on atm grid)
+KBASIN=KB4X513.OCN.gas1.nc           ! ocean basin designations
+TOPO_OC=OZ72X46N_gas.1_nocasp.nc     ! ocean bdy.cond
+GLMELT=GLMELT_CS32.nc                   ! glacial melt distribution (on atm grid)
 REMAP=remap72-46C32-32.nc            ! weights for atm-ocean coupling
 
 #include "rad_input_files"
-#include "TAero2008_input_files"
-#include "O3_2005_input_files"
+#include "rad_C32_input_files"
 
 MSU_wts=MSU.RSS.weights.data
 

@@ -1,6 +1,8 @@
 !@sum This file contains the radiation subroutines which don''t use
 !@+   the module RADPAR. They are used by RADIATION and/or ALBEDO.
 
+#include "rundeck_opts.h"
+
       module GTAU_state_mod
       SAVE
       REAL*8 :: GTAU(51,11,143)
@@ -3149,3 +3151,173 @@ C     functions
         result = FFCUSP
       end function compute2
 
+      module O3mod
+!@sum O3mod administers reading of ozone files
+!@auth M. Kelley and original development team
+      use timestream_mod, only : timestream
+      implicit none
+      save
+!@var O3stream interface for reading and time-interpolating O3 files
+!@+   See usage notes in timestream_mod
+      type(timestream) :: O3stream,delta_O3stream
+
+!@dbparam use_sol_Ox_cycle if =1, a cycle of ozone is appled to
+!@+ o3year, as a function of the solar constant cycle.
+      integer :: use_sol_Ox_cycle = 0
+      real*8 :: S0min, S0max
+
+!@param NLO3 # of layers in ozone data files.  Todo: read from datafiles.
+      INTEGER, PARAMETER :: NLO3=49
+!@var PLBO3 edge pressures in O3 input file. Todo: read from file.
+      REAL*8 :: PLBO3(NLO3+1) = (/
+     *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
+     *       150d0, 125d0, 100d0,  80d0,  60d0,  55d0,  50d0,
+     *        45d0,  40d0,  35d0,  30d0,  25d0,  20d0,  15d0,
+     *       10.d0,  7.d0,  5.d0,  4.d0,  3.d0,  2.d0,  1.5d0,
+     *        1.d0,  7d-1,  5d-1,  4d-1,  3d-1,  2d-1,  1.5d-1,
+     *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2,
+     *        1d-2,  7d-3,  5d-3,  4d-3,  3d-3,  1d-3,  1d-7/)
+
+
+      contains
+
+      subroutine UPDO3D(JYEARO,JJDAYO,O3JDAY,O3JREF)
+      use resolution, only : psf
+      use domain_decomp_atm, only: grid, getdomainbounds
+      use timestream_mod, only : init_stream,read_stream
+      use pario, only : par_open,par_close,read_dist_data
+      implicit none
+      integer, intent(in) :: JYEARO,JJDAYO
+      real*8, dimension(:,:,:), pointer :: o3jday,o3jref
+
+      integer :: i,j,l,jyearx,fid
+      logical, save :: init = .false.
+      logical :: cyclic,exists
+      real*8, allocatable :: o3arr(:,:,:)
+
+      integer :: j_0, j_1, i_0, i_1
+
+      call getdomainbounds(grid, j_strt=j_0,j_stop=j_1,
+     &                           i_strt=i_0,i_stop=i_1)
+
+      allocate(o3arr(grid%i_strt_halo:grid%i_stop_halo,
+     &               grid%j_strt_halo:grid%j_stop_halo,nlo3))
+
+      jyearx = abs(jyearo)
+
+      if (.not. init) then
+        init = .true.
+
+        allocate(o3jday(nlo3,grid%i_strt:grid%i_stop,
+     &                       grid%j_strt:grid%j_stop))
+
+        allocate(o3jref(nlo3,grid%i_strt:grid%i_stop,
+     &                       grid%j_strt:grid%j_stop))
+
+! what was this doing in the original updo3d ??
+! psf==plb0(1)
+        if(plbo3(1) < psf) plbo3(1) = psf 
+
+        cyclic = jyearo < 0
+
+        call init_stream(grid,O3stream,'O3file','O3',
+     &       0d0,1d30,'linm2m',jyearx,jjdayo,cyclic=cyclic)
+
+        inquire(file='Ox_ref',exist=exists)
+        if(exists) then
+! read the 3D field for O3 RCOMPX reference calls
+! todo: if the reference O3 corresponds to some year or month
+! of the O3 timeseries, retrieve it through the read_stream
+! or get_by_index mechanism instead.
+          fid = par_open(grid,'Ox_ref','read')
+          call read_dist_data(grid,fid,'O3',o3arr)
+          call par_close(grid,fid)
+          do j=j_0,j_1
+          do i=i_0,i_1 
+            O3JREF(:,I,J)=O3ARR(I,J,:)
+          enddo
+          enddo
+        endif
+        
+      endif  ! end init
+
+      call read_stream(grid,O3stream,jyearx,jjdayo,o3arr)
+      do j=j_0,j_1
+      do i=i_0,i_1 
+        O3JDAY(:,I,J)=O3ARR(I,J,:)
+      enddo
+      enddo
+
+      deallocate(o3arr)
+
+      return
+      end subroutine UPDO3D
+
+      SUBROUTINE UPDO3D_solar(jjdayo,S0,o3jday)
+!@sum UPDO3D_solar adds solar cycle variability to O3JDAY
+      use dictionary_mod
+      use domain_decomp_atm, only: grid, getdomainbounds, am_i_root
+      use timestream_mod, only : init_stream,read_stream
+      use pario, only : par_open,par_close,read_data
+      implicit none
+      integer :: jjdayo
+      real*8 :: S0
+      real*8, dimension(:,:,:), pointer :: o3jday
+!@var delta_o3_now the difference in O3 between solar max and solar min,
+!@+   interpolated to the current day
+      real*8, allocatable :: delta_o3_now(:,:,:)
+!@var add_sol is [S00WM2(now)-1/2(S00WM2min+S00WM2max)]/
+!@+ [S00WM2max-S00WM2min] so that O3(altered) = O3(default) +
+!@+ add_sol*delta_O3_now
+      real*8 :: add_sol
+      logical, save :: init = .false.
+      integer :: i,j,l,fid,jyearx
+
+      integer :: j_0, j_1, i_0, i_1
+
+      jyearx = 2000 ! nominal year
+
+      if (.not. init) then
+        init = .true.
+
+        call sync_param("use_sol_Ox_cycle",use_sol_Ox_cycle)
+
+        if(use_sol_Ox_cycle /= 1) return
+
+        fid = par_open(grid,'delta_O3','read')
+        call read_data(grid,fid,'S0min',S0min,bcast_all=.true.)
+        call read_data(grid,fid,'S0max',S0max,bcast_all=.true.)
+        call par_close(grid,fid)
+
+        call init_stream(grid,delta_O3stream,'delta_O3','O3',
+     &       -1d30,1d30,'linm2m',jyearx,jjdayo,cyclic=.true.)
+
+      endif
+
+      if(use_sol_Ox_cycle /= 1) return
+
+      call getdomainbounds(grid, j_strt=j_0,j_stop=j_1,
+     &                           i_strt=i_0,i_stop=i_1)
+
+      add_sol = (S0-0.5d0*(S0min+S0max))/(S0max-S0min)
+      if(am_i_root()) then
+        write(6,661)JJDAYO,S0,S0min,S0max,add_sol
+      endif
+
+      allocate(delta_o3_now(grid%i_strt_halo:grid%i_stop_halo,
+     &                      grid%j_strt_halo:grid%j_stop_halo,nlo3))
+
+      call read_stream(grid,delta_O3stream,jyearx,jjdayo,delta_o3_now)
+      do j=j_0,j_1
+      do i=i_0,i_1 
+        O3JDAY(:,I,J) = O3JDAY(:,I,J) + add_sol*delta_O3_now(i,j,:)
+      enddo
+      enddo
+
+      deallocate(delta_o3_now)
+
+  661 format('JJDAYO,S0,S0min,S0max,frac=',I4,3F9.2,F7.3)
+      RETURN
+      END SUBROUTINE UPDO3D_solar
+
+      end module O3mod

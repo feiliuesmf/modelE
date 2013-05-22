@@ -50,12 +50,12 @@ Data input files:
 #include "IC_144x90_input_files"
 #include "static_ocn_1880_144x90_input_files"
 
-RVR=RD_modelE_Fa.RVR.bin          ! river direction file
+RVR=RD_modelE_Fa.nc             ! river direction file
+NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "TAero2008_input_files"
-#include "O3_2005_input_files"
+#include "rad_144x90_input_files"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag

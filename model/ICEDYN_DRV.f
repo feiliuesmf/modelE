@@ -590,14 +590,9 @@ C**** Replicate polar boxes
 c**** interpolate air stress from A grid in atmos, to B grid in ice
 C**** change of unit from change of momentum, to flux
 
-C**** DMUA is defined over the whole box (not just over ptype)
-C**** Convert to stress over ice fraction only (on atmospheric grid)
       DO J=aJ_0,aJ_1
         do i=aI_0,aI_1 
-          IF (FOCEAN(I,J)*RSI(I,J).gt.0) THEN
-            DMUA(I,J) = DMUA(I,J)/(FOCEAN(I,J)*RSI(I,J))
-            DMVA(I,J) = DMVA(I,J)/(FOCEAN(I,J)*RSI(I,J))
-          ELSE
+          IF (FOCEAN(I,J)*RSI(I,J).le.0) THEN
             DMUA(I,J) = 0.
             DMVA(I,J) = 0.
           END IF

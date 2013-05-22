@@ -58,17 +58,17 @@ OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF             !  Parallel NETCDF
 
 Data input files:
-#include "IC_144x90_input_files_AR5"
+#include "IC_144x90_input_files"
 #include "hycom_387x360_input_files"
 
-RVR=RD_modelE_Fa.RVR_1deghycom_may10.bin ! river direction file
+RVR=RD_modelE_Fa_1deghycom_may10.nc            ! river direction file
+NAMERVR=RD_modelE_Fa_1deghycom_may10.names.txt ! named river outlets
 
 IRRIG=IRRIG_1850_V144X90.bi
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "TAero2008_input_files"
-#include "O3_2005_input_files"
+#include "rad_144x90_input_files"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag

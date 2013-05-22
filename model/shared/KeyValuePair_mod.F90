@@ -32,6 +32,8 @@ module KeyValuePair_mod
     private
     character(len=MAX_LEN_KEY) :: key
     type (GenericType_type), pointer :: values(:) => null()
+  contains
+    procedure :: print
   end type KeyValuePair_type
 
   interface KeyValuePair
@@ -120,25 +122,25 @@ contains
 
   function getValue_1(this) result(value)
     type (KeyValuePair_type), intent(in) :: this
-    type (GenericType_type) :: value
-    value = this%values(1)
+    type (GenericType_type), pointer :: value
+    value => this%values(1)
   end function getValue_1
 
   function getValues(this) result(values)
     type (KeyValuePair_type), intent(in) :: this
-    type (GenericType_type) :: values(size(this%values))
-    values = this%values(:)
+    type (GenericType_type), pointer :: values(:)
+    values => this%values(:)
   end function getValues
 
   function getValue_i(this, ith) result(value)
 !@ Get ith value
     type (KeyValuePair_type), intent(in) :: this
     integer, intent(in) :: ith
-    type (GenericType_type) :: value
+    type (GenericType_type), pointer :: value
     if (ith < 0 .or. ith > getNumValues(this)) then
       call throwException('KeyValuePair_mod::getValue() - argument "ith" out of range.',14)
     end if
-    value = this%values(ith)
+    value => this%values(ith)
   end function getValue_i
 
   function getNumValues(this) result(numValues)
@@ -234,4 +236,15 @@ contains
     deallocate(this%values)
   end subroutine cleanKeyValuePair
 
+  subroutine print(this)
+    class (KeyValuePair_type), intent(in) :: this
+    integer :: i
+    print*,__LINE__,__FILE__,' key: <',trim(this%key),'>'
+    print*,'------------------------'
+    do i = 1, size(this%values)
+      call this%values(i)%print()
+    end do
+    print*,'------------------------'
+  end subroutine print
+    
 end module KeyValuePair_mod

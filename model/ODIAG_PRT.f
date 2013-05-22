@@ -1172,7 +1172,7 @@ C****
       USE CONSTANT, only : undef
       USE OCEAN, only : im,jm,lmo
       USE STRAITS, only : nmst
-      USE ODIAG, only : kbasin
+      USE ODIAG, only : kbasin,kbasin_glob
       use oceanr_dim, only : grid=>ogrid
       use domain_decomp_1d, only : pack_dataj,am_i_root
       IMPLICIT NONE
@@ -1227,7 +1227,7 @@ C****
       DO J=1,JM-1
         SUMB = 0
         DO I=1,IM
-          IF (KBASIN(I,J).gt.0) SUMB(KBASIN(I,J))=1.
+          IF (KBASIN_glob(I,J).gt.0) SUMB(KBASIN_glob(I,J))=1.
         END DO
         SUMB(4)=SUMB(1)+SUMB(2)+SUMB(3)+SUMB(4)
         DO K=1,4
@@ -1249,50 +1249,43 @@ C****
 
       SUBROUTINE OBASIN
 !@sum  OBASIN Read in KBASIN: 0=continent,1=Atlantic,2=Pacific,3=Indian
-!@auth G. Russell
       USE OCEAN, only : IM,JM,focean
-      USE ODIAG, only : kbasin
-      USE FILEMANAGER
+      USE ODIAG, only : kbasin,kbasin_glob
+      use pario, only : par_open,par_close,read_dist_data
+      use oceanr_dim, only : grid=>ogrid
+      use domain_decomp_1d, only : pack_data,halo_update
       IMPLICIT NONE
-      CHARACTER TITLE*72, CBASIN(IM,JM)
-      CHARACTER*6 :: FILEIN="KBASIN"
-      INTEGER J,I,iu_KB,I72
+      INTEGER i,j,k,fid, j_0h,j_1h
+      character(len=3), parameter :: basins(3)=(/'atl','pac','ind'/)
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
+     &     zeroone
 C****
 C**** read in basin data
-      call openunit(FILEIN,iu_KB,.false.,.true.)
-
-      READ  (iu_KB,900) TITLE
-      WRITE (6,*) 'Read on unit ',iu_KB,': ',TITLE
-      READ  (iu_KB,900)
-      DO I72=1,1+(IM-1)/72
-        DO J=JM,1,-1
-          READ (iu_KB,901) (CBASIN(I,J),I=72*(I72-1)+1,MIN(IM,I72*72))
-        END DO
-      END DO
-      call closeunit(iu_KB)
-
-      DO J=1,JM
-      DO I=1,IM
-        SELECT CASE (CBASIN(I,J))
-        CASE DEFAULT
-          KBASIN(I,J) = 0
-          IF (FOCEAN(I,J).gt.0) WRITE(6,*)
-     *         "Warning: Ocean box not defined in KBASIN ",i,j
-        CASE ('A')
-          KBASIN(I,J) = 1
-        CASE ('P')
-          KBASIN(I,J) = 2
-        CASE ('I')
-          KBASIN(I,J) = 3
-        CASE ('G')
-          KBASIN(I,J) = 4
-        END SELECT
-      END DO
-      END DO
 C****
+
+      j_0h = grid%j_strt_halo
+      j_1h = grid%j_stop_halo
+
+      fid = par_open(grid,'KBASIN','read')
+      kbasin = 0
+      do k=1,3
+        call read_dist_data(grid,fid,'mask_'//basins(k),zeroone)
+        call halo_update(grid,zeroone)
+        where(zeroone==1d0) kbasin = k
+      enddo
+      call par_close(grid,fid)
+
+      do j=j_0h,j_1h
+      do i=1,im
+        if(focean(i,j).gt.0. .and. kbasin(i,j).eq.0) then
+          kbasin(i,j) = 4
+        endif
+      enddo
+      enddo
+
+      call pack_data(grid,kbasin,kbasin_glob)
+
       RETURN
-  900 FORMAT (A72)
-  901 FORMAT (72A1)
       END SUBROUTINE OBASIN
 
       SUBROUTINE STRMIJ (MFU,FAC,OLNST,FACST,SF)
@@ -1749,7 +1742,7 @@ c
      &     ,ijl_mfub,ijl_mfvb,ijl_mfwb
      &     ,oij=>oij_loc,ij_sf,olnst,ln_mflx
 #ifdef OCN_GISSMIX
-     &     ,ijl_ri,ijl_rrho,ijl_otke,ijl_kvs
+     &     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
 #endif
 #ifdef OCN_Mesoscales
      &     ,ijl_ueddy,ijl_veddy,ijl_n2
@@ -1829,8 +1822,11 @@ cnotyet        oijl_out(i,j,l,ijl_mfwb) = oijl(i,j,l,ijl_mfwb)
         oijl_out(i,j,l,ijl_sflx+2) = oijl(i,j,l,ijl_sflx+2)
 #ifdef OCN_GISSMIX
         oijl_out(i,j,l,ijl_kvs) = oijl(i,j,l,ijl_kvs)*dxypo(j)
+        oijl_out(i,j,l,ijl_kvc) = oijl(i,j,l,ijl_kvc)*dxypo(j)
         oijl_out(i,j,l,ijl_ri) = oijl(i,j,l,ijl_ri)*dxypo(j)
         oijl_out(i,j,l,ijl_rrho) = oijl(i,j,l,ijl_rrho)*dxypo(j)
+        oijl_out(i,j,l,ijl_bv2) = oijl(i,j,l,ijl_bv2)*dxypo(j)
+        oijl_out(i,j,l,ijl_buoy) = oijl(i,j,l,ijl_buoy)*dxypo(j)
         oijl_out(i,j,l,ijl_otke) = oijl(i,j,l,ijl_otke)*dxypo(j)
 #endif
       enddo
@@ -2309,7 +2305,7 @@ C**** Output: SF = JxL stream function (kg/s)
 C****
       Use OCEAN,   Only: JM,LMO
       Use STRAITS, Only: NMST, IST,JST
-      Use ODIAG,   Only: KBASIN
+      Use ODIAG,   Only: KBASIN=>kbasin_glob
       Implicit None
 
       Integer*4,Intent(In) :: L
@@ -2409,7 +2405,7 @@ C**** Output:     X = northward flux as a function of J and basin
 C****
       Use OCEAN,   Only: JM
       Use STRAITS, Only: NMST, IST,JST
-      Use ODIAG,   Only: KBASIN
+      Use ODIAG,   Only: KBASIN=>kbasin_glob
       Implicit None
 
       Real*8,Intent(InOut) :: X(0:JM,4,3)

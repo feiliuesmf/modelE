@@ -50,14 +50,13 @@ OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 Data input files:
 #include "IC_144x90_input_files"
 #include "dynamic_ocn_288x180_input_files"
-TOPO=Z2HX2fromZ1QX1N            ! surface fractions and topography
+TOPO=Z2HX2fromZ1QX1N.nc           ! surface fractions and topography
 
 RVR=RD2HX2.OFrac.RVR.bin          ! river direction file (frac. ocean)
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "TAero2008_input_files"
-#include "O3_2005_input_files"
+#include "rad_144x90_input_files"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag

@@ -37,10 +37,8 @@
 
       subroutine read_veg_data(redogh,istart)
 !@sum reads vegetation arrays and rundeck parameters
-      use filemanager
       use Dictionary_mod
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
-      use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
       use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       use veg_com
       use fluxes, only : focean
@@ -64,10 +62,13 @@
       real*8 :: vc4
       integer :: read_c4_grass = 0
       integer variable_lk
+      integer jyear
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
+      call modelEclock%getDate(year=jyear)
+
       call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
@@ -131,7 +132,7 @@ c**** check whether ground hydrology data exist at this point.
       use TimeConstants_mod, only: DAYS_PER_YEAR
       use Dictionary_mod
       use DOMAIN_DECOMP_ATM, only : GRID
-      use DOMAIN_DECOMP_ATM, only : getDomainBounds, READT_PARALLEL
+      use DOMAIN_DECOMP_ATM, only : getDomainBounds
       use fluxes, only : focean
       use geom, only : lat2d
       use veg_com !, only : vdata,Cint,Qfol
@@ -573,10 +574,7 @@ c shc(0,2) is the heat capacity of the canopy
       subroutine updveg (year,reset_veg)
 !@sum  reads appropriate crops data and updates the vegetation file
 !@auth R. Ruedy
-      USE FILEMANAGER
-      use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
-     &     ,backspace_parallel
       use veg_com, only : vdata
       USE GEOM, only : imaxj
       use veg_drv, only : upd_gh
@@ -639,8 +637,7 @@ c**** Modify the vegetation fractions
 
       subroutine get_vdata(vdata)
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds!, AM_I_ROOT
-      use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
-      use filemanager
+      use pario, only : par_open,par_close,read_dist_data
       !use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       !use veg_com
       !use model_com, only : jyear,focean
@@ -658,9 +655,9 @@ c**** Modify the vegetation fractions
      &     grid%J_STRT_HALO:grid%J_STOP_HALO,N_COVERTYPES)
       !---
       INTEGER :: J_1, J_0, J_1H, J_0H, I_1H, I_0H, I_1, I_0
-      integer :: i, j, k, iu_veg
+      integer :: i, j, k, fid
       real*8 :: s
-
+      character(len=32) :: vegnames(N_COVERTYPES-N_OTHER)
       call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0 = grid%I_STRT
@@ -669,16 +666,24 @@ c**** Modify the vegetation fractions
       I_1H = grid%I_STOP_HALO
 
 c**** read land surface parameters or use defaults
-      call openunit("VEG",iu_VEG,.true.,.true.)
-      do k=1,N_COVERTYPES-N_OTHER
-        CALL READT_PARALLEL
-     *    (grid,iu_VEG,NAMEUNIT(iu_VEG),vdata(:,:,K),1)
-      end do
+      ! vegnames should be set elsewhere.  Do this once the model
+      ! actually uses Ent vegetation types as input.
+      vegnames = (/
+     &     'brightsoil     ','tundra         ','grass          ',
+     &     'shrub_and_grass','tree_and_grass ','deciduous      ',
+     &     'evergreen      ','rainforest     ','cultivation    ',
+     &     'darksoil       '
+     &     /)
+      fid = par_open(grid,'VEG','read')
+      do k=1,size(vegnames)
+        call read_dist_data(grid,fid,trim(vegnames(k)),vdata(:,:,k))
+      enddo
+      call par_close(grid,fid)
+
 c**** zero-out vdata(11) until it is properly read in
       do k=N_COVERTYPES-N_OTHER+1, N_COVERTYPES
         vdata(:,:,k) = 0.
       end do
-      call closeunit(iu_VEG)
 
       ! make sure that veg fractions are reasonable
       do j=J_0,J_1
@@ -706,83 +711,56 @@ c**** zero-out vdata(11) until it is properly read in
 
       end subroutine get_vdata
 
-
+      module cropdata_mod
+      use timestream_mod, only : timestream
+      implicit none
+!@var CROPstream interface for reading and time-interpolating the crop file
+!@+   See usage notes in timestream_mod
+      type(timestream) :: CROPstream
+      end module cropdata_mod
       subroutine get_cropdata(year, cropdata)
-      !* This version reads in crop distribution from prescr data set.
-      !* And calculates crop fraction for given year.
-      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
-      use DOMAIN_DECOMP_ATM, only : READT_PARALLEL, broadcast
-      use FILEMANAGER, only : openunit,closeunit,nameunit
+!@sum get_cropdata reads timeseries file for crop fraction and
+!@+   interpolates to requested year.
+
+      use domain_decomp_atm, only : grid
+      use timestream_mod, only : init_stream,read_stream
+      use cropdata_mod
+      implicit none
       integer, intent(in) :: year
-      real*8, intent(out) :: cropdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &     grid%J_STRT_HALO:grid%J_STOP_HALO)
-      integer i
-      !----------
-      integer :: iu_CROPS, rc
-      integer :: year1, year2
-      real*8 wt
-      real*8, allocatable :: crop1(:,:), crop2(:,:)
-      character*80 title
-      INTEGER :: J_1H, J_0H, I_1H, I_0H
+      real*8 :: cropdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                   grid%J_STRT_HALO:grid%J_STOP_HALO)
+c
+      logical, save :: init = .false.
+      integer :: day
 
-      call getDomainBounds(grid,
-     &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
-     &     I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
+      day = 1 ! to pass a required argument
 
-      allocate( crop1(I_0H:I_1H, J_0H:J_1H) )
-      allocate( crop2(I_0H:I_1H, J_0H:J_1H) )
+      if (.not. init) then
+        init = .true.
+        call init_stream(grid,CROPstream,'CROPS','crops',
+     &       0d0,1d30,'none',year,day)
+      endif
 
-      !* Calculate fraction for given gcmtime:  interpolate between years*/
-      year1 = -32768 ; crop1(:,:) = 0.d0
-      year2 = -32767 ; crop2(:,:) = 0.d0
-      wt = 1.d0
+      call read_stream(grid,CROPstream,year,day,cropdata)
 
-      call openunit("CROPS",iu_CROPS,.true.,.true.)
-      do while( year2 < year )
-        year1 = year2
-        crop1(:,:) = crop2(:,:)
-        if ( AM_I_ROOT() ) then
-          year2 = 32768
-          read (iu_CROPS, END=10, IOSTAT=rc) title
-          if ( rc .ne. 0 ) call stop_model("error reading CROPS",255)
-          read(title,*) year2
- 10       continue
-          backspace iu_CROPS
-        endif
-        call broadcast(grid, year2)
-        if ( year2 == 32768 ) exit  ! end of record
-        CALL READT_PARALLEL
-     *    (grid,iu_CROPS,NAMEUNIT(iu_CROPS),crop2(:,:),1)
-      enddo
-      call closeunit(iu_CROPS)
-
-      wt = (year-year1)/(real(year2-year1,kind=8))
-      cropdata(:,:) = max(0.d0, crop1(:,:)
-     &     + wt * (crop2(:,:) - crop1(:,:)))  !Set min to zero, since no land mask yet -nyk 1/22/08
+      !Set min to zero, since no land mask yet -nyk 1/22/08
+      cropdata = max(0d0, cropdata)
 
       end subroutine get_cropdata
 
-
       subroutine get_soil_C_total(ncasa, soil_C_total)
-      use FILEMANAGER, only : openunit,closeunit,nameunit
-      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
-      use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
+      use DOMAIN_DECOMP_ATM, only : GRID
+      use pario, only : par_open,par_close,read_dist_data
+      implicit none
       integer, intent(in) :: ncasa
-      real*8,intent(out) ::
+      real*8 :: !,intent(out) ::
      &     soil_C_total(ncasa,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO)
       !---
-      real*8, allocatable :: buf(:,:)
-      integer :: iu_SOILCARB, k
+      integer :: fid
 
+      fid = par_open(grid,'SOILCARB_global','read')
+      call read_dist_data(grid,fid,'soil_C_total',soil_C_total,jdim=3)
+      call par_close(grid,fid)
       
-      call openunit("SOILCARB_global",iu_SOILCARB,.true.,.true.)
-
-      do k=1,ncasa
-        CALL READT_PARALLEL (grid,
-     &       iu_SOILCARB,NAMEUNIT(iu_SOILCARB),soil_C_total(k,:,:),1)
-      enddo
-
-      call closeunit(iu_SOILCARB)
-
       end subroutine get_soil_C_total

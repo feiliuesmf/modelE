@@ -69,18 +69,17 @@ OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
-#include "IC_144x90_input_files_AR5"
+#include "IC_144x90_input_files"
 #include "dynamic_ocn_288x180_input_files_AR5"
-TOPO=Z2HX2fromZ1QX1N.BS1            ! surface fractions and topography (1 cell Bering Strait)
+TOPO=Z2HX2fromZ1QX1N.BS1.nc            ! surface fractions and topography (1 cell Bering Strait)
 AIC=/discover/nobackup/projects/giss/prod_input_files/1JAN3051.rsfE119F40oQ32.nc
 
-
-RVR=RD_Fb.RVR.bin                   ! river direction file (frac. ocean)
+RVR=RD_Fb.nc             ! river direction file
+NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "TAero2008_input_files"
-#include "O3_2005_input_files"
+#include "rad_144x90_input_files"
 
 #include "ocarbon_cycle_input_files"
 

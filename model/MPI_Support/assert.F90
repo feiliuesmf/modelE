@@ -1,6 +1,6 @@
 Subroutine assert_(line, fname, msg)
 #ifdef USE_ESMF
-  Use ESMF_MOD, only: ESMF_Finalize
+  Use ESMF, only: ESMF_Finalize
 #endif
   Implicit None
   Integer,          Intent(In) :: line

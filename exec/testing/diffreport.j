@@ -135,33 +135,53 @@ deckDiff()
     report=( "${report[@]}" "$deck [$comp] :" )
     echo "  --- DECK = $deck ---"
     # Don't do serial comparisons of C90 and AR5 rundecks
-    if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ AR5 ]]; then
+    if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ AR5_CAD ]] || [[ "$deck" =~ tomas ]] || [[ "$deck" =~ amp ]]; then
       echo "    Skip SERIAL comparison"
     else
 # compare SERIAL restart reproducibility
       if [ $checkSERIAL -gt 0 ]; then
-        doDiff $deck.SERIAL.$comp.1dy $deck.SERIAL.$comp.restart $deck $comp
 # compare SERIAL baseline (previous day) restart reproducibility
         doDiff $deck.SERIAL.$comp.1hr $baseline/$deck.SERIAL.$comp.1hr $deck $comp
         doDiff $deck.SERIAL.$comp.1dy $baseline/$deck.SERIAL.$comp.1dy $deck $comp
+        if [[ ! "$deck" =~ SCM ]]; then
+          doDiff $deck.SERIAL.$comp.1dy $deck.SERIAL.$comp.restart $deck $comp
+        else
+          echo "  Skip restart reproducibility..."
+        fi
       fi
     fi
+    if [[ "$comp" =~ nag ]] || [[ "$deck" =~ SCM ]]; then
+       echo "  Skip MPI comparisons when using NAG compiler or SCM rundeck"
+    else
 # compare MPI restart reproducibility - 3rd argument ($3) is NPE configuration
-    if [ ! -z $3 ]; then
-      declare -a npeArray=("${!3}")
-      for npe in "${npeArray[@]}"; do
-        if [ $checkMPI -gt 0 ]; then
-          doDiff $deck.MPI.$comp.1dy.np=$npe $deck.MPI.$comp.restart.np=$npe $deck $comp
-        fi
-      done
+      if [ ! -z $3 ]; then
+        declare -a npeArray=("${!3}")
+          echo "  compare MPI restart reproducibility.."
+        for npe in "${npeArray[@]}"; do
+          if [ $checkMPI -gt 0 ]; then
+            doDiff $deck.MPI.$comp.1dy.np=$npe $deck.MPI.$comp.restart.np=$npe $deck $comp
+          fi
+        done
 # compare MPI baseline (previous day) restart reproducibility
-      for npe in "${npeArray[@]}"; do
-        if [ $checkMPI -gt 0 ]; then
-          doDiff $deck.MPI.$comp.1hr.np=$npe $baseline/$deck.MPI.$comp.1hr.np=$npe $deck $comp
-          doDiff $deck.MPI.$comp.1dy.np=$npe $baseline/$deck.MPI.$comp.1dy.np=$npe $deck $comp
-        fi
-      done
-    fi
+          echo "  compare MPI baseline reproducibility.."
+        for npe in "${npeArray[@]}"; do
+          if [ $checkMPI -gt 0 ]; then
+            doDiff $deck.MPI.$comp.1hr.np=$npe $baseline/$deck.MPI.$comp.1hr.np=$npe $deck $comp
+            doDiff $deck.MPI.$comp.1dy.np=$npe $baseline/$deck.MPI.$comp.1dy.np=$npe $deck $comp
+          fi
+          echo "  compare MPI vs SERIAL reproducibility.."
+          if [ $checkMPI -gt 0 ]; then
+	    if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ AR5_CAD ]] || [[ "$deck" =~ tomas ]] || [[ "$deck" =~ amp ]] || [[ "$comp" =~ nag ]] || [[ "$deck" =~ SCM ]]; then
+              echo "  SKIP compare MPI vs SERIAL reproducibility.."
+            else
+	      doDiff $deck.MPI.$comp.1hr.np=$npe $deck.SERIAL.$comp.1hr $deck $comp
+	      doDiff $deck.MPI.$comp.1dy.np=$npe $deck.SERIAL.$comp.1dy $deck $comp
+            fi
+          fi
+        done
+      fi
+    fi # skip MPI comparisons
+
     if [ "$compileErr" == YES ]; then
       updDeckReport "$deck $comp ***COMPILE_RUNTIME_ERROR***"
     else
@@ -282,7 +302,7 @@ ir=0
 is=0
 for deck in ${DECKS[@]}
 do
-      if [[ "$deck" =~ EM20 || "$deck" =~ E1oM20 ]]; then
+      if [[ "$deck" =~ EM20 || "$deck" =~ E1oM20  || "$deck" =~ C12 ]]; then
         LowResDecks[$ia]="$deck"
         ia=$(($ia+1))
       elif [[ "$deck" =~ obio || "$deck" =~ cadF40  ]]; then
@@ -291,7 +311,7 @@ do
       elif [[ "$deck" =~ C90  ]]; then
         CSDecks[$ic]="$deck"
         ic=$(($ic+1))
-      elif [[ "$deck" =~ AR5  ]]; then
+      elif [[ "$deck" =~ AR5_CAD ]]; then
         AR5Decks[$ir]="$deck"
         ir=$(($ir+1))
       else
@@ -318,8 +338,8 @@ for comp in "${COMPILERS[@]}"; do
 
   cd $REGRESULTS/$comp
 
-  checkMPI=`ls *MPI* | wc -c`
-  checkSERIAL=`ls *SERIAL* | wc -c`
+  checkMPI=`ls -1 *MPI* | wc -c`
+  checkSERIAL=`ls -1 *SERIAL* | wc -c`
 
   report=( "${report[@]}" "" )
   report=( "${report[@]}" "ADDITIONAL DETAILS:")
@@ -363,9 +383,11 @@ else
 fi
 
 #chmod g+rw $MODELROOT/exec/testing/${CONFIG}.diff
-cp $MODELROOT/exec/testing/${CONFIG}.diff $WORKSPACE
+cp -f $MODELROOT/exec/testing/${CONFIG}.diff $WORKSPACE
+cp -f $MODELROOT/exec/testing/${CONFIG}.unit $WORKSPACE
+
 # Archive full difference reports
-cp $MODELROOT/exec/testing/${CONFIG}.diff $MODELEBASELINE/reports/${CONFIG}.diff.`date +%F`
+cp -f $MODELROOT/exec/testing/${CONFIG}.diff $MODELEBASELINE/reports/${CONFIG}.diff.`date +%F`
 
 # Check for errors in report
 cat $MODELROOT/exec/testing/${CONFIG}.diff | grep -i "NOT_REPRODUCIBLE" > /dev/null
@@ -378,7 +400,7 @@ if [ $rc1 -eq 0 ] || [ $rc2 -eq 0 ]; then
    exit $EXIT_ERR
 else 
 # Create modelE snapshot iff no ERRORs in ${CONFIG}.diff (WARNINGs are OK)
-   if [ $writeOK -eq 1 ]; then touch $WORKSPACE/.success; fi
+   if [ "$writeOK" -eq 1 ]; then touch $WORKSPACE/.success; fi
    echo "Will create modelE snapshot"
    # Create modelE snapshot
    if [ -d "$REGSCRATCH/$BRANCH" ]; then

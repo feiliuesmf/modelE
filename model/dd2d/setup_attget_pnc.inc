@@ -31,7 +31,8 @@ c
           write(6,*) 'attribute ',trim(attname),
      &         ' not found for variable ',trim(varname)
         endif
-        call stoprc(rc,nf_noerr)
+        if(rc.ne.nf_noerr) return
+        !call stoprc(rc,nf_noerr)
       endif
       attlenx = full_len_of_obj(attval)
       if(attlen.gt.attlenx) then

@@ -642,7 +642,7 @@ c Read in T & O3 climatology:
 
  1000 format(' Error: ',i3,' photolysis labels but ',i3,' reactions')
  1100 format(' Fast-J Photolysis Scheme: considering ',i2,' reactions')
- 1200 format(3x,i2,': ',a7,' (Q.Y. ',f5.3,') ')
+ 1200 format(3x,i2,': ',a7,' (Q.Y. ',f6.3,') ')
       return
       end SUBROUTINE inphot
 

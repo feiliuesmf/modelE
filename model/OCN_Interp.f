@@ -291,7 +291,7 @@ c*   actual interpolation here
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
       USE OCEAN, only : oIM=>IM, oJM=>JM, oLM=>LMO
-     *                , oFOCEAN_loc=>FOCEAN_loc
+     *                , oFOCEAN_loc=>FOCEAN
      *                , OXYP, oIMAXJ=>IMAXJ
      *                , oCOSI=>COSIC,oSINI=>SINIC
      *                , IVSPO=>IVSP,IVNPO=>IVNP
@@ -691,7 +691,7 @@ C**** do poles
 !@auth Larissa Nazarenko
       USE CONSTANT, only : tf
       USE OCEAN, only : oIM=>IM, oJM=>JM, oLM=>LMO
-     *                , oFOCEAN_loc=>FOCEAN_loc
+     *                , oFOCEAN_loc=>FOCEAN
      *                , OXYP, oIMAXJ=>IMAXJ
      *                , oCOSI=>COSIC,oSINI=>SINIC
      *                , IVSPO=>IVSP,IVNPO=>IVNP
@@ -1522,11 +1522,14 @@ c*
       CALL INT_AG2OG(atm%COSZ1,ocnatm%COSZ1, aWEIGHT)
       CALL INT_AG2OG(atm%WSAVG,ocnatm%WSAVG, aWEIGHT)
 #endif
-      aWEIGHT(:,:) = 1.d0
-      
+
+      aWEIGHT(:,:) = 1.d0 - ice%RSI(:,:)      
       CALL INT_AG2OG(atm%DMUA,atm%DMVA,
      &     ocnatm%DMUA,ocnatm%DMVA,
      &     aWEIGHT,atm%FOCEAN,atm%SINI,atm%COSI)
+      ! ocean model still wants ice-masked wind stress
+      ocnatm%DMUA = ocnatm%DMUA*(1.d0-ocnice%RSI)
+      ocnatm%DMVA = ocnatm%DMVA*(1.d0-ocnice%RSI)
 
       deallocate(aweight,atmp,aFact)
 
@@ -1544,7 +1547,7 @@ c*
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
       USE OCEAN, only : oIM=>IM,oJM=>JM
-     *                , oFOCEAN_loc=>FOCEAN_loc
+     *                , oFOCEAN_loc=>FOCEAN
 
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only: ntm
@@ -1682,7 +1685,7 @@ c*
 !@auth Larissa Nazarenko
 
       USE OCEAN, only : oIM=>IM,oJM=>JM
-     *                , oFOCEAN_loc=>FOCEAN_loc
+     *                , oFOCEAN_loc=>FOCEAN
 
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only: ntm

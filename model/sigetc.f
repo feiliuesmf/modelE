@@ -131,67 +131,55 @@ c
       return
       end
 c
-      real function kappaf(t,s,prs,th,profil)
-c
-c --- compressibility coefficient kappa^(theta) from sun et al. (1999)
-c
-      USE HYCOM_SCALARS, only : thref
+      real function sigstar(t,s1,prs)
       USE HYCOM_ARRAYS_GLOB
+
       implicit none
-      real t,s,prs,tdif,sdif,th,kappa1,kappa2,profil
-      integer loc1,loc2
-c
+      real, intent(in) :: t,s1,prs       ! final prs in unit of dbar
+      real :: sigocn,s
+      external sigocn
       include 'state_eqn.h'
+      real :: kappaf
 c
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      kappaf=0.                              ! no thermobaricity
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ccc      loc1=profil
-ccc      if (loc1.lt.1 .or. loc1.gt.4) then
-ccc        write (*,'(a,f7.3)') 'illegal profile value in kappaf:',profil
-ccc        stop '(kappaf)'
-ccc      end if
-ccc      sdif=max(30.,min(38.,s))-refsal(loc1)
-ccc      tdif=max(-2.,min(32.,t))-reftem(loc1)
-ccc      kappa1=sclkap * (tdif*(qt(loc1)+tdif*(qtt(loc1)
-ccc     .  +tdif*qttt(loc1))+.5*(prs+pref)*(qpt(loc1)
-ccc     .  +sdif*qpst(loc1)+tdif*qptt(loc1)))
-ccc     .  +sdif*(qs(loc1)+tdif*qst(loc1)))*(prs-pref)
-ccc      kappa1=(1./thref+th)*(exp(kappa1)-1.)
-cccc
-ccc      loc2=min(4,loc1+1)
-ccc      sdif=max(30.,min(38.,s))-refsal(loc2)
-ccc      tdif=max(-2.,min(32.,t))-reftem(loc2)
-ccc      kappa2=sclkap * (tdif*(qt(loc2)+tdif*(qtt(loc2)
-ccc     .  +tdif*qttt(loc2))+.5*(prs+pref)*(qpt(loc2)
-ccc     .  +sdif*qpst(loc2)+tdif*qptt(loc2)))
-ccc     .  +sdif*(qs(loc2)+tdif*qst(loc2)))*(prs-pref)
-ccc      kappa2=(1./thref+th)*(exp(kappa2)-1.)
-cccc
-ccc      kappaf=kappa1+(kappa2-kappa1)*(profil-float(loc1))
-c
+c --- coefficients for kappa^(theta) fit towards JM06 (revised Sun et al. 1999)
+      real, parameter ::    ! 13 coeffi. for kappa_theta
+     . qtttt= 4.060245E-14, qttt=-6.174599E-12, qtt= 5.467461E-10, 
+     . qt=-2.982976E-08,      qs=-1.226834E-08, qts= 1.913132E-10, 
+     . qtts=-2.212339E-12,   qtp= 1.319722E-12, qsp= 4.626343E-13,
+     . qtsp=-7.456494E-15,  qttp=-2.706986E-14, qtttp= 2.315378E-16, 
+     . qtpp= 3.677802E-18, soff=35., tmin=-3., smin=10.
+
+      s=s1-soff
+      kappaf=(t*(qt+t*(qtt+t*(qttt+t*qtttt)))+s*qs+t*s*(qts+t*qtts)    !const
+     . +.5*(t*(qtp+s*qtsp+t*(qttp+t*qtttp))+s*qsp)*(prs+pref)*1.e-4    !linear p
+     . +qtpp*t/3.*(prs*prs+pref*pref+prs*pref)*1.e-8)*(prs-pref)*1.e-4 !quad p
+
+      sigstar=(1000.+sigocn(max(t,tmin),max(s1,smin)))*exp(kappaf)-1000.
+
       return
-      end
+      end function sigstar
 c
-      real function sigloc(t,s,prs)
-c --- locally referenced sigma, a fit towards Jackett & McDougall (1995)
-c --- t: potential temperature; s: psu; prs: pressure
+      real function sigloc(t,s,p)
+c --- locally referenced sigma, a fit towards Jackett et al. 2006, J. of atm & oceanic technology
+c --- t: potential temperature; s: psu; prs: pressure, converted to dbar
 c
       implicit none
       include 'state_eqn.h'
 c
-      real t,s,prs,c1p,c2p,c3p,c4p,c5p,c6p,c7p,c8p,c9p
-      c1p=alphap(1)+1.e-5*prs*(betap(1)+1.e-5*prs*gammap(1))
-      c2p=alphap(2)+1.e-5*prs*(betap(2)+1.e-5*prs*gammap(2))
-      c3p=alphap(3)+1.e-5*prs*(betap(3)+1.e-5*prs*gammap(3))
-      c4p=alphap(4)+1.e-5*prs*(betap(4)+1.e-5*prs*gammap(4))
-      c5p=alphap(5)+1.e-5*prs*(betap(5)+1.e-5*prs*gammap(5))
-      c6p=alphap(6)+1.e-5*prs*(betap(6)+1.e-5*prs*gammap(6))
-      c7p=alphap(7)+1.e-5*prs*(betap(7)+1.e-5*prs*gammap(7))
-      c8p=alphap(8)+1.e-5*prs*(betap(8)+1.e-5*prs*gammap(8))
-      c9p=alphap(9)+1.e-5*prs*(betap(9)+1.e-5*prs*gammap(9))
+      real t,s,prs,p,c1p,c2p,c3p,c4p,c5p,c6p,c7p,c8p,c9p
+      prs=p*1.e-4			! convert to dbar
+      c1p=alphap(1)+prs*(betap(1)+prs*gammap(1))
+      c2p=alphap(2)+prs*(betap(2)+prs*gammap(2))
+      c3p=alphap(3)+prs*(betap(3)+prs*gammap(3))
+      c4p=alphap(4)+prs*(betap(4)+prs*gammap(4))
+      c5p=alphap(5)+prs*(betap(5)+prs*gammap(5))
+      c6p=alphap(6)+prs*(betap(6)+prs*gammap(6))
+      c7p=alphap(7)+prs*(betap(7)+prs*gammap(7))
+      c8p=alphap(8)+prs*(betap(8)+prs*gammap(8))
+      c9p=alphap(9)+prs*(betap(9)+prs*gammap(9))
 c
-      sigloc=c1p+s*(c3p+c8p*s)+t*(c2p+c5p*s+t*(c4p+c7p*s+c6p*t))+c9p*t*s*s
+      sigloc=c1p+s*(c3p+c8p*s)+t*(c2p+c5p*s+t*(c4p+c7p*s+c6p*t))
+     .      +c9p*t*s*s
 
       return
       end
@@ -199,21 +187,21 @@ c
 c
       real function dsiglocdt(t,s,prs)
 c --- locally referenced sigma, a fit towards Jackett & McDougall (1995)
-c --- t: potential temperature; s: psu; prs: pressure
+c --- t: potential temperature; s: psu; prs: pressure, converted to dbar
 c
       implicit none
       include 'state_eqn.h'
 c
       real t,s,prs,c2p,c4p,c5p,c6p,c7p,c9p
-ccc   c1p=alphap(1)+1.e-5*prs*(betap(1)+1.e-5*prs*gammap(1))
-      c2p=alphap(2)+1.e-5*prs*(betap(2)+1.e-5*prs*gammap(2))
-ccc   c3p=alphap(3)+1.e-5*prs*(betap(3)+1.e-5*prs*gammap(3))
-      c4p=alphap(4)+1.e-5*prs*(betap(4)+1.e-5*prs*gammap(4))
-      c5p=alphap(5)+1.e-5*prs*(betap(5)+1.e-5*prs*gammap(5))
-      c6p=alphap(6)+1.e-5*prs*(betap(6)+1.e-5*prs*gammap(6))
-      c7p=alphap(7)+1.e-5*prs*(betap(7)+1.e-5*prs*gammap(7))
-ccc   c8p=alphap(8)+1.e-5*prs*(betap(8)+1.e-5*prs*gammap(8))
-      c9p=alphap(9)+1.e-5*prs*(betap(9)+1.e-5*prs*gammap(9))
+ccc   c1p=alphap(1)+1.e-4*prs*(betap(1)+1.e-4*prs*gammap(1))
+      c2p=alphap(2)+1.e-4*prs*(betap(2)+1.e-4*prs*gammap(2))
+ccc   c3p=alphap(3)+1.e-4*prs*(betap(3)+1.e-4*prs*gammap(3))
+      c4p=alphap(4)+1.e-4*prs*(betap(4)+1.e-4*prs*gammap(4))
+      c5p=alphap(5)+1.e-4*prs*(betap(5)+1.e-4*prs*gammap(5))
+      c6p=alphap(6)+1.e-4*prs*(betap(6)+1.e-4*prs*gammap(6))
+      c7p=alphap(7)+1.e-4*prs*(betap(7)+1.e-4*prs*gammap(7))
+ccc   c8p=alphap(8)+1.e-4*prs*(betap(8)+1.e-4*prs*gammap(8))
+      c9p=alphap(9)+1.e-4*prs*(betap(9)+1.e-4*prs*gammap(9))
 c
       dsiglocdt=c2p+s*(c5p+c9p*s)+2.*t*(c4p+c7p*s+1.5*c6p*t)	!  SI c9
       return
@@ -228,15 +216,15 @@ c
       include 'state_eqn.h'
 c
       real t,s,prs,c3p,c5p,c7p,c8p,c9p
-ccc   c1p=alphap(1)+1.e-5*prs*(betap(1)+1.e-5*prs*gammap(1))
-ccc   c2p=alphap(2)+1.e-5*prs*(betap(2)+1.e-5*prs*gammap(2))
-      c3p=alphap(3)+1.e-5*prs*(betap(3)+1.e-5*prs*gammap(3))
-ccc   c4p=alphap(4)+1.e-5*prs*(betap(4)+1.e-5*prs*gammap(4))
-      c5p=alphap(5)+1.e-5*prs*(betap(5)+1.e-5*prs*gammap(5))
-ccc   c6p=alphap(6)+1.e-5*prs*(betap(6)+1.e-5*prs*gammap(6))
-      c7p=alphap(7)+1.e-5*prs*(betap(7)+1.e-5*prs*gammap(7))
-      c8p=alphap(8)+1.e-5*prs*(betap(8)+1.e-5*prs*gammap(8))
-      c9p=alphap(9)+1.e-5*prs*(betap(9)+1.e-5*prs*gammap(9))
+ccc   c1p=alphap(1)+1.e-4*prs*(betap(1)+1.e-4*prs*gammap(1))
+ccc   c2p=alphap(2)+1.e-4*prs*(betap(2)+1.e-4*prs*gammap(2))
+      c3p=alphap(3)+1.e-4*prs*(betap(3)+1.e-4*prs*gammap(3))
+ccc   c4p=alphap(4)+1.e-4*prs*(betap(4)+1.e-4*prs*gammap(4))
+      c5p=alphap(5)+1.e-4*prs*(betap(5)+1.e-4*prs*gammap(5))
+ccc   c6p=alphap(6)+1.e-4*prs*(betap(6)+1.e-4*prs*gammap(6))
+      c7p=alphap(7)+1.e-4*prs*(betap(7)+1.e-4*prs*gammap(7))
+      c8p=alphap(8)+1.e-4*prs*(betap(8)+1.e-4*prs*gammap(8))
+      c9p=alphap(9)+1.e-4*prs*(betap(9)+1.e-4*prs*gammap(9))
 c
       dsiglocds=c3p+2*s*(c8p+c9p*t)+t*(c5p+t*c7p)                       ! SI c9
       return
@@ -344,14 +332,6 @@ c --- exchange p-point values (half grid size away from seam)
 
       return
       end subroutine cpy_mJpacJatL
-c
-c
-c> Revision history:
-c>
-c> Jan. 2001 - modified kappaf to allow nonzero temp.ref.value
-c> Nov. 2002 - corrected error in kappaf
-c> July 2005 - added sig,dsigdt,dsigds functions for in-situ density ('sigloc')
-c
 c
       real function hyc_pechg1(delp,sig,nunit)
 c

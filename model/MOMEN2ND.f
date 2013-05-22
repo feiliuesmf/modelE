@@ -37,7 +37,7 @@
       USE DOMAIN_DECOMP_1D, only : haveLatitude, getDomainBounds
       USE GEOM, only : fcor,dxyv,dxyn,dxys,dxv,ravpn,ravps
      &     ,sini=>siniv,cosi=>cosiv,acor,polwt
-      USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt,conv,dsig
+      Use DYNAMICS, Only : pu,pv,sd,spa,dut,dvt,dsig
       USE DYNAMICS, only : do_polefix,mrch
 c      USE DIAG, only : diagcd
       IMPLICIT NONE
@@ -385,7 +385,6 @@ C     DUT(I,J,L+1)=DUT(I,J,L+1)-SDU*(U(I,J,L)+U(I,J,L+1))
 C     DVT(I,J,L)  =DVT(I,J,L)  +SDU*(V(I,J,L)+V(I,J,L+1))
 C     DVT(I,J,L+1)=DVT(I,J,L+1)-SDU*(V(I,J,L)+V(I,J,L+1))
 C 310 I=IP1
-!!! MUST USE CONV for HALO update not SD which is aliased to it.
       CALL HALO_UPDATE(GRID,SD,FROM=SOUTH)
       DO L=1,LM-1
       DO J=J_0S,J_1
@@ -424,7 +423,7 @@ C 310 I=IP1
       END DO
 C**** CALL DIAGNOSTICS
          IF(MODD5K.LT.MRCH) CALL DIAG5D (4,MRCH,DUT,DVT)
-         IF(MRCH.GT.0) CALL DIAGCD (grid,1,U,V,DUT,DVT,DT1)!,PIT)
+         IF(MRCH.GT.0) CALL DIAGCD (grid,1,U,V,DUT,DVT,DT1)
       DO L=1,LM
       DO J=J_0S,J_1
       DO I=1,IM

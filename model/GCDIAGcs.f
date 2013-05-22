@@ -588,8 +588,8 @@ c empty for now
       use geom, only : byaxyp
       use gcdiag
       use diag_com, only : agc=>agc_loc,speca,nspher,klayer,ple
-      use atm_com, only : t,p,q,phi,sda,ualij,valij
-      use dynamics, only : pit,sige
+      use atm_com, only : t,p,q,phi,MWs,ualij,valij
+      use dynamics, only : sige
       use diag_loc, only : tx
       use domain_decomp_atm, only : getDomainBounds, 
      &     grid_cs=>grid, am_i_root,
@@ -675,18 +675,10 @@ c
 c
 c obtain vertical velocity in mb/s units
 c
-      do l=1,ls1-2
+      do l=1,lm-1
       do j=j_0,j_1
       do i=i_0,i_1
-c        omega(i,j,l) = (sda(i,j,l)/dtsrc+pit(i,j)*sige(l+1))*byaxyp(i,j)
-        omega(i,j,l) = (sda(i,j,l)/dtsrc)*byaxyp(i,j)
-      enddo
-      enddo
-      enddo
-      do l=ls1-1,lm-1
-      do j=j_0,j_1
-      do i=i_0,i_1
-        omega(i,j,l) = sda(i,j,l)*byaxyp(i,j)/dtsrc
+        omega(i,j,l) = MWs(i,j,l)*byaxyp(i,j)/dtsrc
       enddo
       enddo
       enddo

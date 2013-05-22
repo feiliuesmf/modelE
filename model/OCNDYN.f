@@ -292,7 +292,7 @@
       USE Dictionary_mod
       USE CONSTANT, only : twopi,radius,by3,grav,rhow
       USE MODEL_COM, only : dtsrc,kocean
-      USE OCEAN, only : im,jm,lmo,focean,focean_loc,lmm
+      USE OCEAN, only : im,jm,lmo,focean,lmm
      *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,s0m,zmid,dzoe,bydzoe
      *     ,uo,vo,uod,vod,dxypo,ogeoz
      *     ,dts,dtolf,dto,dtofs,mdyno,msgso
@@ -312,6 +312,7 @@
       USE SW2OCEAN, only : init_solar
       USE DOMAIN_DECOMP_1D, only : getDomainBounds,halo_update
       use DOMAIN_DECOMP_1D, only: hasSouthPole, hasNorthPole
+      use DOMAIN_DECOMP_1D, only: pack_data,broadcast,globalmin
       USE OCEANR_DIM, only : grid=>ogrid
       USE OCEAN, only : remap_a2o,remap_o2a
 #ifdef CUBED_SPHERE
@@ -330,6 +331,7 @@
 #ifdef OCN_GISSMIX
       USE GISS_OTURB, only : gissmix_init
 #endif
+      use pario, only : par_open,par_close,read_dist_data
       IMPLICIT NONE
 c
       LOGICAL, INTENT(IN) :: iniOCEAN
@@ -337,9 +339,8 @@ c
       type(atmocn_xchng_vars) :: atmocn
       type(iceocn_xchng_vars) :: dynsice
 c
-      INTEGER I,J,L,N,iu_OIC,iu_OFTAB,IP1,IM1,LMIJ,I1,J1,I2,J2
-     *     ,iu_TOPO,II,JJ,flagij,nt
-      REAL*4, DIMENSION(:,:,:), ALLOCATABLE:: MO4,G0M4,S0M4,GZM4,SZM4
+      INTEGER I,J,L,N,fid,iu_OFTAB,IP1,IM1,LMIJ,I1,J1,I2,J2
+     *     ,II,JJ,flagij,nt,j1o_loc
       CHARACTER*80 TITLE
       REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ
       LOGICAL :: postProc
@@ -350,6 +351,9 @@ c
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_NORTH_POLE
+
+      INTEGER, DIMENSION(IM,JM) :: LMM_glob
+
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1
      *      ,J_STRT_SKP  = J_0S, J_STOP_SKP  = J_1S
      *      ,J_STRT_HALO  = J_0H, J_STOP_HALO  = J_1H
@@ -447,13 +451,15 @@ c-------------------------------------------------------------------
 
       CALL OFFT0(IM)
 
-      FOCEAN_loc(:,j_0:j_1) = FOCEAN(:,j_0:j_1)
-      call halo_update(grid,focean_loc)
-
 C**** Calculate J1O = least J with some ocean
-      Do 130 J=1,JM
-  130 If (Sum(FOCEAN(:,J)) > 0)  GoTo 140
-  140 J1O = J
+      j1o_loc = huge(j1o_loc)
+      do j=j_0,j_1
+        if(sum(focean(:,j)) > 0d0) then
+          j1o_loc = j
+          exit
+        endif
+      enddo
+      call globalmin(grid,j1o_loc,j1o)
       write(6,*) "Minimum J with some ocean:",J1O
 C**** Fix to 4 for temporary consistency
       J1O=4
@@ -461,27 +467,36 @@ C**** Fix to 4 for temporary consistency
 
 C**** Calculate LMM and modify HOCEAN
 c      call sync_param("LMO_min",LMO_min)
-      DO 170 J=1,JM    ! global arrays (fixed from now on)
-      DO 170 I=1,IM
-      LMM(I,J) =0
-      IF(FOCEAN(I,J).LE.0.)  GO TO 170
-      DO 150 L=LMO_min,LMO-1
-  150 IF(HATMO(I,J)+HOCEAN(I,J) .le. 5d-1*(ZE(L)+ZE(L+1)))  GO TO 160
-C     L=LMO
-  160 LMM(I,J)=L
-      HOCEAN(I,J) = -HATMO(I,J) + ZE(L)
-  170 CONTINUE
-
+      do j=max(1,j_0h),min(j_1h,jm)
+        do i=1,im
+          lmm(i,j) = 0
+          if(focean(i,j).le.0.) cycle
+          do l=lmo_min,lmo-1
+            if(hatmo(i,j)+hocean(i,j) .le. 5d-1*(ze(l)+ze(l+1))) exit
+          enddo
+          lmm(i,j)=l
+          hocean(i,j) = -hatmo(i,j) + ze(l)
+        enddo
+      enddo
+ 
 C**** Calculate LMU
-      I=IM
-      DO 180 J=1,JM    ! global arrays (fixed from now on)
-      DO 180 IP1=1,IM
-      LMU(I,J) = MIN(LMM(I,J),LMM(IP1,J))
-  180 I=IP1
+      do j=max(1,j_0h),min(j_1h,jm)
+        i=im
+        do ip1=1,im
+          lmu(i,j) = min(lmm(i,j),lmm(ip1,j))
+          i=ip1
+        enddo
+      enddo
+
+
 C**** Calculate LMV
-      DO 190 J=1,JM-1  ! global arrays (fixed from now on)
-      DO 190 I=1,IM
- 190  LMV(I,J) = MIN(LMM(I,J),LMM(I,J+1))
+      call pack_data(grid,lmm,lmm_glob)
+      call broadcast(grid,lmm_glob)
+      do j=max(1,j_0h),min(j_1h,jm-1)
+        do i=1,im
+          lmv(i,j) = min(lmm_glob(i,j),lmm_glob(i,j+1))
+        enddo
+      enddo
 
 C****
 C**** Tabulate basin start/end indices
@@ -497,6 +512,8 @@ C****
           qexist(:) = (l <= lmv(:,j))
           call get_i1i2(qexist,im,nbyzv(j,l),
      &         i1yzv(1,j,l),i2yzv(1,j,l),nbyzmax)
+        enddo
+        do j=max(2,j_0h),min(jm-1,j_1)
           do i=1,im-1
             qexist(i) =
      &           (l <= lmv(i,j)) .or. (l <= lmv(i+1,j)) .or.
@@ -526,20 +543,26 @@ C****
       enddo
 
       IF(iniOCEAN) THEN
+
 C**** Initialize a run from ocean initial conditions
-C???? For starters, let all processes read the IC
-      allocate(MO4(IM,JM,LMO),G0M4(IM,JM,LMO),S0M4(IM,JM,LMO),
-     &       GZM4(IM,JM,LMO),SZM4(IM,JM,LMO))
-      CALL openunit("OIC",iu_OIC,.TRUE.,.TRUE.)
-      READ  (iu_OIC,ERR=820) TITLE,MO4,G0M4,GZM4,S0M4,SZM4
-      call closeunit(iu_OIC)
-      WRITE (6,*) 'OIC read from unit ',iu_OIC,': ',TITLE
+
+      fid = par_open(grid,'OIC','read')
+      call read_dist_data(grid,fid,'mo',mo)
+      call read_dist_data(grid,fid,'g' ,g0m)
+      call read_dist_data(grid,fid,'gz',gzmo)
+      call read_dist_data(grid,fid,'s' ,s0m)
+      call read_dist_data(grid,fid,'sz',szmo)
+      call par_close(grid,fid)
+      call halo_update(grid,mo)
+      call halo_update(grid,g0m)
+      call halo_update(grid,gzmo)
+      call halo_update(grid,s0m)
+      call halo_update(grid,szmo)
+
 C**** Calculate layer mass from column mass and check for consistency
       DO 313 J=J_0,J_1
       DO 313 I=1,IM
       LMIJ=LMM(I,J)
-      DO 311 L=1,LMIJ
-  311 MO(I,J,L) = MO4(I,J,L)
       DO 312 L=LMIJ+1,LMO
   312 MO(I,J,L) = 0.
 C**** if there is a problem try nearest neighbour
@@ -573,17 +596,17 @@ C**** if there is a problem try nearest neighbour
                 if(ii.le.im/2) ii=ii+im/2
                 if(ii.gt.im/2) ii=ii-im/2
               endif
-              IF ((MO4(II,JJ,1).gt.0) .and. (LMM(II,JJ).ge.LMM(I,J)))
+              IF ((MO(II,JJ,1).gt.0) .and. (LMM(II,JJ).ge.LMM(I,J)))
      *             flagij=1
             endif
           enddo
         enddo
         IF (flagij.ne.0) THEN
-          MO(I,J,1:LMM(I,J))=MO4(II,JJ,1:LMM(I,J))
-          G0M4(I,J,1:LMM(I,J))=G0M4(II,JJ,1:LMM(I,J))
-          S0M4(I,J,1:LMM(I,J))=S0M4(II,JJ,1:LMM(I,J))
-          GZM4(I,J,1:LMM(I,J))=GZM4(II,JJ,1:LMM(I,J))
-          SZM4(I,J,1:LMM(I,J))=SZM4(II,JJ,1:LMM(I,J))
+          MO(I,J,1:LMM(I,J))=MO(II,JJ,1:LMM(I,J))
+          G0M(I,J,1:LMM(I,J))=G0M(II,JJ,1:LMM(I,J))
+          S0M(I,J,1:LMM(I,J))=S0M(II,JJ,1:LMM(I,J))
+          GZMO(I,J,1:LMM(I,J))=GZMO(II,JJ,1:LMM(I,J))
+          SZMO(I,J,1:LMM(I,J))=SZMO(II,JJ,1:LMM(I,J))
           WRITE (6,*) "Inconsistency at ",I,J,"fixed from :",II,JJ
         END IF
       END IF
@@ -609,17 +632,17 @@ C**** Define mean value of mass, potential heat, and salinity at poles
         SSZ = 0.
         DO I=1,IM
           SM  = SM  +   MO(I,J,L)
-          SG0 = SG0 + G0M4(I,J,L)
-          SGZ = SGZ + GZM4(I,J,L)
-          SS0 = SS0 + S0M4(I,J,L)
-          SSZ = SSZ + SZM4(I,J,L)
+          SG0 = SG0 + G0M(I,J,L)
+          SGZ = SGZ + GZMO(I,J,L)
+          SS0 = SS0 + S0M(I,J,L)
+          SSZ = SSZ + SZMO(I,J,L)
         end do
         DO I=1,IM
           MO(I,J,L)   = SM /IM
-          G0M4(I,J,L) = SG0/IM
-          GZM4(I,J,L) = SGZ/IM
-          S0M4(I,J,L) = SS0/IM
-          SZM4(I,J,L) = SSZ/IM
+          G0M(I,J,L) = SG0/IM
+          GZMO(I,J,L) = SGZ/IM
+          S0M(I,J,L) = SS0/IM
+          SZMO(I,J,L) = SSZ/IM
         end do
       end if
 C**** Define East-West horizontal gradients
@@ -630,15 +653,15 @@ C**** Define East-West horizontal gradients
       IF(LMM(I  ,J).LT.L)  GO TO 344
       IF(LMM(IM1,J).GE.L)  GO TO 342
       IF(LMM(IP1,J).LT.L)  GO TO 344
-      GXMO(I,J,L) = .5*(G0M4(IP1,J,L)-G0M4(I,J,L))
-      SXMO(I,J,L) = .5*(S0M4(IP1,J,L)-S0M4(I,J,L))
+      GXMO(I,J,L) = .5*(G0M(IP1,J,L)-G0M(I,J,L))
+      SXMO(I,J,L) = .5*(S0M(IP1,J,L)-S0M(I,J,L))
       GO TO 344
   342 IF(LMM(IP1,J).GE.L)  GO TO 343
-      GXMO(I,J,L) = .5*(G0M4(I,J,L)-G0M4(IM1,J,L))
-      SXMO(I,J,L) = .5*(S0M4(I,J,L)-S0M4(IM1,J,L))
+      GXMO(I,J,L) = .5*(G0M(I,J,L)-G0M(IM1,J,L))
+      SXMO(I,J,L) = .5*(S0M(I,J,L)-S0M(IM1,J,L))
       GO TO 344
-  343 GXMO(I,J,L) = .25*(G0M4(IP1,J,L)-G0M4(IM1,J,L))
-      SXMO(I,J,L) = .25*(S0M4(IP1,J,L)-S0M4(IM1,J,L))
+  343 GXMO(I,J,L) = .25*(G0M(IP1,J,L)-G0M(IM1,J,L))
+      SXMO(I,J,L) = .25*(S0M(IP1,J,L)-S0M(IM1,J,L))
   344 IM1=I
   345 I=IP1
 C**** Define North-South horizontal gradients
@@ -647,33 +670,31 @@ C**** Define North-South horizontal gradients
       IF(LMM(I,J  ).LT.L)  GO TO 354
       IF(LMM(I,J-1).GE.L)  GO TO 352
       IF(LMM(I,J+1).LT.L)  GO TO 354
-      GYMO(I,J,L) = .5*(G0M4(I,J+1,L)-G0M4(I,J,L))
-      SYMO(I,J,L) = .5*(S0M4(I,J+1,L)-S0M4(I,J,L))
+      GYMO(I,J,L) = .5*(G0M(I,J+1,L)-G0M(I,J,L))
+      SYMO(I,J,L) = .5*(S0M(I,J+1,L)-S0M(I,J,L))
       GO TO 354
   352 IF(LMM(I,J+1).GE.L)  GO TO 353
-      GYMO(I,J,L) = .5*(G0M4(I,J,L)-G0M4(I,J-1,L))
-      SYMO(I,J,L) = .5*(S0M4(I,J,L)-S0M4(I,J-1,L))
+      GYMO(I,J,L) = .5*(G0M(I,J,L)-G0M(I,J-1,L))
+      SYMO(I,J,L) = .5*(S0M(I,J,L)-S0M(I,J-1,L))
       GO TO 354
-  353 GYMO(I,J,L) = .25*(G0M4(I,J+1,L)-G0M4(I,J-1,L))
-      SYMO(I,J,L) = .25*(S0M4(I,J+1,L)-S0M4(I,J-1,L))
+  353 GYMO(I,J,L) = .25*(G0M(I,J+1,L)-G0M(I,J-1,L))
+      SYMO(I,J,L) = .25*(S0M(I,J+1,L)-S0M(I,J-1,L))
   354 CONTINUE
 C**** Multiply specific quantities by mass
       DO 360 J=J_0,J_1
       DO 360 I=1,IM
-      G0M(I,J,L)  = G0M4(I,J,L)*(MO(I,J,L)*DXYPO(J))
+      G0M(I,J,L)  = G0M(I,J,L)*(MO(I,J,L)*DXYPO(J))
       GXMO(I,J,L) = GXMO(I,J,L)*(MO(I,J,L)*DXYPO(J))
       GYMO(I,J,L) = GYMO(I,J,L)*(MO(I,J,L)*DXYPO(J))
-      GZMO(I,J,L) = GZM4(I,J,L)*(MO(I,J,L)*DXYPO(J))
-      S0M(I,J,L)  = S0M4(I,J,L)*(MO(I,J,L)*DXYPO(J))
+      GZMO(I,J,L) = GZMO(I,J,L)*(MO(I,J,L)*DXYPO(J))
+      S0M(I,J,L)  = S0M(I,J,L)*(MO(I,J,L)*DXYPO(J))
       SXMO(I,J,L) = SXMO(I,J,L)*(MO(I,J,L)*DXYPO(J))
       SYMO(I,J,L) = SYMO(I,J,L)*(MO(I,J,L)*DXYPO(J))
-  360 SZMO(I,J,L) = SZM4(I,J,L)*(MO(I,J,L)*DXYPO(J))
+  360 SZMO(I,J,L) = SZMO(I,J,L)*(MO(I,J,L)*DXYPO(J))
   370 CONTINUE
 C**** Initiallise geopotential field (needed by KPP)
       OGEOZ = 0.
       OGEOZ_SV = 0.
-
-      deallocate(MO4,G0M4,S0M4,GZM4,SZM4)
 
       END IF
 
@@ -1742,13 +1763,19 @@ c tracer arrays in straits
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm, trname, t_qlimit
 #endif
-      USE OCEAN, only : im,jm,lmo,dxypo,focean,imaxj, lmm, mo=>mo_glob
-     *  ,g0m=>g0m_glob, gxmo=>gxmo_glob,gymo=>gymo_glob,gzmo=>gzmo_glob
-     *  ,s0m=>s0m_glob, sxmo=>sxmo_glob,symo=>symo_glob,szmo=>szmo_glob
-     *  ,uo=>uo_glob, vo=>vo_glob
+      USE OCEAN, only : im,jm,lmo,dxypo,focean,
+     *     imaxj, lmm
+     *  ,mo, uo, vo
+     &  ,g0m,gxmo,gymo,gzmo
+     &  ,s0m,sxmo,symo,szmo
+c     *  , mo=>mo_glob
+c     *  ,g0m=>g0m_glob, gxmo=>gxmo_glob,gymo=>gymo_glob,gzmo=>gzmo_glob
+c     *  ,s0m=>s0m_glob, sxmo=>sxmo_glob,symo=>symo_glob,szmo=>szmo_glob
+c     *  ,uo=>uo_glob, vo=>vo_glob
 #ifdef TRACERS_OCEAN
-     *  ,trmo=>trmo_glob, txmo=>txmo_glob, tymo=>tymo_glob,
-     *   tzmo=>tzmo_glob
+     *  ,trmo, txmo, tymo, tzmo
+c     *  ,trmo=>trmo_glob, txmo=>txmo_glob, tymo=>tymo_glob,
+c     *   tzmo=>tzmo_glob
 #endif
       IMPLICIT NONE
       REAL*8 SALIM,GO1,SO1,relerr,errmax,temgs
@@ -4247,7 +4274,7 @@ C     IF(LMU(1,1 or JM) <= 0)  GO TO
           bdragfac=BDRAGX*SQRT(WSQ)
         else
           taub = SQRT(taubx(im,jm)*taubx(im,jm) +
-     &           tauby(ivnp,jm)*tauby(ivnp,jm))
+     &           taubx(ivnp,jm)*taubx(ivnp,jm))
           taubbyu=taub/SQRT(WSQ)
           bdragfac=rhobot(1,jm)*taubbyu
         endif
@@ -5334,8 +5361,12 @@ C****
       RETURN
       END SUBROUTINE io_oda
 
-      SUBROUTINE ADVSI_DIAG
+      SUBROUTINE ADVSI_DIAG(atmocn,atmice)
 !@sum ADVSI_DIAG dummy routine for consistency with qflux model
+      use exchange_types, only : atmocn_xchng_vars,atmice_xchng_vars
+      implicit none
+      type(atmocn_xchng_vars) :: atmocn
+      type(atmice_xchng_vars) :: atmice
       RETURN
       END SUBROUTINE ADVSI_DIAG
 

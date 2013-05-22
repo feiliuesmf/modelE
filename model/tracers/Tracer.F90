@@ -1,80 +1,53 @@
 module Tracer_mod
-  use Dictionary_mod, only: Dictionary_type
+  use Dictionary_mod, only: Dictionary
   use TracerSurfaceSource_mod, only: TracerSurfaceSource
   use TracerSource_mod, only: TracerSource3D
+  use AttributeDictionary_mod
   implicit none
   private
 
-  public :: Tracer_type       ! derived type
-  public :: Tracer            ! constructor
+  public :: Tracer       ! derived type
+  public :: newTracer            ! constructor
   public :: clean
 
-  public :: setProperty
   public :: getName
-  public :: getProperty
-  public :: getProperties
-  public :: hasProperty
-  public :: merge
   public :: writeUnformatted
-  public :: readUnformatted
+  public :: readUnformattedTracer
   public :: readOneTracer
 
   public :: findSurfaceSources
   public :: addSurfaceSource
   public :: readSurfaceSources
+  public :: assignment(=)
 
   public :: NTSURFSRCMAX
+  public :: copyInto
 !@var ntsurfsrcmax maximum number of surface 2D sources/sinks
       integer, parameter :: NTSURFSRCMAX=16
 !@var nt3Dsrcmax maximum number of 3D tracer sources/sinks
       integer, parameter :: NT3DSRCMAX=7
 
-! TODO make Tracer_type EXTEND Dictionary_type when F2003 adequately supported
-  type Tracer_type
+  type, extends(AttributeDictionary) :: Tracer
 !!$    private
-    type (Dictionary_type) :: properties
+    type (Dictionary) :: properties
     integer :: ntSurfSrc = 0
     type (TracerSurfaceSource) :: surfaceSources(NTSURFSRCMAX)
     type (TracerSource3D) :: sources3D(NT3DSRCMAX)
-  end type Tracer_type
+  end type Tracer
 
-  interface Tracer
-    module procedure newTracer
+  interface newTracer
     module procedure newTracerName
+    module procedure newEmptyTracer
     module procedure TracerCopy
-  end interface
-
-  interface setProperty
-    module procedure setProperty_integer, setProperty_integerArr
-    module procedure setProperty_real64,  setProperty_real64Arr
-    module procedure setProperty_logical, setProperty_logicalArr
-    module procedure setProperty_string,  setProperty_stringArr
-  end interface
-
-  interface getProperty
-    module procedure getProperty_single
-  end interface
-
-  interface getProperties
-    module procedure getProperties_single
-  end interface
-
-  interface hasProperty
-    module procedure hasProperty_single
-  end interface
-
-  interface merge
-    module procedure merge_one
-    module procedure merge_multi
   end interface
 
   interface writeUnformatted
     module procedure writeUnformatted_tracer
   end interface
 
-  interface readUnformatted
-    module procedure readUnformatted_tracer
-  end interface
+  interface assignment(=)
+    module procedure toTracer
+  end interface assignment(=)
 
   interface clean
     module procedure cleanTracer
@@ -82,158 +55,70 @@ module Tracer_mod
 
 contains
 
-  function newTracer() result(aTracer)
+  ! private constructor
+  function newEmptyTracer() result(aTracer)
 !@sum Construct empty tracer    
     use Dictionary_mod, only: Dictionary
-    type (Tracer_type) :: aTracer
-    aTracer%properties = Dictionary()
-  end function newTracer
+    type (Tracer), pointer :: aTracer
+
+    allocate(aTracer)
+    aTracer%AttributeDictionary = newAttributeDictionary()
+
+  end function newEmptyTracer
 
   function newTracerName(name) result(aTracer)
 !@sum Construct named tracer
     use Dictionary_mod, only: Dictionary
     character(len=*), intent(in) :: name
-    type (Tracer_type) :: aTracer
+    type (Tracer), pointer :: aTracer
 
-    aTracer = Tracer()
-    call setProperty(aTracer, 'name', name)
+    aTracer => newEmptyTracer()
+    call aTracer%insert('name', trim(name))
+    aTracer%ntSurfsrc = 0
+    
   end function newTracerName
 
   ! Copy constructor
   function TracerCopy(original) result(copy)
     use Dictionary_mod, only: Dictionary
-    type (Tracer_type), intent(in) :: original
-    type (Tracer_type) :: copy
+    type (Tracer), intent(in) :: original
+    type (Tracer) :: copy
 
-    copy%properties = Dictionary(original%properties)
+    copy%AttributeDictionary = original%AttributeDictionary
 
   end function TracerCopy
 
-  subroutine setProperty_integer(this, property, value)
-    use Dictionary_mod, only: insert
-    type (Tracer_type), intent(inout) :: this
-    character(len=*), intent(in) :: property
-    integer, intent(in) :: value
-    call insert(this%properties, property, value)
-  end subroutine setProperty_integer
-
-  subroutine setProperty_integerArr(this, property, values)
-    use Dictionary_mod, only: insert
-    type (Tracer_type), intent(inout) :: this
-    character(len=*), intent(in) :: property
-    integer, intent(in) :: values(:)
-    call insert(this%properties, property, values)
-  end subroutine setProperty_integerArr
-
-  subroutine setProperty_real64(this, property, value)
-    use Dictionary_mod, only: insert
-    type (Tracer_type), intent(inout) :: this
-    character(len=*), intent(in) :: property
-    real*8, intent(in) :: value
-    call insert(this%properties, property, value)
-  end subroutine setProperty_real64
-
-  subroutine setProperty_real64Arr(this, property, values)
-    use Dictionary_mod, only: insert
-    type (Tracer_type), intent(inout) :: this
-    character(len=*), intent(in) :: property
-    real*8, intent(in) :: values(:)
-    call insert(this%properties, property, values)
-  end subroutine setProperty_real64Arr
-
-  subroutine setProperty_logical(this, property, value)
-    use Dictionary_mod, only: insert
-    type (Tracer_type), intent(inout) :: this
-    character(len=*), intent(in) :: property
-    logical, intent(in) :: value
-    call insert(this%properties, property, value)
-  end subroutine setProperty_logical
-
-  subroutine setProperty_logicalArr(this, property, values)
-    use Dictionary_mod, only: insert
-    type (Tracer_type), intent(inout) :: this
-    character(len=*), intent(in) :: property
-    logical, intent(in) :: values(:)
-    call insert(this%properties, property, values)
-  end subroutine setProperty_logicalArr
-
-  subroutine setProperty_string(this, property, value)
-    use Dictionary_mod, only: insert
-    type (Tracer_type), intent(inout) :: this
-    character(len=*), intent(in) :: property
-    character(len=*), intent(in) :: value
-    call insert(this%properties, property, value)
-  end subroutine setProperty_string
-
-  subroutine setProperty_stringArr(this, property, values)
-    use Dictionary_mod, only: insert
-    type (Tracer_type), intent(inout) :: this
-    character(len=*), intent(in) :: property
-    character(len=*), intent(in) :: values(:)
-    call insert(this%properties, property, values)
-  end subroutine setProperty_stringArr
-
-  subroutine merge_one(this, pair)
-    use KeyValuePair_mod, only: KeyValuePair_type
-    use Dictionary_mod, only: merge
-    type (Tracer_type), intent(inout) :: this
-    type (KeyValuePair_type), intent(in) :: pair
-    
-    call merge(this%properties, pair)
-  end subroutine merge_one
-
   function getName(this) result (name)
-    use GenericType_mod
-    use Dictionary_mod, only: lookup
-    use KeyValuePair_mod, only: MAX_LEN_KEY
-    type (Tracer_type), intent(in) :: this
-    character(len=MAX_LEN_KEY) :: name
+    use AbstractAttribute_mod
+    type (Tracer), intent(in) :: this
+    character(len=MAX_LEN_ATTRIBUTE_STRING), pointer :: name
+    class (AbstractAttribute), pointer :: p
 
-    name = lookup(this%properties, 'name')
+    ! TODO Intel is now struggling with the line below - no idea why.  Worked before other changes.
+!!$    name = this%getReference('name')
+    p => this%getReference('name')
+    name = p
     
   end function getName
 
-  function getProperty_single(this, property) result (propertyValues)
-    use GenericType_mod
-    use Dictionary_mod, only: lookup
-    type (Tracer_type), intent(in) :: this
-    character(len=*), intent(in) :: property
-    type (GenericType_type), pointer :: propertyValues(:)
-
-    propertyValues => lookup(this%properties, property)
-    
-  end function getProperty_single
-
-  function getProperties_single(this) result(properties)
-    type (Tracer_type), target, intent(in) :: this
-    type (Dictionary_type), pointer :: properties
-    properties => this%properties
-  end function getProperties_single
-
-  subroutine merge_multi(this, properties)
-    use Dictionary_mod, only: merge
-    type (Tracer_type), intent(inout) :: this
-    type (Dictionary_type), intent(in) :: properties
-    
-    call merge(this%properties, properties)
-  end subroutine merge_multi
-
   subroutine writeUnformatted_tracer(this, unit)
 !@sum Write a tracer to a unit attached to an unformatted sequential file.
-    use Dictionary_mod, only: writeUnformatted
-    type (Tracer_type), intent(in) :: this
+    type (Tracer), intent(in) :: this
     integer, intent(in) :: unit
 
-    call writeUnformatted(this%properties, unit)
+!!$    call this%properties%writeUnformatted(unit)
+    call this%writeUnformatted(unit)
+    
   end subroutine writeUnformatted_tracer
 
-  subroutine readUnformatted_tracer(this, unit)
+  subroutine readUnformattedTracer(this, unit)
 !@sum Read a bundle to a unit attached to an unformatted sequential file.
-    use Dictionary_mod, only: readUnformatted
-    type (Tracer_type), intent(out) :: this
+!!$    use Dictionary_mod, only: readUnformatted
+    type (Tracer), intent(inout) :: this
     integer, intent(in) :: unit
-    call readUnformatted(this%properties, unit)
-  end subroutine readUnformatted_tracer
+!!$    call readUnformatted(this%properties, unit)
+    call this%readUnformatted(unit)
+  end subroutine readUnformattedTracer
 
   function readOneTracer(unit, status) result(aTracer)
     use Parser_mod, only: Parser_type
@@ -243,7 +128,7 @@ contains
 
     integer, intent(in) :: unit
     integer, intent(out) :: status
-    type (Tracer_type) :: aTracer
+    type (Tracer), pointer :: aTracer
 
     type (Parser_type) :: parser
 
@@ -252,26 +137,21 @@ contains
     call setTokenSeparators(parser, '=,')
     call setCommentCharacters(parser, '!#')
 
-    aTracer = Tracer()
-    aTracer%properties = parse(parser, unit, status)
+    aTracer => newEmptyTracer()
+    aTracer%AttributeDictionary = parse(parser, unit, status)
+
+!!$    aTracer%properties = parse(parser, unit, status)
+    
     if (status /= 0) return
 
   end function readOneTracer
 
-  logical function hasProperty_single(this, property) result(has)
-    use Dictionary_mod, only: hasKey
-    type (Tracer_type), intent(in) :: this
-    character(len=*), intent(in) :: property
-    has = hasKey(this%properties, property)
-  end function hasProperty_single
-
   subroutine cleanTracer(this)
     use Dictionary_mod, only: clean
-    type (Tracer_type), intent(inout) :: this
-    call clean(this%properties)
+    type (Tracer), intent(inout) :: this
   end subroutine cleanTracer
 
-  subroutine findSurfaceSources(tracer, checkname, sect_name) 
+  subroutine findSurfaceSources(trcer, checkname, sect_name) 
 !@sum reads headers from emission files to return
 !@+ source names and determine the number of sources
 !@+ from the number of files in the rundeck of the form:
@@ -287,7 +167,7 @@ contains
     implicit none
 
 !@var nsrc number of source to define ntsurfsrc(n)
-    type (Tracer_type), intent(inout) :: tracer
+    type (Tracer), intent(inout) :: trcer
     logical, intent(in) :: checkName
     character*10, intent(in):: sect_name(:)
 
@@ -305,17 +185,17 @@ contains
     nsrc=0
     if (am_i_root()) &
          &  print*,__LINE__,__FILE__,' tracer = ',  &
-         &     trim(getName(tracer)), nsrc, ntsurfsrcmax
+         &     trim(getName(trcer)), nsrc, ntsurfsrcmax
 
     loop_n: do n = 1, ntsurfsrcmax
 
-      fname = addIntegerSuffix(getName(tracer), n)
+      fname = addIntegerSuffix(getName(trcer), n)
       inquire(file=trim(fname), exist=fileExists)
       if (am_i_root()) print*,'name: ', trim(fname), fileExists
 
       if (fileExists) then
         nsrc=nsrc+1
-        call addSourceFromFile(tracer, fname)
+        call addSourceFromFile(trcer, fname)
       else
         exit loop_n
       endif
@@ -324,7 +204,7 @@ contains
     ! and make sure there isn't a skip:
 
     n=n+1
-    fname = addIntegerSuffix(getName(tracer), n)
+    fname = addIntegerSuffix(getName(trcer), n)
     inquire(file=fname,exist=fileExists)
 
     if (fileExists) then
@@ -336,14 +216,14 @@ contains
 
   contains
 
-    subroutine addSourceFromFile(tracer, fileName)
+    subroutine addSourceFromFile(trcer, fileName)
       use TracerSurfaceSource_mod, only: initSurfaceSource
-      type (Tracer_type), intent(inout) :: tracer
+      type (Tracer), intent(inout) :: trcer
       character(len=*), intent(in) :: fileName
 
-      tracer%ntSurfSrc = tracer%ntSurfSrc + 1
-      call initSurfaceSource(tracer%surfaceSources(tracer%ntSurfSrc),  &
-           &     getName(tracer), fileName, sect_name, checkname)
+      trcer%ntSurfSrc = trcer%ntSurfSrc + 1
+      call initSurfaceSource(trcer%surfaceSources(trcer%ntSurfSrc),  &
+           &     getName(trcer), fileName, sect_name, checkname)
     end subroutine addSourceFromFile
 
   end subroutine findSurfaceSources
@@ -352,7 +232,7 @@ contains
   ! is manipulated by custom logic elsewhere.
   ! Optional sourcename is only used by diagnostics
   subroutine addSurfaceSource(this, sourceName)
-    type (Tracer_type), intent(inout) :: this
+    type (Tracer), intent(inout) :: this
     character(len=*), intent(in) :: sourceName
 
     this%ntSurfSrc = this%ntSurfSrc + 1
@@ -372,12 +252,12 @@ contains
     fullName = trim(tracerName) // '_' // suffix
   end function addIntegerSuffix
 
-  subroutine readSurfaceSources(tracer, n,nsrc,xyear,xday,checkname,itime,itime_tr0,sfc_src)
+  subroutine readSurfaceSources(trcer, n,nsrc,xyear,xday,checkname,itime,itime_tr0,sfc_src)
 !@sum reads surface (2D generally non-interactive) sources
 !@auth Jean Lerner/Greg Faluvegi
     USE DOMAIN_DECOMP_ATM, only: GRID
     use TracerSurfaceSource_mod, only: readSurfaceSource
-    type (Tracer_type), target, intent(inout) :: tracer
+    type (Tracer), target, intent(inout) :: trcer
     integer, intent(in) :: nsrc,n
     integer, intent(in) :: xyear, xday
     logical, intent(in) :: checkname
@@ -391,12 +271,38 @@ contains
     if (nsrc <= 0) return
 
     do ns=1,nsrc
-      call readSurfaceSource(tracer%surfaceSources(ns), addIntegerSuffix(getName(tracer), ns), checkname, sfc_src(:,:,n,ns), &
+      call readSurfaceSource(trcer%surfaceSources(ns), addIntegerSuffix(getName(trcer), ns), checkname, sfc_src(:,:,n,ns), &
            & xyear, xday)
     enddo
 
     return
 
   end subroutine readSurfaceSources
+
+  subroutine toTracer(pType, pClass)
+    type (Tracer), pointer, intent(out) :: pType
+    class (Tracer), target, intent(in) :: pClass
+
+    select type (p => pClass)
+    type is (Tracer)
+      pType => p
+    class default
+      call stop_model('Illegal conversion in Tracer_mod.',255)
+    end select
+
+    
+  end subroutine toTracer
+
+  subroutine copyInto(a, b)
+    type (Tracer), intent(out) :: a
+    type (Tracer), intent(in) :: b
+
+    a%properties = b%properties
+    a%AttributeDictionary = b%AttributeDictionary
+    a%ntSurfSrc = b%ntSurfSrc
+    a%surfaceSources = b%surfaceSources
+    a%sources3D = b%sources3D
+    
+  end subroutine copyInto
 
 end module Tracer_mod
