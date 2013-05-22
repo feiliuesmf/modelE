@@ -63,9 +63,13 @@ contains
     real*8, dimension(:)   :: xCoordinates, yCoordinates
     real*8, dimension(:,:) :: tabulatedValues   
 
-    allocate(i2D%xCoordinates, source=xCoordinates)
-    allocate(i2D%yCoordinates, source=yCoordinates)
-    allocate(i2D%tabulatedValues, source=tabulatedValues)
+    allocate(i2D%xCoordinates(size(xCoordinates)))
+    allocate(i2D%yCoordinates(size(yCoordinates)))
+    allocate(i2D%tabulatedValues(size(tabulatedValues,1), &
+                                 size(tabulatedValues,2)))
+    i2D%xCoordinates = xCoordinates
+    i2D%yCoordinates = yCoordinates
+    i2D%tabulatedValues = tabulatedValues
 
   end function newInterpolator2D
 
@@ -76,10 +80,16 @@ contains
     real*8, dimension(:)     :: xCoordinates, yCoordinates, zCoordinates
     real*8, dimension(:,:,:) :: tabulatedValues
 
-    allocate(i3D%xCoordinates, source=xCoordinates)
-    allocate(i3D%yCoordinates, source=yCoordinates)
-    allocate(i3D%zCoordinates, source=zCoordinates)
-    allocate(i3D%tabulatedValues, source=tabulatedValues)
+    allocate(i3D%xCoordinates(size(xCoordinates)))
+    allocate(i3D%yCoordinates(size(yCoordinates)))
+    allocate(i3D%zCoordinates(size(zCoordinates)))
+    allocate(i3D%tabulatedValues(size(tabulatedValues,1), & 
+                                 size(tabulatedValues,2), &
+                                 size(tabulatedValues,3)))
+    i3D%xCoordinates = xCoordinates
+    i3D%yCoordinates = yCoordinates
+    i3D%zCoordinates = zCoordinates
+    i3D%tabulatedValues = tabulatedValues
 
   end function newInterpolator3D
 
