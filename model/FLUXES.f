@@ -119,17 +119,17 @@
 !@var w2_l1     vertical component of t.k.e. at gcm layer 1
 !@var ciaavg    cross-isobar angle
 !@var khsavg    vertical diffusivity at "surface" height (m2/s)
+!@var wspdf     mean surface wind calculated from PDF of wind speed [m/s]
      &     ,tauavg,tgvavg,qgavg
      &     ,w2_l1,gustiwind,dblavg,rhoavg
-     &     ,ciaavg,khsavg
+     &     ,ciaavg,khsavg,wspdf
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
 !@var wsgcm magnitude of the GCM surface wind - ocean currents [m/s]
-!@var wspdf mean surface wind calculated from PDF of wind speed [m/s]
 !@var wsubtke turbulent kinetic energy velocity scale [m/s]
 !@var wsubwd dry convective velocity scale [m/s]
 !@var wsubwm moist convective velocity scale [m/s]
-     &     ,wsgcm,wspdf,wsubwd,wsubtke,wsubwm
+     &     ,wsgcm,wsubwd,wsubtke,wsubwm
 #endif
 
 !----------------------------------------------------------------
@@ -822,10 +822,10 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &     ,this%chgs
      &     ,this%cqgs
      &     ,this%ustar_pbl
+     &     ,this%wspdf
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,this%wsgcm
-     &     ,this%wspdf
      &     ,this%wsubwd
      &     ,this%wsubtke
      &     ,this%wsubwm

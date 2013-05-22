@@ -19,10 +19,17 @@
 
 c ---------------------------------------------------------------------
 
+! change ws to wspdf to see whether co2 fluxes improve
+
+#ifdef OBIO_WSPDF
+      SUBROUTINE TRACERS_GASEXCH_ocean_CO2_PBL(tg1,wspdf,
+     . alati,psurf,itr,trconstflx,byrho,Kw_gas,alpha_gas,
+     . beta_gas,trsf,trcnst,ilong,jlat)
+#else
       SUBROUTINE TRACERS_GASEXCH_ocean_CO2_PBL(tg1,ws,
      . alati,psurf,itr,trconstflx,byrho,Kw_gas,alpha_gas,
      . beta_gas,trsf,trcnst,ilong,jlat)
-  
+#endif                
 
       USE CONSTANT, only:    rhows,mair
       use OldTracer_mod, only: vol2mass
@@ -38,7 +45,7 @@ c ---------------------------------------------------------------------
       implicit none
 
       integer :: ilong,jlat,itr
-      real*8  :: tg1,ws,psurf,trconstflx,byrho,trsf,trcnst
+      real*8  :: tg1,ws,wspdf,psurf,trconstflx,byrho,trsf,trcnst
       real*8  :: alati,Kw_gas,alpha_gas,beta_gas
       real*8  :: Sc_gas
       real*8, external :: sc_co2,sol_co2
@@ -67,7 +74,11 @@ c ---------------------------------------------------------------------
      .          ', Sc_gas,temp_c=',Sc_gas,tg1
          Kw_gas=1.e-10
       else
+#ifdef OBIO_WSPDF
+         Kw_gas=(Sc_gas/660.d0)**(-0.5d0) * wspdf * wspdf * awan !units of m/s
+#else         
          Kw_gas=(Sc_gas/660.d0)**(-0.5d0) * ws * ws * awan !units of m/s
+#endif
       endif
 
       !---------------------------------------------------------------
@@ -91,13 +102,21 @@ c ---------------------------------------------------------------------
       trcnst = Kw_gas * alpha_gas * trconstflx * byrho     
      .                * 1.0d6 / vol2mass(ntm_gasexch)    
 
+#ifdef OBIO_WSPDF
         if (ilong.eq.1. .and. jlat.eq.45) then
-        write(*,'(a,3i7,11e12.4)')'PBL, TRACER_GASEXCH_CO2:',
+        write(*,'(a,3i7,11e12.4)')'PBL, TRACER_GASEXCH_CO2 wspdf:',
 !       write(*,'(a,3i7,11e12.4)')'44444444444444444444444',
+     .   nstep,ilong,jlat,tg1,(Sc_gas/660.d0)**(-0.5d0),wspdf*wspdf,
+     .   Kw_gas,alpha_gas,beta_gas,trsf,trcnst,trconstflx,byrho,rhows
+        endif
+#else
+        if (ilong.eq.1. .and. jlat.eq.45) then
+        write(*,'(a,3i7,11e12.4)')'PBL, TRACER_GASEXCH_CO2 ws:',
+!       write(*,'(a,3i7,11e12.4)')'44444444444444444444444',  
      .   nstep,ilong,jlat,tg1,(Sc_gas/660.d0)**(-0.5d0),ws*ws,
      .   Kw_gas,alpha_gas,beta_gas,trsf,trcnst,trconstflx,byrho,rhows
         endif
-
+#endif                                  
 
       RETURN
       END SUBROUTINE TRACERS_GASEXCH_ocean_CO2_PBL
