@@ -106,7 +106,7 @@ C****
 
       type (Timer_type), pointer :: aTimer
 ! ======================= MAIN BODY ======================================
-      print *, 'SURFACE_LANDICE begin   ihc =',ihc
+
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -583,8 +583,6 @@ C****
       igla%gtemps(:,:) = igla%tgrnd(:,:)
 
       call stopTimer('SURFACE_LANDICE()')
-
-      print *, 'SURFACE_LANDICE end'
 
 
       RETURN
