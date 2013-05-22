@@ -156,16 +156,27 @@ deckDiff()
 # compare MPI restart reproducibility - 3rd argument ($3) is NPE configuration
       if [ ! -z $3 ]; then
         declare -a npeArray=("${!3}")
+          echo "  compare MPI restart reproducibility.."
         for npe in "${npeArray[@]}"; do
           if [ $checkMPI -gt 0 ]; then
             doDiff $deck.MPI.$comp.1dy.np=$npe $deck.MPI.$comp.restart.np=$npe $deck $comp
           fi
         done
 # compare MPI baseline (previous day) restart reproducibility
+          echo "  compare MPI baseline reproducibility.."
         for npe in "${npeArray[@]}"; do
           if [ $checkMPI -gt 0 ]; then
             doDiff $deck.MPI.$comp.1hr.np=$npe $baseline/$deck.MPI.$comp.1hr.np=$npe $deck $comp
             doDiff $deck.MPI.$comp.1dy.np=$npe $baseline/$deck.MPI.$comp.1dy.np=$npe $deck $comp
+          fi
+          echo "  compare MPI vs SERIAL reproducibility.."
+          if [ $checkMPI -gt 0 ]; then
+	    if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ AR5_CAD ]] || [[ "$deck" =~ tomas ]] || [[ "$deck" =~ amp ]] || [[ "$comp" =~ nag ]] || [[ "$deck" =~ SCM ]]; then
+              echo "  SKIP compare MPI vs SERIAL reproducibility.."
+            else
+	      doDiff $deck.MPI.$comp.1hr.np=$npe $deck.SERIAL.$comp.1hr $deck $comp
+	      doDiff $deck.MPI.$comp.1dy.np=$npe $deck.SERIAL.$comp.1dy $deck $comp
+            fi
           fi
         done
       fi

@@ -132,7 +132,7 @@
 !@var icon_xx indexes for conservation quantities
       INTEGER icon_OCE,icon_OKE,icon_OAM,icon_OMS,icon_OSL
 !@var kbasin integer index of which basin a particular ocean point is in
-      INTEGER, DIMENSION(IM,JM) :: KBASIN
+      INTEGER, DIMENSION(:,:), allocatable :: KBASIN,KBASIN_glob
 !@var XLB label for diagnostic titles
       CHARACTER XLB*30
 !@var FLAT latitude values on primary and secondary ocean grids
@@ -645,13 +645,13 @@ c straits arrays
       use odiag
       use pario, only : write_dist_data,write_data
       USE OCEANR_DIM, only : grid=>ogrid
-      use ocean, only : oxyp,focean_loc
+      use ocean, only : oxyp,focean
       use cdl_mod, only : write_cdl
       implicit none
       integer :: fid         !@var fid file id
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: tmp
 
-      tmp = oxyp*focean_loc
+      tmp = oxyp*focean
       call write_dist_data(grid,fid,'oxyp',tmp)
 
       call write_data(grid,fid,'ia_oij',ia_oij)
@@ -2177,6 +2177,7 @@ c
 
       call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
+      ALLOCATE(        KBASIN (IM,J_0H:J_1H), STAT=IER )
       ALLOCATE(        OIJ_loc (IM,J_0H:J_1H,KOIJ), STAT=IER )
       ALLOCATE(        OIJmm (IM,J_0H:J_1H,KOIJmm), STAT=IER )
       ALLOCATE(       OIJL_loc (IM,J_0H:J_1H,LMO,KOIJL), STAT=IER )
@@ -2189,6 +2190,7 @@ c
 #endif
 
       if(am_i_root()) then
+        ALLOCATE( KBASIN_glob (IM,JM), STAT=IER )
         ALLOCATE( OIJ (IM,JM,KOIJ), STAT=IER )
         ALLOCATE(OIJL (IM,JM,LMO,KOIJL), STAT=IER )
 #ifdef TRACERS_OCEAN

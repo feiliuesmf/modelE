@@ -67,11 +67,11 @@ MPI_Support shared
 Data input files:
 AIC=AIC.RES_M20A.D771201.nc           ! initial conditions (atm.)     needs GIC,OIC ISTART=2
 GIC=GIC.E046D3M20A.1DEC1955.ext_1.nc  ! initial conditions (ground)         and 300 year spin-up
-OIC=OIC.E5X4.L32.D1201             ! ocean initial conditions
+OIC=OIC.E5X4.L32.D1201.nc             ! ocean initial conditions
 OFTAB=OFTABLE_NEW                  ! ocean function table
 AVR=OPF.E5X4.L32                   ! ocean filter
-KBASIN=KB4X513.OCN.gas1            ! ocean basin designations
-TOPO_OC=Z72X46N_gas.1_nocasp       ! ocean bdy.cond
+KBASIN=KB4X513.OCN.gas1.nc         ! ocean basin designations
+TOPO_OC=OZ72X46N_gas.1_nocasp.nc       ! ocean bdy.cond
 CDN=CD4X500S.ext.nc
   ! VEG=V72X46.1.cor2.ext
 VEG=V72X46.1.cor2_no_crops.ext.nc

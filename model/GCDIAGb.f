@@ -1238,11 +1238,11 @@ C****
 C**** CONTENTS OF AIJK(I,J,K,N)   (SUM OVER TIME OF)
 C****   See ijks_defs for contents
 C****
-      USE CONSTANT, only : lhe,omega,sha,tf,teeny, radius
+      Use CONSTANT,   Only: kg2mb,lhe,omega,sha,tf,teeny, radius
       USE RESOLUTION, only : ls1,psfmpt,ptop
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : idacc,mdyn,mdiag
-      USE ATM_COM, only : u,v,t,p,q,wm
+      Use ATM_COM,    Only: MA,u,v,t,p,q,wm
       USE GEOM, only : bydxyp,bydxyv,rapvs,rapvn,
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ
       USE DIAG_COM, only : imh,fim,byim,jeq,ia_dga,ndaa
@@ -1252,7 +1252,7 @@ C****
      &     ,aij=>aij_loc,ij_puq,ij_pvq,ij_dsev
       USE GCDIAG
       USE ATM_COM, only : phi,plij,pmid,pedn
-      USE DYNAMICS, only : dut,dvt,SD,pit,sig,sige,dsig
+      Use DYNAMICS,  Only: CONV,dut,dvt,SD,sig,sige,dsig
       USE DIAG_LOC, only : w,tx,pm,pl,pmo,plo
      &     ,ldna,lupa
       USE DOMAIN_DECOMP_ATM, only : GRID
@@ -1263,6 +1263,7 @@ C****
       USE PRECISION_MOD
       USE GETTIME_MOD
       IMPLICIT NONE
+
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE,KE_jsum
       REAL*8, DIMENSION
      &  (IMH+1,GRID%J_STRT_HALO:GRID%J_STOP_HALO,NSPHER) :: KE_part
@@ -1294,8 +1295,8 @@ C****
      &     ,AMRHT,AMRHQ,AMUV,AMVQ,AMVT,AMUU,AMVV,AMTT
 
 c local vars for transplanted DIAGA calculations
-      real*8 :: dudp,dthdp,umn,thmn,pitmn,fphi,sdmn,dudx,pvthp,sdpu
-     &     ,upe,vpe,pitij, p4i,p4,pu4i,pv4i,puv4i,t4,z4,sp2
+      Real*8 :: dudp,dthdp,umn,thmn,fphi,dudx,pvthp,CsLMN,CsL(IM),
+     &          CsLPU,upe,vpe, p4i,p4,pu4i,pv4i,puv4i,t4,z4,sp2
       integer :: ldn
       real*8, dimension(im) :: thsec
 
@@ -1383,8 +1384,6 @@ c      APJ(J,2)=APJ(J,2)+P4I*.25
       END DO
       END DO
 
-
-
 C****
 C**** ELIASSEN PALM FLUX ON MODEL LAYERS (TRANSPLANTED FROM DIAGA)
 C****
@@ -1429,45 +1428,28 @@ C**** VERTICAL COMPONENT
       CALL HALO_UPDATE(grid, V, FROM=NORTH)
 
       DO 878 J=J_0S,J_1S
-      PITMN=0.
-      DO 870 I=1,IM
-  870 PITMN=PITMN+PIT(I,J)
-      PITMN=PITMN/FIM
+      CsLMN = 0  ;  CsL(:) = 0
       DO 878 L=1,LM-1
-      IF(L.GE.LS1-1) PITMN=0.
-      THMN=0.
-      SDMN=0.
-      DTHDP=0.
-      DO 872 I=1,IM
-      DTHDP=DTHDP+T(I,J,L+1)-T(I,J,L)
-      THMN=THMN+T(I,J,L+1)+T(I,J,L)
-  872 SDMN=SDMN+SD(I,J,L)
+      CsLMN = Sum(CONV(:,J,L)) / IM + CsLMN
+      DTHDP = Sum(T(:,J,L+1)-T(:,J,L))
+      THMN  = Sum(T(:,J,L+1)+T(:,J,L)) / IM
+      DUDX  = DXV(J+1)*Sum(U(:,J+1,L)+U(:,J+1,L+1))
+     -      - DXV(J)  *Sum(U(:,J  ,L)+U(:,J  ,L+1))
       SMALL=.0001d0*FIM*T(1,J,L+1)
-c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
       IF (DTHDP.LT.SMALL) DTHDP=SMALL
-      THMN=THMN/FIM
-      SDMN=SDMN/FIM
-      DUDX=0.
-      PVTHP=0.
-      SDPU=0.
+      PVTHP = 0  ;  CsLPU = 0
       IM1=IM
       DO 874 I=1,IM
-      DUDX=DUDX+DXV(J+1)*(U(I,J+1,L)+U(I,J+1,L+1))-DXV(J)*
-     *   (U(I,J,L)+U(I,J,L+1))
-      UPE=U(IM1,J,L)+U(IM1,J+1,L)+U(I,J,L)+U(I,J+1,L)+
-     *    U(IM1,J,L+1)+U(IM1,J+1,L+1)+U(I,J,L+1)+U(I,J+1,L+1)
-      VPE=V(IM1,J,L)+V(IM1,J+1,L)+V(I,J,L)+V(I,J+1,L)+
-     *    V(IM1,J,L+1)+V(IM1,J+1,L+1)+V(I,J,L+1)+V(I,J+1,L+1)
-      DP=(SIG(L)-SIG(L+1))*P(I,J)
-      IF(L.GE.LS1) DP=(SIG(L)-SIG(L+1))*PSFMPT
-      IF(L.EQ.LS1-1) DP=P(I,J)*SIG(L)-PSFMPT*SIG(LS1)
-      PVTHP=PVTHP+DP*VPE*(T(I,J,L)+T(I,J,L+1)-THMN)
-      PITIJ=PIT(I,J)
-      IF(L.GE.LS1-1) PITIJ=0.
-      SDPU=SDPU+(SD(I,J,L)-SDMN+(PITIJ-PITMN)*SIGE(L+1))*UPE
+      CsL(I) = CsL(I) + CONV(I,J,L)
+      UPE = U(IM1,J,L  )+U(IM1,J+1,L  )+U(I,J,L  )+U(I,J+1,L  )+
+     *      U(IM1,J,L+1)+U(IM1,J+1,L+1)+U(I,J,L+1)+U(I,J+1,L+1)
+      VPE = V(IM1,J,L  )+V(IM1,J+1,L  )+V(I,J,L  )+V(I,J+1,L  )+
+     *      V(IM1,J,L+1)+V(IM1,J+1,L+1)+V(I,J,L+1)+V(I,J+1,L+1)
+      PVTHP = PVTHP + MA(L,I,J)*(T(I,J,L)+T(I,J,L+1)-THMN)
+      CsLPU = CsLPU - UPE*(CsL(I)-CsLMN) 
   874 IM1=I
-      AGC(J,L,JL_EPFLXV)=AGC(J,L,JL_EPFLXV)+.25*BYDXYP(J)*
-     &     ((.5*FIM*FCOR(J)-.25*DUDX)*PVTHP/DTHDP + SDPU)
+      AGC(J,L,JL_EPFLXV) = AGC(J,L,JL_EPFLXV) + .25*byDXYP(J)*
+     &     ((.5*FIM*FCOR(J)-.25*DUDX)*PVTHP/DTHDP + CsLPU)*kg2mb
   878 CONTINUE
 
 c

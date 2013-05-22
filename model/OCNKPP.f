@@ -2481,6 +2481,8 @@ C****
         sxymo(i,j,1:lmij) = sxyml(1:lmij)
         endif ! using qus
 #ifdef TRACERS_OCEAN
+        akvc(1:lmij-1) = akvc3d(1:lmij-1,i,j)
+        akvc(lmij) = 0.
         do n=1,ntm
           txml(1:lmij) = txmo(i,j,1:lmij,n)
           tyml(1:lmij) = tymo(i,j,1:lmij,n)

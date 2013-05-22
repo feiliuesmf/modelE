@@ -43,12 +43,14 @@
 #ifdef NEW_IO
       use pario, only: defvar,read_dist_data,write_dist_data
 #endif
+      use PolynomialInterpolator_mod, only: interpolator3D
 
       implicit none
 
       include 'netcdf.inc'
 
       integer :: i_0,i_1,j_0,j_1
+      type(interpolator3D), save :: wsgInterp
 
 #endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM || TRACERS_AMP || TRACERS_TOMAS*/
 
@@ -611,6 +613,7 @@ c**** index of table for GCM surface wind speed from 0.0001 to 30 m/s
         CALL stop_model
      &     ('Stopped in init_dust: parameter imDUST must be <= 2',255)
       END IF
+      wsgInterp = interpolator3D(x1,x2,x3,table)
 
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 !     read mineral fractions from input file

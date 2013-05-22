@@ -100,11 +100,11 @@ Data input files:
 !!! AIC=AIC.RES_F40.D771201.nc         ! observed init cond (atm. only) ISTART=2
 AIC=1JAN2501.rsfE3F40o32        ! Larissa's restart              ISTART=8
 GIC=GIC.144X90.DEC01.1.ext_1.nc      ! initial ground conditions      ISTART=2
-OIC=OIC.E2HX2.L32.D1201         ! Levitus ocean intial conditions
+OIC=OIC.E2HX2.L32.D1201.nc      ! Levitus ocean intial conditions
 OFTAB=OFTABLE_NEW               ! ocean function table
 AVR=OPF.E2HX2.L32               ! ocean filter
-KBASIN=KB144X90.modelE          ! ocean basin designations
-TOPO_OC=Z2HX2fromZ1QX1N         ! ocean fraction and topography
+KBASIN=KB144X90.modelE.nc       ! ocean basin designations
+TOPO_OC=OZ2HX2fromZ1QX1N.nc     ! ocean fraction and topography
 CDN=CD144X90.ext.nc             ! neutral drag coefficient
 VEG=V144X90_no_crops.ext.nc     ! vegatation file
 CROPS=CROPS2007_144X90N_nocasp.nc  ! crops

@@ -7,6 +7,7 @@ module FILEMANAGER
 
   public openunit, closeunit, print_open_units,findunit
   public nameunit
+  public get_recordlengths,is_fbsa
 
   interface openunit
     module procedure openunit_0d
@@ -179,5 +180,98 @@ contains
       endif
     enddo
   end subroutine print_open_units
+
+!#define USE_DIRECT_ACCESS
+  subroutine get_recordlengths(fname,nfrecs,reclens)
+!@sum This routine obtains the length (in bytes) of each of the first
+!@+   nfrecs fortran records of sequential unformatted file fname,
+!@+   storing the result in array reclens.  If nfrecs exceeds the
+!@+   number N of parseable fortran records in the file, it is set
+!@+   to N upon exit.
+    implicit none
+    character(len=*) :: fname
+    integer :: nfrecs
+    integer :: reclens(:)
+    integer :: iu,ios
+    integer :: k,nbytes,nbytes2,nfrecs0
+
+    call findunit(iu)
+    open(iu,file=trim(fname),form='unformatted', &
+         status='old',iostat=ios, &
+#ifdef USE_DIRECT_ACCESS
+         access='direct',recl=1)
+#else
+         access='stream')
+    ! stream I/O is a fortran 2003 option that is available in
+    ! some compilers not yet fully 2003-compliant.  It
+    ! is preferable to direct access insofar as it avoids
+    ! complications related to the definition of the length
+    ! of one direct-access record.
+#endif
+    ! not all compiler versions support size inquiry, so we
+    ! have to handle the end-of-file condition via read(..,iostat=)
+    !inquire(iu,size=filesize)
+
+    nfrecs0 = nfrecs
+    nfrecs = 0
+    if(ios.ne.0) return
+    k = 1
+    do while(nfrecs.lt.nfrecs0) ! .and. k.le.filesize)
+#ifdef USE_DIRECT_ACCESS
+      call read_convert(iu,k,nbytes); if(nbytes.le.0) exit
+      k = k + nbytes
+      call read_convert(iu,k,nbytes2); if(nbytes2.le.0) exit
+#else
+      read(iu,pos=k,iostat=ios) nbytes; if(ios.ne.0) exit
+      k = k + 4 + nbytes
+      read(iu,pos=k,iostat=ios) nbytes2; if(ios.ne.0) exit
+      k = k + 4
+#endif
+      if(nbytes.ne.nbytes2) exit !call parse_error()
+      nfrecs = nfrecs + 1
+      reclens(nfrecs) = nbytes
+    enddo
+    close(iu) !call closeunit(iu)
+    return
+#ifdef USE_DIRECT_ACCESS
+  contains
+    subroutine read_convert(iu,k,nbytes)
+      integer :: iu,k,nbytes
+      logical :: bigendian
+      character, dimension(4) :: cbuf
+      integer :: i,ios
+      character(len=32) :: ch
+      do i=1,4
+        read(iu,rec=k,iostat=ios) cbuf(i)
+        if(ios.ne.0) then
+          nbytes = 0
+          return
+        endif
+        k = k + 1
+      enddo
+      inquire(iu,convert=ch)
+      ! This string may be compiler-dependent...
+      bigendian = trim(ch).eq.'BIG_ENDIAN'
+      if(bigendian) then
+        nbytes = transfer(cbuf(4:1:-1),nbytes)
+      else
+        nbytes = transfer(cbuf,nbytes)
+      endif
+      return
+    end subroutine read_convert
+#endif
+  end subroutine get_recordlengths
+
+  function is_fbsa(fname)
+    ! determine whether a file is Fortran Binary Sequential Access format
+    implicit none
+    character(len=*) :: fname
+    logical :: is_fbsa
+    integer :: reclens(1)
+    integer :: nrecs
+    nrecs = 1
+    call get_recordlengths(trim(fname),nrecs,reclens)
+    is_fbsa = nrecs > 0
+  end function is_fbsa
 
 end module FILEMANAGER

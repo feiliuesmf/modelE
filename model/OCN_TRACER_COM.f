@@ -154,7 +154,6 @@ C****     it will prove useful.
       ! TODO: it would be better long-term if tracer arrays were
       ! owned by ocn_tracer_com.
       USE OCEAN, only : TRMO
-     *       ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
      *       ,oc_tracer_mean
       USE OCEAN, only : use_qus,
      &     TXMO,TYMO,TZMO, TXXMO,TYYMO,TZZMO, TXYMO,TYZMO,TZXMO
@@ -257,11 +256,6 @@ C****     it will prove useful.
       ALLOCATE( TZXMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
       txxmo=0.; tyymo=0.; tzzmo=0.; txymo=0.; tyzmo=0.; tzxmo=0.
       endif
-
-      ALLOCATE( TRMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
-      ALLOCATE( TXMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
-      ALLOCATE( TYMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
-      ALLOCATE( TZMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
 
       do n=1,ntm
        if (trname(n).eq.'OceanAge') n_age = n

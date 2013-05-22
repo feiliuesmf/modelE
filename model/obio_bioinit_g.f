@@ -47,7 +47,7 @@ c  Carbon type 2    = DIC
 #endif
 
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo,dzo
-      USE OCEAN, only : LMOM=>LMM,ZOE=>ZE,focean,hocean
+      USE OCEAN, only : ZOE=>ZE,hocean
       USE OCEANR_DIM, only : ogrid
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,pack_data,unpack_data
@@ -398,11 +398,11 @@ c       13 -- Mediterranean/Black Seas
 
       USE OCEANR_DIM, only : ogrid   
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
-      Use OCEAN,      only : LMOM=>LMM, ZOE=>ZE, oLON_DG,oLAT_DG
+      Use OCEAN,      only : ZOE=>ZE, oLON_DG,oLAT_DG
 
       USE obio_dim
       USE obio_incom, only: ir
-
+      use obio_com, only : focean_glob,lmom_glob
       implicit none
 
 
@@ -445,7 +445,8 @@ c  Find nwater values corresponding to regions
 
         if (rlon .gt. 180)rlon = rlon-360.0
 
-        if (ZOE(LMOM(i,j)).le.0) go to 100
+        !if (ZOE(LMOM_glob(i,j)).le.0) go to 100
+        if (focean_glob(i,j).le.0) go to 100
 
 c   Antarctic region
         if (rlat .le. antlat)then
@@ -671,10 +672,10 @@ c------------------------------------------------------------------------------
 
       USE FILEMANAGER, only: openunit,closeunit
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
-
+      USE OCEANR_DIM, only : grid=>ogrid
       USE OCEANRES, only : imo,jmo,lmo
-      USE OCEAN, only : oDLATM=>DLATM,LMOM=>LMM,ZOE=>ZE,FOCEAN
-
+      USE OCEAN, only : oDLATM=>DLATM,ZOE=>ZE
+      use obio_com, only : focean_glob, lmom_glob
       implicit none
 
 
@@ -790,8 +791,8 @@ cdiag endif
       fldoz(i,j,k)= -9999.
       enddo
 
-      IF (FOCEAN(i,j).gt.0) then
-         lm=lmom(i,j)
+      IF (FOCEAN_glob(i,j).gt.0) then
+         lm=lmom_glob(i,j)
           call VLKtoLZ(kgrd,lm,nodc_depths,ZOE,
      .                 fldo(i,j,:),fldo2(i,j,:),fldoz(i,j,:))   
       ENDIF

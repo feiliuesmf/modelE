@@ -704,6 +704,8 @@ C**** and GHY_DRV. This may need to be tracer dependent?
      &       ,pbl_args%wsubwd,pbl_args%wsubwm)
         CALL get_wspdf(pbl_args%wsubtke,pbl_args%wsubwd,pbl_args%wsubwm
      &       ,pbl_args%mcfrac,wsgcm,wspdf)
+      else
+        wspdf = 0.
       endif
 csgs      sig0 = sig(e(1),mdf,dbl,delt,ch,ws,t(1))
 csgsC**** possibly tracer specific coding

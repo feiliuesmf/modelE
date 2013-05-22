@@ -5,7 +5,7 @@ c --- biological/light setup
 c ----------------------------------------------------------------
 c 
       USE FILEMANAGER, only: openunit,closeunit
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data
 
       USE obio_dim
       USE obio_incom
@@ -20,9 +20,10 @@ c
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
-      USE OCEAN, only : LMOM=>LMM,ZOE=>ZE,focean,hocean
+      USE OCEAN, only : ZOE=>ZE,focean,lmm
       USE MODEL_COM, only: dtsrc
       USE OCEANR_DIM, only : ogrid
+      use obio_com, only : focean_glob,lmom_glob
 #else
       USE hycom_dim_glob, only : idm,jdm,kdm
       USE hycom_scalars, only : nstep,baclin
@@ -60,6 +61,16 @@ c
 
 c 
       if (AM_I_ROOT()) print*, 'Ocean Biology setup starts'
+
+#ifdef OBIO_ON_GARYocean
+      if(am_i_root()) then
+        allocate(focean_glob(idm,jdm),lmom_glob(idm,jdm))
+      else
+        allocate(focean_glob(1,1),lmom_glob(1,1))
+      endif
+      call pack_data(ogrid,focean,focean_glob)
+      call pack_data(ogrid,lmm,lmom_glob)
+#endif
 
 ! time steps
 #ifdef OBIO_ON_GARYocean
@@ -537,12 +548,12 @@ c  Read in factors to compute average irradiance
         do j=1,jdm
         do i=1,idm
         do k=1,kdm
-         if (alk(i,j,k).lt.0. .and. focean(i,j).gt.0) then
+         if (alk(i,j,k).lt.0. .and. focean_glob(i,j).gt.0) then
             if (zoe(k).le.150.) alk(i,j,k)=2172.      !init neg might be under ice,
             if (zoe(k).gt.150. .and. zoe(k).lt.1200.) alk(i,j,k)=2200.
             if (zoe(k).ge.1200.) alk(i,j,k)=2300.
          endif
-         if (focean(i,j).le.0) then
+         if (focean_glob(i,j).le.0) then
            alk(i,j,k)=0.
          endif
         enddo
