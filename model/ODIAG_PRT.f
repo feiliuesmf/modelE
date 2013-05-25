@@ -1275,7 +1275,7 @@ C****
       enddo
       call par_close(grid,fid)
 
-      do j=j_0h,j_1h
+      do j=max(1,j_0h),min(jm,j_1h) !j=j_0h,j_1h
       do i=1,im
         if(focean(i,j).gt.0. .and. kbasin(i,j).eq.0) then
           kbasin(i,j) = 4

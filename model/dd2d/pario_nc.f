@@ -539,6 +539,7 @@ c
       type(dist_grid), intent(in) :: grid
       logical :: larr(:,:)
       real*8 :: arr(size(larr,1),size(larr,2))
+      arr = 0.d0
       call read_dist_data(grid,fid,varname,arr)
       larr = arr.eq.1d0
       end subroutine par_read_nc_2D_logical

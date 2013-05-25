@@ -726,7 +726,7 @@ C**** do poles
 
       INTEGER IER, I,J, L, NT
       INTEGER :: aI_0H,aI_1H, aJ_0H,aJ_1H, aIM,aJM
-      INTEGER oJ_0,oJ_1, oI_0,oI_1, oJ_0S,oJ_1S
+      INTEGER oJ_0,oJ_1, oI_0,oI_1, oJ_0S,oJ_1S, oJ_0H,oJ_1H
       integer :: j_0,j_1,i_0,i_1
       REAL*8, allocatable :: oWEIGHT(:,:)
       REAL*8 :: UNP,VNP,AWT1,AWT2
@@ -743,6 +743,8 @@ C**** do poles
       oJ_1 = oGRID%j_STOP
       oJ_0S = oGRID%j_STRT_SKP
       oJ_1S = oGRID%j_STOP_SKP
+      oJ_0H = oGRID%j_STRT_HALO
+      oJ_1H = oGRID%j_STOP_HALO
 
       aI_0H = atm%i_0h; aI_1H = atm%i_1h
       aJ_0H = atm%j_0h; aJ_1H = atm%j_1h
@@ -774,7 +776,9 @@ C**** do poles
       CALL INT_OG2AG(MO,aMO,oWEIGHT,oLM,2,.FALSE.)
 
       oG0(:,:,:) = 0.d0
-      oWEIGHT(:,:) = MO(:,:,1)*oFOCEAN_loc(:,:)
+      DO j=max(1,oJ_0H),min(oJM,oJ_1H)
+        oWEIGHT(:,j) = MO(:,j,1)*oFOCEAN_loc(:,j)
+      END DO
       DO L = 1,2
         DO J=oJ_0,oJ_1
           DO I=oI_0,oIMAXJ(J)

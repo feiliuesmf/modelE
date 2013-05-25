@@ -942,8 +942,9 @@ c    .       nstep,jm,dxpo(jm),dypo(jm),dxypo(jm)
      *                 FROM=NORTH)
       CALL HALO_UPDATE(grid,KXVYP (grid%j_strt_halo:grid%j_stop_halo) ,
      *                 FROM=SOUTH)
-      CALL HALO_UPDATE(grid,DYPO (grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=SOUTH)
+!      DYPO has no halo !!
+!      CALL HALO_UPDATE(grid,DYPO (grid%j_strt_halo:grid%j_stop_halo) ,
+!     *                 FROM=SOUTH)
       CALL HALO_UPDATE(grid,KXPYV,FROM=SOUTH)
       CALL HALO_UPDATE(grid,KYVXV,FROM=SOUTH)
       CALL HALO_UPDATE(grid,KYPXP,FROM=SOUTH)

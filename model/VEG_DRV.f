@@ -741,6 +741,7 @@ c
      &       0d0,1d30,'none',year,day)
       endif
 
+      cropdata = 0.d0 ! make sure halo is intialized
       call read_stream(grid,CROPstream,year,day,cropdata)
 
       !Set min to zero, since no land mask yet -nyk 1/22/08
