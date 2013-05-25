@@ -403,44 +403,40 @@ C**** initialize otke
       return
       end subroutine cubic_r
 
-
-      SUBROUTINE locate(n,xa,x,klo,khi,a,b)
-!@sum locate finds the grids that embrace x
-!@+   after call locate, the interpreted value can be calculated as
-!@+   y=a*ya(klo)+b*ya(khi)
-!@ref Numerical Recipes
+      subroutine locatex(n,xa,x,jl,ju,a,b)
+!@sum locatex finds the grids that embrace x
+!@+   after call locatex, the interpreted value can be calculated as
+!@+   y=a*ya(jl)+b*ya(ju)
       implicit none
       ! in:
-      INTEGER n
-      REAL*8 xa(n),x
+      integer n
+      real*8 xa(n),x
       ! out:
-      INTEGER klo
-      INTEGER khi
-      REAL*8 a ! a=(xa(khi)-x)/h
-      REAL*8 b ! b=(x-xa(klo))/h
+      integer jl,ju
+      real*8 a,b ! a=(xa(ju)-x)/h, b=(x-xa(jl))/h
       ! local:
-      INTEGER k
-      REAL*8 h
-      klo=1
-      khi=n
-      do while (khi-klo.gt.1)
-        k=(khi+klo)/2
-        if(xa(k).gt.x)then
-          khi=k
+      integer j
+      real*8 h
+      jl=1
+      ju=n
+      do while (ju-jl.gt.1)
+        j=(ju+jl)/2
+        if(xa(j).gt.x)then
+          ju=j
         else
-          klo=k
+          jl=j
         endif
       end do
-      h=xa(khi)-xa(klo)
+      h=xa(ju)-xa(jl)
       if (h.eq.0.) then
-         write(*,*) 'bad xa input in locate'
+         write(*,*) 'h=0 in locatex'
          stop
       endif
-      a=(xa(khi)-x)/h
-      b=(x-xa(klo))/h
-c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
+      a=(xa(ju)-x)/h
+      b=(x-xa(jl))/h
       return
-      END SUBROUTINE locate
+      end subroutine locatex
+
 
       END MODULE GISS_OTURB
 
@@ -590,12 +586,12 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
          if(abs(rrl).gt.1.) rrl=1/(rr(l)+1d-30)
          rrl=min(max(rrl,rrmin),rrmax)
         
-         ! locate uses bisection method to lookup tables
-         call locate(nt,rra,rrl,klo,khi,a2,b2)
+         ! locatex uses bisection method to lookup tables
+         call locatex(nt,rra,rrl,klo,khi,a2,b2)
          ril=ri(l)
          do iter=1,10
             ril=min(max(ril,rimin),rimax)
-            call locate(mt,ria,ril,jlo,jhi,a1,b1)
+            call locatex(mt,ria,ril,jlo,jhi,a1,b1)
             phim2=a2*(a1*phim2a(jlo,klo)+b1*phim2a(jhi,klo))
      &           +b2*(b1*phim2a(jhi,khi)+a1*phim2a(jlo,khi))
             tmp=ril
@@ -624,8 +620,8 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
 
          ril=min(max(ril,rimin),rimax)
          rrl=min(max(rrl,rrmin),rrmax)
-         call locate(mt,ria,ril,jlo,jhi,a1,b1)
-         call locate(nt,rra,rrl,klo,khi,a2,b2)
+         call locatex(mt,ria,ril,jlo,jhi,a1,b1)
+         call locatex(nt,rra,rrl,klo,khi,a2,b2)
          c1=a1*a2
          c2=b1*a2
          c3=b1*b2
