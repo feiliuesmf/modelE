@@ -71,7 +71,6 @@ AIC=AIC.RES_F40.D771201.nc  ! observed init cond (atm. only) ISTART=2
 GIC=GIC.144X90.DEC01.1.ext_1.nc   ! initial ground conditions      ISTART=2
 OIC=OIC144X90LD.ZN_nocasp.CLEV94.DEC01S
 OFTAB=OFTABLE_NEW                   ! ocean function table
-AVR=AVR144X90N_nocasp.L13.modelE    ! ocean filter
 KBASIN=KB144X90.modelE.nc           ! ocean basin designations
 TOPO_OC=OZ2HX2fromZ1QX1N.nc   ! ocean bdy.cond
 CDN=CD144X90.ext.nc

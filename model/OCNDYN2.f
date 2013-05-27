@@ -576,192 +576,325 @@ c
       Return
       End Subroutine OFLUXV
 
-      Subroutine OPFIL2(X,L,JMIN,JMAX)
+      module opfil2_coeffs
+      use constant
+      use ocean, only : im,lmo
+      implicit none
+      save
+! abbreviation: MBF(S) = matrix-based filtering (segment)
+!@param hwid_max maximum half-width of MBF stencil
+      integer, parameter :: hwid_max=15
+!@var nbas_fft number of segments over which to apply fft-based filter
+!@var nbas_fil number of segments over which to apply matrix-based filter
+      integer :: nbas_fft,nbas_fil
+!@var jfft the nth value of jfft is the j index of the nth fft filter segment
+!@var jfil the nth value of jfil is the j index of the nth MBFS
+!@var i1fil,i2fil the nth value of i1fil,i2fil is the left/right longitude index
+!@+   of the nth MBFS
+      integer, dimension(:), allocatable ::
+     &     jfft,jfil,i1fil,i2fil,indx_fil
+!@var n1fft,n2fft the lth value of n1fft,n2fft is the first/last segment index for
+!@+   fft-based filtering at layer l
+!@var n1fil,n2fil the lth value of n1fil,n2fil is the first/last segment index for
+!@+   MBF at layer l
+      integer, dimension(lmo) :: n1fft,n2fft,n1fil,n2fil
+!@var reduco is the concatenation of the filtering matrices needed for the local
+!@+   domain (including halo rows)
+      real*8, dimension(:), allocatable :: reduco
+
+! the following are used for fft-based filtering
+      integer, parameter :: IMz2=IM/2  !  highest possible wave number
+      integer, allocatable :: NMIN(:) !  minimum wave number for Fourier smoothing
+      real*8, allocatable  :: SMOOTH(:,:)  !  multiplies Fourier coefficient
+
+      contains
+      subroutine calc_opfil2_coeffs
+      use oceanr_dim, only : grid=>ogrid
+      use ocean, only : jm,lmo,dxpo,dypo,lmu
+      use ocean, only : nbyzmax,nbyzu,i1yzu,i2yzu
+      implicit none
+C****
+C**** The ocean dynamics time step is chosen as the largest convenient
+C**** time step such that gravity waves of length 2*dY do not cause
+C**** the numerical solution of the momentum equation to diverge.
+C**** Shorter gravity waves that are resolved at high latitudes in the
+C**** zonal direction could cause the numerical solution to diverge.
+C**** To prevent this, certain fields are spectrally analyzed and
+C**** coefficients of waves shorter than 2*dY are multiplied by the
+C**** wave length divided by 2*dY.
+C****
+C**** For an ocean basin that is IWID grid cells wide, the fields of
+C**** interest are defined on IWID-1 grid cell edges.  The fields are
+C**** spectrally analyzed on 2*IWID periodic values which include 0's
+C**** on each coast and IWID-1 reflected values of opposite sign.
+C**** The cosine spectral coefficients are all zero, but the sine
+C**** coefficients for wave numbers 1 to IWID-1 are generally nonzero.
+C**** The shortest wave (wave number IWID-1) in a basin that is IWID
+C**** cells wide has length 2*IWID*dX/(IWID-1).
+C****
+C**** IWMIN is calculated such that the length of the shortest wave in this
+C**** minimum basin is 2*IWMIN*DXP(J)/(IWMIN-1) which must be less than 2*DYP(3)
+C****
+C**** Since filtered field values are fixed linear combinations of
+C**** the IWID-1 unfiltered values, the matrix coefficents of linear
+C**** combinations are calculated once in this program, but are used
+C**** repetively in the ocean polar filter subroutine.  The matrix
+C**** coefficients depend upon IWID and latitude (dX).
+C****
+C**** The polar filter is not applied at the poles (J = 1 or JM) nor
+C**** at latitudes for which the aspect ratio dY/dX < 1.
+C****
+
+      integer :: i,j,k,l,n,nn,ja,indx,iwide,km,iw,ie,iwmin,iter,ibas
+      real*8 reduc(im-1,im-1)   !  single polar filter reduction matrix
+      real*8 sintab(im-1)
+      real*8 :: reducn,drat
+      integer, dimension(im-1) :: k1,k2
+      integer, allocatable :: indx_sv(:,:)
+      integer :: nbas,i1bas(nbyzmax),i2bas(nbyzmax)
+      integer :: js0,js1,jtmp,js0a,js1a
+C****
+
+      js0 = max(2   ,grid%j_strt_halo)
+      js1 = min(jm-1,grid%j_stop_halo)
+
+C**** Calculate factors for fft-based filtering
+      allocate(nmin(js0:js1))
+      allocate(smooth(imz2,js0:js1))
+      do j=js0,js1
+        drat = dxpo(j)/dypo(3)
+        do n=imz2,1,-1
+          smooth(n,j) = imz2*drat/n
+          if (smooth(n,j) >= 1d0) exit
+        enddo
+        nmin(j) = n+1
+      enddo
+
+C**** Calculate factors for matrix-based filtering
+      n1fft(:) = huge(n1fft(1))
+      n2fft(:) = -1
+      n1fil(:) = huge(n1fil(1))
+      n2fil(:) = -1
+
+      js0a = min(js0, jm+1-js0) !  absolute latitude index
+      js1a = min(js1, jm+1-js1) !  absolute latitude index
+      if(js0a > js1a) then
+        jtmp = js0a
+        js0a = js1a
+        js1a = jtmp
+      endif
+      if(js0 <= jm/2 .and. js1 > jm/2) js1a = jm/2
+      allocate(indx_sv(im-1,js0a:js1a))
+
+      do iter=1,2 ! two passes: first is for counting array sizes
+      indx_sv(:,:) = -1
+      nbas_fft = 0
+      nbas_fil = 0
+      indx = 0
+      do l=1,lmo
+      do j=js0,js1
+        if(dxpo(j) >= dypo(3)) cycle
+        ja = min(j, jm+1-j)  !  absolute latitude index
+
+        iwmin = ceiling (dypo(3) / (dypo(3)-dxpo(ja)))
+
+        if(nbyzu(j,l)  .eq.1 .and.
+     &     i1yzu(1,j,l).eq.1 .and.
+     &     i2yzu(1,j,l).eq.im ) then ! all ocean, use fft-based filtering
+          n = nbas_fft + 1
+          nbas_fft = n
+          if(iter.eq.1) cycle ! first pass for counting only
+          jfft(n) = j
+          n1fft(l) = min(n1fft(l),n)
+          n2fft(l) = max(n2fft(l),n)
+        else                         ! some land,  use matrix-based filtering
+          if(l <= lmu(im,j) .and. i1yzu(1,j,l).eq.1) then ! IDL crossing
+            nbas = nbyzu(j,l)-1
+            if(nbas.gt.1) then
+              i1bas(1:nbas-1) = i1yzu(2:nbas,j,l)
+              i2bas(1:nbas-1) = i2yzu(2:nbas,j,l)
+            endif
+            i1bas(nbas) = i1yzu(nbyzu(j,l),j,l)
+            i2bas(nbas) = i2yzu(1,j,l) + im
+          else
+            nbas = nbyzu(j,l)
+            i1bas(:) = i1yzu(:,j,l)
+            i2bas(:) = i2yzu(:,j,l)
+          endif
+          n = 0
+          do ibas=1,nbas ! loop over basins
+            iw = i1bas(ibas)
+            ie = i2bas(ibas)
+            iwide = ie-iw+2
+            if (iwide < iwmin) cycle
+            n = nbas_fil+1
+            nbas_fil = n
+            if(indx_sv(iwide,ja).lt.0) then
+              indx_sv(iwide,ja) = indx
+              do i=1,iwide-1
+                k1(i) = max(      1,i-hwid_max)
+                k2(i) = min(iwide-1,i+hwid_max)
+              enddo
+              if(iter.eq.1) then ! first pass for counting only
+                do i=1,iwide-1
+                  indx=indx+1+k2(i)-k1(i)
+                enddo
+              else
+                km = 2*iwide
+                reduc(:,:) = 0
+                do nn=iwide-1,1,-1
+                  reducn = (1 - dxpo(ja)*iwide/(dypo(3)*nn))*4/km
+                  if (reducn <= 0) cycle
+                  do i=1,iwide-1
+                    sintab(i) = sin(twopi*nn*i/km)
+                  enddo
+                  do i=1,iwide-1
+                  do k=k1(i),k2(i)
+                    reduc(k,i) = reduc(k,i) +
+     &                   sintab(k)*(sintab(i)*reducn)
+                  enddo
+                  enddo
+                enddo
+                do i=1,iwide-1
+                do k=k1(i),k2(i)
+                  indx=indx+1
+                  reduco(indx) = reduc(k,i)
+                enddo
+                enddo
+              endif
+            endif
+            if(iter.eq.1) cycle ! first pass for counting only
+            jfil(n) = j
+            i1fil(n) = iw
+            i2fil(n) = ie
+            indx_fil(n) = indx_sv(iwide,ja)
+            n1fil(l) = min(n1fil(l),n)
+            n2fil(l) = max(n2fil(l),n)
+          enddo ! ibas
+        endif
+      enddo ! j
+      enddo ! l
+      if(iter.eq.1) then ! allocate once we know the counts
+        allocate(jfft(nbas_fft))
+        allocate(jfil(nbas_fil))
+        allocate(i1fil(nbas_fil),i2fil(nbas_fil),indx_fil(nbas_fil))
+        allocate(reduco(indx))
+      endif
+      enddo ! iter
+
+      deallocate(indx_sv)
+
+      end subroutine calc_opfil2_coeffs
+
+      end module opfil2_coeffs
+
+      subroutine opfil2(x,l,jmin,jmax)
 C****
 C**** OPFIL smoothes X in the zonal direction by reducing coefficients
 C**** of its Fourier series for high wave numbers near the poles.
 C****
-      Use CONSTANT, Only: TWOPI
-      Use OCEAN, Only: IM,JM,LMO,J1O, DLON, DXP=>DXPO, DYP=>DYPO,
-     *  JMPF=>J40S  !  greatest J in SH where polar filter is applied
-      Use FILEMANAGER, Only: OPENUNIT, CLOSEUNIT
-
-      USE OCEANR_DIM, only : grid=>ogrid
-
-      Implicit None
+      use ocean, only: im,jm
+      use oceanr_dim, only : grid=>ogrid
+      use opfil2_coeffs
+      implicit none
 C****
-      Real*8,Intent(InOut) :: X(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
-      Integer*4, Intent(In) :: L,JMIN,JMAX
-      Integer*4,Parameter :: IMz2=IM/2  !  highest possible wave number
-      Integer*4,Save ::
-     *  JMEX,    !  exclude unfiltered latitudes, store J=JM-1 in JMEX
-     *  NBASM,   !  maximum number of ocean basins at any latitude
-     *  INDM,    !  number of entries in array REDUCO
-     *  NMIN(JM) !  minimum wave number for Fourier smoothing
-      Real*8,Save :: SMOOTH(IMz2,JM)  !  multiplies Fourier coefficient
-C****
-      Integer*2,Save,Allocatable,Dimension(:,:) ::
-     *  NBAS    !  number of ocean basins for given layer and latitude
-      Integer*2,Save,Allocatable,Dimension(:,:,:) ::
-     *  IMINm1, !  western most cell in basin minus 1
-     *  IWIDm1  !  number of cells in basin minus 1
-      Integer*4,Save,Allocatable,Dimension(:,:) ::
-     *  INDEX   !  index to concatenated matrices
-      Real*4,Save,Allocatable,Dimension(:) ::
-     *  REDUCO  !  concatenation of reduction matrices
-      Real*4,Allocatable,Dimension(:) ::
-     *  REDUCO_glob  !  concatenation of reduction matrices
-C****
-      Character*80 TITLE
-      Integer*4 I,I1,INDX,IWm2,IWm1, J,JA,JX, K, LL, N,NB, IU_AVR
-      integer :: i2,k1,k2
-      integer, parameter :: hwid_max=15
-      integer :: indx_min,indx_max
-      Real*8 AN(0:IMz2), !  Fourier cosine coefficients
+      real*8,intent(inout) :: x(im,grid%j_strt_halo:grid%j_stop_halo)
+      integer*4, intent(in) :: l,jmin,jmax
+      integer :: i,i1,i2,j,k,k1,k2,indx,n,nn
+      real*8 AN(0:IMz2), !  Fourier cosine coefficients
      *       BN(0:IMz2), !  Fourier sine coefficients
      *          Y(IM*2), !  original copy of X that wraps around IDL
-     *       DRAT, REDUC
+     *       REDUC
 C****
-      Integer*4,Save :: IFIRST=1, J1,JN,J1P,JNP
-      If (IFIRST == 0)  GoTo 100
-      IFIRST = 0
-      JMEX = 2*JMPF-1
+      integer, save :: ifirst=1
+      integer :: j1,jn,j1p,jnp
+
+      if(ifirst == 1) then
+        ifirst = 0
+        call calc_opfil2_coeffs
+      endif
+
 C**** Extract domain decomposition band parameters
 C****                          Band1  Band2  BandM
       J1  = GRID%J_STRT     !    1      5     JM-3   Band minimum
       JN  = GRID%J_STOP     !    4      8     JM     Band maximum
       J1P = Max(J1,2)       !    2      5     JM-3   Exclude SP
       JNP = Min(JN,JM-1)    !    4      8     JM-1   Exclude NP
-C**** Calculate SMOOTHing factor for longitudes without land cells
-      Do 30 J=J1O,JM-1
-      DRAT = DXP(J)/DYP(3)
-      Do 20 N=IMz2,1,-1
-      SMOOTH(N,J) = IMz2*DRAT/N
-   20 If (SMOOTH(N,J) >= 1)  GoTo 30
-C     N = 0
-   30 NMIN(J) = N+1
-C**** Read in reduction contribution matrices from disk.  Only keep
-C**** the matrices needed for the latitudes on this processor.
-      Call OPENUNIT ('AVR',IU_AVR,.True.,.True.)
-      Read (IU_AVR) TITLE,NBASM,INDM
-      Allocate (IMINm1(NBASM,LMO,J1O:JMEX), NBAS(LMO,J1O:JMEX),
-     *          IWIDm1(NBASM,LMO,J1O:JMEX), INDEX(IM,2:JMPF),
-     *          REDUCO_glob(INDM))
-      Read (IU_AVR) TITLE,NBAS,IMINm1,IWIDm1,INDEX,REDUCO_glob
-      Call CLOSEUNIT (IU_AVR)
-      Write (6,*) 'Read from unit',IU_AVR,': ',TITLE
-      indx_min = indm+1; indx_max = -1
-      do J=Max(J1O,J1-1),Min(JN+1,JM-1)
-        JX=J  ;  If(J > JMPF) JX=J+2*JMPF-JM
-        JA=J  ;  If(J > JMPF) JA=JM+1-J
-        If (JA > JMPF)  cycle   !  skip latitudes J=JMPF+1,JM-JMPF
-        do LL=1,LMO
-          If (IWIDm1(1,LL,JX) >= IM)  cycle
-          do NB=1,NBAS(LL,JX)
-            IWm1 = IWIDm1(NB,LL,JX)
-            indx_min = min(indx_min,INDEX(IWm1,JA)+1)
-            indx_max = max(indx_max,INDEX(IWm1,JA)+IWm1**2)
-          enddo
+
+C****
+C**** FFT-based filter for all-ocean latitudes
+C****
+      do nn=n1fft(l),n2fft(l)
+        j = jfft(nn)
+        if(j < jmin .or. j > jmax) cycle
+        call offt (x(1,j),an,bn)
+        do n=nmin(j),imz2-1
+          an(n) = an(n)*smooth(n,j)
+          bn(n) = bn(n)*smooth(n,j)
         enddo
+        an(imz2) = an(imz2)*smooth(imz2,j)
+        call offti (an,bn,x(1,j))
       enddo
-      if(indx_min.le.indx_max) then
-        allocate(reduco(indx_min:indx_max))
-        reduco(indx_min:indx_max) = reduco_glob(indx_min:indx_max)
-      endif
-      deallocate(reduco_glob)
- 100  CONTINUE
-C****
-C**** Loop over J.  JX = eXclude unfiltered latitudes
-C****               JA = Absolute latitude
-C****
-      Do J=Max(J1O,JMIN),JMAX !Max(J1O,J1P),JNP
-      JX=J  ;  If(J > JMPF) JX=J+2*JMPF-JM
-      JA=J  ;  If(J > JMPF) JA=JM+1-J
-      If (JA > JMPF)  cycle  !  skip latitudes J=JMPF+1,JM-JMPF
 
-      If (IWIDm1(1,L,JX) >= IM)  then
 C****
-C**** No land cells at this latitude and layer,
-C**** perform standard polar filter
+C**** Per-basin filter
 C****
-        Call OFFT (X(1,J),AN,BN)
-        Do N=NMIN(J),IMz2-1
-          AN(N) = AN(N)*SMOOTH(N,J)
-          BN(N) = BN(N)*SMOOTH(N,J)
-        enddo
-        AN(IMz2) = AN(IMz2)*SMOOTH(IMz2,J)
-        Call OFFTI (AN,BN,X(1,J))
-
-      else
-C****
-C**** Land cells exist at this latitude and layer, loop over ocean
-C**** basins.
-C****
-        Do NB=1,NBAS(L,JX)
-          I1   = IMINm1(NB,L,JX) + 1
-          IWm2 = IWIDm1(NB,L,JX) - 1
-          I2   = i1+iwm2
-          INDX = INDEX(IWm2+1,JA)
-
-          If (I2 <= IM)  then
+      do n=n1fil(l),n2fil(l)
+        j = jfil(n)
+        if(j < jmin .or. j > jmax) cycle
+        indx = indx_fil(n)
+        i1 = i1fil(n)
+        i2 = i2fil(n)
+        if(i2 <= im)  then
 C**** Ocean basin does not wrap around the IDL.
 C**** Copy X to temporary array Y and filter X in place.
-            do i=i1,i2
-              y(i) = x(i,j)
+          do i=i1,i2
+            y(i) = x(i,j)
+          enddo
+          do i=i1,i2
+            reduc = 0
+            k1 = max(i1,i-hwid_max)
+            k2 = min(i2,i+hwid_max)
+            do k=k1,k2
+              indx=indx+1
+              reduc = reduc + reduco(indx)*y(k)
             enddo
-            do i=i1,i2
-              reduc = 0
-              k1 = max(i1,i-hwid_max)
-              k2 = min(i2,i+hwid_max)
-              indx = indx + k1-i1
-              do k=k1,k2
-                indx=indx+1
-                reduc = reduc + reduco(indx)*y(k)
-              enddo
-              indx = indx + i2-k2
-              x(i,j) = x(i,j) - reduc
-            enddo
-
-          else
+            x(i,j) = x(i,j) - reduc
+          enddo
+        else
 C**** Ocean basin wraps around the IDL.
 C**** Copy X to temporary array Y and filter X in place.
-            do i=i1,im
-              y(i) = x(i,j)
+          do i=i1,im
+            y(i) = x(i,j)
+          enddo
+          do i=im+1,i2
+            y(i) = x(i-im,j)
+          enddo
+          do i=i1,im
+            reduc = 0
+            k1 = max(i1,i-hwid_max)
+            k2 = min(i2,i+hwid_max)
+            do k=k1,k2
+              indx=indx+1
+              reduc = reduc + reduco(indx)*y(k)
             enddo
-            do i=im+1,i2
-              y(i) = x(i-im,j)
+            x(i,j) = x(i,j) - reduc
+          enddo
+          do i=1,i2-im
+            reduc = 0
+            k1 = max(i1,im+i-hwid_max)
+            k2 = min(i2,im+i+hwid_max)
+            do k=k1,k2
+              indx=indx+1
+              reduc = reduc + reduco(indx)*y(k)
             enddo
-            do i=i1,im
-              reduc = 0
-              k1 = max(i1,i-hwid_max)
-              k2 = min(i2,i+hwid_max)
-              indx = indx + k1-i1
-              do k=k1,k2
-                indx=indx+1
-                reduc = reduc + reduco(indx)*y(k)
-              enddo
-              indx = indx + i2-k2
-              x(i,j) = x(i,j) - reduc
-            enddo
-            do i=1,i2-im
-              reduc = 0
-              k1 = max(i1,im+i-hwid_max)
-              k2 = min(i2,im+i+hwid_max)
-              indx = indx + k1-i1
-              do k=k1,k2
-                indx=indx+1
-                reduc = reduc + reduco(indx)*y(k)
-              enddo
-              indx = indx + i2-k2
-              x(i,j) = x(i,j) - reduc
-            enddo
-          endif     ! wraparound or not
-        enddo       ! end loop over basins
-      endif         ! fft vs matrix method
-      enddo         ! end loop over j
+            x(i,j) = x(i,j) - reduc
+          enddo
+        endif  ! wraparound or not        
+      enddo
 
-      Return
-      EndSubroutine OPFIL2
+      return
+      end subroutine opfil2
 
       Subroutine ODHORZ(MOH,UOH,VOH,UODH,VODH,OPBOTH,
      &                  MO ,UO ,VO ,UOD ,VOD ,OPBOT, DT,qeven)

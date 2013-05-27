@@ -69,7 +69,6 @@ AIC=AIC.RES_M20A.D771201.nc           ! initial conditions (atm.)     needs GIC,
 GIC=GIC.E046D3M20A.1DEC1955.ext_1.nc  ! initial conditions (ground)         and 300 year spin-up
 OIC=OIC.E5X4.L32.D1201.nc             ! ocean initial conditions
 OFTAB=OFTABLE_NEW                  ! ocean function table
-AVR=OPF.E5X4.L32                   ! ocean filter
 KBASIN=KB4X513.OCN.gas1.nc         ! ocean basin designations
 TOPO_OC=OZ72X46N_gas.1_nocasp.nc       ! ocean bdy.cond
 CDN=CD4X500S.ext.nc

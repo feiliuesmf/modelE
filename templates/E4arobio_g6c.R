@@ -78,7 +78,6 @@ TOPO_OC=OZ144X90N_nocasp.1.nc      ! ocean fraction and topography
 !TOPO_OC=OZ2HX2fromZ1QX1N.nc     ! ocean fraction and topography
 
 OFTAB=OFTABLE_NEW               ! ocean function table
-AVR=OPF.E2HX2.L32               ! ocean filter
 KBASIN=KB144X90.modelE.nc       ! ocean basin designations
 CDN=CD144X90.ext.nc             ! neutral drag coefficient
 VEG=V144X90_no_crops.ext.nc     ! vegatation file

@@ -62,7 +62,6 @@ Data input files:
 #include "IC_72x46_input_files"
 OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01.nc ! ocean initial conditions
 OFTAB=OFTABLE_NEW                    ! ocean function table
-AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
 KBASIN=KB4X513.OCN.gas1.nc           ! ocean basin designations
 TOPO=Z72X46N.cor4_nocasp.nc          ! topography
 TOPO_OC=OZ72X46N_gas.1_nocasp.nc ! ocean bdy.cond

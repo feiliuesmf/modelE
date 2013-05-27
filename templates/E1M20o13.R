@@ -69,7 +69,6 @@ GIC=GIC.E046D3M20A.1DEC1955.ext_1.nc  ! initial conditions (ground)         and 
 OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01.nc ! ocean initial conditions
 ! AIC=1JAN2012.rsfE051oM20A            ! full IC (GIC,OIC not needed) ISTART=8 (spun up 380 yrs)
 OFTAB=OFTABLE_NEW                    ! ocean function table
-AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
 KBASIN=KB4X513.OCN.gas1.nc           ! ocean basin designations
 TOPO_OC=OZ72X46N_gas.1_nocasp.nc ! ocean bdy.cond
 CDN=CD4X500S.ext.nc

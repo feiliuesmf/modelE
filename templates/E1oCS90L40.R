@@ -80,7 +80,6 @@ GIC=GIC_CS90_1.nc      ! initial conditions (ground)
 OIC=OIC288X180.D1201.nc      ! Levitus ocean intial conditions
 TOPO_OC=OZ288X180N.nc        ! ocean fraction and topography
 OFTAB=OFTABLE_NEW               ! ocean function table
-AVR=OPF.E1QX1.L32            ! ocean filter
 KBASIN=KB288X180.modelE.nc   ! ocean basin designations
 TOPO=Z_C90fromZ1QX1N.nc
 SOIL=SOIL_CS90.nc ! soil/topography bdy.conds

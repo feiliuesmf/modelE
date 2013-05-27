@@ -79,7 +79,6 @@ Data input files:
 ! AIC=1JAN2012.rsfE051oM20A            ! full IC (GIC,OIC not needed) ISTART=8 (spun up 380 yrs)
 AIC=AIC/1JAN2600.rsfE13AoM20           ! istart=5
 OFTAB=OFTABLE_NEW                    ! ocean function table
-AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
 KBASIN=KB4X513.OCN.gas1.nc           ! ocean basin designations
 TOPO_OC=OZ72X46N_gas.1_nocasp.nc     ! ocean bdy.cond
 CDN=CD4X500S.ext.nc
