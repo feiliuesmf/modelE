@@ -54,7 +54,7 @@ SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_COM LANDICE_DRV                 ! land ice modules
 ICEDYN ICEDYN_DRV                       ! ice dynamics modules
 ADVSIcs
-ODIAG_COM OCEAN_COM OSTRAITS_1QX1_COM OGEOM  ! dynamic ocean modules
+ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM  ! dynamic ocean modules
 OCNDYN OCNDYN2                               ! dynamic ocean routines
 OCN_Interp OSTRAITS OCNGM OCNKPP             ! dynamic ocean routines
 OCEANR_DIM AFLUXES OFLUXES
@@ -81,6 +81,7 @@ OIC=OIC288X180.D1201.nc      ! Levitus ocean intial conditions
 TOPO_OC=OZ288X180N.nc        ! ocean fraction and topography
 OFTAB=OFTABLE_NEW               ! ocean function table
 KBASIN=KB288X180.modelE.nc   ! ocean basin designations
+OSTRAITS=OSTRAITS_288x180.nml ! parameterized straits info
 TOPO=Z_C90fromZ1QX1N.nc
 SOIL=SOIL_CS90.nc ! soil/topography bdy.conds
 VEG=V_CS90_144X90_5percent.nc

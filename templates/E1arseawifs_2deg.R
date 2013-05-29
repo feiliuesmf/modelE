@@ -47,7 +47,7 @@ LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_COM LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
-ODIAG_COM OCEAN_COM OSTRAITS_F_COM OGEOM ! dynamic ocean modules
+ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM ! dynamic ocean modules
 OCNDYN OCNDYN2                           ! dynamic ocean routines
 OCN_Interp OCN_Int_LATLON                ! dynamic ocean routines
 OSTRAITS OCNGM OCNKPP                    ! dynamic ocean routines
@@ -104,6 +104,7 @@ OIC=OIC.E2HX2.L32.D1201.nc      ! Levitus ocean intial conditions
 OFTAB=OFTABLE_NEW               ! ocean function table
 KBASIN=KB144X90.modelE.nc       ! ocean basin designations
 TOPO_OC=OZ2HX2fromZ1QX1N.nc     ! ocean fraction and topography
+OSTRAITS=OSTRAITS_144x90.nml    ! parameterized straits info
 CDN=CD144X90.ext.nc             ! neutral drag coefficient
 VEG=V144X90_no_crops.ext.nc     ! vegatation file
 CROPS=CROPS2007_144X90N_nocasp.nc  ! crops

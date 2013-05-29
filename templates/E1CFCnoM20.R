@@ -78,6 +78,7 @@ Data input files:
 AIC=1JAN2012.rsfE051oM20A            ! full IC (GIC,OIC not needed) ISTART=8 (spun up 380 yrs)
 OFTAB=OFTABLE_NEW                    ! ocean function table
 KBASIN=KB4X513.OCN.gas1.nc           ! ocean basin designations
+OSTRAITS=OSTRAITS_72x46.nml          ! parameterized straits info
 TOPO_OC=OZ72X46N_gas.1_nocasp.nc ! ocean bdy.cond
 CDN=CD4X500S.ext.nc
   ! VEG=V72X46.1.cor2.ext

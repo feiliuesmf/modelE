@@ -331,18 +331,18 @@ C****
 C****
       USE CONSTANT, only: twopi,radius
       Use OCEAN,   Only: IM,JM,LMO, ZE, FJEQ,DLON,DLAT, DXYPO,
-     *                   MySparseComm_Type, HOCEAN, LMM
+     *                   MySparseComm_Type, HOCEAN, LMM, ZMID
       Use STRAITS, Only: NMST,LMST, IST,JST, XST,YST, WIST,DIST,DISTPG,
      *                   MMST,MUST, G0MST,GXMST,GZMST,S0MST,SXMST,SZMST,
      *                   RSIST,RSIXST, MSIST,SSIST,HSIST,
      *                   MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME,
-     *                   kn2,
+     *                   kn2,zst,
      *                   HOCEANe,LMMe
 #ifdef OCN_GISSMIX
      *                   ,otkest
 #endif
       use domain_decomp_1d, only: am_i_root, getDomainBounds, 
-     *                            getMpiCommunicator
+     *                            getMpiCommunicator, broadcast
       USE OCEANR_DIM, only : grid=>ogrid
       Use SparseCommunicator_mod
 #ifdef OCN_GISSMIX
@@ -406,15 +406,29 @@ C****
         enddo
       endif
 
+      call gather_straits_pairs(HOCEAN,HOCEANe, 1)
+      rLMM(:,:) = LMM(:,:)
+      call gather_straits_pairs(rLMM,rLMMe, 1)
+      if(am_i_root()) LMMe = rLMMe
+      call broadcast(grid,LMMe)
+
 C****
 C**** Calculate distance of strait, distance between centers of
 C**** ocean grid boxes through strait for pressure gradient force,
-C**** and mass of water in the strait
+C**** mass of water in the strait, depth of strait
 C****
 cc    DLON = TWOPI/IM
 cc    DLAT = NINT(180d0/(JM-1))*TWOPI/360d0
 cc    FJEQ = (JM+1)/2d0
       DO N=1,NMST
+      IF(ZST(N) > 0D0) THEN ! if depth was specified in input file, use it
+        DO L=1,LMO-1
+          IF(ZMID(L+1).GT.ZST(N)) EXIT
+        ENDDO
+        LMST(N) = L
+      ENDIF
+      LMST(N) = MIN(LMST(N),MINVAL(LMMe(:,N)))
+      ZST(N) = ZE(LMST(N))
       DSLON = (IST(N,2)+.5*XST(N,2)-IST(N,1)-.5*XST(N,1))*DLON
       DSLAT = (JST(N,2)+.5*YST(N,2)-JST(N,1)-.5*YST(N,1))*DLAT
        SLAT = (JST(N,2)+.5*YST(N,2)+JST(N,1)+.5*YST(N,1)-2*FJEQ)
@@ -437,11 +451,6 @@ cc    FJEQ = (JM+1)/2d0
       END DO
       END DO
 C****
-
-      call gather_straits_pairs(HOCEAN,HOCEANe, 1)
-      rLMM(:,:) = LMM(:,:)
-      call gather_straits_pairs(rLMM,rLMMe, 1)
-      LMMe = rLMMe
 
       IF(iniOCEAN) THEN
 C****

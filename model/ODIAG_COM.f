@@ -35,7 +35,7 @@
       REAL*8, DIMENSION(:,:,:), allocatable      :: OIJ
       REAL*8, DIMENSION(:,:,:,:), allocatable :: OIJL
       REAL*8, DIMENSION(LMO,KOL)   :: OL
-      REAL*8, DIMENSION(LMO,NMST,KOLNST):: OLNST
+      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: OLNST!(LMO,NMST,KOLNST)
 
 !@var OIJL_out like OIJL_loc, but rescaled for postprocessing
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: OIJL_out
@@ -2321,6 +2321,7 @@ c
         ALLOCATE(TOIJL (1,1,1,1,1), STAT=IER )
 #endif
       endif
+      ALLOCATE(OLNST(LMO,NMST,KOLNST))
 
       END SUBROUTINE alloc_odiag
 

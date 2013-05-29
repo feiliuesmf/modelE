@@ -450,6 +450,8 @@ C****
 
       call sync_param( "ocean_use_qus", use_qus )
 
+      call alloc_straits
+
 #ifdef TRACERS_OCEAN
       call alloc_ocn_tracer_com
 #endif

@@ -33,7 +33,6 @@ RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb
 ORES_2Hx2_L32                       ! ocean horiz res 2x2.5deg, 32 vert layers
 DIAG_RES_F                          ! diagnostics (resolution dependent)
 FFT144 OFFT144E                     ! utilities
-OSTRAITS_F_COM                      ! dynamic ocean modules
 
 IO_DRV                              ! new i/o 
 
@@ -79,6 +78,7 @@ TOPO_OC=OZ144X90N_nocasp.1.nc      ! ocean fraction and topography
 
 OFTAB=OFTABLE_NEW               ! ocean function table
 KBASIN=KB144X90.modelE.nc       ! ocean basin designations
+OSTRAITS=OSTRAITS_144x90.nml    ! parameterized straits info
 CDN=CD144X90.ext.nc             ! neutral drag coefficient
 VEG=V144X90_no_crops.ext.nc     ! vegatation file
 CROPS=CROPS_144X90N_nocasp.ext.nc ! crops

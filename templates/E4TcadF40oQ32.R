@@ -54,7 +54,6 @@ RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 ORES_1Qx1_L32 OFFT288E              ! ocean horiz res 1x1.25deg, 32 layers
-OSTRAITS_1QX1_COM                   ! ocean straits settings for this res.
 
 IORSF                               ! i/o
 ! or IO_DRV TRDIAG                       ! new i/o

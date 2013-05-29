@@ -29,7 +29,6 @@ Object modules: (in order of decreasing priority)
      ! resolution-specific source codes
 RES_C32M20AT                        ! C32L20 resolution
 RES_5x4_L13                         ! ocean horiz res 4x5deg, 13 layers
-OSTRAITS_COM                        ! res-dependent straits parameters
 OFFT72E                             ! Fast Fourier Transform
 DIAG_RES_M                          ! diagnostics (resolution dependent)
 
@@ -70,6 +69,7 @@ OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01.nc ! ocean initial conditions
 OFTAB=OFTABLE_NEW                    ! ocean function table
 KBASIN=KB4X513.OCN.gas1.nc           ! ocean basin designations
 TOPO_OC=OZ72X46N_gas.1_nocasp.nc     ! ocean bdy.cond
+OSTRAITS=OSTRAITS_72x46.nml          ! parameterized straits info
 GLMELT=GLMELT_CS32.nc                   ! glacial melt distribution (on atm grid)
 REMAP=remap72-46C32-32.nc            ! weights for atm-ocean coupling
 

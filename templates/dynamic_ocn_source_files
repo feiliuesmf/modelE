@@ -1,7 +1,8 @@
 ODIAG_COM OCEAN_COM OGEOM  ! dynamic ocean modules
 OCNDYN OCNDYN2                            ! dynamic ocean routines
 OCN_Interp                 ! dynamic ocean routines
-OSTRAITS OCNGM OCNKPP                     ! dynamic ocean routines
+OSTRAITS_COM OSTRAITS                     ! straits parameterization
+OCNGM OCNKPP                     ! dynamic ocean routines
 OCEANR_DIM OFLUXES
 ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                              ! ocean function look up table

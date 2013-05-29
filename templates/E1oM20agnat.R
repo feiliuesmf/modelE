@@ -81,6 +81,7 @@ AIC=AIC/1JAN2600.rsfE13AoM20           ! istart=5
 OFTAB=OFTABLE_NEW                    ! ocean function table
 KBASIN=KB4X513.OCN.gas1.nc           ! ocean basin designations
 TOPO_OC=OZ72X46N_gas.1_nocasp.nc     ! ocean bdy.cond
+OSTRAITS=OSTRAITS_72x46.nml          ! parameterized straits info
 CDN=CD4X500S.ext.nc
   ! VEG=V72X46.1.cor2.ext
 VEG=V72X46.1.cor2_no_crops.ext.nc

@@ -2,103 +2,81 @@
 #ifdef TRACERS_ATM_ONLY
 #undef TRACERS_WATER
 #endif
-      MODULE STRAITS
-!@sum  STRAITS ocean strait related variables
-!@+    RESOLUTION DEPENDENT: This version is for 72x46 - M
-!@auth Gary Russell/Gavin Schmidt
-      USE SEAICE, only : lmi
-      USE OCEANRES, only : lmo
-      IMPLICIT NONE
-      SAVE
-C**** These values are highly resolution dependent
-C****
-C****     Strait           From         To       LM    Width
-C****     ------           ----         --       --    -----
-C****  1  Fury & Hecla   19,42 ES    20,40 WN     2    20000
-C****  2  Nares          22,43 EN    24,44 WS     5     5000
-C****  3  Gibraltar      35,32 EN    37,33 WS     5    25000
-C****  4  English        36,36 EN    37,37 WS     2    35000
-C****  5  Kattegat       38,38 EN    40,38 WS     2    60000
-C****  6  Bosporous      42,33 EN    43,34 WS     2     6000
-C****  7  Red Sea        44,29 ES    45,28 WN     6   250000
-C****  8  Bab al Mandab  45,28 ES    46,27 WN     6    25000
-C****  9  Hormuz         47,30 ES    49,29 WN     2   100000  ! 50000
-C**** 10  Malacca        56,25 EN    58,24 WS     3    50000
-C**** 11  Korea          62,32 EN    63,33 WS     4   170000
-C**** 12  Soya-kaikyo    64,34 EN    65,35 WS     2    40000
-C**** 12alt Tsugaru      64,34 EN    66,34 WS     4    20000
-C****
-      INTEGER, PARAMETER :: NMST=12  !@param NMST no. of ocean straits
-!@var MMST mass of water in strait (kg)
-!@var MUST mass flux of water in strait (kg/s)
-!@var G0MST,GXMST,GYMST pot. enthalpy of water in strait (+ moments) (J)
-!@var S0MST,SXMST,SYMST salinity of water in strait (+ moments) (kg)
-      REAL*8, DIMENSION(LMO,NMST) :: MMST,MUST,G0MST,GXMST,GZMST,S0MST
-     *     ,SXMST,SZMST
 
-!@var QTYE workspace holding values of QTY at endpoints of straits
-      integer, dimension(2,nmst) :: LMMe
-      Real*8, dimension(2,nmst) :: OPRESE,HOCEANE
-      Real*8, Dimension(2,NMST,LMO) ::
-     *       MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME
+      module straits
+      use oceanres,  only: lmo
+      use seaice, only: lmi
+      implicit none
+      save
 
-!@var WIST width of strait (m)
-!@var DIST distance along strait (m)
-!@var DISTPG distance between centre points of adjoining ocean boxes (m)
-      REAL*8, DIMENSION(NMST) :: DIST,DISTPG,
-     *     WIST = (/  2d4,   5d3, 2.5d4, 3.5d4,   6d4, 6d3,
-     *              2.5d5, 2.5d4,   1d5,   5d4, 1.7d5, 4d4/)
+      INTEGER :: NMST=0  !@var NMST no. of ocean straits
 
+!@var WIST,ZST width, nominal depth of strait (m)
 !@var XST,YST local coordinates [-1,1] for strait entry/exit points
-      REAL*8, DIMENSION(NMST,2) :: XST = RESHAPE( (/
-     *     0d0  , 6d-1, 6d-1,  1d0,  1d0,  0d0, 6d-1, 6d-1,  1d0, 6d-1,
-     *     0d0  , 6d-1,
-     *     0d0  ,-8d-1,-8d-1,  0d0,-6d-1,-8d-1,-8d-1, -1d0,-7d-1, -1d0,
-     *     -6d-1, -1d0 /), (/NMST,2/) ),
-     *     YST = RESHAPE( (/
-     *     -1d0 , 8d-1, 8d-1,  0d0,  0d0,  1d0,-8d-1,-8d-1,  0d0,-8d-1,
-     *      1d0 , 8d-1,
-     *      1d0 ,-6d-1,-6d-1, -1d0,-8d-1,-6d-1, 6d-1,  0d0, 7d-1,  0d0,
-     *     -8d-1,  0d0 /), (/NMST,2/) )
+      real*8, allocatable :: wist(:),zst(:),xst(:,:),yst(:,:)
 
 !@var IST,JST i,j coordinates of ends of straits
-      INTEGER, DIMENSION(NMST,2) ::
-     *     IST = RESHAPE( (/
-     *     19, 22, 35, 36, 38, 42, 44, 45, 47, 56, 62, 64,
-     *     20, 24, 37, 37, 40, 43, 45, 46, 49, 58, 63, 65/),
-     *     (/NMST,2/) ),
-     *     JST = RESHAPE( (/
-     *     42, 43, 32, 36, 38, 33, 29, 28, 30, 25, 32, 34,
-     *     40, 44, 33, 37, 38, 34, 28, 27, 29, 24, 33, 35/),
-     *     (/NMST,2/) )
-
-!@var kn2: Where kn2>0, the index pair k,n [k=1,2;n=1,nmst] corresponds
-!@+        to the same i,j endpoint as index pair kn2(1:2,k,n).
-!@+        Currently, an i,j endpoint can be shared by only 2 straits.
-      integer, dimension(2,2,nmst) :: kn2
-
 !@var LMST no. of levels in strait
-      INTEGER, DIMENSION(NMST) :: LMST = (/
-     *     2,  5,  5,  2,  2,  2,  6,  6,  2,  3,  4,  2/)
+      integer, allocatable :: lmst(:),ist(:,:),jst(:,:)
 
 !@var name_st Names of straits
-      CHARACTER*20, DIMENSION(NMST) :: NAME_ST = (/
-     *     'Fury & Hecla  ', 'Nares         ', 'Gibraltar     ',
-     *     'English       ', 'Kattegat      ', 'Bosporous     ',
-     *     'Red Sea       ', 'Bab al Mandab ', 'Hormuz        ',
-     *     'Malacca       ', 'Korea         ', 'Soya-kaikyo   '/)
+      character(len=20), allocatable :: name_st(:)
 
+!@var DIST distance along strait (m)
+!@var DISTPG distance between centre points of adjoining ocean boxes (m)
+!@var MMST mass of water in strait (kg)
+!@var MUST mass flux of water in strait (kg/s)
+!@var G0MST,GXMST,GZMST pot. enthalpy of water in strait (+ moments) (J)
+!@var S0MST,SXMST,SZMST salinity of water in strait (+ moments) (kg)
 !@var RSIST Sea ice fraction in strait
 !@var RSIXST Center of sea ice in strait (m)
 !@var MSIST Mass of ice within strait (kg)
 !@var HSIST Enthalpy of ice within strait (J)
 !@var SSIST Salinity of ice within strait (kg)
-      REAL*8, DIMENSION(NMST) :: RSIST,RSIXST
-      REAL*8, DIMENSION(2,NMST) :: MSIST
-      REAL*8, DIMENSION(LMI,NMST) :: HSIST,SSIST
-
 !@param USIFAC ratio of strait sea ice velocity to current
-      REAL*8 :: USIFAC = 0.1d0   ! used to be 1. (too much)
+!@var TRMST,TXMST,TZMST tracer amount in strait (+ moments) (kg)
+!@var TRSIST tracer amount in with strait (kg)
+#ifdef OCN_GISSMIX
+!@var OTKEST turbulent kinetic energy in strait (m/s)^2
+#endif
+
+      Real*8 ::
+     *    USIFAC = .1d0  !  ratio of strait sea ice velocity to current
+
+      real*8, dimension(:), allocatable ::
+     &       DIST, !  fixed length of strait (m)
+     &     DISTPG, !  fixed distance between ocean cell centers
+     &      RSIST, !  horizontal sea ice cover in strait
+     &     RSIXST  !  center of sea ice cover in strait
+
+      real*8, dimension(:,:), allocatable ::
+     &   MMST, !  mass of water in strait (kg)
+     &   MUST, !  mass flux of water in strait (kg/s)
+     &  G0MST, !  pot. enthalpy of water in strait (J)
+     &  GXMST, !  west-east gradient of pot. enthalpy (J)
+     &  GZMST, !  down. vert. gradient of pot. enthalpy (J)
+     &  S0MST, !  mass of salt in strait (kg)
+     &  SXMST, !  west-east gradient of salt (kg)
+     &  SZMST, !  down. vert. gradient of salt (kg)
+     &  MSIST, !  2 mass layers of sea ice in strait (kg)
+     &  HSIST, !  LMI layers of heat content in strait (J)
+     &  SSIST  !  LMI layers of salt in strait (kg)
+
+#ifdef OCN_GISSMIX
+      real*8, dimension(:,:), allocatable ::
+     &  OTKEST!  turbulent kinetic energy in strait (m/s)^2
+#endif
+
+!@var QTYE workspace holding values of QTY at endpoints of straits
+      integer, dimension(:,:), allocatable :: LMMe
+      real*8, dimension(:,:), allocatable :: OPRESE,HOCEANE
+      real*8, dimension(:,:,:), allocatable ::
+     &     MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME
+
+!@var kn2: Where kn2>0, the index pair k,n [k=1,2;n=1,nmst] corresponds
+!@+        to the same i,j endpoint as index pair kn2(1:2,k,n).
+!@+        Currently, an i,j endpoint can be shared by only 2 straits.
+      integer, dimension(:,:,:), allocatable :: kn2
 
 #ifdef TRACERS_OCEAN
 !@var TRMST,TXMST,TZMST tracer amount in strait (+ moments) (kg)
@@ -109,8 +87,89 @@ C****
      &     TRME,TXME,TYME,TZME !(2,NMST,LMO,NTM)
 #endif
 #ifdef TRACERS_WATER
-!@var TRSIST tracer amount in with strait (kg)
       Real*8, ALLOCATABLE :: TRSIST(:,:,:) !(NTM_ATM,LMI,NMST)
 #endif
 
-      END MODULE STRAITS
+
+      end module straits
+
+      subroutine alloc_straits
+      use straits
+      use filemanager, only : openunit,closeunit
+      implicit none
+      integer :: iu,ios,n
+      character(len=20) :: name
+      integer :: ij1(2),ij2(2),lm,iter,ier
+      real*8 :: width,depth,xy1(2),xy2(2)
+      namelist/strait/ name,ij1,ij2,lm,width,depth,xy1,xy2
+
+      call openunit('OSTRAITS',iu,.false.,.true.)
+
+      do iter=1,2 ! first iteration counts straits, second fills data
+        nmst = 0
+        do
+          n = nmst+1
+          depth = -1d30
+          read(iu,nml=strait,iostat=ios)
+          if(ios.ne.0) exit
+          nmst = nmst + 1
+          if(iter.eq.2) then
+            name_st(n) = name
+            wist(n) = width
+            zst(n) = depth
+            lmst(n) = lm
+            ist(n,1) = ij1(1)
+            jst(n,1) = ij1(2)
+            ist(n,2) = ij2(1)
+            jst(n,2) = ij2(2)
+            xst(n,1) = xy1(1)
+            yst(n,1) = xy1(2)
+            xst(n,2) = xy2(1)
+            yst(n,2) = xy2(2)
+          endif
+        enddo
+        rewind(iu) ! use rewind_parallel?
+        if(iter.eq.1) then ! allocate once we know how many straits exist
+          allocate(wist(nmst),xst(nmst,2),yst(nmst,2))
+          allocate(lmst(nmst),ist(nmst,2),jst(nmst,2))
+          allocate(name_st(nmst),zst(nmst))
+        endif
+      enddo
+      call closeunit(iu)
+
+      allocate(
+     &     MMST(LMO,NMST),
+     &     MUST(LMO,NMST),
+     &     G0MST(LMO,NMST),
+     &     GXMST(LMO,NMST),
+     &     GZMST(LMO,NMST),
+     &     S0MST(LMO,NMST),
+     &     SXMST(LMO,NMST),
+     &     SZMST(LMO,NMST),
+     &     DIST(NMST),
+     &     DISTPG(NMST),
+     &     RSIST(NMST),
+     &     RSIXST(NMST),
+     &     MSIST(2,NMST),
+     &     HSIST(LMI,NMST),
+     &     SSIST(LMI,NMST),
+#ifdef OCN_GISSMIX
+     &     OTKEST(LMO,NMST),
+#endif
+     &     OPRESE(2,nmst),
+     &     HOCEANE(2,nmst),
+     &     LMMe(2,nmst),      
+     &     MOE(2,NMST,LMO),
+     &     G0ME(2,NMST,LMO),
+     &     GXME(2,NMST,LMO),
+     &     GYME(2,NMST,LMO),
+     &     GZME(2,NMST,LMO),
+     &     S0ME(2,NMST,LMO),
+     &     SXME(2,NMST,LMO),
+     &     SYME(2,NMST,LMO),
+     &     SZME(2,NMST,LMO),
+     &     kn2(2,2,nmst),
+     &     stat=ier)
+
+
+      end subroutine alloc_straits

@@ -27,7 +27,6 @@ Object modules:
      ! resolution-specific source codes
 RES_CS90L40                         ! C90 horiz. resolution, top at 0.1mb, 40 layers
 ORES_1Qx1_L32                       ! ocean horiz res 2x2.5deg, 32 vert layers
-OSTRAITS_1QX1_COM                   ! res-dependent straits parameters
 OFFT288E                            ! Fast Fourier Transform
 
      ! Codes used by the cubed-atmosphere configuration (FV dynamics)

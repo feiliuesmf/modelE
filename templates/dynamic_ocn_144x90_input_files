@@ -3,3 +3,4 @@ OFTAB=OFTABLE_NEW               ! ocean function table
 KBASIN=KB144X90.modelE.nc       ! ocean basin designations
 TOPO_OC=OZ144X90N_nocasp.1.nc   ! ocean fraction and topography
 TOPO=Z144X90N_nocasp.1.nc       ! surface fractions and topography
+OSTRAITS=OSTRAITS_144x90.nml    ! parameterized straits info

@@ -18,7 +18,7 @@ OCN_DRV                             ! driver for ocean-grid components
 SEAICE SEAICE_DRV                   ! seaice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 
-ORES_1Qx1_L32 OSTRAITS_1QX1_COM OFFT288E ! res.-dependent codes
+ORES_1Qx1_L32 OFFT288E              ! res.-dependent codes
 #include "dynamic_ocn_source_files"
 OCN_Int_LATLON                      ! atm-ocn regrid routines
 

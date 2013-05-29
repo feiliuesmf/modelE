@@ -46,7 +46,7 @@ LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_COM LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
-ODIAG_COM OCEAN_COM OSTRAITS_F_COM OGEOM  ! dynamic ocean modules
+ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM  ! dynamic ocean modules
 OCNDYN OCNDYN2                            ! dynamic ocean routines
 OCN_Interp OCN_Int_LATLON                 ! dynamic ocean routines
 OSTRAITS OCNGM OCNKPP                     ! dynamic ocean routines
@@ -72,6 +72,7 @@ GIC=GIC.144X90.DEC01.1.ext_1.nc   ! initial ground conditions      ISTART=2
 OIC=OIC144X90LD.ZN_nocasp.CLEV94.DEC01S
 OFTAB=OFTABLE_NEW                   ! ocean function table
 KBASIN=KB144X90.modelE.nc           ! ocean basin designations
+OSTRAITS=OSTRAITS_144x90.nml        ! parameterized straits info
 TOPO_OC=OZ2HX2fromZ1QX1N.nc   ! ocean bdy.cond
 CDN=CD144X90.ext.nc
 VEG=V144X90_no_crops.ext.nc
