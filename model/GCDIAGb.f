@@ -1445,7 +1445,7 @@ C**** VERTICAL COMPONENT
      *      U(IM1,J,L+1)+U(IM1,J+1,L+1)+U(I,J,L+1)+U(I,J+1,L+1)
       VPE = V(IM1,J,L  )+V(IM1,J+1,L  )+V(I,J,L  )+V(I,J+1,L  )+
      *      V(IM1,J,L+1)+V(IM1,J+1,L+1)+V(I,J,L+1)+V(I,J+1,L+1)
-      PVTHP = PVTHP + MA(L,I,J)*(T(I,J,L)+T(I,J,L+1)-THMN)
+      PVTHP = PVTHP + VPE*MA(L,I,J)*(T(I,J,L)+T(I,J,L+1)-THMN)
       CsLPU = CsLPU - UPE*(CsL(I)-CsLMN) 
   874 IM1=I
       AGC(J,L,JL_EPFLXV) = AGC(J,L,JL_EPFLXV) + .25*byDXYP(J)*
