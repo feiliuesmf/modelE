@@ -60,6 +60,8 @@
       I_0 = GRID%I_STRT; I_1 = GRID%I_STOP
       J_0 = GRID%J_STRT; J_1 = GRID%J_STOP
 
+      Call CALC_AMPK (LM)  !  delete when MA replaces P on restart file
+
 C**** INITIALIZE TIME PARAMETERS
       NSTEP=(Itime-ItimeI)*NIdyn
 
