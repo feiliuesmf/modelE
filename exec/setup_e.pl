@@ -237,6 +237,7 @@ foreach $_ ( @data_files ) {
     }
     print RUNIDLN "ln -fsn $full_dest $name\n";
     print RUNIDULN "rm $name\n";
+    $data_file_hash{$name} = $full_dest;
 }
 
 if ( $flag_missing_data_files ) { exit 1; }
@@ -328,6 +329,11 @@ while (<RFILE>) {
     s/\s*$//;
     next if ( ! $_ ); 
     #print I "$_\n";
+    if ( /^\s*&&END_PARAMETERS/ ) {
+	foreach $key (keys %data_file_hash) {
+	    $istr .= " INPUT_FILES:$key='$data_file_hash{$key}'\n";
+	}
+    }
     if ( /^\s*ISTART/ ) {
 	$str_cold .= "$_\n";
     } else {
