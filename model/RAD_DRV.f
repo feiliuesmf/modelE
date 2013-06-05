@@ -711,7 +711,9 @@ C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
           call closeunit(iu)
         end if
       end if
-      call updBCd(1990) ; depoBC_1990 = depoBC
+      if(dalbsnX.ne.0.) then
+        call updBCd(1990) ; depoBC_1990 = depoBC
+      endif
 C**** set up unit numbers for 14 more radiation input files
       DO IU=1,14
         IF (IU==12.OR.IU==13) CYCLE                    ! not used in GCM
@@ -841,7 +843,7 @@ c      end if
 #endif
       USE RADPAR, only : rcompt,writet
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
-     *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr,albsn_yr
+     *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr,albsn_yr,dalbsnX
 #ifdef CHL_from_SeaWIFs
      *     ,iu_CHL,achl,echl1,echl0,bchl,cchl
       USE FLUXES, only : focean,atmocn
@@ -873,12 +875,13 @@ c      end if
 C**** Update time dependent radiative parameters each day
 !     Get black carbon deposition data for the appropriate year
 !     (does nothing except at a restart or the beginning of a new year)
-      if (albsn_yr.eq.0) then
-        call updBCd (year)
-      else
-        call updBCd (albsn_yr)
-      end if
-
+      if(dalbsnX.ne.0.) then
+        if (albsn_yr.eq.0) then
+          call updBCd (year)
+        else
+          call updBCd (albsn_yr)
+        end if
+      endif
 !     Hack: 2 specific volc. eruption scenarios for 2000-2100 period
       if(volc_yr.eq.-2010) then              ! repeat some old volcanos
          KYEARV=YEAR
@@ -1548,6 +1551,7 @@ c**** find scaling factors for surface albedo reduction
 #ifdef SCM
       xdalbs = 0.d0
 #else
+      if(dalbsnX.ne.0.) then
       IF (HAVE_SOUTH_POLE) THEN
          sumda_psum(:,1)=axyp(1,1)
          tauda_psum(:,1)=axyp(1,1)*depobc_1990(1,1)
@@ -1574,6 +1578,7 @@ c      ILON72=INT(.5+(I-.5)*72./IM+.5)
 
       xdalbs=-dalbsnX*sumda/tauda
       IF(QCHECK) write(6,*) 'coeff. for snow alb reduction',xdalbs
+      endif ! dalbsnX not zero
 #endif
 
       if(kradia.le.0) then
@@ -1772,7 +1777,11 @@ C****
 C**** DETERMINE CLOUDS (AND THEIR OPTICAL DEPTHS) SEEN BY RADIATION
 C****
       CSS=0. ; CMC=0. ; CLDCV=0. ; DEPTH=0. ; OPTDW=0. ; OPTDI=0.
-      call dCDNC_EST(i,j,pland, dCDNC)
+      if(cc_cdncx.ne.0. .or. od_cdncx.ne.0.) then
+        call dCDNC_EST(i,j,pland, dCDNC)
+      else
+        dCDNC = 0.
+      endif
       dCC_CDNCL = CC_cdncx*dCDNC*CDNCL
       dOD_CDNCL = OD_cdncx*dCDNC*CDNCL
       DO L=1,LM
@@ -2069,7 +2078,11 @@ C**** Zenith angle and GROUND/SURFACE parameters
 c      print*,"snowage",i,j,SNOAGE(1,I,J)
 C**** set up parameters for new sea ice and snow albedo
       zsnwoi=snowoi/rhos
-      dALBsn = xdalbs*depobc(i,j)
+      if(dalbsnX.ne.0.) then
+        dALBsn = xdalbs*depobc(i,j)
+      else
+        dALBsn = 0.
+      endif
 c to use on-line tracer albedo impact, set dALBsnX=0. in rundeck
 #if (defined BC_ALB) &&\
     ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
