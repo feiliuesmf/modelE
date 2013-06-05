@@ -287,9 +287,16 @@ c            GO TO 10
       use model_com, only : ioread
       use pario, only : par_open,par_close
       use domain_decomp_atm, only : grid
+      use filemanager, only : file_exists
       implicit none
       integer :: fid
-      fid = par_open(grid,'GIC','read')
+      if(file_exists('GIC')) then
+        fid = par_open(grid,'GIC','read')
+      elseif(file_exists('AICEIC')) then
+        fid = par_open(grid,'AICEIC','read')
+      else
+        return
+      endif
       call new_io_agrice (fid,ioread)
       call par_close(grid,fid)
       return
@@ -380,6 +387,7 @@ c            GO TO 10
       use pario, only : defvar,write_attr
       implicit none
       integer :: fid         !@var fid file id
+      if(nrvr.lt.1) return
       call defvar(grid,fid,rvrout(1:nrvr),'rvr(nrvr)')
       call write_attr(grid,fid,'rvr','reduction','sum')
       call defvar(grid,fid,namervr(1:nrvr),'namervr(rvr_strlen,nrvr)')
@@ -394,6 +402,7 @@ c            GO TO 10
       use pario, only : write_data
       implicit none
       integer fid   !@var fid unit number of read/write
+      if(nrvr.lt.1) return
       call write_data(grid,fid,'rvr',rvrout(1:nrvr))
       call write_data(grid,fid,'namervr',namervr(1:nrvr))
       return
