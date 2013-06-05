@@ -8,6 +8,7 @@ module FILEMANAGER
   public openunit, closeunit, print_open_units,findunit
   public nameunit
   public get_recordlengths,is_fbsa
+  public file_exists
 
   interface openunit
     module procedure openunit_0d
@@ -273,5 +274,24 @@ contains
     call get_recordlengths(trim(fname),nrecs,reclens)
     is_fbsa = nrecs > 0
   end function is_fbsa
+
+  function file_exists(fname)
+    use dictionary_mod
+    implicit none
+    character(len=*) :: fname
+    logical :: file_exists
+    character(len=128) :: pname
+    character(len=256) :: fpath
+    logical :: qexist
+    pname = '_file_'//trim(fname)
+    file_exists = is_set_param(trim(pname))
+    if(file_exists) then ! param is set, but check if the actual file exists
+      fpath=''
+      call get_param(trim(pname),fpath)
+      inquire(file=trim(fpath),exist=qexist)
+      if(.not.qexist) &
+           call stop_model('nonexistent file '//trim(fpath),255)
+    endif
+  end function file_exists
 
 end module FILEMANAGER
