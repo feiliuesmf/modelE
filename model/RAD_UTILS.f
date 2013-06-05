@@ -3166,6 +3166,9 @@ C     functions
       integer :: use_sol_Ox_cycle = 0
       real*8 :: S0min, S0max
 
+!@var have_o3_file whether an O3file was specified in the rundeck
+      logical :: have_o3_file
+
 !@param NLO3 # of layers in ozone data files.  Todo: read from datafiles.
       INTEGER, PARAMETER :: NLO3=49
 !@var PLBO3 edge pressures in O3 input file. Todo: read from file.
@@ -3186,6 +3189,7 @@ C     functions
       use domain_decomp_atm, only: grid, getdomainbounds
       use timestream_mod, only : init_stream,read_stream
       use pario, only : par_open,par_close,read_dist_data
+      use filemanager, only : file_exists
       implicit none
       integer, intent(in) :: JYEARO,JJDAYO
       real*8, dimension(:,:,:), pointer :: o3jday,o3jref
@@ -3210,9 +3214,11 @@ C     functions
 
         allocate(o3jday(nlo3,grid%i_strt:grid%i_stop,
      &                       grid%j_strt:grid%j_stop))
+        o3jday = 0.
 
         allocate(o3jref(nlo3,grid%i_strt:grid%i_stop,
      &                       grid%j_strt:grid%j_stop))
+        o3jref = 0.
 
 ! what was this doing in the original updo3d ??
 ! psf==plb0(1)
@@ -3220,8 +3226,12 @@ C     functions
 
         cyclic = jyearo < 0
 
-        call init_stream(grid,O3stream,'O3file','O3',
-     &       0d0,1d30,'linm2m',jyearx,jjdayo,cyclic=cyclic)
+        have_o3_file = file_exists('O3file')
+
+        if(have_o3_file) then
+          call init_stream(grid,O3stream,'O3file','O3',
+     &         0d0,1d30,'linm2m',jyearx,jjdayo,cyclic=cyclic)
+        endif
 
         inquire(file='Ox_ref',exist=exists)
         if(exists) then
@@ -3240,6 +3250,8 @@ C     functions
         endif
         
       endif  ! end init
+
+      if(.not.have_o3_file) return
 
       call read_stream(grid,O3stream,jyearx,jjdayo,o3arr)
       do j=j_0,j_1
