@@ -3466,10 +3466,12 @@ cddd            write(934,*) "wfcs", i,j,wfcs(i,j)
             !adlmass = aleafmass - aleafmasslast
             adlmass = aleafmass
             !aij(i,j,ij_dleaf)=aij(i,j,ij_dleaf)+adlmass
-            aij(i,j,ij_dleaf)=adlmass  !accumulate just instant. value
-     &           *fearth(i,j)
+            if(end_of_day) then ! ij_dleaf not available otherwise
+              aij(i,j,ij_dleaf)=adlmass !accumulate just instant. value
+     &             *fearth(i,j)
             !PRINT '(F4.4)',adlmass                            !DEBUG
             !call stop_model('Just did adlmass',255)           !DEBUG
+            endif
 #endif
           !end if
         end do
