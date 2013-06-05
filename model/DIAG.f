@@ -5186,11 +5186,14 @@ C****
       save
       integer, parameter :: nmsu=200 , ncols=4
       real*8 plbmsu(nmsu),wmsu(ncols,nmsu)
+      logical :: do_msu
       contains
       subroutine read_msu_wts
       use filemanager
       integer n,l,iu_msu
 c**** read in the MSU weights file
+      do_msu = file_exists('MSU_wts')
+      if(.not.do_msu) return
       call openunit('MSU_wts',iu_msu,.false.,.true.)
       do n=1,4
         read(iu_msu,*)
@@ -5214,6 +5217,13 @@ c**** read in the MSU weights file
       real*8 tlmsu(nmsu),tmsu(ncols)
       real*8 plb(0:lm+2),tlb(0:lm+2)
       integer l
+
+      if(.not.do_msu) then
+        tmsu2 = 0.
+        tmsu3 = 0.
+        tmsu4 = 0.
+        return
+      endif
 
 c**** find edge temperatures (assume continuity and given means)
       tlb(0)=ts ; plb(0)=plbmsu(1) ; tlb(1)=ts
@@ -5269,6 +5279,7 @@ c**** find MSU channel 2,3,4 temperatures
       USE DIAG_COM, only : name_consrv, units_consrv, lname_consrv
       USE DIAG_COM, only : CONPT0, icon_MS, icon_TPE, icon_WM, icon_EWM
       USE DIAG_COM, only : nreg,jreg,titreg,namreg,sarea_reg
+     &     ,write_regions
       USE DIAG_COM, only : ndasf,nda4,nda5s,nda5k,nda5d,ndaa,modd5k
       USE diag_com,ONLY : adiurn_dust,adiurn_loc,areg_loc,aisccp_loc
      &     ,consrv_loc
@@ -5304,6 +5315,7 @@ c**** find MSU channel 2,3,4 temperatures
 #ifdef CUBED_SPHERE
 #define ASCII_REGIONS
 #endif
+      character(len=2) :: c2
 #ifdef ASCII_REGIONS
 C***  regions defined as rectangles in an ASCII file
       integer, dimension(23) :: NRECT
@@ -5360,6 +5372,9 @@ c a parallelized i/o routine that understands it
       call sync_param( "NDAA", NDAA ) !!
 
 C****   READ SPECIAL REGIONS
+      write_regions = .true.
+      if(file_exists('REG')) then
+
 #ifndef ASCII_REGIONS
       call openunit("REG",iu_REG,.true.,.true.)
       READ(iu_REG) TITREG,JREG_glob,NAMREG
@@ -5421,6 +5436,17 @@ c**** determine the region to which each cell belongs
         WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
       endif
       call closeunit(iu_REG)
+
+      else  ! no regions requested.
+        write_regions = .false.
+        jreg(:,:) = 24
+        do i=1,23 ! fill in names just in case
+          write(c2,'(i2.2)') i
+          namreg(1,i) = 'REG.'
+          namreg(2,i) = ' '//c2//' '
+        enddo
+      endif
+
 c
 c calculate the areas of the special regions
 c
@@ -5431,6 +5457,7 @@ c
           area_part(i_0:i_1,j_0:j_1) = 0d0
         end where
         call globalsum(grid,area_part,sarea_reg(n),all=.true.)
+        sarea_reg(n) = max(sarea_reg(n), 1d-30)
       enddo
 
 

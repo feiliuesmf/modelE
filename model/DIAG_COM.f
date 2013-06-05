@@ -84,6 +84,8 @@ C**** Define surface types (mostly used for weighting AJ diagnostics)
 cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 !@var SAREA_REG areas of the special regions
       REAL*8, DIMENSION(NREG), public :: SAREA_REG
+!@var write_regions whether to write regional diags to acc files
+      logical, public :: write_regions
 
 !@param KAJL number of AJL diagnostics
       INTEGER, PARAMETER, public :: KAJL=77
@@ -2292,8 +2294,9 @@ c new_io_subdd
      &     iden_j,iden_reg,denom_jl,denom_ijl,denom_ij,denom_dd,
      &     denom_gc,denom_ijk,
      &     lm,
-     &     isccp_press,isccp_tau,isccp_late,wisccp,
-     &     scale_ijmm,name_ijmm,cdl_ijmm
+     &     isccp_diags,isccp_press,isccp_tau,isccp_late,wisccp,
+     &     scale_ijmm,name_ijmm,cdl_ijmm,
+     &     write_regions
       use geom, only : axyp
 #ifdef CUBED_SPHERE
       use geom, only : lon2d_dg,lat2d_dg,lonbds,latbds
@@ -2325,6 +2328,7 @@ c new_io_subdd
       call defvar(grid,fid,name_j,'sname_aj(sname_strlen,kaj)')
       call defvar_cdl(grid,fid,cdl_j,'cdl_aj(cdl_strlen,kcdl_aj)')
 
+      if(write_regions) then
       call write_attr(grid,fid,'areg','reduction','sum')
       call write_attr(grid,fid,'areg','split_dim',2)
       call defvar(grid,fid,ia_j,'ia_areg(kaj)')
@@ -2333,6 +2337,7 @@ c new_io_subdd
       call defvar(grid,fid,name_reg,'sname_areg(sname_strlen,kaj)')
       call defvar_cdl(grid,fid,cdl_reg,
      &     'cdl_areg(cdl_strlen,kcdl_areg)')
+      endif
 
       call write_attr(grid,fid,'consrv','reduction','sum')
       call write_attr(grid,fid,'consrv','split_dim',2)
@@ -2441,12 +2446,14 @@ c new_io_subdd
      &     'cdl_hdiurn(cdl_strlen,kcdl_hdiurn)')
 #endif
 
+      if(isccp_diags.eq.1) then
       call write_attr(grid,fid,'aisccp','reduction','sum')
       call defvar(grid,fid,wisccp,'wisccp(nisccp)')
       call write_attr(grid,fid,'wisccp','reduction','sum')
       call defvar(grid,fid,isccp_press,'isccp_press(npres)')
       call defvar(grid,fid,isccp_tau,'isccp_tau(ntau)')
       call defvar(grid,fid,isccp_late,'isccp_late(nisccp_plus_1)')
+      endif
 
       call def_meta_rvracc(fid)
 
@@ -2475,8 +2482,9 @@ c new_io_subdd
      &     iden_j,iden_reg,denom_jl,denom_ij,denom_ijl,denom_dd,
      &     denom_gc,denom_ijk,
      &     lm,ia_12hr,
-     &     isccp_press,isccp_tau,isccp_late,wisccp,
-     &     scale_ijmm,name_ijmm,cdl_ijmm
+     &     isccp_diags,isccp_press,isccp_tau,isccp_late,wisccp,
+     &     scale_ijmm,name_ijmm,cdl_ijmm,
+     &     write_regions
       use geom, only : axyp
 #ifdef CUBED_SPHERE
       use geom, only : lon2d_dg,lat2d_dg,lonbds,latbds
@@ -2505,11 +2513,13 @@ c new_io_subdd
       call write_data(grid,fid,'sname_aj',name_j)
       call write_cdl(grid,fid,'cdl_aj',cdl_j)
 
+      if(write_regions) then
       call write_data(grid,fid,'ia_areg',ia_j)
       call write_data(grid,fid,'scale_areg',scale_j)
       call write_data(grid,fid,'denom_areg',iden_reg)
       call write_data(grid,fid,'sname_areg',name_reg)
       call write_cdl(grid,fid,'cdl_areg',cdl_reg)
+      endif
 
       call write_data(grid,fid,'hemis_consrv',hemis_consrv)
       call write_data(grid,fid,'ia_consrv',ia_con)
@@ -2580,6 +2590,7 @@ c new_io_subdd
       call write_cdl(grid,fid,'cdl_hdiurn',cdl_hd)
 #endif
 
+      if(isccp_diags.eq.1) then
       call write_data(grid,fid,'isccp_press',(isccp_press))
 ! tmpArr is a workaround for pnetcdf under gfortran.  Apparently
 ! some issue with arrays with the PARAMETER attribute
@@ -2591,6 +2602,7 @@ c new_io_subdd
       tmpArr = isccp_late
       call write_data(grid,fid,'isccp_late',tmpArr)
       call write_data(grid,fid,'wisccp',wisccp)
+      endif
 
       call write_meta_rvracc(fid)
 
