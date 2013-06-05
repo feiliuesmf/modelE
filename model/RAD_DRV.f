@@ -1264,8 +1264,7 @@ C     OUTPUT DATA
       USE ATM_COM, only : pk,pedn,pmid,pdsig,ltropo,MA,byMA
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : si_atm
-      USE GHY_COM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
-     *     ,aiearth,fr_snow_rad_ij,fearth
+      USE GHY_COM, only : snowe_com=>snowe,snoage,fr_snow_rad_ij,fearth
 #ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod, only : ent_get_exports
