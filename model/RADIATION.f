@@ -261,10 +261,17 @@ C------------------------------------------
      *     ATDUST                                                    !ron
       real*8, dimension(  :), allocatable :: QDST55                  !ron
 
+!@dbparam planck_tmin, planck_tmax temperature range for Planck function
+!@+       lookup table.  If the requested tmin is less than the default
+!@+       value of 124 K, the lookup table is extrapolated at startup to
+!@+       cover the requested range (same for tmax exceeding 373 K).
+      integer :: planck_tmin=124, planck_tmax=373
+
 C            RADDAT_TR_SGP_TABLES          read from  radfile1, radfile2
       INTEGER, PARAMETER :: NGUX=1024, NTX=8, NPX=19
       REAL*8, dimension(NGUX,NTX,NPX) :: TAUTBL,TAUWV0,TAUCD0
-      REAL*8  PLANCK(124:373,33), H2O(100),FCO2(100)
+      REAL*8  H2O(100),FCO2(100)
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: PLANCK!(124:373,33)
       REAL*8  XKCFC(12,8,17:20),ULOX(19,16),DUX(19,16), XTFAC(11,9)
       REAL*8  XTU0(24,3),XTD0(24,3), XTRUP(24,15,3),XTRDN(24,15,3)
       REAL*8, dimension(24,15,11,3) ::
@@ -924,7 +931,8 @@ C       ----------------------------------------------------------------
       READ(NRFU) title,TAUTBL
       READ(NRFU) title,TAUWV0
       READ(NRFU) title,TAUCD0
-      READ(NRFU) title,PLANCK
+      !READ(NRFU) title,PLANCK
+      call read_extend_planck(nrfu)
       READ(NRFU) title,XKCFC
       READ(NRFU) title,ULOX,DUX
 
@@ -1702,7 +1710,7 @@ C--------------------------------  (GETSUR sets albedo needed by GETCLD)
                       CALL GETSUR(
      i     snoage_fac_max,
      i     MLAT46,jnorth,KEEPAL,KSIALB,KZSNOW,MADSUR,
-     i     COSZ,PLANCK,
+     i     COSZ,PLANCK,PLANCK_TMIN,PLANCK_TMAX,
      i     ILON,JLAT,
      i     AGESN,POCEAN,POICE,PEARTH,PLICE,PLAKE,zlake,
      i     TGO,TGOI,TGE,TGLI,ZOICE,FMP,ZSNWOI,zmp,
@@ -8239,6 +8247,141 @@ C
 C
       RETURN
       END SUBROUTINE WRITET
+
+      subroutine read_extend_planck(nrfu)
+c Reads the Planck function lookup table from unit nrfu and
+c extrapolates it below 124 K or above 373 K if necessary.
+c A weighted average of linear and logarithmic extrapolation
+c is used.
+c This version is adapted from A. Lacis routine PKTK33.
+c Comments from that routine are listed at the end, as are
+c some better log-vs-linear weights for T>800 K.
+      implicit none
+      integer :: nrfu
+
+      REAL*8 :: PFOFTK,TKOFPF ! external funcs
+
+      integer i,k
+      real*8 :: wtlin,wtlog,tk,dtk,f1,f2,g1,g2,wavna,wavnb
+
+      ! weights for linear extrapolation for the T range 1-31 K
+      ! (value for T=31 K is used for 32K-123K).
+      real*8, parameter :: wtlintklo(31) = (/
+     &     0.0314,0.03245,0.0333 ,0.0341 ,0.0351,
+     &     0.0362,0.03745,0.03861,0.03962,0.0414,
+     &     0.0427,0.0440 ,0.0451 ,0.0463 ,0.0477,
+     &     0.0488,0.0506 ,0.0508 ,0.0532 ,0.0542,
+     &     0.0552,0.0562 ,0.0572 ,0.0585 ,0.060,
+     &     0.061 ,0.062  ,0.063  ,0.064  ,0.071,
+     &     0.075 /)
+
+      character(len=80) :: title
+      real*8 planck_in(124:373,33)
+
+      read(nrfu) title,planck_in
+
+      allocate(planck(planck_tmin:planck_tmax,size(planck_in,2)))
+
+      planck(124:373,:) = planck_in(124:373,:)
+
+      ! nothing more to do if tmin, tmax have their default values
+      if(planck_tmin==124 .and. planck_tmax==373) return
+
+      do k=1,size(planck,2) ! loop over k-bins
+
+! ballpark extrapolation over 1K-123K range to be near SIGMA*TK**4, pre-norm  
+        g1=planck(125,k)
+        g2=planck(124,k)
+        f1=log(g1)
+        f2=log(g2)
+        do i=planck_tmin,123
+          wtlin = wtlintklo(min(i,31))
+          wtlog = 1.d0-wtlin
+          dtk = real(124-i,kind=8)
+          planck(i,k) = wtlog*exp(f2+(f2-f1)*dtk)+wtlin*(g2+(g2-g1)*dtk)
+          planck(i,k) = max(1d-10, planck(i,k))
+        enddo
+
+! 50-50 average of log & linear extrapolation for T > 373 K
+        wtlin = 0.5 
+        wtlog = 1.d0-wtlin
+        g1=planck(372,k)
+        g2=planck(373,k)
+        f1=log(g1)
+        f2=log(g2)
+        dtk = 0d0
+        do i=374,planck_tmax
+          dtk = real(i-373,kind=8)
+          planck(i,k) = wtlog*exp(f2+(f2-f1)*dtk)+wtlin*(g2+(g2-g1)*dtk)
+        enddo
+        
+      enddo
+
+      ! renormalization
+c     PFOFTK(WAVNA,WAVNB,TK) is used here in place of SIGMA*TK**4
+c     TKOFPF(WAVNA,WAVNB,TK) is the inverse of PFOFTK(WAVNA,WAVNB,TK)
+
+      WAVNA=0.D0; WAVNB=40000.D0 ! cover the spectral range for SIGMA*T**4
+
+      do i=planck_tmin,planck_tmax
+        tk = real(i,kind=8)
+        planck(i,:) = pfoftk(wavna,wavnb,tk)*
+     &       (planck(i,:)/sum(planck(i,:)))
+      enddo
+
+c----------------------------------------------------------------------
+c     Input:   BLANCK(8250) (one-dim 33-k Planck spec intvl TK=123-373)
+c                           (renamed normal ModelE variable PLANCK)
+c     Output:  PLANCK(800,33) (two-dim 33-k Planck spec intvl TK=1-800)
+c                            (replaced BLANCK(8250) with PLANCK(800,33)
+c     Note:    BLANCK uses IT0=123 & ITNEXT=250 to locate TK,k interval
+c              PLANCK uses integer KT=TK as baseline for ,k flux interp
+c                    (IT0 & ITNEXT in THERML,SURF are no longer needed) 
+c     Remark:  Planck 33-k spectral intvals extrapolated to TK=1,TK=800 
+c              (PLANCK sum over 33-k intvals normalized to SIGMA*TK**4)
+c              BLANCK data copied back to PLANCK(124-373,33)if K0COPY=1
+c              IF(K0COPY.EQ.1) all normalized to SIGMA*TK**4, dif=.001K
+c              recommended default: K0COPY=0
+c----------------------------------------------------------------------
+
+
+c                ! defaults:  K0COPY=0
+c      INTEGER K0COPY
+c      K0COPY=0   ! K0COPY=1 copies BLANCK back to PLANCK (for 124-373 K)
+
+c      IF(K0COPY.EQ.1) THEN    !  copy BLANCK to PLANCK (for 124-373 K)
+c        PLANCK(124:373,:) = PLANCK_in(124:373,:)
+c      ENDIF
+
+c weights for temps over 800
+c      IF(I.GT.800) WTLIN=0.87 
+c      IF(I.GT.850) WTLIN=0.91  
+c      IF(I.GT.900) WTLIN=0.94    
+c      IF(I.GT.950) WTLIN=0.96    
+c      IF(I.GT.1000) WTLIN=0.98     
+c      IF(I.GT.1050) WTLIN=0.985      
+c      IF(I.GT.1100) WTLIN=0.991       
+c      IF(I.GT.1150) WTLIN=0.995      
+c      IF(I.GT.1200) WTLIN=0.997       
+c      IF(I.GT.1250) WTLIN=0.9984      
+c      IF(I.GT.1300) WTLIN=0.9991      
+c      IF(I.GT.1350) WTLIN=0.9995     
+c      IF(I.GT.1400) WTLIN=0.99975      
+c      IF(I.GT.1450) WTLIN=0.99987       
+c      IF(I.GT.1500) WTLIN=0.999938       
+c      IF(I.GT.1550) WTLIN=0.999968        
+c      IF(I.GT.1600) WTLIN=0.999984      
+c      IF(I.GT.1650) WTLIN=0.999992       
+c      IF(I.GT.1700) WTLIN=0.999996      
+c      IF(I.GT.1750) WTLIN=0.999998       
+c      IF(I.GT.1800) WTLIN=0.999999      
+c      IF(I.GT.1850) WTLIN=0.9999995    
+c      IF(I.GT.1900) WTLIN=0.99999975      
+c      IF(I.GT.1950) WTLIN=0.99999990
+
+      return
+
+      end subroutine read_extend_planck
 
       END MODULE RADPAR
 

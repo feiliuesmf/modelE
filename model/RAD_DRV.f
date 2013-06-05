@@ -46,6 +46,7 @@ C****
 #endif
       USE RADPAR, only : !rcomp1,writer,writet       ! routines
      &      PTLISO ,KTREND ,LMR=>NL, PLB, LS1_loc
+     &     ,planck_tmin,planck_tmax
      *     ,KCLDEM,KSIALB,KSOLAR, SHL, snoage_fac_max, KZSNOW
      *     ,KYEARS,KJDAYS,MADLUV, KYEARG,KJDAYG,MADGHG
      *     ,KYEARO,KJDAYO,MADO3M, KYEARA,KJDAYA,MADAER
@@ -229,6 +230,13 @@ C**** sync radiation parameters from input
       call sync_param( "ref_mult", ref_mult )
       call sync_param( "save3dAOD", save3dAOD)
       REFdry = REFdry*ref_mult
+
+      if(is_set_param('planck_tmin')) then
+        call get_param('planck_tmin',planck_tmin)
+      endif
+      if(is_set_param('planck_tmax')) then
+        call get_param('planck_tmax',planck_tmax)
+      endif
 
       call getDomainBounds(grid,
      &     I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
@@ -1144,6 +1152,7 @@ C**** Add water to relevant tracers as well
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY,FULGAS
      &          ,use_tracer_chem,FS8OPX,FT8OPX,use_o3_ref,KYEARG,KJDAYG
+     &          ,planck_tmin,planck_tmax
 #ifdef ALTER_RADF_BY_LAT
      &          ,FS8OPX_orig,FT8OPX_orig,FULGAS_orig
 #endif
@@ -1738,8 +1747,8 @@ C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
 C**** CHECK SURFACE TEMPERATURES
       DO IT=1,4
         IF(ptype4(IT) > 0.) then
-          IF(asflx4(it)%GTEMPR(I,J).LT.124..OR.
-     &       asflx4(it)%GTEMPR(I,J).GT.370.) then
+          IF(int(asflx4(it)%GTEMPR(I,J)) .LT. planck_tmin .OR.
+     &       int(asflx4(it)%GTEMPR(I,J)) .GE. planck_tmax ) then
             WRITE(6,*) 'In Radia: Time,I,J,IT,TG1',ITime,I,J,IT
      *         ,asflx4(it)%GTEMPR(I,J)
 CCC         STOP 'In Radia: Grnd Temp out of range'
@@ -1941,7 +1950,8 @@ C**** EVEN PRESSURES
         PLB(L)=PEDN(L,I,J)
 C**** TEMPERATURES
 C---- TLm(L)=T(I,J,L)*PK(L,I,J)     ! already defined
-        IF(TLm(L).LT.124..OR.TLm(L).GT.370.) THEN
+        IF(int(TLm(L)) .LT. planck_tmin .OR.
+     &     int(TLm(L)) .GE. planck_tmax ) THEN
           WRITE(6,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TLm(L)
           WRITE(6,*) 'GTEMPR:',
      &         asflx4(1)%GTEMPR(I,J),asflx4(2)%GTEMPR(I,J),
@@ -2036,7 +2046,8 @@ C**** more than one tracer is lumped together for radiation purposes
       END DO
 C**** Radiative Equilibrium Layer data
       DO K=1,LM_REQ
-        IF(RQT(K,I,J).LT.124..OR.RQT(K,I,J).GT.370.) THEN
+        IF(int(RQT(K,I,J)) .LT. planck_tmin .OR.
+     &     int(RQT(K,I,J)) .GE. planck_tmax ) THEN
         WRITE(6,*) 'In RADIA: Time,I,J,L,TL',ITime,I,J,LM+K,RQT(K,I,J)
 CCC     STOP 'In Radia: RQT out of range'
 c       JCKERR=JCKERR+1
