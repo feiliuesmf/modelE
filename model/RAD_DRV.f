@@ -708,7 +708,7 @@ C****   Read in time history of well-mixed greenhouse gases
         call openunit('GHG',iu,.false.,.true.)
         call ghghst(iu)
         call closeunit(iu)
-        if (H2ObyCH4.ne.0..and.Kradia.le.0) then
+        if(file_exists('dH2O').and.H2ObyCH4.ne.0..and.Kradia.le.0) then
 C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
           call openunit('dH2O',iu,.false.,.true.)
 #if defined(CUBED_SPHERE)
@@ -717,6 +717,8 @@ C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
           call getqma(iu,lat_dg,plbx,dh2o,lm,jm)
 #endif
           call closeunit(iu)
+        else
+          H2ObyCH4 = 0.
         end if
       end if
       if(dalbsnX.ne.0.) then
