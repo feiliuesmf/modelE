@@ -1431,8 +1431,10 @@ C**** Accumulate regional diagnostics
       USE MODEL_COM, only : modelEclock
       USE TIMESTREAM_MOD, only : init_stream
       use pario, only : par_open, par_close, read_dist_data
-      USE SEAICE_COM, only : RSIstream,ZSIstream,dm,zsi_exists
+      USE SEAICE_COM, only : RSIstream,ZSIstream
+      USE SEAICE_COM, only : dm,rsi_exists,zsi_exists
       use seaice_com, only : grid=>sigrid
+      use filemanager, only : file_exists
       IMPLICIT NONE
       LOGICAL :: iniOCEAN
       INTEGER do_IC_fixups
@@ -1496,7 +1498,8 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       CALL DECLARE_SEAICE_CONSRV
 #endif
 
-      if(kocean.eq.0) then
+      rsi_exists = (kocean.eq.0 .and. file_exists('SICE'))
+      if(rsi_exists) then
         if(is_set_param('seaice_yr')) then
           ! If parameter seaice_yr exists, ice data from that year is
           ! selected (only relevant if SICE is a multi-year dataset).
@@ -1740,7 +1743,7 @@ C**** adjust rad fluxes for change in ice fraction
       use OldTracer_mod, only: trsi0
       USE SEAICE, only : ntm
 #endif
-      use seaice_com, only : zsi_exists,dm
+      use seaice_com, only : rsi_exists,zsi_exists,dm
       USE SEAICE, only : z1i,z2oim,fleadoc
       use timestream_mod, only : read_stream
       USE SEAICE_COM, only : si_ocn
@@ -1779,6 +1782,8 @@ c
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     MSIold,RSIold
       integer :: jyear,jday,itocean,itoice,j_implh,j_implm
+
+      if(.not.rsi_exists) return
 
       call modelEclock%getDate(year=jyear, dayOfYear=jday)
 
