@@ -47,6 +47,7 @@ C****
       USE RADPAR, only : !rcomp1,writer,writet       ! routines
      &      PTLISO ,KTREND ,LMR=>NL, PLB, LS1_loc
      &     ,planck_tmin,planck_tmax
+     &     ,transmission_corrections
      *     ,KCLDEM,KSIALB,KSOLAR, SHL, snoage_fac_max, KZSNOW
      *     ,KYEARS,KJDAYS,MADLUV, KYEARG,KJDAYG,MADGHG
      *     ,KYEARO,KJDAYO,MADO3M, KYEARA,KJDAYA,MADAER
@@ -338,6 +339,8 @@ C****  if KJDAY?=day0 (1->365), data from that day are used all year
       KYEARE=0       ; KJDAYE=0 ;       MADEPS=1   !cloud Epsln - KCLDEP
       KYEARR=0       ; KJDAYR=0           ! surf.reflectance (ann.cycle)
       KCLDEM=1                  ! 0:old 1:new LW cloud scattering scheme
+
+      transmission_corrections = file_exists('RADN4')
 
 C**** Aerosols:
 C**** Currently there are five different default aerosol controls
@@ -730,6 +733,7 @@ C**** set up unit numbers for 14 more radiation input files
       nrfun(12:13) = donotread ! not used in GCM
       nrfun(10:11) = donotread ! obsolete O3 data
       nrfun(6)     = donotread ! dust read externally now
+      if(.not.transmission_corrections) nrfun(4) = donotread
       DO IU=1,14
         if(nrfun(iu) == donotread) cycle
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)

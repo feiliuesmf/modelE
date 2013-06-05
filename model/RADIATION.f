@@ -267,6 +267,9 @@ C------------------------------------------
 !@+       cover the requested range (same for tmax exceeding 373 K).
       integer :: planck_tmin=124, planck_tmax=373
 
+!@var transmission_corrections whether to apply correction factors
+!@+   to longwave transmission
+      logical :: transmission_corrections
 C            RADDAT_TR_SGP_TABLES          read from  radfile1, radfile2
       INTEGER, PARAMETER :: NGUX=1024, NTX=8, NPX=19
       REAL*8, dimension(NGUX,NTX,NPX) :: TAUTBL,TAUWV0,TAUCD0
@@ -936,6 +939,7 @@ C       ----------------------------------------------------------------
       READ(NRFU) title,XKCFC
       READ(NRFU) title,ULOX,DUX
 
+      if(transmission_corrections) then
       NRFU=NRFUN(4)
       READ(NRFU) title,XTRUP,XTRDN,XTU0,XTD0
       READ(NRFU) title,XTFAC
@@ -946,6 +950,7 @@ C       ----------------------------------------------------------------
       READ(NRFU) title,DXUP8,DXDN8    ! CFC11
       READ(NRFU) title,DXUP9,DXDN9    ! CFC12
       READ(NRFU) title,DXUP13,DXDN13  ! SO2
+      endif
 
 C**** H2O Continuum Tau Tables (Ma_2000 or Ma_2004,Roberts,MT_CKD)
       NRFU=NRFUN(5)
@@ -4033,24 +4038,30 @@ C**** Find correction factors XTU and XTD
 
 !**** Interpolate correction factors to model grid: XTU/D=>XTRU/D
   180 CONTINUE
-      XTRU(:,1)=1.
-      XTRD(:,1)=1.
 
-      DO L=L1,min(NLPrat,NL-1)
-        L24=L24ofL(L)
-        XTRU(L,2:4)=
-     *    1.-PRAT(L)*(1.-XTU(L24-1,1:3)*WT(L)-XTU(L24,1:3)*(1.-WT(L)))
-        XTRD(L,2:4)=
-     *    1.-PRAT(L)*(1.-XTD(L24-1,1:3)*WT(L)-XTD(L24,1:3)*(1.-WT(L)))
-      END DO
+      if(transmission_corrections) then
+        XTRU(:,1)=1.
+        XTRD(:,1)=1.
 
-      DO L=NLPrat+1,NL-1
-        XTRU(L,2:4)=XTU(24,1:3)
-        XTRD(L,2:4)=XTD(24,1:3)
-      END DO
+        DO L=L1,min(NLPrat,NL-1)
+          L24=L24ofL(L)
+          XTRU(L,2:4)=
+     *     1.-PRAT(L)*(1.-XTU(L24-1,1:3)*WT(L)-XTU(L24,1:3)*(1.-WT(L)))
+          XTRD(L,2:4)=
+     *     1.-PRAT(L)*(1.-XTD(L24-1,1:3)*WT(L)-XTD(L24,1:3)*(1.-WT(L)))
+        END DO
 
-      XTRU(NL,2:4) = 1.
-      XTRD(NL,2:4) = 1.
+        DO L=NLPrat+1,NL-1
+          XTRU(L,2:4)=XTU(24,1:3)
+          XTRD(L,2:4)=XTD(24,1:3)
+        END DO
+
+        XTRU(NL,2:4) = 1.
+        XTRD(NL,2:4) = 1.
+      else
+        XTRU(:,:)=1.
+        XTRD(:,:)=1.
+      endif
 
 C**** Find TRGXLK
   200 TRGXLK(L1:NL,1:33)=0.D0
