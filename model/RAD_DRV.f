@@ -122,7 +122,7 @@ C****
       INTEGER L,LR,n1,n,nn,iu2 ! LONR,LATR
       REAL*8 PLBx(LM+1),pyear
 !@var NRFUN indices of unit numbers for radiation routines
-      INTEGER NRFUN(14),IU
+      INTEGER NRFUN(14),IU,DONOTREAD
 !@var RUNSTR names of files for radiation routines
       CHARACTER*5 :: RUNSTR(14) = (/"RADN1","RADN2","RADN3",
      *     "RADN4","RADN5","RADN6","RADN7","RADN8",
@@ -725,10 +725,13 @@ C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
         call updBCd(1990) ; depoBC_1990 = depoBC
       endif
 C**** set up unit numbers for 14 more radiation input files
+      donotread = -9999
+      nrfun(:) = 0 ! green light
+      nrfun(12:13) = donotread ! not used in GCM
+      nrfun(10:11) = donotread ! obsolete O3 data
+      nrfun(6)     = donotread ! dust read externally now
       DO IU=1,14
-        IF (IU==12.OR.IU==13) CYCLE                    ! not used in GCM
-        IF (IU==10.OR.IU==11) CYCLE                   ! obsolete O3 data
-        IF (IU==6) CYCLE                      ! dust read externally now
+        if(nrfun(iu) == donotread) cycle
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
       END DO
 
@@ -745,9 +748,7 @@ C     ------------------------------------------------------------------
       if (am_i_root()) CALL WRITER(6,0)  ! print rad. control parameters
 C***********************************************************************
       DO IU=1,14
-        IF (IU==12.OR.IU==13) CYCLE                    ! not used in GCM
-        IF (IU==10.OR.IU==11) CYCLE                   ! obsolete O3 data
-        IF (IU==6) CYCLE                      ! dust read externally now
+        if(nrfun(iu) == donotread) cycle
         call closeunit(NRFUN(IU))
       END DO
 C**** Save initial (currently permanent and global) Q in rad.layers
