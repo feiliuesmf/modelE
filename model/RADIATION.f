@@ -339,7 +339,7 @@ C--------------------------------------   have to handle 1 point in time
 !@+   MADBAK   if 1          Adds background aerosols
 !@+   MADO2A   if > 0      call set/geto2a,  activating O2 solar heating
 !     ------------------------------------------------------------------
-      INTEGER :: MADO3M=1,MADAER=1,MADDST=1,MADVOL=1,MADEPS=1,MADLUV=1
+      INTEGER :: MADO3M=1,MADAER=0,MADDST=0,MADVOL=0,MADEPS=0,MADLUV=1
       INTEGER :: MADGHG=1,MADSUR=0,MADBAK=0 ! MADSUR=1 for OFF-line use
       INTEGER :: MADO2A=1
 

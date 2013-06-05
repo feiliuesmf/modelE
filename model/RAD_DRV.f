@@ -325,7 +325,10 @@ C****                                         even if the year is fixed
       if(KYEARO.gt.0) KYEARO=-KYEARO              ! use ONLY KYEARO-data
       KYEARA=Aero_yr ; KJDAYA=0 ! MADAER=1 or 3, trop.aeros (ann.cycle)
       if(KYEARA.gt.0) KYEARA=-KYEARA              ! use ONLY KYEARA-data
-      KYEARV=Volc_yr ; KJDAYV=Volc_day; MADVOL=1   ! Volc. Aerosols
+      if(file_exists('TAero_SSA')) MADAER=3   ! one of the TAero_XXX set
+      KYEARV=Volc_yr ; KJDAYV=Volc_day
+      if(file_exists('RADN7')) MADVOL=1   ! Volc. Aerosols
+
 !***  KYEARV=0 : use current year
 !***  KYEARV<0 : use long term mean stratospheric aerosols (use -1)
 !     Hack: KYEARV= -2000 and -2010 were used for 2 specific runs that
@@ -335,11 +338,13 @@ C****                                         even if the year is fixed
       if(KYEARV.le.-2000) KYEARV=0   ! use current year (before 2000)
 C**** NO time history (yet), except for ann.cycle, for forcings below;
 C****  if KJDAY?=day0 (1->365), data from that day are used all year
-      KYEARD=0       ; KJDAYD=0 ;       MADDST=1   ! Desert dust
-      KYEARE=0       ; KJDAYE=0 ;       MADEPS=1   !cloud Epsln - KCLDEP
+      KYEARD=0       ; KJDAYD=0 ;
+      KYEARE=0       ; KJDAYE=0 ;
       KYEARR=0       ; KJDAYR=0           ! surf.reflectance (ann.cycle)
       KCLDEM=1                  ! 0:old 1:new LW cloud scattering scheme
 
+      if(file_exists('DUSTaer'))   MADDST=1   ! Desert dust
+      if(file_exists('RADN8'))     MADEPS=1   ! cloud Epsln - KCLDEP
       transmission_corrections = file_exists('RADN4')
 
 C**** Aerosols:
@@ -734,6 +739,9 @@ C**** set up unit numbers for 14 more radiation input files
       nrfun(10:11) = donotread ! obsolete O3 data
       nrfun(6)     = donotread ! dust read externally now
       if(.not.transmission_corrections) nrfun(4) = donotread
+      if(madvol == 0) nrfun(7) = donotread
+      if(madeps == 0) nrfun(8) = donotread
+      if(ksolar < 0)  nrfun(9) = donotread
       DO IU=1,14
         if(nrfun(iu) == donotread) cycle
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
