@@ -9,13 +9,8 @@
 # This job script is executed by mainRegTests.sh after the regression tests
 # have been executed. Its main purpose is to compare the restart results
 # using diffreport and generate a DiffReport file emailed to giss-modelE-regression 
-# Note:
-# This script is a temporary measure. It has a couple of "dependencies" and various
-# hardwired directory paths. Also, it would be highly desirable to make the
-# restart comparisons within the perl regression test scripts but somehow that
-# task takes several hours to complete. Running within this job takes ~30mins.
 
-# Exit codes
+# Exit/check codes
 FILE_ERR=69
 EXIT_ERR=1
 OK=0
@@ -32,15 +27,6 @@ updReport()
 }
 
 # -------------------------------------------------------------------
-updDeckReport()
-# -------------------------------------------------------------------
-{
-   local message=$1
-   line=$(echo $message | awk '{ printf "%-15s | %-10s | %-30s\n", $1,$2,$3}')
-   deckReport=( "${deckReport[@]}" "$line" )
-}
-
-# -------------------------------------------------------------------
 checkStatus() 
 # -------------------------------------------------------------------
 {
@@ -53,13 +39,17 @@ checkStatus()
       if [[ "$name2" =~ baseline ]]; then
          echo " --- WARNING: $base1 BASELINE has CHANGED"
          updReport " --- WARNING: $base1 BASELINE has CHANGED"
-	 export isChanged=YES
+         deckResults[1]="NO"
+      elif [[ "$name1" =~ MPI && "$name2" =~ SERIAL ]]; then
+         echo " --- ERROR: $base1 and $base2 DIFFER"
+         updReport " --- ERROR: $base1 and $base2 DIFFER"
+         deckResults[3]="NO"
       else
          echo " --- ERROR: $base1 and $base2 DIFFER"
          updReport " --- ERROR: $base1 and $base2 DIFFER"
-	 export isReprod=NO
+         deckResults[2]="NO"
       fi
-      export printReport=YES
+      export willPrintAdditional=YES
       return $E_EXIT_ERR
    fi
    return $OK
@@ -72,9 +62,16 @@ fileExists()
    local file=$1
    if [ ! -e "$file" ]; then
       updReport " --- ERROR: $file does NOT exist"
-      export compileErr=YES
-      export printReport=YES
+      export willPrintAdditional=YES
+      # Model failed during compilation or at runtime
+      deckResults[0]="NO"
+      deckResults[1]="---"
+      deckResults[2]="---"
+      deckResults[3]="---"
       return $FILE_ERR
+   else
+      # Model ran
+      deckResults[0]="YES"
    fi
    return $OK
 }
@@ -104,9 +101,6 @@ doDiff()
            else
              echo "    $name1 results and baseline DIFFER."
              echo "    -- Updating $deck in baseline directory"
-             # save old BASELINE 
-             cp -f $name2 $name2.save
-             # replace BASELINE 
              cp -f $name1 $name2
            fi
          fi
@@ -124,14 +118,21 @@ deckDiff()
 {
   local comp="$1"
   declare -a deckArray=("${!2}")
+
   # if deckArray is empty then there is nothing to do:
   if [ ${#deckArray[@]} -eq 0 ]; then return; fi
   local baseline=$MODELEBASELINE/$comp
+  declare -a deckResults=(OK YES YES YES)
 
   for deck in "${deckArray[@]}"; do
-    export compileErr=NO
-    export isChanged=NO
-    export isReprod=YES
+    # defaults
+    compileErr=ERR
+    baseNotChanged=YES
+    isRstReprod=YES
+    isNPEReprod=YES
+    deckResults=( ERR YES YES YES )
+    #deckResults=($compileErr $baseNotChanged $isRstReprod $isNPEReprod)
+    export deckResults
     report=( "${report[@]}" "$deck [$comp] :" )
     echo "  --- DECK = $deck ---"
     # Don't do serial comparisons of C90 and AR5 rundecks
@@ -156,14 +157,14 @@ deckDiff()
 # compare MPI restart reproducibility - 3rd argument ($3) is NPE configuration
       if [ ! -z $3 ]; then
         declare -a npeArray=("${!3}")
-          echo "  compare MPI restart reproducibility.."
+        echo "  compare MPI restart reproducibility.."
         for npe in "${npeArray[@]}"; do
           if [ $checkMPI -gt 0 ]; then
             doDiff $deck.MPI.$comp.1dy.np=$npe $deck.MPI.$comp.restart.np=$npe $deck $comp
           fi
         done
 # compare MPI baseline (previous day) restart reproducibility
-          echo "  compare MPI baseline reproducibility.."
+        echo "  compare MPI baseline reproducibility.."
         for npe in "${npeArray[@]}"; do
           if [ $checkMPI -gt 0 ]; then
             doDiff $deck.MPI.$comp.1hr.np=$npe $baseline/$deck.MPI.$comp.1hr.np=$npe $deck $comp
@@ -181,19 +182,8 @@ deckDiff()
         done
       fi
     fi # skip MPI comparisons
-
-    if [ "$compileErr" == YES ]; then
-      updDeckReport "$deck $comp ***COMPILE_RUNTIME_ERROR***"
-    else
-      if [ "$isReprod" == YES ]; then
-         updDeckReport "$deck $comp IS_reproducible"
-         if [ "$isChanged" == YES ]; then
-            updDeckReport "$deck $comp CHANGED_baseline"
-         fi
-      else
-         updDeckReport "$deck $comp NOT_reproducible"
-      fi
-    fi
+    CAS="$deck $comp ${deckResults[@]}"
+    deckReport=( "${deckReport[@]}" "$CAS" )
   done
 
 }
@@ -213,9 +203,13 @@ declare -a CSDecks
 declare -a AR5Decks
 declare -a SCMdecks
 
-export printReport=NO
+export willPrintAdditional=NO
 
-cd $MODELROOT/exec/testing
+TESTD=$MODELROOT/exec/testing
+
+cd $TESTD
+
+rm -f .diffrep
 
 if [ -z $CONFIG ]; then
    echo " *** ERROR ***"
@@ -236,10 +230,13 @@ else
   diffExec=/usr/bin/cmp
 fi
 
+# save IFS = internal field separator (default is space/tab/newline)
 OIFS=$IFS
+# "=" separates fields
 IFS="="
 
-cfg="$MODELROOT/exec/testing/."$CONFIG".cfg"
+# cfg is the file created by the regresssionTests.pl script
+cfg="$TESTD/."$CONFIG".cfg"
 if [ ! -e $cfg ]; then
    echo " *** ERROR ***"
    echo "$cfg does not exist."
@@ -247,7 +244,6 @@ if [ ! -e $cfg ]; then
 else
    echo "Config file: $cfg"
 fi
-
 id=0
 ic=0
 # Read configuration file $cfg
@@ -271,6 +267,7 @@ while read line ; do
       id=$(($id+1))
    fi
 done < $cfg
+# restore IFS
 IFS=$OIFS
 
 echo "Total DECKs: ${id}"
@@ -352,24 +349,32 @@ for comp in "${COMPILERS[@]}"; do
 
 done
 
-rm -f $MODELROOT/exec/testing/${CONFIG}.diff
+# Create report for email
+
+rm -f $TESTD/${CONFIG}.diff
 echo "ModelE test results, branch=$branch" 
 echo "--------------------------------------------------------------------------"
-echo "ModelE test results, branch=$branch" >> $MODELROOT/exec/testing/${CONFIG}.diff
-echo "--------------------------------------------------------------------------" >> $MODELROOT/exec/testing/${CONFIG}.diff
 
 len=${#deckReport[*]}
 i=0
 while [ $i -lt $len ]; do
    echo "${deckReport[$i]}" 
-   echo "${deckReport[$i]}" >> $MODELROOT/exec/testing/${CONFIG}.diff
+   echo "${deckReport[$i]}" >> $TESTD/.diffrep
    let i++
 done
 
-if [ "$printReport" == "YES" ]; then
+echo "ModelE test results, branch=$branch" > $TESTD/.foo
+echo "------------------------------------------------------------" >> $TESTD/.foo
+echo "                               --  REPRODUCIBILITY --" >> $TESTD/.foo
+echo "        RUNDECK""   COMPILER ""  RUN ""  BAS ""  REP ""  NPE " >> $TESTD/.foo
+echo "------------------------------------------------------------" >> $TESTD/.foo
+awk '{ printf "%15s %10s %5s %5s %5s %5s\n", $1, $2, $3, $4, $5, $6 }' $TESTD/.diffrep  >> $TESTD/.foo
+
+mv $TESTD/.foo $TESTD/${CONFIG}.diff
+if [ "$willPrintAdditional" == "YES" ]; then
    for ((i=0; i < ${#report[@]}; i++)); do 
       echo "${report[${i}]}" 
-      echo "${report[${i}]}" >> $MODELROOT/exec/testing/${CONFIG}.diff
+      #echo "${report[${i}]}" >> $TESTD/${CONFIG}.diff
    done
 fi
 
@@ -382,17 +387,16 @@ else
    writeOK=1
 fi
 
-#chmod g+rw $MODELROOT/exec/testing/${CONFIG}.diff
-cp -f $MODELROOT/exec/testing/${CONFIG}.diff $WORKSPACE
-cp -f $MODELROOT/exec/testing/${CONFIG}.unit $WORKSPACE
+cp -f $TESTD/${CONFIG}.diff $WORKSPACE
+cp -f $TESTD/${CONFIG}.unit $WORKSPACE
 
 # Archive full difference reports
-cp -f $MODELROOT/exec/testing/${CONFIG}.diff $MODELEBASELINE/reports/${CONFIG}.diff.`date +%F`
+cp -f $TESTD/${CONFIG}.diff $MODELEBASELINE/reports/${CONFIG}.diff.`date +%F`
 
 # Check for errors in report
-cat $MODELROOT/exec/testing/${CONFIG}.diff | grep -i "NOT_REPRODUCIBLE" > /dev/null
+cat $TESTD/${CONFIG}.diff | grep -i " NO " > /dev/null
 rc1=$?
-cat $MODELROOT/exec/testing/${CONFIG}.diff | grep -i "ERROR" > /dev/null
+cat $TESTD/${CONFIG}.diff | grep -i "ERR" > /dev/null
 rc2=$?
 # if we found errors, (0 return code!) then we exit
 if [ $rc1 -eq 0 ] || [ $rc2 -eq 0 ]; then
@@ -403,6 +407,7 @@ else
    if [ "$writeOK" -eq 1 ]; then touch $WORKSPACE/.success; fi
    echo "Will create modelE snapshot"
    # Create modelE snapshot
+   if [ -z $MOCKMODELE ]; then
    if [ -d "$REGSCRATCH/$BRANCH" ]; then
       cd $REGSCRATCH/$BRANCH
       DST=$MODELEBASELINE/snapshots/
@@ -411,6 +416,7 @@ else
    else 
       ls $REGSCRATCH/$BRANCH
       echo "Could not create modelE snapshot"
+   fi
    fi
 fi
 
