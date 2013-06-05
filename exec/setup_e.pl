@@ -331,7 +331,7 @@ while (<RFILE>) {
     #print I "$_\n";
     if ( /^\s*&&END_PARAMETERS/ ) {
 	foreach $key (keys %data_file_hash) {
-	    $istr .= " INPUT_FILES:$key='$data_file_hash{$key}'\n";
+	    $istr .= " _file_$key='$data_file_hash{$key}'\n";
 	}
     }
     if ( /^\s*ISTART/ ) {
