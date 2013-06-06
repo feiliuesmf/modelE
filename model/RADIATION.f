@@ -4388,19 +4388,19 @@ C-----------------------------------------------------------------------
       TLB(NL+1) = TLT(NL)
 
 C     ------------------------------------------------------------------
-C                   weight assignments for Planck function interpolation
-C                    (Effective range is from TK = 124 K to TK = 373 K)
+C     weight assignments for Planck function interpolation
+C     (Effective range (K) is from TK = planck_tmin to TK = planck_tmax)
 C     ------------------------------------------------------------------
 
       DO 140 L=L1,NL
       ITLB(L) = TLB(L)
       WTLB(L) = TLB(L)-ITLB(L)
-      if (ITLB(L) < 124) ITLB(L) = 124
-      if (ITLB(L) > 372) ITLB(L) = 372
+      if (ITLB(L) < planck_tmin  ) ITLB(L) = planck_tmin
+      if (ITLB(L) > planck_tmax-1) ITLB(L) = planck_tmax-1
       ITLT(L) = TLT(L)
       WTLT(L) = TLT(L)-ITLT(L)
-      if (ITLT(L) < 124) ITLT(L) = 124
-      if (ITLT(L) > 372) ITLT(L) = 372
+      if (ITLT(L) < planck_tmin  ) ITLT(L) = planck_tmin
+      if (ITLT(L) > planck_tmax-1) ITLT(L) = planck_tmax-1
   140 CONTINUE
 
       if (LTOPCL==0) GO TO 180
