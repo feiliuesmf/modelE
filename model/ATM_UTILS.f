@@ -329,6 +329,7 @@ C****
      &   ,TTROPO  
 #endif
       USE DOMAIN_DECOMP_ATM, Only : grid, getDomainBounds
+      USE MODEL_COM, only : planet_name
       IMPLICIT NONE
       INTEGER I,J,L,IERR
       REAL*8, DIMENSION(LM) :: TL
@@ -341,6 +342,18 @@ c**** Extract domain decomposition info
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+
+      if(trim(planet_name).ne.'Earth') then
+        ! We cannot call earth-specific routine tropwmo.
+        ! Set the "tropopause" height to the top of the model.
+        do j=J_0,J_1
+        do i=I_0,imaxj(j)
+          ltropo(i,j) = lm-1
+          ptropo(i,j) = pmid(lm-1,i,j)
+        enddo
+        enddo
+        return
+      endif
 
 C**** Find WMO Definition of Tropopause to Nearest L
       do j=J_0,J_1
