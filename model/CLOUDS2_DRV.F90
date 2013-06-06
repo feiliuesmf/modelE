@@ -2018,6 +2018,7 @@ subroutine init_CLD(istart)
 47 format (' LOW CLOUDS IN LAYERS 1-',I2,'   MID LEVEL CLOUDS IN', &
        ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
 
+  call sync_param( "isccp_diags",isccp_diags)
   if (isccp_diags.eq.1) then
 
     ! allocate/define distributed 2D ISCCP arrays

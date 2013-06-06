@@ -5508,7 +5508,6 @@ c if people still want to specify dd points as ij, let them
       call sync_param( "IJDD", IJDD(1:2,1), 2*NDIUPT )
 #endif
 
-      call sync_param( "isccp_diags",isccp_diags)
       call sync_param( "adiurn_dust",adiurn_dust)
       call sync_param( "lh_diags",lh_diags)
 
