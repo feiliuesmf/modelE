@@ -659,29 +659,40 @@ C**** setting river directions
      *     down_lon_911_loc(I_0H:I_1H,J_0H:J_1H) )
 
 C**** Read named river mouth positions
-      call openunit("NAMERVR",iu_RVR,.false.,.true.)
-      read(iu_RVR,*)
-      read(iu_RVR,'(a)') fmtstr
       nrvr = 0
-      do
-        read(iu_RVR,trim(fmtstr),iostat=ios)
-     &       namervr(nrvr+1),lat_rvr(nrvr+1),lon_rvr(nrvr+1)
-        if(ios.ne.0) exit
-        nrvr = nrvr + 1
-      enddo
-      call closeunit(iu_RVR)
+      if(file_exists('NAMERVR')) then
+        call openunit("NAMERVR",iu_RVR,.false.,.true.)
+        read(iu_RVR,*)
+        read(iu_RVR,'(a)') fmtstr
+        do
+          read(iu_RVR,trim(fmtstr),iostat=ios)
+     &         namervr(nrvr+1),lat_rvr(nrvr+1),lon_rvr(nrvr+1)
+          if(ios.ne.0) exit
+          nrvr = nrvr + 1
+        enddo
+        call closeunit(iu_RVR)
 
-      WRITE (out_line,*) 'Named river file read '
-      CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
-
+        WRITE (out_line,*) 'Named river file read '
+        CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
+      endif
 C**** Read in down stream lat/lon positions
-      fid = par_open(grid,'RVR','read')
-      call read_dist_data(grid,fid,'down_lat',down_lat_loc)
-      call read_dist_data(grid,fid,'down_lon',down_lon_loc)
-      call read_dist_data(grid,fid,'down_lat_911',down_lat_911_loc)
-      call read_dist_data(grid,fid,'down_lon_911',down_lon_911_loc)
-      call par_close(grid,fid)
-
+      if(file_exists('RVR')) then
+        fid = par_open(grid,'RVR','read')
+        call read_dist_data(grid,fid,'down_lat',down_lat_loc)
+        call read_dist_data(grid,fid,'down_lon',down_lon_loc)
+        call read_dist_data(grid,fid,'down_lat_911',down_lat_911_loc)
+        call read_dist_data(grid,fid,'down_lon_911',down_lon_911_loc)
+        call par_close(grid,fid)
+      else
+        do j=j_0,j_1
+        do i=i_0,i_1
+          down_lon_loc(i,j) = lon2d_dg(i,j)
+          down_lon_911_loc(i,j) = lon2d_dg(i,j)
+          down_lat_loc(i,j) = lat2d_dg(i,j)
+          down_lat_911_loc(i,j) = lat2d_dg(i,j)
+        enddo
+        enddo
+      endif
       CALL HALO_UPDATE(GRID, down_lat_loc)
       CALL HALO_UPDATE(GRID, down_lon_loc)
       CALL HALO_UPDATE(GRID, down_lat_911_loc)
@@ -2791,6 +2802,7 @@ c     *         +ZATMO(I,J)*MWL(I,J)
       real*8 rvrout_loc(nrvrmx), scalervr
       integer inm,i,j
       integer :: i_0, i_1, j_0, j_1
+      if(nrvr.lt.1) return
       call getDomainBounds(grid, j_strt=j_0, j_stop=j_1)
       i_0 = grid%i_strt
       i_1 = grid%i_stop

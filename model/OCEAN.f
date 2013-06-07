@@ -35,6 +35,8 @@
 !@+   (see OCNML2.f for definition of its tocean array)
       real*8, dimension(:,:,:), allocatable :: tocean_4io
 
+      logical :: osst_exists=.true.
+
       contains
 
       subroutine alloc_sstmod
@@ -47,6 +49,8 @@
       i_1h = grid%i_stop_halo
       allocate(sst(i_0h:i_1h,j_0h:j_1h))
       allocate(tocean_4io(3,i_0h:i_1h,j_0h:j_1h))
+      sst = 0.
+      tocean_4io = 0.
       end subroutine alloc_sstmod
 
       subroutine init_sstmod(atmocn)
@@ -56,10 +60,14 @@
       use model_com, only :  modelEclock, master_yr
       use exchange_types, only : atmocn_xchng_vars
       use dictionary_mod, only : get_param,is_set_param
+      use filemanager, only : file_exists
       implicit none
       type(atmocn_xchng_vars) :: atmocn
       integer :: jyear,jday,sst_yr
       logical :: cyclic
+
+      osst_exists = file_exists('OSST')
+      if(.not.osst_exists) return
 
       if(is_set_param('sst_yr')) then
         ! If parameter sst_yr exists, SST data from that year is
@@ -157,7 +165,7 @@ c         temp is supplied
       use resolution, only : im,jm
       use seaice, only : tfrez
       use timestream_mod, only : read_stream
-      use sstmod, only : SSTstream,SST
+      use sstmod, only : SSTstream,SST,osst_exists
       use exchange_types, only : atmocn_xchng_vars
       implicit none
       logical, intent(in) :: end_of_day
@@ -169,6 +177,8 @@ c
 
       integer :: j_0,j_1, i_0,i_1
       logical :: have_north_pole, have_south_pole
+
+      if(.not.osst_exists) return
 
       call modelEclock%getDate(year=jyear, dayOfYear=jday)
 
@@ -230,6 +240,7 @@ c**** replicate values at pole
       use sstmod, only : init_sstmod,set_gtemp_sst
       use pario, only : par_open, par_close
       use exchange_types, only : atmocn_xchng_vars,iceocn_xchng_vars
+      use filemanager, only : file_exists
       implicit none
       logical, intent(in) :: iniocean  ! true if starting from ic.
       integer, intent(in) :: istart
@@ -250,7 +261,7 @@ c**** replicate values at pole
       end if
 
 C**** Cold start
-      if (istart.le.2) then
+      if (istart.le.2 .and. file_exists('GIC')) then
         fid = par_open(grid,'GIC','read')
         call new_io_ocean (fid,ioread)
         call par_close(grid,fid)

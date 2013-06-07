@@ -177,10 +177,18 @@
       use constant, only : BYGRAV
       use atm_com, only : zatmo
 #endif
+      use filemanager, only : file_exists
       implicit none
       integer :: fid,i
-      print *,'BEGIN read_landice_ic'
-      fid = par_open(grid,'GIC','read')
+
+      if(file_exists('GIC')) then
+        fid = par_open(grid,'GIC','read')
+      elseif(file_exists('LICEIC')) then
+        fid = par_open(grid,'LICEIC','read')
+      else
+        return
+      endif
+
       call new_io_landice(fid,ioread)
 
 #ifdef GLINT2
@@ -211,7 +219,6 @@
      &     grid%i_strt_halo, grid%j_strt_halo)
 #endif
 
-      print *,'END read_landice_ic'
       end subroutine read_landice_ic
 
       subroutine def_rsf_landice(fid)

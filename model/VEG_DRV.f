@@ -676,6 +676,7 @@ c**** read land surface parameters or use defaults
      &     /)
       fid = par_open(grid,'VEG','read')
       do k=1,size(vegnames)
+        vdata(:,:,k) = 0. ! if type is absent in file, assume 0
         call read_dist_data(grid,fid,trim(vegnames(k)),vdata(:,:,k))
       enddo
       call par_close(grid,fid)
@@ -717,6 +718,7 @@ c**** zero-out vdata(11) until it is properly read in
 !@var CROPstream interface for reading and time-interpolating the crop file
 !@+   See usage notes in timestream_mod
       type(timestream) :: CROPstream
+      logical :: have_crops_file
       end module cropdata_mod
       subroutine get_cropdata(year, cropdata)
 !@sum get_cropdata reads timeseries file for crop fraction and
@@ -725,6 +727,7 @@ c**** zero-out vdata(11) until it is properly read in
       use domain_decomp_atm, only : grid
       use timestream_mod, only : init_stream,read_stream
       use cropdata_mod
+      use filemanager, only : file_exists
       implicit none
       integer, intent(in) :: year
       real*8 :: cropdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -737,15 +740,19 @@ c
 
       if (.not. init) then
         init = .true.
-        call init_stream(grid,CROPstream,'CROPS','crops',
-     &       0d0,1d30,'none',year,day)
+        have_crops_file = file_exists('CROPS')
+        if(have_crops_file) then
+          call init_stream(grid,CROPstream,'CROPS','crops',
+     &         0d0,1d30,'none',year,day)
+        endif
       endif
 
       cropdata = 0.d0 ! make sure halo is intialized
-      call read_stream(grid,CROPstream,year,day,cropdata)
-
-      !Set min to zero, since no land mask yet -nyk 1/22/08
-      cropdata = max(0d0, cropdata)
+      if(have_crops_file) then
+        call read_stream(grid,CROPstream,year,day,cropdata)
+        !Set min to zero, since no land mask yet -nyk 1/22/08
+        cropdata = max(0d0, cropdata)
+      endif
 
       end subroutine get_cropdata
 

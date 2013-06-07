@@ -1369,10 +1369,6 @@ C**** SUBDD qblht_acc for PBL height *** YH Chen ***
 #endif
           aij(i,j,ij_wspdf)=aij(i,j,ij_wspdf)+atmsrf%wspdf(i,j)
 
-	if (i.eq.1 .and. j.eq.45)then
-	write(*,*) 'wspdf=',aij(i,j,ij_wspdf),'atmsrf%wspdf=',atmsrf%wspdf(i,j)
-	endif
-	
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
           aij(i,j,ij_wsgcm)=aij(i,j,ij_wsgcm)+atmsrf%wsgcm(i,j)

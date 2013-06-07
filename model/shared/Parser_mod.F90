@@ -124,7 +124,7 @@ contains
     integer np
     integer ivars(MAXDIM)
     real*8 rvars(MAXDIM)
-    character*64 cvars(MAXDIM)
+    character*128 cvars(MAXDIM)
 
     ! skip unrelated stuff
     do

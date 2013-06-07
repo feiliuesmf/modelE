@@ -73,7 +73,10 @@ C**** replacements for GDATA
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: AIEARTH
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SNOAGE
 
-C**** arrays needed to restart from a "new" GIC
+C**** arrays needed to restart from a SOILIC file with intensive units.
+C**** Normally these are only needed during cold starts.
+C**** If the SOILIC file is present, they are allocated by read_landice_ic,
+C**** used in init_land_surface, and deallocated after use.
 !@var earth_sat saturation of each soil layer (1 - completely saturated)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: earth_sat
 !@var earth_ice fraction of frozen water in the layer
@@ -688,13 +691,53 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       subroutine read_landsurf_ic
 !@sum   read_landsurf_ic read land surface initial conditions file.
       use model_com, only : ioread
-      use domain_decomp_atm, only : grid
-      use pario, only : par_open,par_close
+      use domain_decomp_atm, only: grid,getdomainbounds
+      use pario, only : par_open,par_close,read_dist_data
+      use filemanager, only : file_exists
+      use ghy_com
       implicit none
       integer :: fid
-      fid = par_open(grid,'GIC','read')
-      call new_io_earth  (fid,ioread)
-      call new_io_soils  (fid,ioread)
+      integer :: ifrac
+      real*8, dimension(:,:,:), allocatable :: temp,wetness
+      real*8, dimension(:,:), allocatable :: snowdp
+      integer :: i_0,i_1,j_0,j_1,i,j
+
+      if(file_exists('SOILIC')) then
+        fid = par_open(grid,'SOILIC','read')
+        ! read IC having intensive units.  Bare and vegetated
+        ! fractions start with the same temp/saturation/snow.
+        call getdomainbounds(grid,
+     &       i_strt=i_0,i_stop=i_1, j_strt=j_0,j_stop=j_1)
+        allocate(temp(ngm,i_0:i_1,j_0:j_1),
+     &        wetness(ngm,i_0:i_1,j_0:j_1),
+     &         snowdp(i_0:i_1,j_0:j_1),
+     &        earth_tp(0:ngm,ls_nfrac,i_0:i_1,j_0:j_1),
+     &       earth_sat(0:ngm,ls_nfrac,i_0:i_1,j_0:j_1),
+     &       earth_ice(0:ngm,ls_nfrac,i_0:i_1,j_0:j_1))
+        call read_dist_data(grid,fid,'temp',temp,jdim=3)
+        wetness = .8d0 ! default in case wetness not present
+        call read_dist_data(grid,fid,'wetness',wetness,jdim=3)
+        call read_dist_data(grid,fid,'snow',snowdp)
+        do ifrac=1,ls_nfrac
+          do j=j_0,j_1
+          do i=i_0,i_1
+            earth_tp(1:ngm,ifrac,i,j) = temp(:,i,j)
+            earth_tp(0,ifrac,i,j) = temp(1,i,j)
+            earth_sat(1:ngm,ifrac,i,j) = wetness(:,i,j)
+            earth_sat(0,ifrac,i,j) = 0.
+            earth_ice(:,ifrac,i,j) = 0.
+            where(temp(:,i,j).lt.0.) earth_ice(1:ngm,ifrac,i,j) = 1.
+            snowbv(ifrac,i,j) = snowdp(i,j)
+            if(temp(1,i,j).gt.0.) snowbv(ifrac,i,j) = 0.
+          enddo
+          enddo
+        enddo
+      else
+        ! IC file with extensive units (per-layer heat and water amounts)
+        fid = par_open(grid,'GIC','read')
+        call new_io_earth  (fid,ioread)
+        call new_io_soils  (fid,ioread)
+      endif
       call par_close(grid,fid)
       return
       end subroutine read_landsurf_ic

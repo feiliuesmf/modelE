@@ -53,6 +53,7 @@
      &     GLOBALSUM,AM_I_ROOT
       USE EXCHANGE_TYPES, only : avg_patches_srfstate_exports
       use pario, only : par_open,par_close,read_dist_data
+      use filemanager, only : file_exists
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER, INTENT(IN) :: istart
@@ -152,13 +153,17 @@ C**** Calculate (fixed) iceberg melt terms from Antarctica and Greenland
 
 C**** Read in GLMELT file to distribute glacial melt
       IF (JM.gt.24) THEN ! for finer than old 8x10
-         do_glmelt=.true.
 
-      fid = par_open(grid,'GLMELT','read')
-      call read_dist_data(grid,fid,'mask',r8mask)
-      call par_close(grid,fid)
-      loc_glm(i_0:i_1,j_0:j_1) = r8mask(i_0:i_1,j_0:j_1).eq.1d0
+      do_glmelt = file_exists('GLMELT')
 
+      if(do_glmelt) then
+        fid = par_open(grid,'GLMELT','read')
+        call read_dist_data(grid,fid,'mask',r8mask)
+        call par_close(grid,fid)
+        loc_glm(i_0:i_1,j_0:j_1) = r8mask(i_0:i_1,j_0:j_1).eq.1d0
+      else
+        loc_glm(:,:) = .false.
+      endif
 C**** Calculate hemispheric fractions (weighted by area and landmask)
 C**** This could be extended by a different number in GLMELT to
 C**** give ice sheet (rather than hemispheric) dependent areas

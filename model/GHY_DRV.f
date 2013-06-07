@@ -1836,6 +1836,7 @@ c**** read soils parameters
 
 c**** read topmodel parameters
         fid = par_open(grid,'TOP_INDEX','read')
+        top_index_ij = 0. ! in case top_index is absent in the file
         call read_dist_data(grid,fid,'top_index',top_index_ij)
         call read_dist_data(grid,fid,'top_dev',top_dev_ij)
         call par_close(grid,fid)
@@ -1873,10 +1874,15 @@ c**** check whether ground hydrology data exist at this point.
               print *, "No soil data: i,j=",i,j,dz_ij(i,j,1:ngm)
               ghy_data_missing = .true.
             endif
-            if (w_ij(1,1,i,j)<1.d-10 .and. w_ij(1,2,i,j)<1.d-10) then
-              print*,"No gh data in restart file: i,j=",i,j,
+            if(allocated(earth_tp)) then
+              ! cold-start from temperature and relative wetness.
+              ! need to insert appropriate checks here.
+            else
+              if (w_ij(1,1,i,j)<1.d-10 .and. w_ij(1,2,i,j)<1.d-10) then
+                print*,"No gh data in restart file: i,j=",i,j,
      &             w_ij(:,1,i,j),w_ij(:,2,i,j)
-              ghy_data_missing = .true.
+                ghy_data_missing = .true.
+              endif
             endif
           end if
         enddo
@@ -1994,7 +2000,12 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       if (istart < 9) do_IC_fixups = 1
 
 c**** recompute ground hydrology data if necessary (new soils data)
-      if (redogh) then
+      if (redogh .or.
+           ! new_io_soils checks whether the soil IC file has
+           ! IC in intensive units, but has no mechanism to
+           ! set the redogh flag.  Check allocation status instead.
+     &     allocated(earth_tp)
+     &     ) then
 
         do j=J_0,J_1
           do i=I_0,I_1
@@ -2028,9 +2039,21 @@ c**** recompute ground hydrology data if necessary (new soils data)
      &           q_ij(i,j,:,:), dz_ij(i,j,:)
      &           )
 
+            snowe(i,j) = 1000.*snowbv(1,i,j)
+            tearth(i,j) = earth_tp(1,1,i,j)
+            atmlnd%bare_soil_wetness(i,j) = earth_sat(1,1,i,j)
+            aiearth(i,j) = 0. ! not used?
+            snoage(3,i,j) = 0.
+            evap_max_ij(i,j) = 1d30 ! trigger initialization of qg_ij
+            fr_sat_ij(i,j) = 0.
+            qg_ij(i,j) = 0.
+            tsns_ij(i,j) = tearth(i,j)
           end do
         end do
         write (*,*) 'ground hydrology data was made from ground data'
+        if(allocated(earth_tp)) then
+          deallocate(earth_tp, earth_sat, earth_ice)
+        endif
       end if
 
       if (do_IC_fixups == 1) then
@@ -3466,10 +3489,12 @@ cddd            write(934,*) "wfcs", i,j,wfcs(i,j)
             !adlmass = aleafmass - aleafmasslast
             adlmass = aleafmass
             !aij(i,j,ij_dleaf)=aij(i,j,ij_dleaf)+adlmass
-            aij(i,j,ij_dleaf)=adlmass  !accumulate just instant. value
-     &           *fearth(i,j)
+            if(end_of_day) then ! ij_dleaf not available otherwise
+              aij(i,j,ij_dleaf)=adlmass !accumulate just instant. value
+     &             *fearth(i,j)
             !PRINT '(F4.4)',adlmass                            !DEBUG
             !call stop_model('Just did adlmass',255)           !DEBUG
+            endif
 #endif
           !end if
         end do
@@ -3640,6 +3665,9 @@ c****
       use vegetation, only : t_vegcell
       use veg_com, only : vdata
 #endif
+      use pario, only : par_open,par_close,read_dist_data
+      use filemanager, only : file_exists
+      implicit none
 #ifdef USE_ENT
       real*8,dimension(N_COVERTYPES) :: fr_cover0
 #endif
@@ -3658,8 +3686,7 @@ c****
       real*8 rrr(im,grid%J_STRT_HALO:grid%J_STOP_HALO)
       real*8 vvv(im,grid%J_STRT_HALO:grid%J_STOP_HALO,10)
       real*8 :: roughl_lice = -1.d30
-      integer I_0, I_1, J_0, J_1, i, j, k
-
+      integer I_0, I_1, J_0, J_1, i, j, k, fid
       titrrr = "roughness length over land"
       rrr = 0.
 
@@ -3669,23 +3696,35 @@ c****
       call sync_param( "roughl_lice", roughl_lice )
 
       roughl(:,:) = 0.d0
-      do j=J_0,J_1
+      if(file_exists('ROUGHL')) then
+        ! read arbitrary distribution from file
+        fid = par_open(grid,'ROUGHL','read')
+        call read_dist_data(grid,fid,'roughl',rrr)
+        call par_close(grid,fid)
+      else
+        ! compute non-veg roughness length as in Model II
+        do j=J_0,J_1
         do i=I_0,I_1
           if ( focean(i,j) >= 1.d0 ) cycle
           rrr(i,j) = .6d0 * 0.041d0 * top_dev_ij(i,j)**0.71d0
-            ! make sure that roughness length is always > 0
-          rrr(i,j) = max( rrr(i,j), 0.005d0 ) ! 0.005 is flat desert
         enddo
+        enddo
+      endif
+
+      ! make sure that roughness length is always > 0
+      do j=J_0,J_1
+      do i=I_0,I_1
+        if ( focean(i,j) >= 1.d0 ) cycle
+        rrr(i,j) = max( rrr(i,j), 0.005d0 ) ! 0.005 is flat desert
       enddo
-      !write(982) titrrr,real(rrr,kind=4)
-      !call WRITET_PARALLEL(grid,982,"fort.982",rrr,titrrr)
+      enddo
+
       vvv = 0
       do j=J_0,J_1
         do i=I_0,I_1
             !if ( fearth(i,j) <= 0.d0 ) cycle
           if ( focean(i,j) >= 1.d0 ) cycle
 #ifdef USE_ENT
-            !print *,i,j,focean(i,j),fearth(i,j)
           call ent_get_exports( entcells(i,j),
      &         vegetation_fractions=fr_cover0 )
           call map_ent2giss(fr_cover0,fr_cover) !temp hack: ent pfts->giss veg

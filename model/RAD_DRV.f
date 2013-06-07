@@ -46,6 +46,8 @@ C****
 #endif
       USE RADPAR, only : !rcomp1,writer,writet       ! routines
      &      PTLISO ,KTREND ,LMR=>NL, PLB, LS1_loc
+     &     ,planck_tmin,planck_tmax
+     &     ,transmission_corrections
      *     ,KCLDEM,KSIALB,KSOLAR, SHL, snoage_fac_max, KZSNOW
      *     ,KYEARS,KJDAYS,MADLUV, KYEARG,KJDAYG,MADGHG
      *     ,KYEARO,KJDAYO,MADO3M, KYEARA,KJDAYA,MADAER
@@ -121,7 +123,7 @@ C****
       INTEGER L,LR,n1,n,nn,iu2 ! LONR,LATR
       REAL*8 PLBx(LM+1),pyear
 !@var NRFUN indices of unit numbers for radiation routines
-      INTEGER NRFUN(14),IU
+      INTEGER NRFUN(14),IU,DONOTREAD
 !@var RUNSTR names of files for radiation routines
       CHARACTER*5 :: RUNSTR(14) = (/"RADN1","RADN2","RADN3",
      *     "RADN4","RADN5","RADN6","RADN7","RADN8",
@@ -230,6 +232,13 @@ C**** sync radiation parameters from input
       call sync_param( "save3dAOD", save3dAOD)
       REFdry = REFdry*ref_mult
 
+      if(is_set_param('planck_tmin')) then
+        call get_param('planck_tmin',planck_tmin)
+      endif
+      if(is_set_param('planck_tmax')) then
+        call get_param('planck_tmax',planck_tmax)
+      endif
+
       call getDomainBounds(grid,
      &     I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
 
@@ -316,7 +325,10 @@ C****                                         even if the year is fixed
       if(KYEARO.gt.0) KYEARO=-KYEARO              ! use ONLY KYEARO-data
       KYEARA=Aero_yr ; KJDAYA=0 ! MADAER=1 or 3, trop.aeros (ann.cycle)
       if(KYEARA.gt.0) KYEARA=-KYEARA              ! use ONLY KYEARA-data
-      KYEARV=Volc_yr ; KJDAYV=Volc_day; MADVOL=1   ! Volc. Aerosols
+      if(file_exists('TAero_SSA')) MADAER=3   ! one of the TAero_XXX set
+      KYEARV=Volc_yr ; KJDAYV=Volc_day
+      if(file_exists('RADN7')) MADVOL=1   ! Volc. Aerosols
+
 !***  KYEARV=0 : use current year
 !***  KYEARV<0 : use long term mean stratospheric aerosols (use -1)
 !     Hack: KYEARV= -2000 and -2010 were used for 2 specific runs that
@@ -326,10 +338,14 @@ C****                                         even if the year is fixed
       if(KYEARV.le.-2000) KYEARV=0   ! use current year (before 2000)
 C**** NO time history (yet), except for ann.cycle, for forcings below;
 C****  if KJDAY?=day0 (1->365), data from that day are used all year
-      KYEARD=0       ; KJDAYD=0 ;       MADDST=1   ! Desert dust
-      KYEARE=0       ; KJDAYE=0 ;       MADEPS=1   !cloud Epsln - KCLDEP
+      KYEARD=0       ; KJDAYD=0 ;
+      KYEARE=0       ; KJDAYE=0 ;
       KYEARR=0       ; KJDAYR=0           ! surf.reflectance (ann.cycle)
       KCLDEM=1                  ! 0:old 1:new LW cloud scattering scheme
+
+      if(file_exists('DUSTaer'))   MADDST=1   ! Desert dust
+      if(file_exists('RADN8'))     MADEPS=1   ! cloud Epsln - KCLDEP
+      transmission_corrections = file_exists('RADN4')
 
 C**** Aerosols:
 C**** Currently there are five different default aerosol controls
@@ -700,7 +716,7 @@ C****   Read in time history of well-mixed greenhouse gases
         call openunit('GHG',iu,.false.,.true.)
         call ghghst(iu)
         call closeunit(iu)
-        if (H2ObyCH4.ne.0..and.Kradia.le.0) then
+        if(file_exists('dH2O').and.H2ObyCH4.ne.0..and.Kradia.le.0) then
 C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
           call openunit('dH2O',iu,.false.,.true.)
 #if defined(CUBED_SPHERE)
@@ -709,14 +725,25 @@ C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
           call getqma(iu,lat_dg,plbx,dh2o,lm,jm)
 #endif
           call closeunit(iu)
+        else
+          H2ObyCH4 = 0.
         end if
       end if
-      call updBCd(1990) ; depoBC_1990 = depoBC
+      if(dalbsnX.ne.0.) then
+        call updBCd(1990) ; depoBC_1990 = depoBC
+      endif
 C**** set up unit numbers for 14 more radiation input files
+      donotread = -9999
+      nrfun(:) = 0 ! green light
+      nrfun(12:13) = donotread ! not used in GCM
+      nrfun(10:11) = donotread ! obsolete O3 data
+      nrfun(6)     = donotread ! dust read externally now
+      if(.not.transmission_corrections) nrfun(4) = donotread
+      if(madvol == 0) nrfun(7) = donotread
+      if(madeps == 0) nrfun(8) = donotread
+      if(ksolar < 0)  nrfun(9) = donotread
       DO IU=1,14
-        IF (IU==12.OR.IU==13) CYCLE                    ! not used in GCM
-        IF (IU==10.OR.IU==11) CYCLE                   ! obsolete O3 data
-        IF (IU==6) CYCLE                      ! dust read externally now
+        if(nrfun(iu) == donotread) cycle
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
       END DO
 
@@ -733,9 +760,7 @@ C     ------------------------------------------------------------------
       if (am_i_root()) CALL WRITER(6,0)  ! print rad. control parameters
 C***********************************************************************
       DO IU=1,14
-        IF (IU==12.OR.IU==13) CYCLE                    ! not used in GCM
-        IF (IU==10.OR.IU==11) CYCLE                   ! obsolete O3 data
-        IF (IU==6) CYCLE                      ! dust read externally now
+        if(nrfun(iu) == donotread) cycle
         call closeunit(NRFUN(IU))
       END DO
 C**** Save initial (currently permanent and global) Q in rad.layers
@@ -841,7 +866,7 @@ c      end if
 #endif
       USE RADPAR, only : rcompt,writet
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
-     *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr,albsn_yr
+     *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr,albsn_yr,dalbsnX
 #ifdef CHL_from_SeaWIFs
      *     ,iu_CHL,achl,echl1,echl0,bchl,cchl
       USE FLUXES, only : focean,atmocn
@@ -873,12 +898,13 @@ c      end if
 C**** Update time dependent radiative parameters each day
 !     Get black carbon deposition data for the appropriate year
 !     (does nothing except at a restart or the beginning of a new year)
-      if (albsn_yr.eq.0) then
-        call updBCd (year)
-      else
-        call updBCd (albsn_yr)
-      end if
-
+      if(dalbsnX.ne.0.) then
+        if (albsn_yr.eq.0) then
+          call updBCd (year)
+        else
+          call updBCd (albsn_yr)
+        end if
+      endif
 !     Hack: 2 specific volc. eruption scenarios for 2000-2100 period
       if(volc_yr.eq.-2010) then              ! repeat some old volcanos
          KYEARV=YEAR
@@ -1141,6 +1167,7 @@ C**** Add water to relevant tracers as well
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY,FULGAS
      &          ,use_tracer_chem,FS8OPX,FT8OPX,use_o3_ref,KYEARG,KJDAYG
+     &          ,planck_tmin,planck_tmax
 #ifdef ALTER_RADF_BY_LAT
      &          ,FS8OPX_orig,FT8OPX_orig,FULGAS_orig
 #endif
@@ -1245,8 +1272,7 @@ C     OUTPUT DATA
       USE ATM_COM, only : pk,pedn,pmid,pdsig,ltropo,MA,byMA
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : si_atm
-      USE GHY_COM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
-     *     ,aiearth,fr_snow_rad_ij,fearth
+      USE GHY_COM, only : snowe_com=>snowe,snoage,fr_snow_rad_ij,fearth
 #ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod, only : ent_get_exports
@@ -1548,6 +1574,7 @@ c**** find scaling factors for surface albedo reduction
 #ifdef SCM
       xdalbs = 0.d0
 #else
+      if(dalbsnX.ne.0.) then
       IF (HAVE_SOUTH_POLE) THEN
          sumda_psum(:,1)=axyp(1,1)
          tauda_psum(:,1)=axyp(1,1)*depobc_1990(1,1)
@@ -1574,6 +1601,7 @@ c      ILON72=INT(.5+(I-.5)*72./IM+.5)
 
       xdalbs=-dalbsnX*sumda/tauda
       IF(QCHECK) write(6,*) 'coeff. for snow alb reduction',xdalbs
+      endif ! dalbsnX not zero
 #endif
 
       if(kradia.le.0) then
@@ -1733,8 +1761,8 @@ C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
 C**** CHECK SURFACE TEMPERATURES
       DO IT=1,4
         IF(ptype4(IT) > 0.) then
-          IF(asflx4(it)%GTEMPR(I,J).LT.124..OR.
-     &       asflx4(it)%GTEMPR(I,J).GT.370.) then
+          IF(int(asflx4(it)%GTEMPR(I,J)) .LT. planck_tmin .OR.
+     &       int(asflx4(it)%GTEMPR(I,J)) .GE. planck_tmax ) then
             WRITE(6,*) 'In Radia: Time,I,J,IT,TG1',ITime,I,J,IT
      *         ,asflx4(it)%GTEMPR(I,J)
 CCC         STOP 'In Radia: Grnd Temp out of range'
@@ -1772,7 +1800,11 @@ C****
 C**** DETERMINE CLOUDS (AND THEIR OPTICAL DEPTHS) SEEN BY RADIATION
 C****
       CSS=0. ; CMC=0. ; CLDCV=0. ; DEPTH=0. ; OPTDW=0. ; OPTDI=0.
-      call dCDNC_EST(i,j,pland, dCDNC)
+      if(cc_cdncx.ne.0. .or. od_cdncx.ne.0.) then
+        call dCDNC_EST(i,j,pland, dCDNC)
+      else
+        dCDNC = 0.
+      endif
       dCC_CDNCL = CC_cdncx*dCDNC*CDNCL
       dOD_CDNCL = OD_cdncx*dCDNC*CDNCL
       DO L=1,LM
@@ -1932,7 +1964,8 @@ C**** EVEN PRESSURES
         PLB(L)=PEDN(L,I,J)
 C**** TEMPERATURES
 C---- TLm(L)=T(I,J,L)*PK(L,I,J)     ! already defined
-        IF(TLm(L).LT.124..OR.TLm(L).GT.370.) THEN
+        IF(int(TLm(L)) .LT. planck_tmin .OR.
+     &     int(TLm(L)) .GE. planck_tmax ) THEN
           WRITE(6,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TLm(L)
           WRITE(6,*) 'GTEMPR:',
      &         asflx4(1)%GTEMPR(I,J),asflx4(2)%GTEMPR(I,J),
@@ -2027,7 +2060,8 @@ C**** more than one tracer is lumped together for radiation purposes
       END DO
 C**** Radiative Equilibrium Layer data
       DO K=1,LM_REQ
-        IF(RQT(K,I,J).LT.124..OR.RQT(K,I,J).GT.370.) THEN
+        IF(int(RQT(K,I,J)) .LT. planck_tmin .OR.
+     &     int(RQT(K,I,J)) .GE. planck_tmax ) THEN
         WRITE(6,*) 'In RADIA: Time,I,J,L,TL',ITime,I,J,LM+K,RQT(K,I,J)
 CCC     STOP 'In Radia: RQT out of range'
 c       JCKERR=JCKERR+1
@@ -2069,7 +2103,11 @@ C**** Zenith angle and GROUND/SURFACE parameters
 c      print*,"snowage",i,j,SNOAGE(1,I,J)
 C**** set up parameters for new sea ice and snow albedo
       zsnwoi=snowoi/rhos
-      dALBsn = xdalbs*depobc(i,j)
+      if(dalbsnX.ne.0.) then
+        dALBsn = xdalbs*depobc(i,j)
+      else
+        dALBsn = 0.
+      endif
 c to use on-line tracer albedo impact, set dALBsnX=0. in rundeck
 #if (defined BC_ALB) &&\
     ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\

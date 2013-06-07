@@ -2018,12 +2018,13 @@ subroutine init_CLD(istart)
 47 format (' LOW CLOUDS IN LAYERS 1-',I2,'   MID LEVEL CLOUDS IN', &
        ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
 
-  !**** Define regions for ISCCP diagnostics
+  call sync_param( "isccp_diags",isccp_diags)
+  if (isccp_diags.eq.1) then
 
-  ! allocate/define distributed 2D ISCCP arrays
-  !      if (isccp_diags.eq.1) then
-  allocate(isccp_reg2d(i_0h:i_1h,j_0h:j_1h))
-  do j=j_0,j_1
+    ! allocate/define distributed 2D ISCCP arrays
+    !**** Define regions for ISCCP diagnostics
+    allocate(isccp_reg2d(i_0h:i_1h,j_0h:j_1h))
+    do j=j_0,j_1
     do i=i_0,i_1
       isccp_reg2d(i,j)=0
       do n=1,nisccp
@@ -2034,14 +2035,16 @@ subroutine init_CLD(istart)
         endif
       enddo
     enddo
-  enddo
-  !      endif
+    enddo
 
-  !**** Read in tau/invtau tables for ISCCP calculations
-  call openunit("ISCCP",iu_ISCCP,.true.,.true.)
-  read(iu_ISCCP) title,tautab,invtau
-  if (AM_I_ROOT())  write(6,*) "Read ISCCP:",trim(title)
-  call closeunit(iu_ISCCP)
+    !**** Read in tau/invtau tables for ISCCP calculations
+    call openunit("ISCCP",iu_ISCCP,.true.,.true.)
+    read(iu_ISCCP) title,tautab,invtau
+    if (AM_I_ROOT())  write(6,*) "Read ISCCP:",trim(title)
+    call closeunit(iu_ISCCP)
+
+  endif
+
 end subroutine init_CLD
 
 subroutine qmom_topo_adjustments

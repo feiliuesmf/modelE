@@ -2322,6 +2322,9 @@ C**** albedo calculations
 !@+   be read from that file and used; otherwise ZSI must be present in the
 !@+   rundeck.
       logical :: ZSI_exists=.true.
+!@var RSI_exists flag indicating availability of an input file SICE containing
+!@+   ice cover
+      logical :: RSI_exists=.true.
       real*8, allocatable, dimension(:,:) :: dm
 
       CONTAINS
@@ -2537,9 +2540,16 @@ C**** albedo calculations
       use model_com, only : ioread
       use seaice_com, only : grid=>sigrid
       use pario, only : par_open,par_close
+      use filemanager, only : file_exists
       implicit none
       integer :: fid
-      fid = par_open(grid,'GIC','read')
+      if(file_exists('GIC')) then
+        fid = par_open(grid,'GIC','read')
+      elseif(file_exists('SICEIC')) then
+        fid = par_open(grid,'SICEIC','read')
+      else
+        return
+      endif
       call new_io_seaice (fid,ioread)
       call par_close(grid,fid)
       return
