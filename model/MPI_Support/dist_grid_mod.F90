@@ -328,7 +328,7 @@ MODULE dist_grid_mod
     !-------------------------------------
      allocate(ims(0:0), jms(0:distGrid%npes_world-1))
      ! jm-2 is latlon-specific
-     distGrid%npes_used = min(distGrid%npes_world, jm-2)
+     distGrid%npes_used = distGrid%npes_world
      if (present(npes_max))distGrid% npes_used = min(npes_max, distGrid%npes_used)
      jms(0:distGrid%npes_used-1) = getLatitudeDistribution(distGrid)
      if(distGrid%npes_used<distGrid%npes_world) &
@@ -337,12 +337,6 @@ MODULE dist_grid_mod
 #ifndef USE_ESMF
      AIbounds = MPIgridBounds(distGrid)
 #endif
-
-     if (distGrid%npes_world > jm-2) then
-       write(errorMessage,'("The number of MPI processes for this rundeck cannot exceed ",i0, &
-      &  " PEs")') distGrid% npes_used
-       call stop_model(trim(errorMessage), 14)
-     end if
 
 #else  ! SERIAL CASE
 
@@ -510,14 +504,10 @@ MODULE dist_grid_mod
           latsPerProcess(1) = grid%JM_WORLD - (grid%JM_WORLD/2)
           return
        case (3:)
-          npes_used = min(grid%npes_used, grid%JM_WORLD-2)
+          npes_used = min(grid%npes_used, grid%JM_WORLD)
           
           ! 1st cut - round down
           latsPerProcess(0:grid%npes_used-1) = GRID%JM_WORLD/npes_used  ! round down
-          
-          ! Fix at poles
-          latsPerProcess(0) = max(2, latsPerProcess(0))
-          latsPerProcess(grid%npes_used-1) = max(2, latsPerProcess(grid%npes_used-1))
           
           ! redistribute excess
           excess = GRID%JM_WORLD - sum(latsPerProcess(0:grid%npes_used-1))
@@ -818,14 +808,10 @@ MODULE dist_grid_mod
         latsPerProcess(1) = grid%JM_WORLD - (grid%JM_WORLD/2)
         return
      case (3:)
-        npes_used = min(grid%npes_used, grid%JM_WORLD-2)
+        npes_used = min(grid%npes_used, grid%JM_WORLD)
         
         ! 1st cut - round down
         latsPerProcess(0:grid%npes_used-1) = GRID%JM_WORLD/npes_used  ! round down
-        
-        ! Fix at poles
-        latsPerProcess(0) = max(2, latsPerProcess(0))
-        latsPerProcess(grid%npes_used-1) = max(2, latsPerProcess(grid%npes_used-1))
         
         ! redistribute excess
         excess = GRID%JM_WORLD - sum(latsPerProcess(0:grid%npes_used-1))

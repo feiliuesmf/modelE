@@ -17,16 +17,26 @@ module Halo_mod
 
 !@var halo_update Update data in halo for local domain using data from
 !@+   neighbouring processes
+  public :: halo_update_south_pole
+  public :: halo_update_north_pole
   public :: halo_update ! Communicate overlapping portions of subdomains
   public :: halo_updateJ ! jx
   public :: halo_update_column ! K, I, J
   public :: halo_update_block ! K, L, I, J
   public :: halo_update_mask ! K, L, I, J
 
-  public :: NORTH, SOUTH!, ALL
-!!$  integer, parameter :: NORTH = 2**0
-!!$  integer, parameter :: SOUTH = 2**1
   integer, parameter :: ALL = NORTH + SOUTH ! no east/west for now
+
+  interface halo_update_south_pole
+    module procedure halo_update_south_pole_1d
+    module procedure halo_update_south_pole_2d
+    module procedure halo_update_south_pole_3d
+  end interface
+  interface halo_update_north_pole
+    module procedure halo_update_north_pole_1d
+    module procedure halo_update_north_pole_2d
+    module procedure halo_update_north_pole_3d
+  end interface
 
 !@var halo_update generic wrapper for 2D and 3D routines
   interface halo_update
@@ -57,6 +67,158 @@ module Halo_mod
 #endif
 
 contains
+
+  subroutine halo_update_south_pole_1d(grid, arr)
+    type (dist_grid),   intent(inout)   :: grid
+    real*8,   intent(inout) :: arr(grid%j_strt_halo:)
+    integer :: status(MPI_STATUS_SIZE), ierr
+
+    call incrementMpiTag(grid)
+    if (haveLatitude(grid, 1) .and. (.not. haveLatitude(grid, 2))) then
+      call mpi_send( arr(1), 1, MPI_DOUBLE_PRECISION, 1, &
+        getMpiTag(grid), getMpiCommunicator(grid), ierr )
+      call mpi_recv(arr(2), 1, MPI_DOUBLE_PRECISION, 1, &
+        getMpiTag(grid), getMpiCommunicator(grid), status, ierr )
+    end if 
+    if (haveLatitude(grid, 2) .and. (.not. haveLatitude(grid, 1))) then
+      call mpi_send( arr(2), 1, MPI_DOUBLE_PRECISION, 0, &
+        getMpiTag(grid), getMpiCommunicator(grid), ierr )
+      call mpi_recv(arr(1), 1, MPI_DOUBLE_PRECISION, 0, &
+        getMpiTag(grid), getMpiCommunicator(grid), status, ierr )
+    end if
+
+  end subroutine halo_update_south_pole_1d
+
+  subroutine halo_update_north_pole_1d(grid, arr)
+    type (dist_grid),   intent(inout)   :: grid
+    real*8,   intent(inout) :: arr(grid%j_strt_halo:)
+    integer :: status(MPI_STATUS_SIZE), ierr, jm, npes
+
+    jm = grid%jm_world
+    npes = grid%npes_used
+
+    call incrementMpiTag(grid)
+    if (haveLatitude(grid, jm) .and. (.not. haveLatitude(grid, jm-1))) then
+      call mpi_send( arr(jm), 1, MPI_DOUBLE_PRECISION, npes-2, &
+        getMpiTag(grid), getMpiCommunicator(grid), ierr )
+      call mpi_recv(arr(jm-1), 1, MPI_DOUBLE_PRECISION, npes-2, &
+        getMpiTag(grid), getMpiCommunicator(grid), status, ierr )
+    end if 
+    if (haveLatitude(grid, jm-1) .and. (.not. haveLatitude(grid, jm))) then
+      call mpi_send( arr(jm-1), 1, MPI_DOUBLE_PRECISION, npes-1, &
+        getMpiTag(grid), getMpiCommunicator(grid), ierr )
+      call mpi_recv(arr(jm), 1, MPI_DOUBLE_PRECISION, npes-1, &
+        getMpiTag(grid), getMpiCommunicator(grid), status, ierr )
+    end if
+
+  end subroutine halo_update_north_pole_1d
+
+  subroutine halo_update_south_pole_2d(grid, arr)
+    type (dist_grid),   intent(inout)   :: grid
+    real*8,   intent(inout) :: arr(grid%i_strt_halo:,grid%j_strt_halo:)
+    integer :: status(MPI_STATUS_SIZE), ierr, m
+
+    m  = size(arr,1)
+
+    call incrementMpiTag(grid)
+    if (haveLatitude(grid, 1) .and. (.not. haveLatitude(grid, 2))) then
+      call mpi_send( arr(1,1), m, MPI_DOUBLE_PRECISION, 1, &
+        getMpiTag(grid), getMpiCommunicator(grid), ierr )
+      call mpi_recv(arr(1,2), m, MPI_DOUBLE_PRECISION, 1, &
+        getMpiTag(grid), getMpiCommunicator(grid), status, ierr )
+    end if 
+    if (haveLatitude(grid, 2) .and. (.not. haveLatitude(grid, 1))) then
+      call mpi_send( arr(1,2), m, MPI_DOUBLE_PRECISION, 0, &
+        getMpiTag(grid), getMpiCommunicator(grid), ierr )
+      call mpi_recv(arr(1,1), m, MPI_DOUBLE_PRECISION, 0, &
+        getMpiTag(grid), getMpiCommunicator(grid), status, ierr )
+   end if
+
+  end subroutine halo_update_south_pole_2d
+
+  subroutine halo_update_north_pole_2d(grid, arr)
+    type (dist_grid),   intent(inout)   :: grid
+    real*8,   intent(inout) :: arr(grid%i_strt_halo:,grid%j_strt_halo:)
+    integer :: status(MPI_STATUS_SIZE), ierr, jm, npes, m
+
+    m  = size(arr,1)
+    jm = grid%jm_world
+    npes = grid%npes_used
+
+    call incrementMpiTag(grid)
+    if (haveLatitude(grid, jm) .and. (.not. haveLatitude(grid, jm-1))) then
+      call mpi_send( arr(:,jm), m, MPI_DOUBLE_PRECISION, npes-2, &
+        getMpiTag(grid), getMpiCommunicator(grid), ierr )
+      call mpi_recv(arr(:,jm-1), m, MPI_DOUBLE_PRECISION, npes-2, &
+        getMpiTag(grid), getMpiCommunicator(grid), status, ierr )
+    end if 
+    if (haveLatitude(grid, jm-1) .and. (.not. haveLatitude(grid, jm))) then
+      call mpi_send( arr(:,jm-1), m, MPI_DOUBLE_PRECISION, npes-1, &
+        getMpiTag(grid), getMpiCommunicator(grid), ierr )
+      call mpi_recv(arr(:,jm), m, MPI_DOUBLE_PRECISION, npes-1, &
+        getMpiTag(grid), getMpiCommunicator(grid), status, ierr )
+    end if
+
+  end subroutine halo_update_north_pole_2d
+
+  subroutine halo_update_south_pole_3d(grid, arr)
+    type (dist_grid),   intent(inout)   :: grid
+    real*8,   intent(inout) :: arr(grid%i_strt_halo:,grid%j_strt_halo:,:)
+    integer :: status(MPI_STATUS_SIZE), ierr
+    integer :: new_type
+
+    ! create a new mpi type for use in communication
+    !-------------------------------
+    new_type = createDecompMpiType(MPI_DOUBLE_PRECISION, shape(arr), 2)
+
+    call incrementMpiTag(grid)
+    if (haveLatitude(grid, 1) .and. (.not. haveLatitude(grid, 2))) then
+      call mpi_send( arr(1,1,1), 1, new_type, 1, &
+        getMpiTag(grid), getMpiCommunicator(grid), ierr )
+      call mpi_recv(arr(1,2,1), 1, new_type, 1, &
+        getMpiTag(grid), getMpiCommunicator(grid), status, ierr )
+    end if 
+    if (haveLatitude(grid, 2) .and. (.not. haveLatitude(grid, 1))) then
+      call mpi_send( arr(1,2,1), 1, new_type, 0, &
+        getMpiTag(grid), getMpiCommunicator(grid), ierr )
+      call mpi_recv(arr(1,1,1), 1, new_type, 0, &
+        getMpiTag(grid), getMpiCommunicator(grid), status, ierr )
+    end if
+
+    call freeMpiType(new_type)
+
+  end subroutine halo_update_south_pole_3d
+
+  subroutine halo_update_north_pole_3d(grid, arr)
+    type (dist_grid),   intent(inout)   :: grid
+    real*8,   intent(inout) :: arr(grid%i_strt_halo:,grid%j_strt_halo:,:)
+    integer :: status(MPI_STATUS_SIZE), ierr, jm, npes
+    integer :: new_type
+
+    ! create a new mpi type for use in communication
+    !-------------------------------
+    new_type = createDecompMpiType(MPI_DOUBLE_PRECISION, shape(arr), 2)
+
+    jm = grid%jm_world
+    npes = grid%npes_used
+
+    call incrementMpiTag(grid)
+    if (haveLatitude(grid, jm) .and. (.not. haveLatitude(grid, jm-1))) then
+      call mpi_send( arr(1,jm,1), 1, new_type, npes-2, &
+        getMpiTag(grid), getMpiCommunicator(grid), ierr )
+      call mpi_recv(arr(1,jm-1,1), 1, new_type, npes-2, &
+        getMpiTag(grid), getMpiCommunicator(grid), status, ierr )
+    end if 
+    if (haveLatitude(grid, jm-1) .and. (.not. haveLatitude(grid, jm))) then
+      call mpi_send( arr(1,jm-1,1), 1, new_type, npes-1, &
+        getMpiTag(grid), getMpiCommunicator(grid), ierr )
+      call mpi_recv(arr(1,jm,1), 1, new_type, npes-1, &
+        getMpiTag(grid), getMpiCommunicator(grid), status, ierr )
+    end if
+
+    call freeMpiType(new_type)
+
+  end subroutine halo_update_north_pole_3d
 
   subroutine halo_update_1d(grid, arr, from)
     type (dist_grid),   intent(in)   :: grid
@@ -254,7 +416,7 @@ contains
     call gridRootPELocation(grid,  px,  py)
     call gridPELayout(grid, npx, npy)
     Call GetNeighbors(py, npy, pe_south, pe_north, bc_periodic)
-
+    
     sz = Product(shp(1:dist_idx-1))
     n  = shp(dist_idx)
     off(1) = 1

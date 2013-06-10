@@ -3,8 +3,8 @@
 module mpiTest_Halo_mod
   use pFUnit, only: assertEqual, assertTrue, amRoot, mpiCommunicator, numProcesses, &
     processRank, TestInfo_type
-  use dist_grid_mod, only: setCommunicator, dist_grid, init_grid, destroy_grid, &
-    getDomainBounds
+  use dist_grid_mod, only: setCommunicator, dist_grid, init_grid, &
+    destroy_grid, getDomainBounds, NORTH, SOUTH
   use Halo_mod
   implicit none
   private
@@ -20,6 +20,30 @@ module mpiTest_Halo_mod
     integer :: ibeg, iend, jbeg, jend      ! local dimensions
     integer :: ibegh, iendh, jbegh, jendh  ! local dimensions + halo
   end type fixture
+
+  public :: test_HaloUpdateSouthPole1D
+  public :: nproc_test_HaloUpdateSouthPole1D
+  integer, parameter :: NPROC_TEST_HALOUPDATESOUTHPOLE1D(4) = [1, 2 , 9, 10]
+
+  public :: test_HaloUpdateNorthPole1D
+  public :: nproc_test_HaloUpdateNorthPole1D
+  integer, parameter :: NPROC_TEST_HALOUPDATENORTHPOLE1D(4) = [1, 2 , 9, 10]
+
+  public :: test_HaloUpdateSouthPole2D
+  public :: nproc_test_HaloUpdateSouthPole2D
+  integer, parameter :: NPROC_TEST_HALOUPDATESOUTHPOLE2D(4) = [1, 2, 9, 10]
+
+  public :: test_HaloUpdateNorthPole2D
+  public :: nproc_test_HaloUpdateNorthPole2D
+  integer, parameter :: NPROC_TEST_HALOUPDATENORTHPOLE2D(4) = [1, 2 , 9, 10]
+
+  public :: test_HaloUpdateSouthPole3D
+  public :: nproc_test_HaloUpdateSouthPole3D
+  integer, parameter :: NPROC_TEST_HALOUPDATESOUTHPOLE3D(4) = [1, 2 , 9, 10]
+
+  public :: test_HaloUpdateNorthPole3D
+  public :: nproc_test_HaloUpdateNorthPole3D
+  integer, parameter :: NPROC_TEST_HALOUPDATENORTHPOLE3D(4) = [1, 2 , 9, 10]
 
   public :: test_HaloUpdate1d ! j
   public :: nproc_test_HaloUpdate1d
@@ -49,7 +73,7 @@ module mpiTest_Halo_mod
   public :: nproc_test_HaloUpdateBlock
   integer, parameter :: NPROC_TEST_HALOUPDATEBLOCK(3) = [ 1, 3, 5 ]
 
-  integer, parameter :: IM = 4 
+  integer, parameter :: IM = 4
   integer, parameter :: JM = 10
   integer, parameter :: LM = 2
 
@@ -78,11 +102,203 @@ contains
 
 ! ----------------------------------------------------------------------
   subroutine tearDown(this, info)
-! ----------------------------------------------------------------------
+! ---------------------------------------------------------------------
     type (fixture) :: this
     type (TestInfo_type) :: info
     call destroy_grid(this%distGrid)
   end subroutine tearDown
+
+! ----------------------------------------------------------------------
+  subroutine test_HaloUpdateSouthPole1D(this, info)
+! ----------------------------------------------------------------------
+    type (fixture) :: this
+    type (TestInfo_type), intent(in) :: info
+    real(8), allocatable, dimension(:) :: distArray
+    integer :: rank
+
+    rank = processRank(info)
+    ! real array with dimensions (J)
+    allocate (distArray(this%jbegh:this%jendh))     
+    distArray = rank
+
+    call halo_update_south_pole(this%distGrid, distArray)
+
+    if (this%jend == 1) &
+      call assertEqual(1, distArray(this%jendh))
+
+    if (this%jbeg == 2) &
+      call assertEqual(0, distArray(this%jbegh))
+
+! Do not update halos except at SP
+    if (this%jend > 1) &
+       call assertEqual(rank, distArray(this%jendh))
+
+    ! also test that interior does not change
+    call assertEqual(rank, distArray(this%jbeg:this%jend))
+
+    deallocate(distArray)
+
+  end subroutine test_HaloUpdateSouthPole1D
+
+! ----------------------------------------------------------------------
+  subroutine test_HaloUpdateNorthPole1D(this, info)
+! ----------------------------------------------------------------------
+    type (fixture) :: this
+    type (TestInfo_type), intent(in) :: info
+    real(8), allocatable, dimension(:) :: distArray
+    integer :: rank
+
+    rank = processRank(info)
+    ! real array with dimensions (J)
+    allocate (distArray(this%jbegh:this%jendh))     
+    distArray = rank
+
+    call halo_update_north_pole(this%distGrid, distArray)
+
+    if (this%jbeg == JM) then 
+      call assertEqual(rank-1, distArray(this%jbegh))
+    else if (this%jend == JM-1) then
+      call assertEqual(rank+1, distArray(this%jendh))
+    end if
+
+! Do not update halos except at NP
+    if (this%jbeg < JM) &
+       call assertEqual(rank, distArray(this%jbegh))
+
+    ! also test that interior does not change
+    call assertEqual(rank, distArray(this%jbeg:this%jend))
+
+    deallocate(distArray)
+
+  end subroutine test_HaloUpdateNorthPole1D
+
+! ----------------------------------------------------------------------
+  subroutine test_HaloUpdateSouthPole2D(this, info)
+! ----------------------------------------------------------------------
+    type (fixture) :: this
+    type (TestInfo_type), intent(in) :: info
+    real(8), allocatable, dimension(:,:) :: distArray
+    integer :: rank
+
+    rank = processRank(info)
+    ! real array with dimensions (I,J)
+    allocate (distArray(this%ibegh:this%iendh, this%jbegh:this%jendh))    
+    distArray = rank
+
+    call halo_update_south_pole(this%distGrid, distArray)
+
+    if (this%jend == 1) &
+      call assertEqual(1, distArray(:,this%jendh))
+
+    if (this%jbeg == 2) &
+      call assertEqual(0, distArray(:,this%jbegh))
+
+! Do not update halos except at SP
+    if (this%jend > 1) &
+       call assertEqual(rank, distArray(:,this%jendh))
+
+    ! also test that interior does not change
+    call assertEqual(rank, distArray(this%ibeg:this%iend, this%jbeg:this%jend))
+
+    deallocate(distArray)
+
+  end subroutine test_HaloUpdateSouthPole2D
+
+! ----------------------------------------------------------------------
+  subroutine test_HaloUpdateNorthPole2D(this, info)
+! ----------------------------------------------------------------------
+    type (fixture) :: this
+    type (TestInfo_type), intent(in) :: info
+    real(8), allocatable, dimension(:,:) :: distArray
+    integer :: rank
+
+    rank = processRank(info)
+    ! real array with dimensions (I,J)
+    allocate (distArray(this%ibegh:this%iendh, this%jbegh:this%jendh))    
+    distArray = rank
+
+    call halo_update_north_pole(this%distGrid, distArray)
+
+    if (this%jbeg == JM) then 
+      call assertEqual(rank-1, distArray(:,this%jbegh))
+    else if (this%jend == JM-1) then
+      call assertEqual(rank+1, distArray(:,this%jendh))
+    end if
+
+! Do not update halos except at NP
+    if (this%jbeg < JM) &
+       call assertEqual(rank, distArray(:,this%jbegh))
+
+    ! also test that interior does not change
+    call assertEqual(rank, distArray(this%ibeg:this%iend, this%jbeg:this%jend))
+
+    deallocate(distArray)
+
+  end subroutine test_HaloUpdateNorthPole2D
+
+! ----------------------------------------------------------------------
+  subroutine test_HaloUpdateSouthPole3D(this, info)
+! ----------------------------------------------------------------------
+    type (fixture) :: this
+    type (TestInfo_type), intent(in) :: info
+    real(8), allocatable, dimension(:,:,:) :: distArray
+    integer :: rank
+
+    rank = processRank(info)
+    ! real array with dimensions (I,J,K)
+    allocate (distArray(this%ibegh:this%iendh, this%jbegh:this%jendh, LM))    
+    distArray = rank
+
+    call halo_update_south_pole(this%distGrid, distArray)
+
+    if (this%jend == 1) &
+      call assertEqual(1, distArray(:,this%jendh,:))
+
+    if (this%jbeg == 2) &
+      call assertEqual(0, distArray(:,this%jbegh,:))
+
+! Do not update halos except at SP
+    if (this%jend > 1) &
+       call assertEqual(rank, distArray(:,this%jendh,:))
+
+    ! also test that interior does not change
+    call assertEqual(rank, distArray(this%ibeg:this%iend, this%jbeg:this%jend,:))
+
+    deallocate(distArray)
+
+  end subroutine test_HaloUpdateSouthPole3D
+
+! ----------------------------------------------------------------------
+  subroutine test_HaloUpdateNorthPole3D(this, info)
+! ----------------------------------------------------------------------
+    type (fixture) :: this
+    type (TestInfo_type), intent(in) :: info
+    real(8), allocatable, dimension(:,:,:) :: distArray
+    integer :: rank
+
+    rank = processRank(info)
+    ! real array with dimensions (I,J,K)
+    allocate (distArray(this%ibegh:this%iendh, this%jbegh:this%jendh, LM))    
+    distArray = rank
+
+    call halo_update_north_pole(this%distGrid, distArray)
+
+    if (this%jbeg == JM) then 
+      call assertEqual(rank-1, distArray(:,this%jbegh,:))
+    else if (this%jend == JM-1) then
+      call assertEqual(rank+1, distArray(:,this%jendh,:))
+    end if
+
+! Do not update halos except at NP
+    if (this%jbeg < JM) &
+       call assertEqual(rank, distArray(:,this%jbegh,:))
+
+    ! also test that interior does not change
+    call assertEqual(rank, distArray(this%ibeg:this%iend, this%jbeg:this%jend,:))
+
+    deallocate(distArray)
+
+  end subroutine test_HaloUpdateNorthPole3D
 
 ! ----------------------------------------------------------------------
   subroutine test_HaloUpdate1d(this, info)
