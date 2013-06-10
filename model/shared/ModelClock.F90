@@ -15,7 +15,7 @@ module ModelClock_mod
     integer :: stepsPerDay
 
   contains
-
+    procedure :: getAbsoluteTimeInSeconds
     procedure :: getTimeStep
     procedure :: isBeginningOfDay
     procedure :: nextTick
@@ -64,6 +64,12 @@ contains
     
     isBeginningOfDay = mod(this%timeStep, this%stepsPerDay) == 0
   end function isBeginningOfDay
+
+  function getAbsoluteTimeInSeconds(this) result (secs)
+    integer*8 :: secs
+    class (ModelClock), intent(inout) :: this
+    secs = this%currentTime%get()
+  end function getAbsoluteTimeInSeconds
 
   subroutine getDate(this, year, month, dayOfYear, date, hour, amn)
 !@sum  getDate gets Calendar info from internal timing info
