@@ -71,6 +71,7 @@ contains
   subroutine halo_update_south_pole_1d(grid, arr)
     type (dist_grid),   intent(inout)   :: grid
     real*8,   intent(inout) :: arr(grid%j_strt_halo:)
+#ifdef USE_MPI
     integer :: status(MPI_STATUS_SIZE), ierr
 
     call incrementMpiTag(grid)
@@ -86,12 +87,14 @@ contains
       call mpi_recv(arr(1), 1, MPI_DOUBLE_PRECISION, 0, &
         getMpiTag(grid), getMpiCommunicator(grid), status, ierr )
     end if
+#endif
 
   end subroutine halo_update_south_pole_1d
 
   subroutine halo_update_north_pole_1d(grid, arr)
     type (dist_grid),   intent(inout)   :: grid
     real*8,   intent(inout) :: arr(grid%j_strt_halo:)
+#ifdef USE_MPI
     integer :: status(MPI_STATUS_SIZE), ierr, jm, npes
 
     jm = grid%jm_world
@@ -110,12 +113,14 @@ contains
       call mpi_recv(arr(jm), 1, MPI_DOUBLE_PRECISION, npes-1, &
         getMpiTag(grid), getMpiCommunicator(grid), status, ierr )
     end if
+#endif
 
   end subroutine halo_update_north_pole_1d
 
   subroutine halo_update_south_pole_2d(grid, arr)
     type (dist_grid),   intent(inout)   :: grid
     real*8,   intent(inout) :: arr(grid%i_strt_halo:,grid%j_strt_halo:)
+#ifdef USE_MPI
     integer :: status(MPI_STATUS_SIZE), ierr, m
 
     m  = size(arr,1)
@@ -133,12 +138,14 @@ contains
       call mpi_recv(arr(1,1), m, MPI_DOUBLE_PRECISION, 0, &
         getMpiTag(grid), getMpiCommunicator(grid), status, ierr )
    end if
+#endif
 
   end subroutine halo_update_south_pole_2d
 
   subroutine halo_update_north_pole_2d(grid, arr)
     type (dist_grid),   intent(inout)   :: grid
     real*8,   intent(inout) :: arr(grid%i_strt_halo:,grid%j_strt_halo:)
+#ifdef USE_MPI
     integer :: status(MPI_STATUS_SIZE), ierr, jm, npes, m
 
     m  = size(arr,1)
@@ -158,12 +165,14 @@ contains
       call mpi_recv(arr(:,jm), m, MPI_DOUBLE_PRECISION, npes-1, &
         getMpiTag(grid), getMpiCommunicator(grid), status, ierr )
     end if
+#endif
 
   end subroutine halo_update_north_pole_2d
 
   subroutine halo_update_south_pole_3d(grid, arr)
     type (dist_grid),   intent(inout)   :: grid
     real*8,   intent(inout) :: arr(grid%i_strt_halo:,grid%j_strt_halo:,:)
+#ifdef USE_MPI
     integer :: status(MPI_STATUS_SIZE), ierr
     integer :: new_type
 
@@ -186,12 +195,14 @@ contains
     end if
 
     call freeMpiType(new_type)
+#endif
 
   end subroutine halo_update_south_pole_3d
 
   subroutine halo_update_north_pole_3d(grid, arr)
     type (dist_grid),   intent(inout)   :: grid
     real*8,   intent(inout) :: arr(grid%i_strt_halo:,grid%j_strt_halo:,:)
+#ifdef USE_MPI
     integer :: status(MPI_STATUS_SIZE), ierr, jm, npes
     integer :: new_type
 
@@ -217,6 +228,7 @@ contains
     end if
 
     call freeMpiType(new_type)
+#endif
 
   end subroutine halo_update_north_pole_3d
 
