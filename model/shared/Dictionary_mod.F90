@@ -37,6 +37,10 @@ module Dictionary_mod
 !@+       the parameter by its number in the database <n>. It returns
 !@+       'EMPTY' in the <name> if no parameter with such an <n> exists
 !@+       (i.e. if <n> is bigger than the number of parameters)
+!@+     query_param( name, dim, ptype ) - returns information about
+!@+       the parameter by its name in the database. It returns
+!@+       'EMPTY' in the <name> if no parameter with such an <n> exists
+!@+       (i.e. if <n> is bigger than the number of parameters)
 !@+
 !@+ The formal arguments in the subroutines are:
 !@+     name - character*(*) - the name of the parameter which is a
@@ -198,6 +202,11 @@ module Dictionary_mod
   interface sync_param
     module procedure sync_iparam, sync_rparam, sync_cparam
     module procedure sync_aiparam, sync_arparam, sync_acparam
+  end interface
+
+  interface query_param
+    module procedure query_param_number
+    module procedure query_param_name
   end interface
 
   ! Constructors
@@ -917,7 +926,7 @@ contains
 
 
 
-  subroutine query_param( n, name, dim, ptype )
+  subroutine query_param_number( n, name, dim, ptype )
     integer, intent(in) :: n
     character*(*), intent(out) :: name
     integer, intent(out) :: dim
@@ -933,7 +942,28 @@ contains
       ptype = 'U'
     endif
 
-  end subroutine query_param
+  end subroutine query_param_number
+
+
+  subroutine query_param_name( name_in, dim, ptype )
+    character*(*), intent(in) :: name_in
+    integer, intent(out) :: dim
+    character*1, intent(out) :: ptype
+    integer :: n
+
+    do n=1,num_param
+      if ( Params(n)%name == toLowerCase(name_in) ) exit
+    enddo
+
+    if ( n<=num_param ) then
+      dim = Params(n)%dim
+      ptype = Params(n)%attrib
+    else
+      print *, 'PARAM: The name', name_in, 'was not found in database'
+      call stop_model('PARAM: The name is not in the database',255)
+    endif
+
+  end subroutine query_param_name
 
   !**** the code below is included for compatibility with older     ****
   !**** versions; it may be removed later when not needed any more  ****
