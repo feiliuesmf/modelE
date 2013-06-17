@@ -1,4 +1,11 @@
-NOTE: The full documentation on how to run the model is in doc/HOWTO.html. 
+NOTE: The full documentation on how to run the model is in
+
+ doc/UserGuide/index.html
+
+or you can read it online at
+
+ http://simplex.giss.nasa.gov/modelE/doc/UserGuide/index.html
+ 
 This summary is not complete, and not necessarily up-to-date either.
 
 PLEASE READ THE FULL DOCUMENTATION - IT REALLY WILL MAKE YOUR LIFE EASIER!
@@ -28,12 +35,19 @@ The directory tree of the modelE has the following structure:
 
            Configuring the model on your local system
 
-   Intended working directory is directory modelE/decks. In this
-directory type "gmake config". This will create a default ~/.modelErc
-file in your home directory. This should be edited so that run output,
-rundeck libraries etc. can be properly directed, and so that the
-compile options (multiple processing, compiler name , NetCDF libraries
-etc.)  can be set appropriately.
+   Intended working directory is directory modelE/decks. The following
+command will configure your system to be used with modelE (assuming
+you are going to use "gfortran" fortran compiler): 
+
+ make config COMPILER=gfortran ModelE_Support=$HOME/ModelE_Support
+
+This will create a default ~/.modelErcfile in your home directory. 
+This should be edited so that run output, rundeck libraries etc. can 
+be properly directed, and so that the compile options (multiple
+processing, compiler name , NetCDF libraries etc.)  can be set
+appropriately. This command also creates ModelE_Support directory 
+for modelE support files.
+
 
                Compiling and running the model.
 
@@ -47,19 +61,19 @@ of how to compile and setup a run with the name "my_run":
 You will need to edit the rundeck in order to choose a configuration
 that is appropriate. Once that is done...
 
-      gmake gcm RUN=my_run          # compile the model for "my_run"
-      gmake setup RUN=my_run        # run setup script for "my_run"
+      gmake setup RUN=my_run        # compile the model and set up 
+                                    # a run directory for "my_run"
+
+      ../exec/runE my_run -cold-restart   # Start model run from the 
+                                          # initial conditions
+
+      ../exec/runE my_run                 # Continue model run from 
+                                          # a saved checkpoint
 
 Make sure that you create the rundeck with "gmake rundeck ..." before
 running any other commands for this run, otherwise the Makefile will
-not understand you. You can skip "gmake gcm ..." and just do "gmake setup..."
-in which case gcm will be compiled automatically.
-Another command you want to run (after creating the rundeck) is:
-
-      gmake aux RUN=my_run
-
-This will compile auxiliary programs in /aux. All the binaries (both for
-model and for auxiliary programs) are put into /decks/my_run.bin .
+not understand you.  All the binaries created by "make" are stored in
+ /decks/my_run.bin .
 
 The following is a list of targets currently supported by Makefile:
 
@@ -70,9 +84,8 @@ The following is a list of targets currently supported by Makefile:
  aux     - compile standard auxiliary programs
  auxqflux- compile auxiliary programs for computing qflux
  auxdeep - compile auxiliary programs for setting deep ocean
- setup   - do setup for specified rundeck
- clean   - remove listings and error files
- vclean  - remove object files, .mod files and dependencies
+ setup   - compile executable and prepare run directory for specified rundeck
+ clean   - remove object files, .mod files and dependencies
  newstart- remove all files in the run directory
  exe     - compile gcm and put executable into RUN directory
  htmldoc - create web-based documentation for this RUN
