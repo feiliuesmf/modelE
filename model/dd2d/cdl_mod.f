@@ -4,21 +4,19 @@
 
       integer, parameter :: cdl_strlen=100
       integer, parameter :: ndims_max=100
-      integer, parameter :: ndata_max=1000
-      integer, parameter :: nlines_max=100000
       character(len=4) :: indent='    '
       character(len=8) :: indent2='        '
 
       public :: cdl_type
       type cdl_type
+        private
         character(len=30) :: name ! name of this cdl for error reporting
         integer :: nlines     ! current number of lines
         integer :: ndims,ncoordlines,nvarlines,ndatalines
-        character(len=cdl_strlen), dimension(nlines_max) :: text
         character(len=cdl_strlen), dimension(ndims_max) :: dims
         character(len=cdl_strlen), dimension(3*ndims_max) :: coords
-        character(len=cdl_strlen), dimension(nlines_max) :: vars
-        character(len=cdl_strlen), dimension(ndata_max) :: datavalues
+        character(len=cdl_strlen), dimension(:), allocatable ::
+     &       vars,datavalues,text
       end type cdl_type
 
       public :: cdl_strlen,init_cdl_type,print_cdl,add_dim,add_coord,
@@ -119,6 +117,8 @@
       type(cdl_type), intent(in) :: cdl_in
       type(cdl_type), intent(inout) :: cdl_out
       integer :: k,kout
+      call alloc_datavalues(cdl_out,
+     &     cdl_out%ndatalines+cdl_in%ndatalines)
       kout = cdl_out%ndatalines
       do k=1,cdl_in%ndatalines
         kout = kout + 1
@@ -136,6 +136,7 @@
       integer :: k,n1,n2
       k = cdl%nvarlines + 1
       tmpstr = adjustl(varstr)
+      call alloc_vars(cdl,k)
       cdl%vars(k) = indent//tmpstr
       n1 = index(tmpstr,' ')+1
       n2 = index(tmpstr,'(')-1
@@ -161,6 +162,7 @@
       character(len=*), intent(in) :: varstr
       integer :: k
       k = cdl%nvarlines + 1
+      call alloc_vars(cdl,k)
       cdl%vars(k) = indent2//trim(varstr)
       cdl%nvarlines  = k
       return
@@ -171,6 +173,7 @@
       character(len=*), intent(in) :: varstr
       integer :: k
       k = cdl%ndatalines + 1
+      call alloc_datavalues(cdl,k)
       cdl%datavalues(k) = indent//trim(varstr)
       cdl%ndatalines  = k
       return
@@ -180,12 +183,14 @@
       type(cdl_type), intent(inout) :: cdl
       character(len=*), intent(in) :: varname
       real*8, dimension(:), intent(in) :: values
-      integer :: k,line,i1,i2,pos,varsize
+      integer :: k,line,i1,i2,pos,varsize,nl
       integer, parameter :: npl=6 ! 6 values per line
       varsize = size(values)
       k = cdl%ndatalines + 1
+      nl = (varsize+npl-1)/npl
+      call alloc_datavalues(cdl,k+nl)
       cdl%datavalues(k) = indent//trim(varname)//' = '
-      do line=1,(varsize+npl-1)/npl
+      do line=1,nl
         i1 = 1 + npl*(line-1)
         i2 = min(varsize,i1+npl-1)
         k = k + 1
@@ -204,12 +209,14 @@
       type(cdl_type), intent(inout) :: cdl
       character(len=*), intent(in) :: varname
       integer, dimension(:), intent(in) :: values
-      integer :: k,line,i1,i2,pos,varsize
+      integer :: k,line,i1,i2,pos,varsize,nl
       integer, parameter :: npl=8 ! 8 values per line
       varsize = size(values)
       k = cdl%ndatalines + 1
+      nl = (varsize+npl-1)/npl
+      call alloc_datavalues(cdl,k+nl)
       cdl%datavalues(k) = indent//trim(varname)//' = '
-      do line=1,(varsize+npl-1)/npl
+      do line=1,nl
         i1 = 1 + npl*(line-1)
         i2 = min(varsize,i1+npl-1)
         k = k + 1
@@ -232,6 +239,7 @@
       character*1 punct
       varsize = size(strings)
       k = cdl%ndatalines + 1
+      call alloc_datavalues(cdl,k+varsize)
       cdl%datavalues(k) = indent//trim(varname)//' = '
       punct = ','
       do line=1,varsize
@@ -248,6 +256,10 @@
       subroutine assemble_cdl(cdl)
       type(cdl_type), intent(inout) :: cdl
       integer :: k,n
+      if(allocated(cdl%text)) deallocate(cdl%text)
+      n = cdl%ndims + cdl%ncoordlines
+     &  + cdl%nvarlines + cdl%ndatalines + 1000
+      allocate(cdl%text(n))
       cdl%text = ''
       cdl%text(1) = 'netcdf xxx { '
       cdl%text(2) = 'dimensions:  '
@@ -307,6 +319,7 @@ c coords
       enddo
       cdl%ncoordlines = k
 c vars
+      call alloc_vars(cdl,cdl1%nvarlines+cdl2%nvarlines)
       k = 0
       do n=1,cdl1%nvarlines
         k = k + 1
@@ -318,6 +331,7 @@ c vars
       enddo
       cdl%nvarlines = k
 c data
+      call alloc_datavalues(cdl,cdl1%ndatalines+cdl2%ndatalines)
       k = 0
       do n=1,cdl1%ndatalines
         k = k + 1
@@ -362,5 +376,45 @@ c data
       call write_data(grid,fid,trim(varstr),cdl%text(1:cdl%nlines))
       return
       end subroutine write_cdl
+
+      subroutine alloc_vars(cdl,k)
+      type(cdl_type), intent(inout) :: cdl
+      integer, intent(in) :: k
+      integer :: n
+      character(len=cdl_strlen), dimension(:), allocatable :: tmp_
+      if(.not.allocated(cdl%vars)) then
+        allocate(cdl%vars(max(k,1000)))
+      else
+        n = size(cdl%vars)
+        if(k+100.gt.n) then
+          allocate(tmp_(n))
+          tmp_(1:n) = cdl%vars(1:n)
+          deallocate(cdl%vars)
+          allocate(cdl%vars(2*n))
+          cdl%vars(1:n) = tmp_(1:n)
+          deallocate(tmp_)
+        endif
+      endif
+      end subroutine alloc_vars
+
+      subroutine alloc_datavalues(cdl,k)
+      type(cdl_type), intent(inout) :: cdl
+      integer, intent(in) :: k
+      integer :: n
+      character(len=cdl_strlen), dimension(:), allocatable :: tmp_
+      if(.not.allocated(cdl%datavalues)) then
+        allocate(cdl%datavalues(max(k,1000)))
+      else
+        n = size(cdl%datavalues)
+        if(k+100.gt.n) then
+          allocate(tmp_(n))
+          tmp_(1:n) = cdl%datavalues(1:n)
+          deallocate(cdl%datavalues)
+          allocate(cdl%datavalues(2*n))
+          cdl%datavalues(1:n) = tmp_(1:n)
+          deallocate(tmp_)
+        endif
+      endif
+      end subroutine alloc_datavalues
 
       end module cdl_mod
