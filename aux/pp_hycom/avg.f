@@ -17,7 +17,7 @@ c
      .    ,idrk1,idrk2,jdrk1,jdrk2,indoi,indoj1,indoj2,rhodot,amon
      .    ,monlg,rho,monave_convert,solo_convert,cnvert,timav,mo1,mo2
      .    ,iberi,jberi,ikuro1,ikuro2,jkuro,igulf1,igulf2,jgulf
-     .    ,g                                                                 
+     .    ,g,imed1,imed2,jmed
       use hycom_arrays, only: srfhgt,dpmixl,covice,depths,scp2
      .    ,u,v,dp,p,temp,saln,th3d,tracer,uflxav,vflxav,diaflx
      .    ,uflx,vflx,ubavg,vbavg,alloc_hycom_arrays,latij
@@ -36,7 +36,7 @@ c
      . ,glbsal,glbtem,glbdep,sum1,sum2,sum3,area,avgbot,vol
 
       real :: iceextn,iceexts,nino3,day0,day1,flxmax,x1,x2,thrufl
-     .       ,tinvrs,fl_beri,kuromax,gulfmax
+     .       ,tinvrs,fl_beri,kuromax,gulfmax,flow_med
       real, allocatable :: pinit(:,:,:),pfinl(:,:,:),lat(:),flux(:,:,:)
      .       ,sunda(:),heatfl(:,:)
       integer, allocatable :: im(:,:)
@@ -71,12 +71,12 @@ c
       character(len=*), parameter :: FMT3=
      & '(a,         t10,a,     t24,a,     t38,a,      t52, a,      
      &  t66,a,      t80,a,     t94,a,     t108,a,     t122,a,
-     &  t136,a,     t150,a,    t164,a,    t178,a)' 
+     &  t136,a,     t150,a,    t164,a,    t178,a,     t192,a)' 
 C
       character(len=*), parameter :: FMT4=
      & '(f7.2,sp,t10,es12.5,t24,es12.5,t38,es12.5, t52, es12.5,
      &  t66,es12.5, t80,es12.5,t94,es12.5,t108,es12.5,t122,es12.5,
-     &  t136,es12.5,t150,es12.5,t164,es12.5,t178,es12.5)'
+     &  t136,es12.5,t150,es12.5,t164,es12.5,t178,es12.5,t192,es12.5)'
 
       character(len=*), parameter :: FMT5=
      & '(1x,a,t6,a,t16,a,t28,a,t40,a,t52,a)'
@@ -185,14 +185,15 @@ c
       write(302,fmt=FMT3) 
      & "Time  ","SST","SSS","Tavrg","Savrg","SSH","Ocean_Heat", 
      & "Atl_(45N)","Indonesian","Drake","Bering","Gulf","Kuroshio",
-     & "Top_Ocn_Heat"
+     & "Top_Ocn_Heat","Med_outflow"
       write(302,fmt=FMT3) 
      & "---- ","Surf_Temp","Surf_Saln","Glob_Temp",
      & "Glob_Saln","Srf_Hght","Content","Max_Overt",
-     & "Throughfl","Passage","Strait","Stream","Current","Content"
+     & "Throughfl","Passage","Strait","Stream","Current","Content",
+     & "pos. E-ward"
       write(302,fmt=FMT3) 
      & "Year","degC","PSU","degC","PSU","cm","Joule(s)","Sv","Sv","Sv"
-     & ,"Sv","Sv","Sv","Joule(s)"
+     & ,"Sv","Sv","Sv","Joule(s)",'Sv'
 C
       write(304,'(a)') "North Poleward Ocean Heat Transport" 
       write(304,fmt=FMT5) 
@@ -361,6 +362,7 @@ c     write(*,*) ' yr n=',n,' flxmax_i45 =',i45,flxmax,' at k=',k00
       x1=thrufl(idrk1,jdrk1,idrk2,jdrk2,'(Drake Passage)')
       x2=thrufl(indoi,indoj1,indoi,indoj2,'(Indonesia)')
       fl_beri=thrufl(iberi,jberi-1,iberi,jberi+1,'(Bering)')
+      flow_med=thrufl(imed1,jmed,imed2,jmed,'(Med)')
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- calculate Gulf Stream and Kuroshio transport
@@ -429,7 +431,7 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       write(302,fmt=FMT4) year(n)-0.5 
      .   ,annsst/area,annsss/area,anntem/vol,annsal/vol
      .   ,annssh/area,annhc,flxmax,-x2,x1,-fl_beri,gulfmax,kuromax
-     .   ,annhc_top
+     .   ,annhc_top,flow_med
  151  continue
 c
 
