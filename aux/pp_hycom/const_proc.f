@@ -37,7 +37,7 @@ c
      .  ,iberi=138, jberi=189                               ! Bering Strait
      .  ,ikuro1=197, ikuro2=205, jkuro=129                  ! Kuroshio
      .  ,igulf1=191, igulf2=200, jgulf=281                  ! Gulf Stream
-     .  ,imed1=189, imed2=191, jmed=356			    ! Med outflow
+     .  ,imed1=189, imed2=191, jmed=356                     ! Med outflow
 c
       character(len=20) :: runid="Exxx"
       integer           :: ny1=1800, ny2=1800
