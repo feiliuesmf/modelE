@@ -1659,6 +1659,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
 !@var  dzh  dxi/(dxi/dzh)
 !@var  dxi  (ztop - zbottom)/(n-1)
 !@var  ierr Error reporting flag
+      use RootFinding_mod, only: NewtonMethod
       implicit none
 
       integer, intent(in) :: n    !@var n  array dimension
@@ -1673,7 +1674,6 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       real*8 z1pass,znpass,b,xipass,lznbyz1
       common /grids_99/z1pass,znpass,b,xipass,lznbyz1
       external fgrid2
-      real*8 rtsafe
       integer i,iter  !@var i,iter loop variable
       real*8 dxi,zmin,zmax,dxidz,dxidzh
 
@@ -1697,17 +1697,17 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       dxidz=1.+bgrid*((zn-z1)/z1-lznbyz1)
       dz(1)=dxi/dxidz
       xipass=xihat(1)
-      zhat(1)=rtsafe(fgrid2,zmin,zmax,tolz,ierr)
+      zhat(1)=NewtonMethod(fgrid2,zmin,zmax,tolz,ierr)
       if (ierr.gt.0) return
       dxidzh=1.+bgrid*((zn-z1)/zhat(1)-lznbyz1)
       dzh(1)=dxi/dxidzh
 
       do i=2,n-1
         xipass=xi(i)
-        z(i)=rtsafe(fgrid2,zmin,zmax,tolz,ierr)
+        z(i)=NewtonMethod(fgrid2,zmin,zmax,tolz,ierr)
         if (ierr.gt.0) return
         xipass=xihat(i)
-        zhat(i)=rtsafe(fgrid2,zmin,zmax,tolz,ierr)
+        zhat(i)=NewtonMethod(fgrid2,zmin,zmax,tolz,ierr)
         if (ierr.gt.0) return
         dxidz=1.+bgrid*((zn-z1)/z(i)-lznbyz1)
         dxidzh=1.+bgrid*((zn-z1)/zhat(i)-lznbyz1)
@@ -3333,7 +3333,7 @@ c ----------------------------------------------------------------------
 
       subroutine fgrid2(z,f,df)
 !@sum  fgrid2 computes functional relationship of z and xi + derivative
-!@+    fgrid2 will be called in function rtsafe(fgrid2,x1,x2,xacc)
+!@+    fgrid2 will be called in function NewtonMethod(fgrid2,x1,x2,xacc)
 !@auth Ye Cheng/G. Hartke
       implicit none
       real*8, intent(in) :: z
@@ -3346,69 +3346,6 @@ c ----------------------------------------------------------------------
 
       return
       end subroutine fgrid2
-
-      function rtsafe(funcd,x1,x2,xacc,ierr)
-!@sum   rtsafe use Newton-Rapheson + safeguards to solve F(x)=0
-!@auth  Numerical Recipes
-!@ver   1.0
-      integer,parameter :: maxit=100
-      real*8, intent(in) :: x1,x2,xacc
-      integer, intent(out) :: ierr
-      real*8 rtsafe
-      external funcd
-      integer j
-      real*8 df,dx,dxold,f,fh,fl,temp,xh,xl
-
-      ierr = 0
-      call funcd(x1,fl,df)
-      call funcd(x2,fh,df)
-      if(fl*fh.gt.0.) then
-        ierr = 1
-        print*, 'Error: root must be bracketed in rtsafe'
-      end if
-      if(fl.eq.0.)then
-        rtsafe=x1
-        return
-      else if(fh.eq.0.)then
-        rtsafe=x2
-        return
-      else if(fl.lt.0.)then
-        xl=x1
-        xh=x2
-      else
-        xh=x1
-        xl=x2
-      endif
-      rtsafe=.5*(x1+x2)
-      dxold=abs(x2-x1)
-      dx=dxold
-      call funcd(rtsafe,f,df)
-      do j=1,MAXIT
-        if(((rtsafe-xh)*df-f)*((rtsafe-xl)*df-f).ge.0..or. abs(2.*
-     *       f).gt.abs(dxold*df) ) then
-          dxold=dx
-          dx=0.5*(xh-xl)
-          rtsafe=xl+dx
-          if(xl.eq.rtsafe)return
-        else
-          dxold=dx
-          dx=f/df
-          temp=rtsafe
-          rtsafe=rtsafe-dx
-          if(temp.eq.rtsafe)return
-        endif
-        if(abs(dx).lt.xacc) return
-        call funcd(rtsafe,f,df)
-        if(f.lt.0.) then
-          xl=rtsafe
-        else
-          xh=rtsafe
-        endif
-      end do
-      ierr = 1
-      print*, 'Error: rtsafe exceeding maximum iterations'
-      return
-      END
 
       real*8 function deltaSST(Qnet,Qsol,ustar_oc)
 !@sum deltaSST calculate skin-bulk SST difference (deg C)

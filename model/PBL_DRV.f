@@ -1484,6 +1484,7 @@ C**** Use approximate value for small sig and unresolved delta function
 !@sum sgsw function to be integrated for sgs wind calc
 !@auth Reha Cakmur/Gavin Schmidt
       use constant, only : pi
+      use SpecialFunctions_mod, only : besselI0
       implicit none
       real*8, intent(in) :: x,ws,wt,bysig2
       integer, intent(in) :: icase
@@ -1492,40 +1493,11 @@ C**** Use approximate value for small sig and unresolved delta function
       besf=x*ws*bysig2
       if (besf.lt.200d0 ) then
         exx=exp(-0.5d0*(x*x+ws*ws)*bysig2)
-        sgsw=(x)**(icase)*(x-wt)*bysig2*BESSI0(besf)*exx
+        sgsw=(x)**(icase)*(x-wt)*bysig2*besselI0(besf)*exx
       else ! use bessel function expansion for large besf
         sgsw=(x)**(icase)*(x-wt)*bysig2*exp(-0.5d0*(x-ws)**2*bysig2)
      *       /sqrt(besf*2*pi)
       end if
-
-      return
-
-      contains
-
-      real*8 function bessi0(x)
-!@sum Bessel's function I0
-!@auth  Numerical Recipes
-      implicit none
-      real*8 ax,y
-      real*8, parameter:: p1=1.0d0, p2=3.5156229d0, p3=3.0899424d0,
-     *     p4=1.2067492d0, p5=0.2659732d0, p6=0.360768d-1,
-     *     p7=0.45813d-2
-      real*8, parameter:: q1=0.39894228d0,q2=0.1328592d-1,
-     *     q3=0.225319d-2, q4=-0.157565d-2, q5=0.916281d-2,
-     *     q6=-0.2057706d-1, q7=0.2635537d-1, q8=-0.1647633d-1,
-     *     q9=0.392377d-2
-      real*8, intent(in)::x
-
-      if (abs(x).lt.3.75d0) then
-        y=(x/3.75d0)**2.d0
-        bessi0=(p1+y*(p2+y*(p3+y*(p4+y*(p5+y*(p6+y*p7))))))
-      else
-        ax=abs(x)
-        y=3.75d0/ax
-        bessi0=(exp(ax)/sqrt(ax))*(q1+y*(q2+y*(q3+y*(q4
-     *       +y*(q5+y*(q6+y*(q7+y*(q8+y*q9))))))))
-      end if
-      end function bessi0
 
       end function sgsw
 

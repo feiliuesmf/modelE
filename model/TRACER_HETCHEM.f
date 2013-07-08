@@ -151,8 +151,8 @@ C Mass Transfer Coefficient
      .      / (1. + Kn(il) * (xx + 4 *(1.- alph(il))/(3. *alph(il))))
 C Number distribution
        dn=abs(erf(log( rada(k)/md_look(imd)) / lsig0
-     .       /sqrt(2.))-erf(log(rada(k+1)/
-     .       md_look(imd)) / lsig0 /sqrt(2.)))/2.
+     .       /sqrt(2.0d0))-erf(log(rada(k+1)/
+     .       md_look(imd)) / lsig0 /sqrt(2.0d0)))/2.
 C Net removal rate [s-1]
        lookS(ip,imd,il)= lookS(ip,imd,il) + Kdj(il)  * dn
       END DO              !radius loop
@@ -403,8 +403,8 @@ c RH > 60 %
 
 C Number distribution
        dn=abs(erf(log( rada(k)/md_look(imd)) / lsig0
-     .       /sqrt(2.))-erf(log(rada(k+1)/
-     .       md_look(imd)) / lsig0 /sqrt(2.)))/2.
+     .       /sqrt(2.0d0))-erf(log(rada(k+1)/
+     .       md_look(imd)) / lsig0 /sqrt(2.0d0)))/2.
 
 C Net removal rate [s-1]
 
