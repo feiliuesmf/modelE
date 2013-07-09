@@ -8,7 +8,7 @@
 
 # This job script is executed by mainRegTests.sh after the regression tests
 # have been executed. Its main purpose is to compare the restart results
-# using diffreport and generate a DiffReport file emailed to giss-modelE-regression 
+# using the application diffreport to generate a report file 
 
 # Exit/check codes
 FILE_ERR=69
@@ -16,6 +16,9 @@ EXIT_ERR=1
 OK=0
 checkMPI=0
 checkSERIAL=0
+NUM_FAIL=0
+NUM_WARN=0
+NUM_TESTS=0
 
 # -------------------------------------------------------------------
 updReport()
@@ -31,24 +34,28 @@ updReport()
 checkStatus() 
 # -------------------------------------------------------------------
 {
-   local rc=$1
+   local diffsize=$1
    local name1=$2
    local name2=$3
    local file1=${name1##*/}
    local file2=${name2##*/}
-   if [ $rc -ne $OK ]; then
+
+   if [ $diffsize -ne 0 ]; then
       if [[ "$name2" =~ baseline ]]; then
          updReport "  ->WARNING: $file1 BASELINE CHANGED"
          deckResults[1]="NO"
+         let NUM_WARN++
       elif [[ "$name1" =~ MPI && "$name2" =~ SERIAL ]]; then
-         updReport "  ->ERROR comparing $file1 MPI vs SERIAL"
+         updReport "  ->ERROR: $file1 MPI and SERIAL DIFFER"
          deckResults[3]="NO"
+         let NUM_FAIL++
       else
-         updReport "  ->ERROR in $file1 restart reproducibility"
+         updReport "  ->ERROR: $file1 is NOT RESTART REPRODUCIBLE"
          deckResults[2]="NO"
+         let NUM_FAIL++
       fi
       export willPrintAdditional=YES
-      return $E_EXIT_ERR
+      return $EXIT_ERR
    fi
    return $OK
 }
@@ -60,12 +67,20 @@ fileExists()
    local file=$1
    if [ ! -e "$file" ]; then
       updReport "  ->ERROR: $file does NOT exist"
+      if [[ "$file" =~ baseline ]]; then
+         # Baseline file does not exist
+         let NUM_WARN++
+         updReport "  ->Will not be able compare against baseline"
+         deckResults[1]="NO"
+      else
+         # Model failed during compilation or at runtime
+         let NUM_FAIL++
+         deckResults[0]="NO"
+         deckResults[1]="---"
+         deckResults[2]="---"
+         deckResults[3]="---"
+      fi
       export willPrintAdditional=YES
-      # Model failed during compilation or at runtime
-      deckResults[0]="NO"
-      deckResults[1]="---"
-      deckResults[2]="---"
-      deckResults[3]="---"
       return $FILE_ERR
    else
       # Model ran
@@ -78,33 +93,35 @@ fileExists()
 doDiff()
 # -------------------------------------------------------------------
 { 
-   local name1=$1
-   local name2=$2
+   local file1=$1
+   local file2=$2
    local deck=$3
    local comp=$4
-   fileExists "$name1"
+
+   let NUM_TESTS++
+   fileExists "$file1"
    return_val=$?
    if [ "$return_val" -eq $OK ]; then
-      fileExists "$name2"
+      fileExists "$file2"
       return_val=$?
       if [ "$return_val" -eq $OK ]; then
-         $diffExec $name1 $name2 > fileDiff
+         $diffExec $file1 $file2 > fileDiff
          wait
          diffSize=`cat fileDiff | wc -c`; rm -f fileDiff
-         # save file to BASELINE directory
-         if [[ "$name2" =~ baseline ]]; then
+         # If necessary save new file to BASELINE directory
+         if [[ "$file2" =~ baseline ]]; then
            if [ $diffSize -ne 0 ]; then
              # Update baseline directory"
-             cp -f $name1 $name2
+             cp -f $file1 $file2
            fi
          fi
-         checkStatus $diffSize "$name1" "$name2"
+         checkStatus $diffSize "$file1" "$file2"
          return $?
       else
-         return $EXIT_ERR
+         return $FILE_ERR
       fi
    else
-      return $EXIT_ERR
+      return $FILE_ERR
    fi
 }
 
@@ -180,8 +197,8 @@ deckDiff()
           done
         fi
       fi # skip MPI comparisons
-      CAS="$deck $comp ${deckResults[@]}"
-      deckReport=( "${deckReport[@]}" "$CAS" )
+      resultString="$deck $comp ${deckResults[@]}"
+      deckReport=( "${deckReport[@]}" "$resultString" )
    done
 }
 
@@ -192,7 +209,7 @@ checkENVS()
    if [ -z $CONFIG ]; then
       echo " *** ERROR ***"
       echo "ENV variable CONFIG is not defined."
-      exit 1;
+      exit $EXIT_ERR
    else
       echo "CONFIG ENV: $CONFIG"
    fi
@@ -223,7 +240,7 @@ readCFG()
    if [ ! -e $cfg ]; then
       echo " *** ERROR ***"
       echo "$cfg does not exist."
-      exit 1
+      exit $EXIT_ERR
    else
       echo "Config file: $cfg"
    fi
@@ -297,10 +314,10 @@ separateDecks()
       if [[ "$deck" =~ EM20 || "$deck" =~ E1oM20  || "$deck" =~ C12 ]]; then
         LowResDecks[$ia]="$deck"
         ia=$(($ia+1))
-      elif [[ "$deck" =~ obio || "$deck" =~ cadF40 || "$deck" =~ amp || "$deck" =~ tomas ]]; then
+      elif [[ "$deck" =~ obio || `echo $deck | grep "[itm4]F40"` ]]; then
         HiResDecks[$ib]="$deck"
         ib=$(($ib+1))
-      elif [[ "$deck" =~ C90  ]]; then
+      elif [[ "$deck" =~ C90 ]]; then
         CSDecks[$ic]="$deck"
         ic=$(($ic+1))
       elif [[ "$deck" =~ AR5_CAD ]]; then
@@ -335,15 +352,19 @@ createEmailReport()
    echo "ModelE test results, branch=$branch" 
    echo "--------------------------------------------------------------------------"
 
-   len=${#deckReport[*]}
+   numLines=${#deckReport[*]}
    i=0
-   while [ $i -lt $len ]; do
+   while [ $i -lt $numLines ]; do
       echo "${deckReport[$i]}" 
       echo "${deckReport[$i]}" >> $TESTD/.diffrep
       let i++
    done
 
 echo "ModelE test results, branch=$branch" > $TESTD/.foo
+#echo "Total tests=$NUM_TESTS, Failed=$NUM_FAIL" >> $TESTD/.foo
+if [ $NUM_WARN -gt 0 ]; then
+echo "NOTE: Model baseline has changed." >> $TESTD/.foo
+fi
 echo "------------------------------------------------------------" >> $TESTD/.foo
 echo "                                  -REPRODUCIBILITY-" >> $TESTD/.foo
 echo "        RUNDECK""   COMPILER ""  RUN ""  BAS ""  RST ""  NPE " >> $TESTD/.foo
@@ -367,10 +388,11 @@ copy2Workspace()
    if [ -z $WORKSPACE ]; then
       echo " *** WARNING ***"
       echo "WORKSPACE is not defined. HUDSON will report a failure."
+      export writeOK=0
    else
       echo "Imported WORKSPACE = "$WORKSPACE
       rm -f $WORKSPACE/.success
-      writeOK=1
+      export writeOK=1
    fi
 # copy the generated email reports
    cp -f $TESTD/${CONFIG}.diff $WORKSPACE
@@ -384,19 +406,13 @@ archive()
 # Archive full difference reports
    cp -f $TESTD/${CONFIG}.diff $MODELEBASELINE/reports/${CONFIG}.diff.`date +%F`
 
-# Check for errors in report
-   cat $TESTD/${CONFIG}.diff | grep -i " NO " > /dev/null
-   rc1=$?
-   cat $TESTD/${CONFIG}.diff | grep -i "ERR" > /dev/null
-   rc2=$?
-# if we found errors, (0 return code!) then we exit
-   if [ $rc1 -eq 0 ] || [ $rc2 -eq 0 ]; then
-      echo "Regression tests ERRORS: Will NOT create modelE snapshot"
+# if we found errors then we are done
+   if [ $NUM_FAIL -gt 0 ]; then
+      echo "ERROR: Regression tests failed. Will NOT create modelE snapshot"
       exit $EXIT_ERR
    else 
-# Create modelE snapshot iff no ERRORs in ${CONFIG}.diff (WARNINGs are OK)
       if [ "$writeOK" -eq 1 ]; then touch $WORKSPACE/.success; fi
-      echo "Will create modelE snapshot"
+      echo "Regression tests successful. Will create modelE snapshot"
       # Create modelE snapshot
       if [ -z $MOCKMODELE ]; then
          if [ -d "$REGSCRATCH/$BRANCH" ]; then
