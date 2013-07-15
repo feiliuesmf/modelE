@@ -115,11 +115,6 @@ C**** (Simplified) Calendar Related Terms
         integer :: iTime
       end type ModelE_Clock_type
 
-!@var planet_name name of planet being simulated.
-!@+   Not intended to be widely used to control physics settings etc.
-!@+   May be removed in future.
-      character(len=16) :: planet_name='Earth'
-
       contains
 
 !TODO move to ModelClock class

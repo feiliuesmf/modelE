@@ -1,4 +1,9 @@
+#include "rundeck_opts.h"
+
 module constant
+#ifdef PLANET_PARAMS
+  use PlanetParams_mod, only : PlanetParams
+#endif
 !@sum  CONSTANT definitions for physical constants and useful numbers
 !@auth G. Schmidt
   implicit none
@@ -100,7 +105,11 @@ module constant
 !@param bygasc  1/gasc
   real*8,parameter :: bygasc = 1./gasc
 !@param mair molar mass of dry air (28.9655 g/mol)
+#ifdef PLANET_PARAMS
+  real*8,parameter :: mair = PlanetParams%mair
+#else
   real*8,parameter :: mair = 28.9655d0
+#endif
 !@param rgas gas constant (287.05 J/K kg)
   real*8,parameter :: rgas = 1d3 * gasc / mair ! = 287.05...
 
@@ -118,7 +127,11 @@ module constant
   real*8,parameter :: deltx = bymrat-1.   ! = 0.6078....
 
 !@param srat ratio of specific heats at const. press. and vol. (=1.401)
+#ifdef PLANET_PARAMS
+  real*8,parameter :: srat = PlanetParams%srat
+#else
   real*8,parameter :: srat = 1.401d0
+#endif
 !@param kapa ideal gas law exponent for dry air (.2862)
   !**** kapa = (g-1)/g where g=1.401 = c_p/c_v
   real*8,parameter :: kapa = (srat - 1.)/srat  ! =.2862....
@@ -157,7 +170,11 @@ module constant
   !**** Astronomical constants
 
 !@param sday  sec per day (s)
+#ifdef PLANET_PARAMS
+  real*8,parameter :: sday = PlanetParams%sday
+#else
   real*8,parameter :: sday = 86400.
+#endif
 !@param syr  sec per year (s)
   real*8,parameter :: syr = sday*365.
 
@@ -166,21 +183,33 @@ module constant
 
 !@param omega earth's rotation rate (7.29 s^-1)
   !      real*8,parameter :: omega = 7.2921151467d-5 ! NOVAS value
+#ifdef PLANET_PARAMS
+  real*8,parameter :: omega = PlanetParams%omega
+#else
   real*8,parameter :: EDPERD = 1.
   real*8,parameter :: EDPERY = 365.
   real*8,parameter :: omega = TWOPI*(EDPERD+EDPERY)/ &
        &                            (EDPERD*EDPERY*SDAY)
+#endif
 !@param omega2 2*omega
   real*8,parameter :: omega2 = 2.*omega
 
 !@param radius radius of the earth (6371000 m, IUGG)
+#ifdef PLANET_PARAMS
+  real*8,parameter :: radius = PlanetParams%radius
+#else
   real*8,parameter :: radius = 6371000.
+#endif
 !@param areag surface area of the earth (m^2)
   real*8,parameter :: areag = 4.*pi*radius*radius
 
 !@param grav gravitaional accelaration (9.80665 m/s^2)
   !**** SI reference gravity (at 45 deg) = 9.80665
+#ifdef PLANET_PARAMS
+  real*8,parameter :: grav = PlanetParams%grav
+#else
   real*8,parameter :: grav = 9.80665d0
+#endif
 !@param bygrav 1/grav
   real*8,parameter :: bygrav = 1d0/grav
 
@@ -200,6 +229,12 @@ module constant
   real*8,parameter :: kg2mb = 1d-2*grav, mb2kg = 1d2*bygrav
 !@param kgpa2mm,mm2kgpa conversion from kg/m^2 water to mm
   real*8,parameter :: kgpa2mm = 1d0, mm2kgpa = 1d0
+
+#ifdef PLANET_PARAMS
+  character(len=16), parameter :: planet_name=PlanetParams%name
+#else
+  character(len=16), parameter :: planet_name='Earth'
+#endif
 
 contains
 

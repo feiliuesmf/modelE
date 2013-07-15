@@ -329,7 +329,7 @@ C****
      &   ,TTROPO  
 #endif
       USE DOMAIN_DECOMP_ATM, Only : grid, getDomainBounds
-      USE MODEL_COM, only : planet_name
+      USE CONSTANT, only : planet_name
       IMPLICIT NONE
       INTEGER I,J,L,IERR
       REAL*8, DIMENSION(LM) :: TL
