@@ -1,13 +1,52 @@
 !@sum RES_M20AT.F90   Resolution file, 4x5 Lat-Lon Grid, 20 layers, top at .1 mb, no GWDRAG
-!@ver 2013/03/21
 !@auth Original Development Team
 
       Module RESOLUTION
+      use constant, only : grav,mb2kg
+#ifdef PLANET_PARAMS
+  use PlanetParams_mod, only : PlanetParams
+#endif
       Implicit None
 !@var IM,JM = longitudinal and latitudinal number of grid cells
 !@var LM    = number of dynamical layers
 !@var LS1   = lowest layer of strtosphere
       Integer*4,Parameter :: IM=72,JM=46,LM=20, LS1=11
+
+!@var PSF,PMTOP global mean surface, model top pressure  (mb)
+!@var PTOP pressure at interface level sigma/const press coord syst (mb)
+!@var PSFMPT,PSTRAT pressure due to troposhere,stratosphere
+!@var PLbot pressure levels at bottom of layers (mb)
+
+#ifdef PLANET_PARAMS
+      real*8, parameter :: PSF = PlanetParams%psf
+#else
+      real*8, parameter :: PSF = 984d0
+#endif
+      real*8, parameter, private :: pratio = PSF/984d0
+
+      Real*8,Parameter :: &
+           PTOP = pratio*150.d0, &
+           PMTOP = pratio*.1d0, &
+           PSFMPT = PSF-PTOP, &
+           PSTRAT = PTOP-PMTOP
+
+      real*8, parameter :: &
+         PLBOT(1:LM+1) = pratio* &
+              (/ 984d0, 964d0, 934d0, 884d0, 810d0, &  ! Pbot L=1,..
+                 710d0, 550d0, 390d0, 285d0, 210d0, &  !      L=...
+                 150d0,                             &  !      L=LS1
+                 110d0,  80d0,  55d0,  35d0,  20d0, &  !      L=...
+                 10d0,   3d0,   1d0,  .3d0, .1d0 /)    !      L=..,LM+1
+
+!@var delp nominal pressure thicknesses of layers (mb)
+      real*8, dimension(lm), parameter, private :: delp = plbot(1:lm)-plbot(2:lm+1)
+
+      integer, private :: iii ! iterator
+!@var tropomask unity from layers 1-ls1-1, zero above
+!@var stratmask zero from layers 1-ls1-1, unity above
+      real*8, dimension(lm), parameter, private :: &
+           tropomask = (/ (1d0, iii=1,ls1-1), (0d0, iii=ls1,lm) /), &
+           stratmask = 1d0-tropomask
 
 !@var MDRYA = dry atmospheric mass (kg/m^2) = 100*PSF/GRAV
 !@var MTOP  = mass above dynamical top (kg/m^2) = 100*PMTOP/GRAV
@@ -17,13 +56,9 @@
 !@var AM(L) = MFIX(L) + MVAR*MFRAC(L) (kg/m^2)
 !@var MFIX(L)  = fixed mass in each layer (kg/m^2) = 100*[PLBOT(L)-PLBOT(L+1)]/GRAV
 !@var MFRAC(L) = fraction of variable mass in each layer = DSIG(L)
-      Real*8,Parameter :: MDRYA = 98400/9.80665d0, MTOP = 10/9.80665d0, MFIXs = 14990/9.80665d0, &
-         MFIX(LM) = (/ 0d0,0d0,0d0,0d0,0d0, 0d0,0d0,0d0,0d0,0d0,  &
-                       4000/9.80665d0, 3000/9.80665d0, 2500/9.80665d0, 2000/9.80665d0, 1500/9.80665d0, &
-                      1000/9.80665d0,  700/9.80665d0,  200/9.80665d0,   70/9.80665d0,   20/9.80665d0 /), &
-         MFRAC(LM) = (/ 20/834d0, 30/834d0, 50/834d0, 74/834d0,100/834d0, &
-                       160/834d0,160/834d0,105/834d0, 75/834d0, 60/834d0, &
-                       0d0,0d0,0d0,0d0,0d0, 0d0,0d0,0d0,0d0,0d0 /)
+      Real*8,Parameter :: MDRYA = psf*mb2kg, MTOP = pmtop*mb2kg, MFIXs = pstrat*mb2kg, &
+         MFIX(LM)  = delp*stratmask*mb2kg, &
+         MFRAC(LM) = delp*tropomask/psfmpt
 
 !**** Vertival resolution
 !****                         ---MSURF=10034.0---    ---MSURF=5781.8----
@@ -45,17 +80,6 @@
 !****         ----  ------   -----  -----           -----  -----
 !****       1528.6 834/834  8504.4 10033.0         4252.2 5780.8  
 
-!@var PSF,PMTOP global mean surface, model top pressure  (mb)
-!@var PTOP pressure at interface level sigma/const press coord syst (mb)
-!@var PSFMPT,PSTRAT pressure due to troposhere,stratosphere
-!@var PLbot pressure levels at bottom of layers (mb)
-      Real*8,Parameter :: PSF=984.d0, PTOP = 150.d0, PMTOP = .1d0, PSFMPT = PSF-PTOP, &
-                          PSTRAT = PTOP-PMTOP, &
-         PLBOT(1:LM+1) = (/ PSF,   964d0, 934d0, 884d0, 810d0, &  ! Pbot L=1,..
-                            710d0, 550d0, 390d0, 285d0, 210d0, &  !      L=...
-                            PTOP,                              &  !      L=LS1
-                            110d0,  80d0,  55d0,  35d0,  20d0, &  !      L=...
-                             10d0,   3d0,   1d0,  .3d0, PMTOP /)  !      L=..,LM+1
 
 !**** KEP depends on whether stratos. EP flux diagnostics are calculated
 !**** If dummy EPFLUX is used set KEP=0, otherwise KEP=21
