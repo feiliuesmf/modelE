@@ -16,16 +16,27 @@ C**** Variables used in DIAG5 calculations
 !@var FCUVA,FCUVB fourier coefficients for velocities
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: FCUVA,FCUVB
 
+!@var aflux_topo_adjustments whether to adjust uphill air mass fluxes
+!@+   around steep orography
+      logical :: aflux_topo_adjustments=.true.
+
+!@var pfilter_using_slp whether to zonally filter surface pressure using
+!@+   diagnosed SLP.  If false, the filter adjusts surface pressure
+!@+   to smooth the zonal PGF
+      logical :: pfilter_using_slp=.true.
+
       contains
 
       SUBROUTINE init_ATMDYN
       USE DOMAIN_DECOMP_ATM, only: grid
       use domain_decomp_1d, only : am_i_root
-      use resolution, only : lm
+      use resolution, only : lm,mfixs,mdrya
       use model_com, only : dtsrc
+      use constant, only : planet_name
       use dynamics
       use Dictionary_mod
-
+      use constant, only : mb2kg
+      implicit none
       call get_param( "DT", DT )
 C**** NIdyn=dtsrc/dt(dyn) has to be a multiple of 2
       NIdyn = 2*nint(.5*dtsrc/dt)
@@ -36,6 +47,24 @@ C**** NIdyn=dtsrc/dt(dyn) has to be a multiple of 2
       end if
       DT = DTsrc/NIdyn
       call set_param( "DT", DT, 'o' )         ! copy DT into DB
+
+      ! Defaults for bounds on surface pressure (i.e. column mass)
+      ! minimum: a multiple of the mass in the constant-pressure domain
+      !          (leaving enough for the variable-mass layers)
+      ! maximum: a multiple of global mean column mass
+      ! the following ratios were taken from the older version of ADVECM
+      mincolmass = mfixs*(350d0/150d0)
+      maxcolmass = mdrya*(1160d0/984d0)
+      if(is_set_param('mincolmass'))
+     &     call get_param('mincolmass',mincolmass)
+      if(is_set_param('maxcolmass'))
+     &     call get_param('maxcolmass',maxcolmass)
+
+      if(trim(planet_name).ne.'Earth') then
+        aflux_topo_adjustments = .false.
+        ! SLP diagnosis currently uses Earth-specific lapse rates
+        pfilter_using_slp = .false.
+      endif
 
       call sync_param( "NFILTR", NFILTR ) !!
       call sync_param( "DT_XVfilter", DT_XVfilter )
@@ -499,6 +528,8 @@ c in ADVECV.
          If (QSP)  MU(:,1 ,:) = MU(:,1 ,:)*TWOby3
          If (QNP)  MU(:,JM,:) = MU(:,JM,:)*TWOby3  ;  EndIf
 
+      if(aflux_topo_adjustments) then
+
 !**** Modify eastward uphill air mass fluxes around steep topography
       Do 310 J=J1XP,JNXP
       I = IM
@@ -543,6 +574,8 @@ c in ADVECV.
                      MV(I,J,L) = 0  ;  EndDo  ;  EndIf
   320 Continue
 
+      endif ! aflux_topo_adjustments
+
 !**** Compute CONV (kg/s) = horizontal mass convergence
       Call HALO_UPDATE (GRID,MU,From=SOUTH+NORTH) ! full halos needed later
       Call HALO_UPDATE (GRID,MV,From=SOUTH+NORTH)
@@ -582,9 +615,10 @@ C**** Compute MW (kg/s) = downward vertical mass flux
       Use ATM_COM,    Only: ZATMO,U,V,T,Q
       Use GEOM,       Only: IMAXJ,byDXYP
       Use DYNAMICS,   Only: MRCH,MW,CONV
+      use dynamics, only : mincolmass,maxcolmass
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GLOBALSUM
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GLOBALMAX
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       IMPLICIT NONE
       Real*8,Intent(In) :: DT1,
@@ -607,7 +641,8 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
       ! This avoids the need for 2 halo fills during normal
       ! execution.
       n_exception = 0
-      Do J=J1,JN  ;  Do I=1,IMAXJ(J)
+      Do J=J1,JN
+      Do I=1,IMAXJ(J)
          MNEW(1,I,J) = MOLD(1,I,J) + 
      +      DT1*(CONV(I,J,1) + MW(I,J,1))*byDXYP(J)
          Do L=2,LM-1
@@ -617,29 +652,38 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
          MNEW(LM,I,J) = MOLD(LM,I,J) +
      +         DT1*(CONV(I,J,LM) - MW(I,J,LM-1))*byDXYP(J)
          MSUM(I,J) = Sum (MNEW(:,I,J))
-         If (MSUM(I,J)+MTOP > 11829 .or. MSUM(I,J)+MTOP < 3569)
-     *      n_exception = n_exception + 1
-         If (MSUM(I,J)+MTOP > 12237 .or. MSUM(I,J)+MTOP < 2549)  GoTo 10
-         EndDo  ;  EndDo
+         if(MSUM(I,J)+MTOP > MAXCOLMASS .or.
+     &      MSUM(I,J)+MTOP < MINCOLMASS) then
+           n_exception = 1
+           if(MSUM(I,J)+MTOP > MAXCOLMASS*(1200d0/1160d0) .or.
+     &        MSUM(I,J)+MTOP < MINCOLMASS*(250d0/350d0)) then
+             n_exception = 2  ! stop execution if too far out of range
+           endif
+         endif
+      EndDo
+      EndDo
 
-   10 Call GLOBALSUM (grid, n_exception, n_exception_all, all=.true.)
-      IF (n_exception_all > 0) Then ! need halos
+      Call GLOBALMAX (grid, n_exception, n_exception_all)
+      IF (n_exception_all > 0) Then
+        ! need halos
         CALL HALO_UPDATE(grid, U, FROM=NORTH)
         CALL HALO_UPDATE(grid, V, FROM=NORTH)
-      END IF
+        ! 2nd pass report problems
+        Do J=J1,JN  ;  Do I =1,IMAXJ(J)
+          if(MSUM(I,J)+MTOP > MAXCOLMASS .or.
+     &       MSUM(I,J)+MTOP < MINCOLMASS) then
+            Im1 = I-1  ;  If (Im1==0) Im1 = IM
+            Write (6,990) I,J,MRCH,ZATMO(I,J),DT1,
+     *           (L,U(IM1,J,L),U(I,J,L),U(IM1,J+1,L),U(I,J+1,L),
+     *              V(IM1,J,L),V(I,J,L),V(IM1,J+1,L),V(I,J+1,L),
+     *           MNEW(L,I,J),MOLD(L,I,J),T(I,J,L),Q(I,J,L),L=LM,1,-1)
+            Write (6,*) "Pressure diagnostic error"
+          endif
+        EndDo  ;  EndDo
+      endif
 
-      IF (n_exception > 0)  Then ! 2nd pass report problems
-         Do J=J1,JN  ;  Do I =1,IMAXJ(J)
-            If (MSUM(I,J)+MTOP > 11829 .or. MSUM(I,J)+MTOP < 3569)  Then
-               Im1 = I-1  ;  If (Im1==0) Im1 = IM
-               Write (6,990) I,J,MRCH,ZATMO(I,J),DT1,
-     *            (L,U(IM1,J,L),U(I,J,L),U(IM1,J+1,L),U(I,J+1,L),
-     *               V(IM1,J,L),V(I,J,L),V(IM1,J+1,L),V(I,J+1,L),
-     *             MNEW(L,I,J),MOLD(L,I,J),T(I,J,L),Q(I,J,L),L=LM,1,-1)
-               Write (6,*) "Pressure diagnostic error"
-               If (MSUM(I,J)+MTOP > 12237 .or. MSUM(I,J)+MTOP < 2549)
-     &            Call STOP_MODEL ('ADVECM: Mass diagnostic error',11)
-               EndIf  ;  EndDo  ;  EndDo  ;  EndIf
+      if(n_exception_all==2) 
+     &     call stop_model('ADVECM: Mass diagnostic error',11)
 
       If (QSP)  Then
          Do I=2,IM
@@ -988,12 +1032,12 @@ C**** MFILTR=1  SMOOTH P USING SEA LEVEL PRESSURE FILTER
 C****        2  SMOOTH T USING TROPOSPHERIC STRATIFICATION OF TEMPER
 C****        3  SMOOTH P AND T
 C****
-      USE CONSTANT, only : bygrav,kapa,sha,mb2kg
+      USE CONSTANT, only : bygrav,kapa,sha,mb2kg,rgas
       USE RESOLUTION, only : ls1,ptop,psf,pmtop
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : itime
       USE ATM_COM, only : t,p,q,wm,zatmo
-      USE GEOM, only : areag,dxyp
+      USE GEOM, only : areag,dxyp,byim
       USE SOMTQ_COM, only : tmom,qmom
       USE ATM_COM, only : pk
       USE DYNAMICS, only : COS_LIMIT,mfiltr,sig
@@ -1016,6 +1060,7 @@ c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S
       REAL*8 initialTotalEnergy, finalTotalEnergy
       real*8 getTotalEnergy ! external for now
+      real*8, dimension(im) :: rhosrf,pgfx
 
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
@@ -1023,12 +1068,18 @@ c**** Extract domain decomposition info
       IF (MOD(MFILTR,2).NE.1) GO TO 200
 C**** Initialise total energy (J/m^2)
       initialTotalEnergy = getTotalEnergy()
+
+      ! Save old pressure
+      do j=j_0s,j_1s
+        pold(:,j)=p(:,j)
+      enddo
+
+      if(pfilter_using_slp) then
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P
 C****
       DO J=J_0S,J_1S
         DO I=1,IM
-          POLD(I,J)=P(I,J)      ! Save old pressure
           PS=P(I,J)+PTOP
           ZS=ZATMO(I,J)*BYGRAV
           X(I,J)=SLP(PS,atmsrf%TSAVG(I,J),ZS)
@@ -1052,6 +1103,37 @@ C**** reduce large variations (mainly due to topography)
           P(I,J)=P(I,J)-PDIF
         END DO
       END DO
+
+      else
+
+        ! Smooth the approximate form of zonal PGF instead.
+        ! This code is from ATMDYN2.f.
+        do j=j_0s,j_1s
+          do i=1,im
+            rhosrf(i) = ((p(i,j)+ptop)**(1.-kapa))/(rgas*t(i,j,1))
+          enddo
+          do i=1,im-1
+            pgfx(i) = (p(i+1,j)-p(i,j))+
+     &           .5*(rhosrf(i+1)+rhosrf(i))*(zatmo(i+1,j)-zatmo(i,j))
+          enddo
+          i=im
+             pgfx(i) = (p(1,j)-p(i,j))+
+     &           .5*(rhosrf(1)+rhosrf(i))*(zatmo(1,j)-zatmo(i,j))
+          pgfx = pgfx - sum(pgfx)*byim
+          x(1,j) = 0.
+          do i=2,im
+            x(i,j) = x(i-1,j) + pgfx(i-1)
+          enddo
+          y(:,j) = x(:,j)
+        enddo
+        call shap1d (8,x)
+        call isotropslp(x,COS_LIMIT)
+        do j=j_0s,j_1s
+          p(:,j) = p(:,j) + (x(:,j)-y(:,j))
+        enddo
+
+      endif ! slp-based filter or not
+
 C**** Scale mixing ratios (incl moments) to conserve mass/heat
       DO J=J_0S,J_1S
         DO I=1,IM
@@ -1515,6 +1597,7 @@ c**** Extract domain decomposition info
       USE ATM_COM, only : pk,pdsig,pedn
       USE DYNAMICS, only : x_sdrag,csdragl,lsdrag
      *     ,lpsdrag,ang_sdrag,Wc_Jdrag,wmax,vsdragl
+      use dynamics, only : l1_rtau,rtau,linear_sdrag
 c      USE DIAG, only : diagcd
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
@@ -1550,6 +1633,32 @@ c**** Extract domain decomposition info
       ang_mom=0. ;  sum_airm=0. ; dut=0.
 C*
       DUT=0. ; DVT=0.
+
+      if(linear_sdrag) then
+
+        do l=l1_rtau,lm
+        x = dt1/rtau(l)
+        do j=j_0stg, j_1stg
+        i=im
+        do ip1=1,im
+          dps= (pdsig(l,ip1,j-1)+pdsig(l,i,j-1))*rapvn(j-1)+
+     *         (pdsig(l,ip1,j  )+pdsig(l,i,j  ))*rapvs(j)
+c**** adjust diags for possible difference between dt1 and dtsrc
+c        call inc_ajl(i,j,l,jl_dudtsdrg,-u(i,j,l)*x) ! for a-grid only
+          ajl(j,l,jl_dudtsdrg) = ajl(j,l,jl_dudtsdrg) -u(i,j,l)*x
+          dp=dps*dxyv(j)
+          dut(i,j,l)=-x*u(i,j,l)*dp
+          dvt(i,j,l)=-x*v(i,j,l)*dp
+          u(i,j,l)=u(i,j,l)*(1.-x)
+          v(i,j,l)=v(i,j,l)*(1.-x)
+          ang_mom(i,j) = ang_mom(i,j) - dut(i,j,l)
+          i=ip1
+        enddo
+        enddo
+        enddo
+
+      else ! default method
+
       wmaxp = wmax*3.d0/4.d0
 c***  The following halo is not needed because PDSIG halo is up to date
 c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
@@ -1595,6 +1704,8 @@ c        call inc_ajl(i,j,l,JL_DUDTSDRG,-U(I,J,L)*X) ! for a-grid only
       END DO
       END DO
       END DO
+
+      endif ! linear sdrag or not
 
 C*
 C***  Add the lost angular momentum uniformly back in if ang_sdrag>0

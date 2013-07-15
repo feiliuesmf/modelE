@@ -72,6 +72,24 @@
 !@var ANG_SDRAG if =1: angular momentum lost by SDRAG is added in below PTOP
       Integer :: LSDRAG=LM, LPSDRAG=LM, ANG_SDRAG=1
 
+
+!@var linear_sdrag flag whether to use a condition-independent
+!@+   rayleigh friction timescale (rtau) rather than the default
+!@+   inverse timescale of cdn*|u|/deltaz, where
+!@+   cdn is a drag coefficient that may depend on wind speed
+!@+       and other factors
+!@+   |u| is the wind speed
+!@+   deltaz is local layer thickness
+      logical :: linear_sdrag
+!@var l1_rtau lowest layer at which to apply linear_sdrag
+      integer :: l1_rtau
+!@dbparam rtau rayleigh friction timescale (seconds) as a function of layer
+!@+            (only used with linear sdrag scheme)
+      real*8, allocatable :: rtau(:) ! allocated over l1_rtau:lm
+
+!@var mincolmass, maxcolmass minimum/maximum allowed column mass (kg/m2)
+      real*8 :: mincolmass, maxcolmass
+
 !**** Variables specific for stratosphere and/or strat diagnostics
 !@var DO_GWDRAG when true, prints Gravity Wave diagnostics
 !@var iDO_GWDRAG number if AIJ Gravity wave diagnostics
@@ -174,15 +192,20 @@
 
       Subroutine READ_NMC
 !**** read atmospheric initial conditions file
-      Use CONSTANT,   Only: mb2kg
-      Use RESOLUTION, Only: IM,JM,LM, MTOP,MFIX,MFIXs,MFRAC, PTOP
-      Use ATM_COM,    Only: MA,U,V,T,P,Q, PK,PMID,PEDN,UALIJ,VALIJ
-      Use DOMAIN_DECOMP_ATM, Only: GRID, GetDomainBounds
+      Use CONSTANT,   Only: mb2kg,areag,rgas
+      Use RESOLUTION, Only: IM,JM,LM, MTOP,MFIX,MFIXs,MFRAC, PSF,PTOP
+      Use ATM_COM,    Only: MA,U,V,T,P,Q, PK,PMID,PEDN,UALIJ,VALIJ, ZATMO
+      Use DOMAIN_DECOMP_ATM, Only: GRID, GetDomainBounds, globalsum
       use pario, only : par_open,par_close,read_dist_data
+      use GEOM, only : axyp
+      use Dictionary_mod
       Implicit none
       Integer :: I,J,L,fid, I1,IN,J1,JN
       Logical :: QSP,QNP
       Real*8  :: MVAR
+      integer :: initial_psurf_from_topo
+      real*8, dimension(:,:), allocatable :: expz,aexpz
+      real*8 :: aexpz_sum
 
       Call GetDomainBounds (GRID, I_STRT=I1, I_STOP=IN, J_STRT=J1, J_STOP=JN, &
                                   HAVE_SOUTH_POLE=QSP, HAVE_NORTH_POLE=QNP)
@@ -195,6 +218,33 @@
       call read_dist_data(grid,fid,'t',t)
       call read_dist_data(grid,fid,'q',q)
       call par_close(grid,fid)
+
+      if(is_set_param('initial_psurf_from_topo')) &
+           call get_param('initial_psurf_from_topo',initial_psurf_from_topo)
+      if(initial_psurf_from_topo==1) then
+!**** Reset initial surface pressure to be approximately hydrostatically consistent
+!**** with the orography.  Regional lapse rates are not taken into account (yet),
+!**** as this degree of precision is likely not necessary for the cold-start
+!**** scenarios for which this option was created.
+        allocate(expz(grid%i_strt_halo:grid%i_stop_halo, &
+                      grid%j_strt_halo:grid%j_stop_halo), &
+                aexpz(grid%i_strt_halo:grid%i_stop_halo, &
+                      grid%j_strt_halo:grid%j_stop_halo) )
+        do J=J1,JN
+        do I=I1,IN
+          ! note zatmo is actually gravity times surface elevation
+          expz(i,j) = exp(-zatmo(i,j)/(rgas*t(i,j,1)))
+          aexpz(i,j) = axyp(i,j)*expz(i,j)
+        enddo
+        enddo
+        call globalsum(grid,aexpz,aexpz_sum,all=.true.)
+        do J=J1,JN
+        do I=I1,IN
+          p(i,j) = psf*expz(i,j)/(aexpz_sum/areag)
+        enddo
+        enddo
+        deallocate(expz,aexpz)
+      endif
 
       Do J=J1,JN
       Do I=I1,IN
@@ -268,38 +318,55 @@
       Use ATM_COM,    Only: PEDNL00,PMIDL00
       Use DYNAMICS,   Only: LSDRAG,LPSDRAG,ANG_SDRAG,USE_UNR_DRAG, &
                             X_SDRAG,C_SDRAG,P_SDRAG,PP_SDRAG,P_CSDRAG,CSDRAGL,Wc_JDRAG,WMAX,VSDRAGL
+      use dynamics, only : l1_rtau,rtau,linear_sdrag
       Use DOMAIN_DECOMP_ATM, Only: AM_I_ROOT
       Use Dictionary_mod
       Implicit None
-      Integer :: L,LCSDRAG
+      Integer :: L,LCSDRAG,nrtau
+      character(len=1) :: partype
 
-      Call sync_param ("X_SDRAG",  X_SDRAG, 2 )
-      Call sync_param ("C_SDRAG",  C_SDRAG )
-      Call sync_param ("P_CSDRAG", P_CSDRAG )
-      Call sync_param ("P_SDRAG",  P_SDRAG )
-      Call sync_param ("PP_SDRAG", PP_SDRAG )
-      Call sync_param ("ANG_SDRAG",ANG_SDRAG )
-      Call sync_param ("Wc_Jdrag", Wc_Jdrag )
-      Call sync_param ("VSDRAGL",  VSDRAGL, LM-LS1+1 )
-      Call sync_param ("wmax",     WMAX )
+      linear_sdrag = is_set_param('rtau')
+
+      if(linear_sdrag) then
+
+        call query_param('rtau',nrtau,partype)
+        l1_rtau = 1 + lm - nrtau
+        allocate(rtau(l1_rtau:lm))
+        call get_param('rtau',rtau,nrtau)
+
+      else
+
+        Call sync_param ("X_SDRAG",  X_SDRAG, 2 )
+        Call sync_param ("C_SDRAG",  C_SDRAG )
+        Call sync_param ("P_CSDRAG", P_CSDRAG )
+        Call sync_param ("P_SDRAG",  P_SDRAG )
+        Call sync_param ("PP_SDRAG", PP_SDRAG )
+        Call sync_param ("ANG_SDRAG",ANG_SDRAG )
+        Call sync_param ("Wc_Jdrag", Wc_Jdrag )
+        Call sync_param ("VSDRAGL",  VSDRAGL, LM-LS1+1 )
+        Call sync_param ("wmax",     WMAX )
 
 !**** Calculate levels for application of SDRAG: LSDRAG,LPSDRAG->LM i.e.
 !**** all levels above and including P_SDRAG mb (PP_SDRAG near poles)
 !**** If P is the edge between 2 levels, take the higher level.
 !**** Also find CSDRAGL, the coefficients of C_Sdrag as a function of L
 
-      LSDRAG=LM ; LPSDRAG=LM ; LCSDRAG=LM ; CSDRAGL=C_SDRAG
-      DO L=1,LM
+        LSDRAG=LM ; LPSDRAG=LM ; LCSDRAG=LM ; CSDRAGL=C_SDRAG
+        DO L=1,LM
          If (PEDNL00(L+1)-1d-5 <  P_SDRAG .and. PEDNL00(L)+1d-5 >  P_SDRAG)  LSDRAG  = L
          If (PEDNL00(L+1)-1d-5 < PP_SDRAG .and. PEDNL00(L)+1d-5 > PP_SDRAG)  LPSDRAG = L
-         If (PEDNL00(L+1)-1d-5 < P_CSDRAG .and. PEDNL00(L)+1d-5 > P_CSDRAG)  LCSDRAG = L  ;  EndDo
-      DO L=LCSDRAG,LSDRAG-1
+         If (PEDNL00(L+1)-1d-5 < P_CSDRAG .and. PEDNL00(L)+1d-5 > P_CSDRAG)  LCSDRAG = L
+        EndDo
+        DO L=LCSDRAG,LSDRAG-1
          CSDRAGL(L) = C_SDRAG + Max(0d0, (X_SDRAG(1)-C_SDRAG)*Log(P_CSDRAG/(PMIDL00(L))) / Log(P_CSDRAG/P_SDRAG))
-         EndDo
-      If (AM_I_ROOT()) then
+        EndDo
+        If (AM_I_ROOT()) then
          Write (6,*) "Levels for  LSDRAG =",LSDRAG ,"->",LM
          Write (6,*) "Levels for LPSDRAG =",LPSDRAG,"->",LM," near poles"
-         Write (6,*) "C_SDRAG coefficients:",CSDRAGL(LS1:LSDRAG-1)  ; EndIf
+         Write (6,*) "C_SDRAG coefficients:",CSDRAGL(LS1:LSDRAG-1)
+        EndIf
+
+      endif  ! linear_drag or not
 
       Return
       EndSubroutine INIT_SDRAG
