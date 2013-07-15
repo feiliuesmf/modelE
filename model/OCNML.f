@@ -76,7 +76,8 @@
 !@+   for oht convergence
       use domain_decomp_atm, only : getDomainBounds,grid
       use diag_com, only : aij=>aij_loc,ij_toc2,ij_tgo2
-      use constant, only : twopi,edpery,shw,rhows
+      use constant, only : twopi,shw,rhows
+      use TimeConstants_mod, only : edpery
       use model_com, only : itime,itimei
       use model_com, only :  modelEclock
       use timestream_mod, only : read_stream
