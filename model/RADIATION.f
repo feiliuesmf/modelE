@@ -2281,7 +2281,7 @@ C                -----------------------------------------------------
       EXPZT=EXP(-ZT)
       EXPZB=EXP(-ZB)
       IF(ZB < 0.D0) EXPZB=1.D0-ZB
-      U0GAS(N,K)=U0GAS(N,K)*(EXPZB-EXPZT)/(ZT-ZB)
+      U0GAS(N,K)=U0GAS(N,K)*(EXPZB-EXPZT)/max(ZT-ZB,1d-6)
   150 CONTINUE
   151 CONTINUE
 C                         --------------------------------------------
@@ -2344,7 +2344,7 @@ C                -----------------------------------------------------
         EXPZT=EXP(-ZT)
         EXPZB=EXP(-ZB)
         IF(ZB < 0.D0) EXPZB=1.D0-ZB
-        U0GAS(L,K)=U0GAS(L,K)*(EXPZB-EXPZT)/(ZT-ZB)
+        U0GAS(L,K)=U0GAS(L,K)*(EXPZB-EXPZT)/max(ZT-ZB,1d-6)
   250   CONTINUE
   251   CONTINUE
       ENDIF
