@@ -1,6 +1,8 @@
 !@sum RES_M20AT.F90   Resolution file, 4x5 Lat-Lon Grid, 20 layers, top at .1 mb, no GWDRAG
 !@auth Original Development Team
 
+#include "rundeck_opts.h"
+
       Module RESOLUTION
       use constant, only : grav,mb2kg
 #ifdef PLANET_PARAMS
