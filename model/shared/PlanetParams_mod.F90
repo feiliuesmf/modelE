@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
 module PlanetParams_mod
-
+#ifdef PLANET_PARAMS
 !@type PlanetParams_t a derived type for the collection of
 !@+    parameters users may want to change when simulating
 !@+    environments other than Earth.  When this module is
@@ -51,5 +51,5 @@ module PlanetParams_mod
 !@param PlanetParams the instance of PlanetParams_t to be used. CPP selects
 !@+     which instance of PlanetParams_t is copied into PlanetParams.
   type(PlanetParams_t), parameter :: PlanetParams = PLANET_PARAMS
-
+#endif /* PLANET_PARAMS defined */
 end module PlanetParams_mod
