@@ -23,6 +23,7 @@
 
       USE EXCHANGE_TYPES
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny,lhe,lhs
+      USE CONSTANT, only : planet_name
       USE GEOM, only : sinlat2d
       USE ATM_COM, only : pk
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
@@ -343,12 +344,13 @@ C        roughness lengths from Brutsaert for rough surfaces
       atm%ustar_pbl(i,j)=pbl_args%ustar
 C ******************************************************************
       TS=pbl_args%TSV/(1.+pbl_args%QSRF*xdelt)
+      if(planet_name.eq.'Earth') then
       if ( ts.lt.152d0 .or. ts.gt.423d0 ) then
         write(6,*) 'PBL: Ts bad at',i,j,' itype',itype,ts
         if (ts.gt.1d3) call stop_model("PBL: Ts out of range",255)
         if (ts.lt.50d0) call stop_model("PBL: Ts out of range",255)
       end if
-
+      endif
       atm%tsavg(i,j) = ts
       atm%qsavg(i,j) = pbl_args%qsrf
       atm%usavg(i,j) = pbl_args%us
