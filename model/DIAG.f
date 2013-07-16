@@ -1391,15 +1391,15 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
 
       adate_sv = adate
 
-      call sync_param( "subdd" ,subdd)
-      call sync_param( "subdd1" ,subdd1)
-      call sync_param( "subdd2" ,subdd2)
-      call sync_param( "subdd3" ,subdd3)
-      call sync_param( "subdd4" ,subdd4)
       call sync_param( "Nsubdd",Nsubdd)
-      call sync_param( "LmaxSUBDD",LmaxSUBDD)
 
       if (nsubdd.ne.0) then
+        call sync_param( "subdd" ,subdd)
+        call sync_param( "subdd1" ,subdd1)
+        call sync_param( "subdd2" ,subdd2)
+        call sync_param( "subdd3" ,subdd3)
+        call sync_param( "subdd4" ,subdd4)
+        call sync_param( "LmaxSUBDD",LmaxSUBDD)
 C**** combine strings subdd, subdd1...4:
         subddt=trim(subdd)//' '//
      &  trim(subdd1)//' '//trim(subdd2)//' '//trim(subdd3)//' '//subdd4
