@@ -12,7 +12,7 @@
 !@var IM,JM = longitudinal and latitudinal number of grid cells
 !@var LM    = number of dynamical layers
 !@var LS1   = lowest layer of strtosphere
-      Integer*4,Parameter :: IM=72,JM=46,LM=20, LS1=11
+      Integer*4,Parameter :: IM=72,JM=46,LM=20
 
 !@var PSF,PMTOP global mean surface, model top pressure  (mb)
 !@var PTOP pressure at interface level sigma/const press coord syst (mb)
@@ -26,12 +26,6 @@
 #endif
       real*8, parameter, private :: pratio = PSF/984d0
 
-      Real*8,Parameter :: &
-           PTOP = pratio*150.d0, &
-           PMTOP = pratio*.1d0, &
-           PSFMPT = PSF-PTOP, &
-           PSTRAT = PTOP-PMTOP
-
       real*8, parameter :: &
          PLBOT(1:LM+1) = pratio* &
               (/ 984d0, 964d0, 934d0, 884d0, 810d0, &  ! Pbot L=1,..
@@ -40,10 +34,49 @@
                  110d0,  80d0,  55d0,  35d0,  20d0, &  !      L=...
                  10d0,   3d0,   1d0,  .3d0, .1d0 /)    !      L=..,LM+1
 
+      integer, private :: iii ! iterator
+
 !@var delp nominal pressure thicknesses of layers (mb)
       real*8, dimension(lm), parameter, private :: delp = plbot(1:lm)-plbot(2:lm+1)
 
-      integer, private :: iii ! iterator
+#ifndef PLANET_PARAMS
+      integer :: parameter :: ls1=11
+#else
+      ! Calculate ls1 from PlanetParams%ptop using allowed compile-time operations.
+      ! This clunky coding will be enthusiastically removed once vertical grid
+      ! information is set at runtime.
+      real*8, parameter, private :: ptop0 = PlanetParams%ptop
+      integer, dimension(lm), parameter, private :: lev=(/ (iii,iii=1,lm) /)
+      ! factor 1d6 is simply to make all pdiff magnitudes greater than 1
+      real*8, parameter, dimension(lm+1), private :: pdiff = 1d6*(plbot-ptop0)
+      integer, parameter, dimension(lm), private :: &
+           ! lprod is nonzero if ptop0 lies between two elements of plbot
+           lprod = lev*int(min(1d0,max(0d0,-pdiff(1:lm)*pdiff(2:lm+1)))), &
+           ! ldiff is nonzero if ptop0 is exactly equal to an element of plbot
+           ldiff = lev*(1-int(min(1d0,abs(pdiff(1:lm)))))
+      ! summation to get the smaller candiate for ls1
+      integer, parameter, private :: ls1_lower = &
+           lprod( 1)+lprod( 2)+lprod( 3)+lprod( 4)+lprod( 5) &
+          +lprod( 6)+lprod( 7)+lprod( 8)+lprod( 9)+lprod(10) &
+          +lprod(11)+lprod(12)+lprod(13)+lprod(14)+lprod(15) &
+          +lprod(16)+lprod(17)+lprod(18)+lprod(19)+lprod(20) &
+      !
+          +ldiff( 1)+ldiff( 2)+ldiff( 3)+ldiff( 4)+ldiff( 5) &
+          +ldiff( 6)+ldiff( 7)+ldiff( 8)+ldiff( 9)+ldiff(10) &
+          +ldiff(11)+ldiff(12)+ldiff(13)+ldiff(14)+ldiff(15) &
+          +ldiff(16)+ldiff(17)+ldiff(18)+ldiff(19)+ldiff(20)
+      ! choose ls1 by rounding ptop to the closest element of plbot
+      integer, parameter, private :: &
+           wt = 1-nint((plbot(ls1_lower)-ptop0)/delp(ls1_lower))
+      integer, parameter :: ls1 = wt*ls1_lower + (1-wt)*(ls1_lower+1)
+#endif
+
+      Real*8,Parameter :: &
+           PTOP = plbot(ls1), &
+           PMTOP = plbot(lm+1), &
+           PSFMPT = PSF-PTOP, &
+           PSTRAT = PTOP-PMTOP
+
 !@var tropomask unity from layers 1-ls1-1, zero above
 !@var stratmask zero from layers 1-ls1-1, unity above
       real*8, dimension(lm), parameter, private :: &

@@ -29,6 +29,14 @@ module PlanetParams_mod
      real*8 :: srat
 !@param psf (hPa) global mean suface pressure
      real*8 :: psf
+!@param ptop (hPa) the pressure level at which the GCM vertical coordinate should
+!@+     transition from terrain-following to constant-pressure.  While the details
+!@+     of a GCM vertical coordinate are not a fundamental planetary property, the
+!@+     ratio ptop/psf is one nondimensional measure of the height of the terrain
+!@+     relative to the depth of the atmosphere.   Once the GCM grid information
+!@+     is set at run time rather than compile time, this parameter may be determined
+!@+     from the topography file, but it must be set here for the moment.
+     real*8 :: ptop
   end type PlanetParams_t
 
 !
@@ -44,7 +52,8 @@ module PlanetParams_mod
        radius = 6371000d0, &
        mair = 28.9655d0, &
        srat = 1.401d0, &
-       psf = 984d0 &
+       psf = 984d0, &
+       ptop = 150d0 &
        )
 !
 
