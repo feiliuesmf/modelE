@@ -4291,6 +4291,7 @@ C                               ----------------------------------------
       END SUBROUTINE TAUGAS
 
       SUBROUTINE THERML
+      use constant, only : kapa ! exceptional use of external module
       IMPLICIT NONE
 C     ------------------------------------------------------------------
 C             Top-cloud Thermal Scattering Correction Control Parameters
@@ -4359,7 +4360,7 @@ C-----------------------------------------------------------------------
       P1 = PLB(L1)
       P2 = PLB(L1+1)
       P3 = PLB(L1+2)
-      DT1CPT = .5*TA*(P1**.286d0-P2**.286d0) / PL(L1)**.286d0
+      DT1CPT = .5*TA*(P1**kapa-P2**kapa) / PL(L1)**kapa
       DTHALF = (TA-TB)*(P1-P2)/(P1-P3)
       if (DTHALF > DT1CPT) DTHALF = DT1CPT
       TLB(L1) = TA+DTHALF*TLGRAD
