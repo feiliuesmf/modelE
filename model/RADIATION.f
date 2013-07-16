@@ -4291,7 +4291,9 @@ C                               ----------------------------------------
       END SUBROUTINE TAUGAS
 
       SUBROUTINE THERML
+#ifdef PLANET_PARAMS
       use constant, only : kapa ! exceptional use of external module
+#endif
       IMPLICIT NONE
 C     ------------------------------------------------------------------
 C             Top-cloud Thermal Scattering Correction Control Parameters
@@ -4334,6 +4336,10 @@ C     ------------------------------------------------------------------
 
       REAL*8, PARAMETER :: R6=.16666667D0, R24=4.1666667D-02
       REAL*8, PARAMETER :: A=0.3825D0,B=0.5742D0,C=0.0433D0
+
+#ifndef PLANET_PARAMS
+      real*8, parameter : kapa = .286d0
+#endif
 
       REAL*8 TA,TB,TC,P1,P2,P3,P4,DT1CPT,DTHALF,CLTAUX,CLTAUS,CLCOSB
      *     ,CTX,DT2,DT1,CTG,DG2,DG1,WT1,WT2,WT3,WT4,WT5,WT6,WT7
