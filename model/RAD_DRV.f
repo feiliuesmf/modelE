@@ -34,8 +34,8 @@ C****
 !@calls RADPAR:RCOMP1, ORBPAR
       USE FILEMANAGER
       USE Dictionary_mod
-      USE CONSTANT, only : grav,bysha,twopi
-      USE RESOLUTION, only : jm,lm
+      USE CONSTANT, only : grav,bysha,twopi,planet_name
+      USE RESOLUTION, only : jm,lm,psf
       USE ATM_COM, only : t,pk,kradia,lm_req
       USE MODEL_COM, only : dtsrc,iyear1,modelEclock,master_yr
       USE ATM_COM, only : pednl00
@@ -212,6 +212,9 @@ C**** sync radiation parameters from input
       call sync_param( "CC_cdncx", CC_cdncx )
       call sync_param( "OD_cdncx", OD_cdncx )
       call get_param( "O3_yr", O3_yr, default=master_yr )
+      if(planet_name.ne.'Earth') then
+        PTLISO = .015d0*psf ! reasonable default
+      endif
       call sync_param( "PTLISO", PTLISO )
       call sync_param( "KSOLAR", KSOLAR )
       call sync_param( "KSIALB", KSIALB )
