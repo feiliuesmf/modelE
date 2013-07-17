@@ -1,5 +1,4 @@
 !@sum RES_M12.F90   Resolution file, 4x5 Lat-Lon Grid, 12 layers, top at 10 mb, non-strat model
-!@ver 2013/03/21
 !@auth Original Development Team
 
       Module RESOLUTION
@@ -45,7 +44,7 @@
 !@var PTOP pressure at interface level sigma/const press coord syst (mb)
 !@var PSFMPT,PSTRAT pressure due to troposhere,stratosphere
 !@var PLbot pressure levels at bottom of layers (mb)
-      Real*8,Parameter :: PSF=984.d0, PTOP = 150.d0, PMTOP = .1d0, PSFMPT = PSF-PTOP, &
+      Real*8,Parameter :: PSF=984.d0, PTOP = 150.d0, PMTOP = 10d0, PSFMPT = PSF-PTOP, &
                           PSTRAT = PTOP-PMTOP, &
          PLBOT(1:LM+1) = (/ PSF, 934d0, 854d0, 720d0, 550.d0, &  ! Pbot L=1,5
                           390d0, 285d0, 210d0,                &  !      L=...
