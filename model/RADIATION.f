@@ -4338,7 +4338,7 @@ C     ------------------------------------------------------------------
       REAL*8, PARAMETER :: A=0.3825D0,B=0.5742D0,C=0.0433D0
 
 #ifndef PLANET_PARAMS
-      real*8, parameter : kapa = .286d0
+      real*8, parameter :: kapa = .286d0
 #endif
 
       REAL*8 TA,TB,TC,P1,P2,P3,P4,DT1CPT,DTHALF,CLTAUX,CLTAUS,CLCOSB

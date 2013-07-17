@@ -40,7 +40,7 @@
       real*8, dimension(lm), parameter, private :: delp = plbot(1:lm)-plbot(2:lm+1)
 
 #ifndef PLANET_PARAMS
-      integer :: parameter :: ls1=11
+      integer, parameter :: ls1=11
 #else
       ! Calculate ls1 from PlanetParams%ptop using allowed compile-time operations.
       ! This clunky coding will be enthusiastically removed once vertical grid
