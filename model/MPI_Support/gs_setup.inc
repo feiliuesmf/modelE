@@ -147,6 +147,7 @@ c
      &       ,i1,i2,j1,j2,nl,nk,nt,has_halo,nkmax
      &       ,i1g,i2g,j1g,j2g,am_i_gsroot,comm_gs,nproc_comm
      &       ,cntsij,displsij,cntsijg,displsijg
+     &       ,buf1d_local_size,buf1d_tile_size,bufij_tile_size
      &       ,buf1d_local,buf1d_tile,bufij_tile
      &       )
       else
@@ -155,6 +156,7 @@ c
      &       ,i1,i2,j1,j2,nl,nk,nt,has_halo
      &       ,i1g,i2g,j1g,j2g,am_i_gsroot,comm_gs,nproc_comm
      &       ,cntslij,cntslijg,displslij,displslijg
+     &       ,buf1d_local_size,buf1d_tile_size,bufij_tile_size
      &       ,buf1d_local,buf1d_tile,bufij_tile
      &       )
       endif
@@ -169,6 +171,7 @@ c
      &       ,i1,i2,j1,j2,nl,nk,nt,has_halo,nkmax
      &       ,i1g,i2g,j1g,j2g,am_i_gsroot,comm_gs,nproc_comm
      &       ,cntsij,displsij,cntsijg,displsijg
+     &       ,buf1d_local_size,buf1d_tile_size,bufij_tile_size
      &       ,buf1d_local,buf1d_tile,bufij_tile
      &       )
       else
@@ -177,6 +180,7 @@ c
      &       ,i1,i2,j1,j2,nl,nk,nt,has_halo
      &       ,i1g,i2g,j1g,j2g,am_i_gsroot,comm_gs,nproc_comm
      &       ,cntslij,cntslijg,displslij,displslijg
+     &       ,buf1d_local_size,buf1d_tile_size,bufij_tile_size
      &       ,buf1d_local,buf1d_tile,bufij_tile
      &       )
       endif

@@ -954,9 +954,18 @@ c on the diagonal
 ! Although these 3 arrays are not really used in a serial build, they
 ! are still passed to external libraries and/or interfaces in which they
 ! the corresponding dummy argument is assumed size.
-      if (.not. allocated(buf1d_local)) allocate(buf1d_local(1))
-      if (.not. allocated(buf1d_tile)) allocate(buf1d_tile(1))
-      if (.not. allocated(bufij_tile)) allocate(bufij_tile(1))
+      if (.not. allocated(buf1d_local)) then
+        allocate(buf1d_local(1))
+        buf1d_local_size=1
+      endif
+      if (.not. allocated(buf1d_tile)) then
+        allocate(buf1d_tile(1))
+        buf1d_tile_size=1
+      endif
+      if (.not. allocated(bufij_tile)) then
+        allocate(bufij_tile(1))
+        bufij_tile_size=1
+      endif
       end subroutine alloc_gs_wksp_default
 
       subroutine alloc_gs_wksp(grid,nl,nk,nj,nt,am_i_gsroot)
@@ -1091,6 +1100,7 @@ c      enddo
      &     ,i1,i2,j1,j2,nl,nk,nt,has_halo
      &     ,i1g,i2g,j1g,j2g,am_i_gsroot,comm_gs,nproc_comm
      &     ,cnts,cntsg,displs,displsg
+     &     ,buf1d_local_size,buf1d_tile_size,bufij_tile_size
      &     ,buf1d_local,buf1d_tile,bufij_tile
      &     )
       use dd2d_utils, only : dist_grid
@@ -1106,7 +1116,10 @@ c      enddo
       logical :: has_halo
       integer, dimension(nproc_comm) :: cnts,displs
       integer, dimension(nt) :: cntsg,displsg
-      real*8 :: buf1d_local(1),buf1d_tile(1),bufij_tile(1)
+      integer :: buf1d_local_size,buf1d_tile_size,bufij_tile_size
+      real*8 :: buf1d_local(buf1d_local_size)
+      real*8 :: buf1d_tile(buf1d_tile_size)
+      real*8 :: bufij_tile(bufij_tile_size)
       real*8 local_arr(nl,i1:i2,j1:j2,nk)
       real*8 global_arr(nl,i1g:i2g,j1g:j2g,nk,nt)
 c
@@ -1206,6 +1219,7 @@ c
      &     ,i1,i2,j1,j2,nl,nk,nt,has_halo
      &     ,i1g,i2g,j1g,j2g,am_i_gsroot,comm_gs,nproc_comm
      &     ,cnts,cntsg,displs,displsg
+     &     ,buf1d_local_size,buf1d_tile_size,bufij_tile_size
      &     ,buf1d_local,buf1d_tile,bufij_tile
      &     )
       use dd2d_utils, only : dist_grid
@@ -1221,7 +1235,10 @@ c
       logical :: has_halo
       integer, dimension(nproc_comm) :: cnts,displs
       integer, dimension(nt) :: cntsg,displsg
-      real*8 :: buf1d_local(1),buf1d_tile(1),bufij_tile(1)
+      integer :: buf1d_local_size,buf1d_tile_size,bufij_tile_size
+      real*8 :: buf1d_local(buf1d_local_size)
+      real*8 :: buf1d_tile(buf1d_tile_size)
+      real*8 :: bufij_tile(bufij_tile_size)
       real*8 local_arr(nl,i1:i2,j1:j2,nk)
       real*8 global_arr(nl,i1g:i2g,j1g:j2g,nk,nt)
 c
@@ -1325,6 +1342,7 @@ c copy the the local receive buffer into the local array
      &     ,i1,i2,j1,j2,nl,nk,nt,has_halo,nkmax
      &     ,i1g,i2g,j1g,j2g,am_i_gsroot,comm_gs,nproc_comm
      &     ,cntsij,displsij,cntsijg,displsijg
+     &     ,buf1d_local_size,buf1d_tile_size,bufij_tile_size
      &     ,buf1d_local,buf1d_tile,bufij_tile
      &     )
       use dd2d_utils, only : dist_grid
@@ -1341,7 +1359,10 @@ c copy the the local receive buffer into the local array
       integer :: nkmax
       integer, dimension(nproc_comm) :: cntsij,displsij
       integer, dimension(nt) :: cntsijg,displsijg
-      real*8 :: buf1d_local(1),buf1d_tile(1),bufij_tile(1)
+      integer :: buf1d_local_size,buf1d_tile_size,bufij_tile_size
+      real*8 :: buf1d_local(buf1d_local_size)
+      real*8 :: buf1d_tile(buf1d_tile_size)
+      real*8 :: bufij_tile(bufij_tile_size)
       real*8 local_arr(i1:i2,j1:j2,nk)
       real*8 global_arr(i1g:i2g,j1g:j2g,nk,nt)
 c
@@ -1458,6 +1479,7 @@ c
      &     ,i1,i2,j1,j2,nl,nk,nt,has_halo,nkmax
      &     ,i1g,i2g,j1g,j2g,am_i_gsroot,comm_gs,nproc_comm
      &     ,cntsij,displsij,cntsijg,displsijg
+     &     ,buf1d_local_size,buf1d_tile_size,bufij_tile_size
      &     ,buf1d_local,buf1d_tile,bufij_tile
      &     )
       use dd2d_utils, only : dist_grid
@@ -1474,7 +1496,10 @@ c
       integer :: nkmax
       integer, dimension(nproc_comm) :: cntsij,displsij
       integer, dimension(nt) :: cntsijg,displsijg
-      real*8 :: buf1d_local(1),buf1d_tile(1),bufij_tile(1)
+      integer :: buf1d_local_size,buf1d_tile_size,bufij_tile_size
+      real*8 :: buf1d_local(buf1d_local_size)
+      real*8 :: buf1d_tile(buf1d_tile_size)
+      real*8 :: bufij_tile(bufij_tile_size)
       real*8 local_arr(i1:i2,j1:j2,nk)
       real*8 global_arr(i1g:i2g,j1g:j2g,nk,nt)
 c
