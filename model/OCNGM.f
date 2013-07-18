@@ -501,8 +501,6 @@ C**** Skip for L+1 greater than LMM(I,J+1)
 !     HALO data used in computeFluxes 
       CALL HALO_UPDATE(grid,MO(:,grid%j_strt_halo:grid%j_stop_halo
      *           ,:) , FROM=SOUTH+NORTH)
-      CALL HALO_UPDATE(grid,DXYPO(grid%j_strt_halo:grid%j_stop_halo)
-     *               , FROM=SOUTH+NORTH)
       CALL HALO_UPDATE(grid,BYY(:,grid%j_strt_halo:grid%j_stop_halo
      *           ,:) , FROM=SOUTH)
 
