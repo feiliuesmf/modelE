@@ -207,9 +207,12 @@ MODULE dist_grid_mod
    public :: isPeriodic
    public :: am_i_root
    ! Direction bits
-   public :: NORTH, SOUTH
-   Integer, Parameter :: NORTH = 2**0
-   Integer, Parameter :: SOUTH = 2**1
+   public :: NORTH, SOUTH, NORTH2, NORTH3, SOUTHJMm1
+   Integer, Parameter :: NORTH  = 2**0
+   Integer, Parameter :: NORTH2 = 2**2
+   Integer, Parameter :: NORTH3 = 2**3
+   Integer, Parameter :: SOUTH  = 2**1
+   Integer, Parameter :: SOUTHJMm1  = 2**4
    public :: getMpiCommunicator
    public :: getNumProcesses
    public :: getNumAllProcesses
@@ -288,7 +291,7 @@ MODULE dist_grid_mod
 
 ! ----------------------------------------------------------------------
    subroutine INIT_GRID(distGrid, IM, JM, LM, &
-        width, J_SCM, bc_periodic, CREATE_CAP, npes_max, excess_on_pe0)
+        width, J_SCM, bc_periodic, CREATE_CAP, npes_max)
 ! ----------------------------------------------------------------------
      USE FILEMANAGER, Only : openunit
      IMPLICIT NONE
@@ -299,7 +302,6 @@ MODULE dist_grid_mod
      LOGICAL, OPTIONAL, INTENT(IN) :: bc_periodic
      LOGICAL, OPTIONAL, INTENT(IN) :: CREATE_CAP
      INTEGER, OPTIONAL, INTENT(IN) :: npes_max
-     LOGICAL, OPTIONAL, INTENT(IN) :: excess_on_pe0
 #ifdef USE_MPI
      Type (AxisIndex), Pointer :: AI(:,:)
      integer, allocatable   :: IMS(:), JMS(:)
@@ -324,16 +326,17 @@ MODULE dist_grid_mod
      NPES_WORLD = distGrid%NPES_WORLD
      rank = distGrid%rank
      Allocate(distGrid%dj_map(0:npes_world-1))
+
     ! Distribute the horizontal dimensions
     !-------------------------------------
      allocate(ims(0:0), jms(0:distGrid%npes_world-1))
-     ! jm-2 is latlon-specific
-     distGrid%npes_used = distGrid%npes_world
+     distGrid%npes_used = min(distGrid%npes_world, jm)
      if (present(npes_max))distGrid% npes_used = min(npes_max, distGrid%npes_used)
      jms(0:distGrid%npes_used-1) = getLatitudeDistribution(distGrid)
      if(distGrid%npes_used<distGrid%npes_world) &
        jms(distGrid%npes_used:distGrid%npes_world-1) = 0
      ims(0) = im
+     if(rank==0) print *,__FILE__,im,jms
 #ifndef USE_ESMF
      AIbounds = MPIgridBounds(distGrid)
 #endif
@@ -346,10 +349,7 @@ MODULE dist_grid_mod
      distGrid%rank = 0
      distGrid%npes_world = 1
      distGrid%npes_used = 1
-     AIbounds(1) = 1
-     AIbounds(2) = IM
-     AIbounds(3) = 1
-     AIbounds(4) = JM
+     AIbounds = (/ 1, IM, 1, JM /)
      if (present(J_SCM)) then
         AIbounds(3) = J_SCM
         AIbounds(4) = J_SCM
@@ -477,54 +477,6 @@ MODULE dist_grid_mod
      
      deallocate(AI)
 #endif
-
-   contains
-
-! ----------------------------------------------------------------------
-     function getLatitudeDistribution(grid) result(latsPerProcess)
-! ----------------------------------------------------------------------
-     TYPE (DIST_GRID), INTENT(IN) :: grid
-! Constraint: assumes grid%JM_WORLD >=4.
-       integer :: latsPerProcess(0:grid%npes_used-1)
-       
-       integer :: excess, npes_used, p
-       integer :: localAdjustment
-
-       latsPerProcess = 0
-
-       ! Set minimum requirements per processor
-       ! Currently this is 1 lat/proc away from poles
-       ! and 2 lat/proc at poles
-       select case (grid%npes_world)
-       case (1)
-          latsPerProcess = grid%JM_WORLD
-          return
-       case (2)
-          latsPerProcess(0) = grid%JM_WORLD/2
-          latsPerProcess(1) = grid%JM_WORLD - (grid%JM_WORLD/2)
-          return
-       case (3:)
-          npes_used = min(grid%npes_used, grid%JM_WORLD)
-          
-          ! 1st cut - round down
-          latsPerProcess(0:grid%npes_used-1) = GRID%JM_WORLD/npes_used  ! round down
-          
-          ! redistribute excess
-          excess = GRID%JM_WORLD - sum(latsPerProcess(0:grid%npes_used-1))
-          if(present(excess_on_pe0)) then
-             if(excess_on_pe0) then
-                latsPerProcess(0) = latsPerProcess(0) + excess
-                excess = 0
-             endif
-          endif
-          ! redistribute any remaining excess among interior processors
-          do p = 1, grid%npes_used - 2
-             localAdjustment = (p+1)*excess/(grid%npes_used-2) - (p*excess)/(grid%npes_used-2)
-             latsPerProcess(p) = latsPerProcess(p) + localAdjustment
-          end do
-       end select
-       
-     end function getLatitudeDistribution
 
    END SUBROUTINE INIT_GRID
 
@@ -719,6 +671,54 @@ MODULE dist_grid_mod
 #ifdef USE_MPI
 
 ! ----------------------------------------------------------------------
+     function getLatitudeDistribution(grid) result(latsPerProcess)
+! ----------------------------------------------------------------------
+     TYPE (DIST_GRID), INTENT(IN) :: grid
+! Constraint: assumes grid%JM_WORLD >=4.
+       integer :: latsPerProcess(0:grid%npes_used-1)
+       
+       integer :: excess, npes_used, p
+       integer :: localAdjustment
+
+       latsPerProcess = 0
+       npes_used = grid%npes_used
+
+       ! Set minimum requirements per processor
+       ! Currently this is 1 lat/proc away from poles
+       ! and 2 lat/proc at poles
+       select case (grid%npes_world)
+       case (1)
+          latsPerProcess = grid%JM_WORLD
+          return
+       case (2)
+          latsPerProcess(0) = grid%JM_WORLD/2
+          latsPerProcess(1) = grid%JM_WORLD - (grid%JM_WORLD/2)
+          return
+       case (3:)
+          ! 1st cut - round down
+          latsPerProcess(0:npes_used-1) = GRID%JM_WORLD/npes_used 
+          
+          ! Fix at poles
+          ! redistrute excess
+          excess = GRID%JM_WORLD - sum(latsPerProcess(0:npes_used-1))
+          if (excess > 0) then
+            latsPerProcess(0) = max(2, latsPerProcess(0))
+          end if
+          if (excess > 1) then
+            latsPerProcess(npes_used-1) = max(2, latsPerProcess(npes_used-1))
+          end if          
+          ! re-calculate excess again, since latsPerProcess may have changed
+          excess = GRID%JM_WORLD - sum(latsPerProcess(0:npes_used-1))
+          ! redistribute any remaining excess among interior processors
+          do p = 1, npes_used - 2
+             localAdjustment = (p+1)*excess/(npes_used-2) - (p*excess)/(npes_used-2)
+             latsPerProcess(p) = latsPerProcess(p) + localAdjustment
+          end do
+       end select
+       
+     end function getLatitudeDistribution
+
+! ----------------------------------------------------------------------
    function MPIgridBounds(grid) result(AIbounds)
 ! ----------------------------------------------------------------------
      type (DIST_Grid), intent(in) :: grid
@@ -749,7 +749,7 @@ MODULE dist_grid_mod
 
      allocate(jms(0:grid%npes_world-1))
 
-     jms(0:grid%npes_used-1) = getLatDist(grid)
+     jms(0:grid%npes_used-1) = getLatitudeDistribution(grid)
      if(grid%npes_used<grid%npes_world) jms(grid%npes_used:grid%npes_world-1) = 0
 
      AI = computeAxisIndex(grid, jms)
@@ -783,46 +783,6 @@ MODULE dist_grid_mod
      end do
      
    end function computeAxisIndex
-
-! ----------------------------------------------------------------------
-   function getLatDist(grid) result(latsPerProcess)
-! ----------------------------------------------------------------------
-     type (DIST_Grid), intent(in) :: grid
-     ! Contstraint: assumes grid%jm >=4.
-     integer :: latsPerProcess(0:grid%npes_used-1)
-     
-     integer :: excess, npes_used, p
-     integer :: localAdjustment
-     
-     latsPerProcess = 0
-     
-     ! Set minimum requirements per processor
-     ! Currently this is 1 lat/proc away from poles
-     ! and 2 lat/proc at poles
-     select case (grid%npes_world)
-     case (1)
-        latsPerProcess = grid%JM_WORLD
-        return
-     case (2)
-        latsPerProcess(0) = grid%JM_WORLD/2
-        latsPerProcess(1) = grid%JM_WORLD - (grid%JM_WORLD/2)
-        return
-     case (3:)
-        npes_used = min(grid%npes_used, grid%JM_WORLD)
-        
-        ! 1st cut - round down
-        latsPerProcess(0:grid%npes_used-1) = GRID%JM_WORLD/npes_used  ! round down
-        
-        ! redistribute excess
-        excess = GRID%JM_WORLD - sum(latsPerProcess(0:grid%npes_used-1))
-        ! redistribute any remaining excess among interior processors
-        do p = 1, grid%npes_used - 2
-           localAdjustment = (p+1)*excess/(grid%npes_used-2) - (p*excess)/(grid%npes_used-2)
-           latsPerProcess(p) = latsPerProcess(p) + localAdjustment
-        end do
-     end select
-     
-   end function getLatDist
 
 #endif
 
