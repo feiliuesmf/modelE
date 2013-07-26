@@ -133,8 +133,10 @@ sub runInBatch
     { $walltime = "00:30:00"; }
     elsif ($jobname =~ M20) 
     { $walltime = "01:00:00"; }
-    elsif ($jobname =~ obio || $jobname =~ cadi) 
+    elsif ($jobname =~ obio) 
     { $walltime = "02:00:00"; }
+    elsif ($jobname =~ cadi) 
+    { $walltime = "03:00:00"; }
     elsif ($jobname =~ tomas || $jobname =~ AR5_CAD || $jobname =~ amp) 
     { $walltime = "03:00:00"; $nodes=4; }
     else 
@@ -148,7 +150,7 @@ sub runInBatch
   if ($jobname =~ m/^(nonProduction)/i) {
      $jobname = substr $jobname, 14;
   }
-  # ...then make use PBS job name is only 15 characters long
+  # ...then make sure PBS job name is only 15 characters long
   my $validPBSname = substr $jobname, 0, 14;
 
   my $script = <<EOF;
@@ -195,13 +197,13 @@ EOF
     if ($compiler eq "intel") 
     {
       $script .= <<EOF;
-module load comp/intel-13.1.1.163 mpi/impi-3.2.2.006
+module load comp/intel-13.1.3.192 mpi/impi-3.2.2.006
 EOF
     } 
     elsif ($compiler eq "gfortran")  
     {
       $script .= <<EOF;
-module load other/comp/gcc-4.7.1 other/mpi/mvapich2-1.9a2/gcc-4.7.1
+module load other/comp/gcc-4.8-20130224 other/mpi/openmpi/1.6.4-gcc-4.8-20130224
 EOF
     }  
     elsif ($compiler eq "nag")  
@@ -285,11 +287,11 @@ sub setModuleEnvironment
 
       if ($compiler eq "intel")
       {
-        module (load, "comp/intel-13.1.1.163",  "mpi/impi-3.2.2.006");
+        module (load, "comp/intel-13.1.3.192",  "mpi/impi-3.2.2.006");
       }
       elsif ($compiler eq "gfortran")
       {
-        module (load, "other/comp/gcc-4.7.1", "other/mpi/mvapich2-1.9a2/gcc-4.7.1");
+        module (load, "other/comp/gcc-4.8-20130224", "other/mpi/openmpi/1.6.4-gcc-4.8-20130224");
       }
       elsif ($compiler eq "nag") 
       {

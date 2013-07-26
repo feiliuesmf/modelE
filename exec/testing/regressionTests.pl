@@ -69,15 +69,21 @@ $resolutions->{SCMSGPCONT}              = "0";   # single column model
 $resolutions->{E4C90L40}                = "CS";  # cubed sphere
 
 # numProcesses is resolution based (Note that domain decomposition is along y)  
-$numProcesses->{"8x10"}->{GENTLE}      = [4];
+$numProcesses->{"8x10"}->{GENTLE}      = [1,4];
 $numProcesses->{"8x10"}->{AGGRESSIVE}  = [1,4,12];
-$numProcesses->{"8x10"}->{INSANE}      = [1,4,22];
-$numProcesses->{"4x5"}->{GENTLE}       = [4];
+$numProcesses->{"8x10"}->{INSANE}      = [22];
+$numProcesses->{"8x10"}->{POLAR}      = [24];
+
+$numProcesses->{"4x5"}->{GENTLE}       = [1,4];
 $numProcesses->{"4x5"}->{AGGRESSIVE}   = [1,4,23];
-$numProcesses->{"4x5"}->{INSANE}       = [1,4,23,44];
-$numProcesses->{"2x2.5"}->{GENTLE}     = [8];
+$numProcesses->{"4x5"}->{INSANE}       = [23,44];
+$numProcesses->{"4x5"}->{POLAR}       = [23,46];
+
+$numProcesses->{"2x2.5"}->{GENTLE}     = [1,8];
 $numProcesses->{"2x2.5"}->{AGGRESSIVE} = [1,45];
-$numProcesses->{"2x2.5"}->{INSANE}     = [1,8,45,88];
+$numProcesses->{"2x2.5"}->{INSANE}     = [45,88];
+$numProcesses->{"2x2.5"}->{POLAR}     = [46,90];
+
 $numProcesses->{"0"}->{GENTLE}         = [];
 $numProcesses->{"0"}->{AGGRESSIVE}     = [];
 $numProcesses->{"0"}->{INSANE}         = [];
@@ -125,7 +131,7 @@ my $pool = CommandPool->new();
 # If we are running ALL the tests at the same time we probably want to clean up 
 # the scratch space
 if ($cleanScratch eq 'YES') {
-  my $clean = CommandEntry->new({COMMAND => "rm -rf *.o[0-9]* *.diff $env->{SCRATCH_DIRECTORY}/* $env->{RESULTS_DIRECTORY}/*/*;"});
+  my $clean = CommandEntry->new({COMMAND => "rm -rf $env->{SCRATCH_DIRECTORY}/* $env->{RESULTS_DIRECTORY}/*/*;"});
   $pool->add($clean);
 }
 

@@ -96,10 +96,10 @@ sub getGfortranEnvironment
   }
   else 
   {
-    $env->{MPIDISTR}="mvapich2";
-    $env->{MPIDIR}="/usr/local/other/mvapich2/1.9a2/gcc-4.7.1";
-    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc4.7_mvapich2-1.8";
-    $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc-4.7.1_mvapich2-1.9a2";
+    $env->{MPIDISTR}="openmpi";
+    $env->{MPIDIR}="/usr/local/other/SLES11/openMpi/1.6.4/gcc-4.8-20130224";
+    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc4.7_openmpi-1.4.5";
+    $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc-4.7.1_openmpi-1.6.4";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.7";
   }
   $env->{MODELERC} = $env->{SCRATCH_DIRECTORY} . "/gfortran/modelErc.gfortran";
