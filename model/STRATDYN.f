@@ -5,7 +5,6 @@
 
 C**** TO DO:
 C****   i) A-grid <-> B-grid  should be done with indexes etc.
-C****  ii) PK type variables should be done in dynamics and used here
 
       MODULE STRAT
 !@sum  STRAT local stratospheric variables for GW drag etc.
@@ -58,8 +57,6 @@ C**** momentum passes through model top.
 !@dbparam ang_gwd =1 ang mom. lost by GWDRAG is added in below PTOP
       INTEGER :: ang_gwd = 1 ! default: GWDRAG does conserve AM
 
-!@var PK,PMID local P**Kapa, pmid arrays
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PK, PMID
 !@param NM number of gravity wave drag sources
       INTEGER, PARAMETER :: NM=9
 !@var EKOFJ wavenumbers as a function of GW source type and latitude J
@@ -70,12 +67,9 @@ c Inputs/outputs for the column gravity wave drag routine
 c
       REAL*8, DIMENSION(LM) ::         ! for each layer:
 c pressure, press. thick., temp., pot. temp., density, B-V freq, winds
-     &     PL,DP,TL,THL,RHO,BVF,UL,VL, ! input
+     &     TL,THL,RHO,BVF,UL,VL, ! input
 c GW diffusivity, total GWD wind changes
      &     DL, DUT,DVT,DUSDIF          ! output
-
-c layer edge pressures
-      REAL*8, DIMENSION(LM+1) :: PLE   ! input
 
       REAL*8, DIMENSION(NM) ::         ! indexed by GW source type
 c average wavenumber
@@ -106,10 +100,10 @@ c lowest level at which there are gravity waves
       type(uv_derivs_type) :: dfm_type ! used for calculating defrm
       real*8 :: EK_globavg ! no horz variation of EK (quasi-uniform gridsize)
 #endif
+      EndModule STRAT
 
-      CONTAINS
 
-      SUBROUTINE GWDCOL
+      Subroutine GWDCOL (PLE,PL,DP)
 C 
 C     GWDCOL  Column Gravity Wave Drag Routine
 C 
@@ -141,12 +135,14 @@ C**** 9   Deformation wave
 C****
 C 
       USE CONSTANT,         ONLY : GRAV,RGAS 
+      Use STRAT
       IMPLICIT NONE 
 C 
 C     *******  Declaration Section  *******  
 C
       REAL*8, PARAMETER :: ERR=1d-20, H0=8000., XFROUD=1.  
       REAL*8, PARAMETER :: ROTK = 1.5, RKBY3= ROTK*ROTK*ROTK   
+      Real*8 :: PLE(LM+1),PL(LM),DP(LM)
 C
 C     **  LOCAL  **   
 C
@@ -455,6 +451,7 @@ C
       RETURN 
       END SUBROUTINE GWDCOL
 
+
       SUBROUTINE DFUSEQ(AIRM,DFLX,F,MU,AM,AL,AU,B,LM)
 !@sum  DFUSEQ calculate tridiagonal terms
 !@auth Bob Suozzo/Jean Lerner
@@ -480,7 +477,6 @@ C
 C****
       END SUBROUTINE DFUSEQ
 
-      END MODULE STRAT
 
       SUBROUTINE ALLOC_STRAT_COM(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at
@@ -501,8 +497,6 @@ C****
      &               I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
 
       ALLOCATE(    DEFRM(I_0H:I_1H,J_0H:J_1H),
-     *                PK(lm,I_0H:I_1H,J_0H:J_1H),
-     *              PMID(lm,I_0H:I_1H,J_0H:J_1H),
      *              EKOFJ(nm,J_0H:J_1H), ! not used by cubed atm
      *             ZVART(I_0H:I_1H,J_0H:J_1H),
      *             ZVARX(I_0H:I_1H,J_0H:J_1H),
@@ -674,6 +668,7 @@ C****
       USE CONSTANT, only : rgas,grav,twopi,kapa,sha
       USE RESOLUTION, only : ptop,ls1
       USE RESOLUTION, only : im,jm,lm
+      Use ATM_COM,    Only: PMID,PK
       USE DYNAMICS, only : mrch
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE, NORTH, SOUTH
@@ -681,7 +676,7 @@ C****
      *     ,kmaxj,idij,idjj,rapj
       USE FLUXES, only : atmsrf
       USE DIAG_COM, only : ajl=>ajl_loc,jl_dudtvdif,byim
-      USE STRAT, only : defrm,pk,pmid,ang_gwd,dfuseq
+      Use STRAT,      Only: DEFRM,ANG_GWD
       USE TRIDIAG_MOD, only :  TRIDIAG
       IMPLICIT NONE
       INTEGER, PARAMETER :: LDIFM=LM
@@ -966,30 +961,31 @@ C**** Is this calculated in PBL?
 C****
       END SUBROUTINE GETVK
 
-      SUBROUTINE GWDRAG (P,U,V,UT,VT,T,SZ,DT1,CALC_DEFORM)
+
+      Subroutine GWDRAG (DT1,CALC_DEFORM, UT,VT, MA, U,V,T,SZ)
 !@sum  GWDRAG puts a momentum drag in the stratosphere
 !@auth Bob Suozzo/Jean Lerner
 C****
 C**** GWDRAG is called from DYNAM with arguments:
-C****      P = Pressure (mb) at end of timestep
-C****      U,V,T = wind and Potential Temp. at beginning of timestep
-C****      DT1 = timestep (s)
+!**** Input: DT1 = timestep (s)
+!****      UT,VT = center velocity of time step (m/s)
+!****         MA = mass per unit area at end of timestep (kg/m^2)
+!**** Output: U,V,T = wind and Potential Temp. at beginning of timestep
 C****
       USE CONSTANT, only : grav,sha,kapa,rgas
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : dtsrc
-      USE ATM_COM, only : zatmo
+      Use ATM_COM,    Only: ZATMO, PEDN,PMID,PDSIG,PK
       USE DYNAMICS, only : mrch
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, ONLY : getDomainBounds, HALO_UPDATE,
      *                          NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE_COLUMN, am_i_root
-      USE CLOUDS_COM,       ONLY : AIRX,LMC   
-      USE STRAT,            ONLY : GWDCOL, NM, ZVARX,ZVARY,ZWT,DEFRM   
-     *     ,QGWCNV,EKOFJ,pk,pmid 
-     *     ,pbreaktop,defthresh,pconpen,ang_gwd,LPCNV  
-      USE STRAT, only : PL,PLE,TL,THL,RHO,BVF,DL,DUT,DVT,UL,VL,
-     &     DP, DTIME, BYDTIME, CORIOL, AIRXS,
+      USE CLOUDS_COM,       ONLY : AIRX,LMC
+      Use STRAT,      Only: NM, ZVARX,ZVARY,ZWT,DEFRM, QGWCNV,EKOFJ,
+     *                      pbreaktop,defthresh,pconpen,ang_gwd,LPCNV,  
+     *                      TL,THL,RHO,BVF,DL,DUT,DVT,UL,VL,
+     *                      DTIME,BYDTIME,CORIOL,AIRXS,
      &     UR, WT, CN, USRC, DUSDIF, MU_TOP, DUGWD, MU_INC, EK,
      &     LDRAG, LMC0, LMC1,
      &     RANMTN_CELL=>RANMTN,
@@ -1010,20 +1006,18 @@ C
       REAL*8, INTENT(IN),
      *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                                        UT,VT
-      REAL*8, INTENT(INOUT),
-     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: P
+      Real*8,Intent(In) :: MA(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       REAL*8, INTENT(IN) :: DT1
       LOGICAL, INTENT(IN) :: CALC_DEFORM
-C 
+
+!**** Local variables
+      Real*8 :: PLE(LM+1),PL(LM),DP(LM)
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *     DUT3,DVT3,DKE,TLS,THLS,BVS
-      REAL*8, DIMENSION(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     *     PDSIG
       REAL*8, DIMENSION(IM,LM) :: UIL,VIL,TLIL,THIL,BVIL
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: DUJL
-      REAL*8, DIMENSION(LM) :: P00,AML
       INTEGER I,IP1,J,L,N
-      REAL*8 PIJ,BVFSQ,ANGM,DPT,DUANG,XY,AIRX4,DTHR
+      Real*8 :: BVFSQ,ANGM,DPT,DUANG,XY,AIRX4,DTHR
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RANMTN  
       integer lmax_angm(nm),lp10,lp2040,lpshr
 C
@@ -1053,17 +1047,6 @@ C
       END DO
       END DO
       CALL BURN_RANDOM(IM*(JM-J_1))
-C
-      DO J=J_0,J_1
-        DO I=1,IMAXJ(J)
-          CALL CALC_VERT_AMP(P(I,J),LM,P00,AML,DP,PLE,PL)
-          DO L=1,LM
-            PK(L,I,J)=PL(L)**KAPA
-            PDSIG(L,I,J)=DP(L)
-            PMID(L,I,J)=PL(L)
-          END DO
-        END DO
-      END DO
 C****
 C**** FILL IN QUANTITIES AT POLES
 C****
@@ -1077,9 +1060,6 @@ C****
          DO I=2,IM
             T(I,1,L)=T(1,1,L)
             SZ(I,1,L)=SZ(1,1,L)
-            PK(L,I,1)=PK(L,1,1)
-            PDSIG(L,I,1)=PDSIG(L,1,1)
-            PMID(L,I,1)=PMID(L,1,1)
          END DO
          END DO
       ENDIF
@@ -1093,24 +1073,21 @@ C****
          DO I=2,IM
             T(I,JM,L)=T(1,JM,L)
             SZ(I,JM,L)=SZ(1,JM,L)
-            PK(L,I,JM)=PK(L,1,JM)
-            PDSIG(L,I,JM)=PDSIG(L,1,JM)
-            PMID(L,I,JM)=PMID(L,1,JM)
          END DO
          END DO
       ENDIF
 C
+      Call HALO_UPDATE_COLUMN (GRID, PMID , From=SOUTH)
       CALL HALO_UPDATE_COLUMN(GRID, PK    , from=SOUTH)
       CALL HALO_UPDATE(GRID, SZ    , from=SOUTH)
       CALL HALO_UPDATE(GRID, T     , from=SOUTH)
-      CALL HALO_UPDATE(GRID, P     , from=SOUTH)
       CALL HALO_UPDATE_COLUMN(GRID, PDSIG , from=SOUTH)
       CALL HALO_UPDATE(GRID, AIRX  , from=SOUTH)
       CALL HALO_UPDATE_COLUMN(GRID, LMC   , from=SOUTH)
 C****
 C**** DEFORMATION
 C****
-      IF(CALC_DEFORM)  CALL DEFORM (PDSIG,U,V)
+      If (CALC_DEFORM)  Call DEFORM (MA,U,V)
       DO L=1,LM
         DUT3(:,:,L)=0. ; DVT3(:,:,L)=0. ; DUJL(:,L)=0.; DKE(:,:,L) = 0.
       END DO
@@ -1147,10 +1124,14 @@ C**** parallel reductions
 C****
 C**** CALCULATE VERTICAL ARRAYS
 C****
-      PIJ=(P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)+(P(I,J)+P(IP1,J))*RAPVS(J)
-      CALL CALC_VERT_AMP(PIJ,LM,P00,AML,DP,PLE,PL)
-C
+      Do L=1,LM+1
+         PLE(L) = (PEDN(L,I,J-1) + PEDN(L,Ip1,J-1))*RAPVN(J-1) +
+     +            (PEDN(L,I,J  ) + PEDN(L,Ip1,J  ))*RAPVS(J)  ;  EndDo
       DO L=1,LM
+         PL(L) = ( PMID(L,I,J-1)+ PMID(L,Ip1,J-1))*RAPVN(J-1) +
+     +           ( PMID(L,I,J  )+ PMID(L,Ip1,J  ))*RAPVS(J)
+         DP(L) = (PDSIG(L,I,J-1)+PDSIG(L,Ip1,J-1))*RAPVN(J-1) +
+     +           (PDSIG(L,I,J  )+PDSIG(L,Ip1,J  ))*RAPVS(J)
       TL(L)=TLIL(I,L)
       THL(L)=THIL(I,L)
       RHO(L)=PL(L)/(RGAS*TL(L))
@@ -1217,7 +1198,7 @@ C
 C     Call the GWD Column 
 C 
 C**************************************
-               CALL GWDCOL 
+      Call GWDCOL (PLE,PL,DP) 
 C**************************************
 C 
       IF(LDRAG.LE.LM) THEN
@@ -1327,28 +1308,26 @@ C****
       RETURN
       END SUBROUTINE GWDRAG
 
-      SUBROUTINE DEFORM (PDSIG,U,V)
+
+      Subroutine DEFORM (MA,U,V)
 !@sum  DEFORM calculate defomation terms
 !@auth Bob Suozzo/Jean Lerner
 C****
 C**** Deformation terms  DEFRM1=du/dx-dv/dy   DEFRM2=du/dy+dv/dx
-C**** For spherical coordinates, we are treating DEFRM1 like DIV
-C**** and DEFRM2 like CURL (i.e., like FLUX and CIRCULATION),
-C**** except the "V" signs are switched.  DEFRM is RMS on u,v grid
 C****
       USE RESOLUTION, only : im,jm,lm
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, only : getDomainBounds, HALO_UPDATE,
      *                          NORTH, SOUTH, HALO_UPDATE_COLUMN,
      *     haveLatitude
-      USE DYNAMICS, only : pu,pv
+      Use DYNAMICS,   Only: MU,MV
       USE GEOM, only : bydxyv,dxyv,dxv,dyp
       USE STRAT, only : ldef,defrm
       IMPLICIT NONE
       REAL*8, INTENT(INOUT),
      *     DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: U,V
-      REAL*8, INTENT(INOUT),
-     *     DIMENSION(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PDSIG
+      Real*8,Intent(InOut):: MA(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+
       REAL*8, DIMENSION(IM) :: UDXS,DUMS1,DUMS2,DUMN1,DUMN2
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *     DEFRM1,DEFRM2  ! ,DEF1A,DEF2A
@@ -1379,14 +1358,14 @@ C****
 
       CALL HALO_UPDATE(GRID, U  , from=NORTH)
       CALL HALO_UPDATE(GRID, V  , from=NORTH)
-      CALL HALO_UPDATE(GRID, PV , from=NORTH)
+      Call HALO_UPDATE (GRID, MV, From=NORTH)
 
       L=LDEF
 C**** U-terms
       DO 91 J=J_0,J_1
       IM1=IM
       DO 91 I=1,IM
-      DEFRM1(I,J) = PU(I,J,L)-PU(IM1,J,L)
+      DEFRM1(I,J) = MU(I,J,L) - MU(Im1,J,L)
    91 IM1=I
       DO 92 I=1,IM
    92 UDXS(I)=0.
@@ -1415,9 +1394,9 @@ C**** V-terms
       IM1=IM
       DO 98 I=1,IM
       DO 96 J=J_0,J_1S
-   96 DEFRM1(I,J ) = DEFRM1(I,J ) + (PV(I,J+1,L)-PV(I,J ,L))
-      IF (HAVE_SOUTH_POLE) DEFRM1(I,1 ) = DEFRM1(I,1 ) + ( PV(I,2 ,L))
-      IF (HAVE_NORTH_POLE) DEFRM1(I,JM) = DEFRM1(I,JM) + (-PV(I,JM,L))
+   96 DEFRM1(I,J) = DEFRM1(I,J) - (MV(I,J+1,L) - MV(I,J,L))
+      If (HAVE_SOUTH_POLE)  DEFRM1(I,1 ) = DEFRM1(I,1 ) - MV(I,2 ,L)
+      If (HAVE_NORTH_POLE)  DEFRM1(I,JM) = DEFRM1(I,JM) + MV(I,JM,L)
       DO 97 J=J_0S,J_1S
    97 DEFRM2(I,J ) = DEFRM2(I,J ) +
      *  .5*((V(I,J,L)+V(I,J+1,L))-(V(IM1,J,L)+V(IM1,J+1,L)))*DYP(J)
@@ -1447,14 +1426,13 @@ C**** Convert to UV-grid
       DUMS1(I)=DUMN1(I)
       DUMS2(I)=DUMN2(I)
   110 CONTINUE
-      CALL HALO_UPDATE_COLUMN(GRID, PDSIG, FROM=SOUTH)
+      Call HALO_UPDATE_COLUMN (GRID, MA, From=SOUTH)
 
       DO 120 J=J_0STG,J_1STG
       I=IM
       DO 120 IP1=1,IM
-      DEFRM1(I,J)=DEFRM1(I,J)/
-     *       (DXYV(J)*(PDSIG(L,I,J)+PDSIG(L,IP1,J)+PDSIG(L,I,J-1)
-     *       +PDSIG(L,IP1,J-1)))
+      DEFRM1(I,J) = DEFRM1(I,J) / (DXYV(J)*
+     *              (MA(L,I,J)+MA(L,Ip1,J)+MA(L,I,J-1)+MA(L,Ip1,J-1)))
       DEFRM2(I,J)=.25*DEFRM2(I,J)*BYDXYV(J)
       DEFRM(I,J)=SQRT(DEFRM1(I,J)**2+DEFRM2(I,J)**2)
   120 I=IP1

@@ -110,7 +110,7 @@ c     endif
 
       SUBROUTINE DYNAM
 !@sum  DYNAM Integrate dynamic terms
-!@vers 2013/05/15
+!@vers 2013/07/30
 !@auth Original development team
       Use CONSTANT,   Only: by3,SHA,kg2mb,mb2kg,RGAS,byGRAV
       Use RESOLUTION, Only: IM,JM,LM,LS1, MFIXs
@@ -121,8 +121,7 @@ c     endif
       USE SOMTQ_COM, only : tmom,mz
       Use DYNAMICS,   Only: MU,MV,MW, pu,pv,sd,dut,dvt
      &    ,cos_limit,nidyn,dt,mrch,nstep,quvfilter,USE_UNR_DRAG
-      USE DIAG_COM, only : aij => aij_loc,ij_fmv,ij_fgzv
-     &     ,MODD5K,NDA5K,NDAA
+      Use DIAG_COM,   Only: MODD5K,NDA5K,NDAA
       USE DOMAIN_DECOMP_ATM, only: grid
       Use DOMAIN_DECOMP_1D,  Only: GetDomainBounds,GLOBALSUM,AM_I_ROOT,
      &                             NORTH,SOUTH, haveLatitude
@@ -173,16 +172,17 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
 !**** Initial forward step:  MODD3 = MA + .667*DT*F(MA,U,V))
       MRCH=0
       Call AFLUX  (NS,MA,MSUM,U,V, MA,MSUM)
-      CALL ADVECM (DTFS, MA,MODD3,MSUMODD)
+      Call ADVECM (DTFS, MA,MODD3,MSUMODD)
+#          ifdef NUDGE_ON
+           Call NUDGE (UX,VX,DTFS)
+#          endif
+      Call MAtoP  (MODD3)
+      Call GWDRAG (DTFS,.True., U,V, MODD3, UX,VX,T,TZ)
        CALL CALC_PIJL (LM,P,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
        PB(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
-#          ifdef NUDGE_ON
-           Call NUDGE (UX,VX,DTFS)
-#          endif
-      CALL GWDRAG (PB,UX,VX,U,V,T,TZ,DTFS,.true.)   ! strat
       CALL VDIFF (PB,UX,VX,U,V,T,DTFS)       ! strat
       CALL ADVECV (P,UX,VX,PB,U,V,Pijl,DTFS)  !P->pijl
       CALL PGF (UX,VX,PB,U,V,T,TZ,Pijl,DTFS)
@@ -192,16 +192,17 @@ c      if (QUVfilter) CALL FLTRUV(UX,VX,U,V)
 !**** Initial backward step:  MODD1 = MA + DT*F(MEVEN,UX,VX))
       MRCH=-1
       Call AFLUX  (NS,MODD3,MSUMODD,UX,VX, MA,MSUM)
-      CALL ADVECM (DT, MA,MODD1,MSUMODD)
+      Call ADVECM (DT, MA,MODD1,MSUMODD)
+#          ifdef NUDGE_ON
+           Call NUDGE (UT,VT,DT)
+#          endif
+      Call MAtoP  (MODD1)
+      Call GWDRAG (DT,.False., UX,VX, MODD1, UT,VT,T,TZ)
        CALL CALC_PIJL (LS1-1,PB,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
        PA(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
-#          ifdef NUDGE_ON
-           Call NUDGE (UT,VT,DT)
-#          endif
-      CALL GWDRAG (PA,UT,VT,UX,VX,T,TZ,DT,.false.)   ! strat
       CALL VDIFF (PA,UT,VT,UX,VX,T,DT)       ! strat
       CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
       CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
@@ -213,16 +214,17 @@ c      if (QUVfilter) CALL FLTRUV(UT,VT,UX,VX)
 !**** Odd leap frog step:  MODD3 = MODD1 + 2*DT*F(MA,U,V)
   340 MRCH=-2
       Call AFLUX  (NS,MA,MSUM,U,V, MODD1,MSUMODD)
-      CALL ADVECM (DTLF, MODD1,MODD3,MSUMODD)
+      Call ADVECM (DTLF, MODD1,MODD3,MSUMODD)
+#          ifdef NUDGE_ON
+           Call NUDGE (UT,VT,DTLF)
+#          endif
+      Call MAtoP  (MODD3)
+      Call GWDRAG (DTLF,.False., U,V, MODD3, UT,VT,T,TZ)
        CALL CALC_PIJL (LS1-1,P,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
        PB(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
-#          ifdef NUDGE_ON
-           Call NUDGE (UT,VT,DTLF)
-#          endif
-      CALL GWDRAG (PB,UT,VT,U,V,T,TZ,DTLF,.false.)   ! strat
       CALL VDIFF (PB,UT,VT,U,V,T,DTLF)       ! strat
       CALL ADVECV (PA,UT,VT,PB,U,V,Pijl,DTLF)   !P->pijl
       CALL PGF (UT,VT,PB,U,V,T,TZ,Pijl,DTLF)
@@ -238,16 +240,18 @@ c      if (QUVfilter) CALL FLTRUV(UT,VT,U,V)
       MEVEN(:,:,:) = MA(:,:,:)
        PC(:,:) = P(:,:)      ! LOAD P TO PC
       Call AFLUX  (NS,MODD1,MSUMODD,UT,VT, MA,MSUM)
-      CALL ADVECM (DTLF, MEVEN,MA,MSUM)
+      Call ADVECM (DTLF, MEVEN,MA,MSUM)
+#          ifdef NUDGE_ON
+           Call NUDGE (U,V,DTLF)
+#          endif
+      Call MAtoP  (MA)
+      Call GWDRAG (DTLF,.False., UT,VT, MA, U,V,T,TZ)
        CALL CALC_PIJL (LS1-1,PA,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
         P(:,:)   = (MSUM(:,:) - MFIXs)*kg2mb
-#          ifdef NUDGE_ON
-           Call NUDGE (U,V,DTLF)
-#          endif
-      CALL GWDRAG (P,U,V,UT,VT,T,TZ,DTLF,.false.)   ! strat
+      CALL VDIFF (P,U,V,UT,VT,T,DTLF)          ! strat
       CALL ADVECV (PC,U,V,P,UT,VT,Pijl,DTLF)     !PA->pijl
             MODDA = Mod (NSTEP+4-NS + NDAA*NIDYN, NDAA*NIDYN+2)  ! strat
          IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
@@ -262,7 +266,6 @@ C**** ADVECT Q AND T
       Call AADVT (MMA,T,TMOM, SD,PU,PV, DTLF,.False.,FPEU,FPEV)
 !     save z-moment of temperature in contiguous memory for later
       TZ(:,:,:) = TMOM(MZ,:,:,:)
-      CALL VDIFF (P,U,V,UT,VT,T,DTLF)          ! strat
        PC(:,:)   = .5*( P(:,:)  + PC(:,:))
        TT(:,:,:) = .5*( T(:,:,:)+ TT(:,:,:))
       TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))

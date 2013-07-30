@@ -143,6 +143,33 @@
 !!!#endif
 
 
+      Subroutine MAtoP (MA)                                        
+!@sum MAtoP calculates pressure arrays PEDN, PMID, PDSIG and PK from air mass MA
+      Use CONSTANT,   Only: kg2mb,KAPA
+      Use RESOLUTION, Only: LM, MTOP
+      Use ATM_COM,    Only: PEDN,PMID,PDSIG,PK
+      Use DOMAIN_DECOMP_ATM, Only: GRID
+      Use DOMAIN_DECOMP_1D,  Only: GetDomainBounds
+      Implicit  None
+      Real*8,Intent(In) :: MA(LM, GRID%I_STRT_HALO:GRID%I_STOP_HALO, GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      Real*8  :: M
+      Integer :: I,J,L, I1,IN,J1,JN
+
+      Call GetDomainBounds (GRID, I_STRT = I1, I_STOP = IN, &  !  primary column limits
+                                  J_STRT = J1, J_STOP = JN)    !  primary row limits
+
+      Do J=J1,JN  ;  Do I=I1,IN
+         M = MTOP
+         Do L=LM,1,-1
+            PEDN(L,I,J) = kg2mb * (M + MA(L,I,J))
+            PMID(L,I,J) = kg2mb * (M + MA(L,I,J)*.5)
+           PDSIG(L,I,J) = kg2mb * MA(L,I,J)
+              PK(L,I,J) = PMID(L,I,J)**KAPA
+            M = M + MA(L,I,J)  ;  EndDo  ;  EndDo  ;  EndDo
+      Return
+      EndSubroutine MAtoP
+
+
       Subroutine CALC_VERT_AMP (P0,LMAX,PL,MA,PDSIG,PEDN,PMID)
 !@sum  CALC_VERT_AMPK calculates air mass and pressure vertical arrays
 !@auth Jean Lerner/Gavin Schmidt
