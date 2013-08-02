@@ -1,5 +1,5 @@
 module test_ReportColumn_mod
-   use pFUnit, only: assertEqual
+   use pFUnit_mod
    use ReportColumn_mod
    use Timer_mod
    use TimeFormatUtilities_mod
@@ -35,169 +35,186 @@ module test_ReportColumn_mod
    public :: test_setPrecision
    public :: test_getUnits
 
+   integer, parameter :: dp = selected_real_kind(14)
+
 contains
 
+@Test
    subroutine test_getFieldWidthNameColumn()
       type (ReportColumn_type) :: column
       integer :: fieldWidth
       fieldWidth = 5
       column = newColumn(NAME_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, getFieldWidth(column))
+      @assertEqual(fieldWidth, getFieldWidth(column))
    end subroutine test_getFieldWidthNameColumn
 
+@Test
    subroutine test_getHeaderNameColumnA()
       type (ReportColumn_type) :: column
       integer :: fieldWidth
       fieldWidth = 6
       column = newColumn(NAME_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, len(getHeader(column)))
-      call assertEqual(' Name ', getHeader(column))
+      @assertEqual(fieldWidth, len(getHeader(column)))
+      @assertEqual(' Name ', getHeader(column))
    end subroutine test_getHeaderNameColumnA
 
+@Test
    subroutine test_getHeaderNameColumnB()
       type (ReportColumn_type) :: column
       integer :: fieldWidth
       fieldWidth = 3
       column = newColumn(NAME_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, len(getHeader(column)))
-      call assertEqual('Nam', getHeader(column))
+      @assertEqual(fieldWidth, len(getHeader(column)))
+      @assertEqual('Nam', getHeader(column))
    end subroutine test_getHeaderNameColumnB
 
+@Test
    subroutine test_getFieldNameColumn()
       type (ReportColumn_type) :: column
       type (Timer_type) :: timer
       integer :: fieldWidth
       fieldWidth = 6
       column = newColumn(NAME_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, len(getField(column, name = 'abcdefghij', timer=timer)))
-      call assertEqual('abcdef', getField(column, name = 'abcdefghij', timer=timer))
+      @assertEqual(fieldWidth, len(getField(column, name = 'abcdefghij', timer=timer)))
+      @assertEqual('abcdef', getField(column, name = 'abcdefghij', timer=timer))
    end subroutine test_getFieldNameColumn
 
+@Test
    subroutine test_getFieldWidthInclusiveTime()
       type (ReportColumn_type) :: column
       integer :: fieldWidth
       fieldWidth = 5
       column = newColumn(INCLUSIVE_TIME_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, getFieldWidth(column))
+      @assertEqual(fieldWidth, getFieldWidth(column))
    end subroutine test_getFieldWidthInclusiveTime
 
+@Test
    subroutine test_getHeaderInclusiveTime()
       type (ReportColumn_type) :: column
       integer :: fieldWidth
       fieldWidth = 6
       column = newColumn(INCLUSIVE_TIME_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, len(getHeader(column)))
-      call assertEqual('Inclus', getHeader(column))
+      @assertEqual(fieldWidth, len(getHeader(column)))
+      @assertEqual('Inclus', getHeader(column))
    end subroutine test_getHeaderInclusiveTime
 
+@Test
    subroutine test_getFieldInclusiveTime()
       type (ReportColumn_type) :: column
       type (Timer_type) :: timer
       integer :: fieldWidth
-      real(kind=r64) :: time
+      real(kind=dp) :: time
 
       fieldWidth = 6
       column = newColumn(INCLUSIVE_TIME_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, len(getField(column, name = 'abcdefghij', timer=timer)))
+      @assertEqual(fieldWidth, len(getField(column, name = 'abcdefghij', timer=timer)))
 
       time = 12.34
-      call start(timer, 0._r64)
+      call start(timer, 0._dp)
       call stop(timer, time)
 
-      call assertEqual(formatSeconds(time,3,2), getField(column, name = 'abcdefghij', timer=timer))
+      @assertEqual(formatSeconds(time,3,2), getField(column, name = 'abcdefghij', timer=timer))
    end subroutine test_getFieldInclusiveTime
 
+@Test
    subroutine test_getFieldWidthExclusiveTime()
       type (ReportColumn_type) :: column
       integer :: fieldWidth
       fieldWidth = 5
       column = newColumn(EXCLUSIVE_TIME_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, getFieldWidth(column))
+      @assertEqual(fieldWidth, getFieldWidth(column))
    end subroutine test_getFieldWidthExclusiveTime
 
+@Test
    subroutine test_getHeaderExclusiveTime()
       type (ReportColumn_type) :: column
       integer :: fieldWidth
       fieldWidth = 6
       column = newColumn(EXCLUSIVE_TIME_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, len(getHeader(column)))
-      call assertEqual('Exclus', getHeader(column))
+      @assertEqual(fieldWidth, len(getHeader(column)))
+      @assertEqual('Exclus', getHeader(column))
    end subroutine test_getHeaderExclusiveTime
 
+@Test
    subroutine test_getFieldExclusiveTime()
       type (ReportColumn_type) :: column
       type (Timer_type) :: timer
       type (Timer_type) :: otherTimer
       integer :: fieldWidth
-      real(kind=r64) :: time
+      real(kind=dp) :: time
 
       fieldWidth = 6
       column = newColumn(EXCLUSIVE_TIME_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, len(getField(column, name = 'abcdefghij', timer=timer)))
+      @assertEqual(fieldWidth, len(getField(column, name = 'abcdefghij', timer=timer)))
 
       time = 12.34
-      call start(timer, 0._r64)
-      call start(otherTimer, 0._r64)
-      call stop(otherTimer, 1._r64)
+      call start(timer, 0._dp)
+      call start(otherTimer, 0._dp)
+      call stop(otherTimer, 1._dp)
       call stop(timer, time)
 
-      call assertEqual(formatSeconds(time-1,3,2), getField(column, name = 'abcdefghij', timer=timer))
+      @assertEqual(formatSeconds(time-1,3,2), getField(column, name = 'abcdefghij', timer=timer))
    end subroutine test_getFieldExclusiveTime
 
+@Test
    subroutine test_getHeaderTripCounts()
       type (ReportColumn_type) :: column
       integer :: fieldWidth
       fieldWidth = 12
       column = newColumn(TRIP_COUNTS_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, len(getHeader(column)))
-      call assertEqual('   Trips ', getHeader(column))
+      @assertEqual(fieldWidth, len(getHeader(column)))
+      @assertEqual('   Trips ', getHeader(column))
    end subroutine test_getHeaderTripCounts
 
+@Test
    subroutine test_getFieldTripCounts()
       type (ReportColumn_type) :: column
       type (Timer_type) :: timer
       integer :: fieldWidth
-      real(kind=r64) :: time
+      real(kind=dp) :: time
 
       fieldWidth = 6
       column = newColumn(TRIP_COUNTS_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, len(getField(column, name = 'abcdefghij', timer=timer)))
+      @assertEqual(fieldWidth, len(getField(column, name = 'abcdefghij', timer=timer)))
 
-      call start(timer, 0._r64)
+      call start(timer, 0._dp)
       call stop(timer, time)
 
-      call assertEqual('     1', getField(column, name = 'abcdefghij', timer=timer))
+      @assertEqual('     1', getField(column, name = 'abcdefghij', timer=timer))
    end subroutine test_getFieldTripCounts
 
+@Test
    subroutine test_getHeaderMaximumTime()
       type (ReportColumn_type) :: column
       integer :: fieldWidth
       fieldWidth = 12
       column = newColumn(MAXIMUM_TIME_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, len(getHeader(column)))
-      call assertEqual('  Maximum   ', getHeader(column))
+      @assertEqual(fieldWidth, len(getHeader(column)))
+      @assertEqual('  Maximum   ', getHeader(column))
    end subroutine test_getHeaderMaximumTime
 
+@Test
    subroutine test_getFieldMaximumTime()
       type (ReportColumn_type) :: column
       type (Timer_type) :: timer
       integer :: fieldWidth
-      real(kind=r64) :: time
+      real(kind=dp) :: time
 
       call resetGlobal()
       fieldWidth = 6
       column = newColumn(MAXIMUM_TIME_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, len(getField(column, name = 'abcdefghij', timer=timer)))
+      @assertEqual(fieldWidth, len(getField(column, name = 'abcdefghij', timer=timer)))
 
       time = 12.34
-      call start(timer, 0._r64)
+      call start(timer, 0._dp)
       call stop(timer, time)
       call start(timer, time)
       call stop(timer, 3*time)
 
-      call assertEqual(formatSeconds(2*time,3,2), getField(column, name = 'abcdefghij', timer=timer))
+      @assertEqual(formatSeconds(2*time,3,2), getField(column, name = 'abcdefghij', timer=timer))
    end subroutine test_getFieldMaximumTime
 
+@Test
    subroutine test_getHeaderMinimumTime()
       type (ReportColumn_type) :: column
       integer :: fieldWidth
@@ -205,108 +222,114 @@ contains
       call resetGlobal()
       fieldWidth = 12
       column = newColumn(MINIMUM_TIME_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, len(getHeader(column)))
-      call assertEqual('  Minimum   ', getHeader(column))
+      @assertEqual(fieldWidth, len(getHeader(column)))
+      @assertEqual('  Minimum   ', getHeader(column))
    end subroutine test_getHeaderMinimumTime
 
+@Test
    subroutine test_getFieldMinimumTime()
       type (ReportColumn_type) :: column
       type (Timer_type) :: timer
       integer :: fieldWidth
-      real(kind=r64) :: time
+      real(kind=dp) :: time
 
       fieldWidth = 6
       column = newColumn(MINIMUM_TIME_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, len(getField(column, name = 'abcdefghij', timer=timer)))
+      @assertEqual(fieldWidth, len(getField(column, name = 'abcdefghij', timer=timer)))
 
       time = 12.34
-      call start(timer, 0._r64)
+      call start(timer, 0._dp)
       call stop(timer, time)
       call start(timer, time)
       call stop(timer, 3*time)
 
-      call assertEqual(formatSeconds(1*time,3,2), getField(column, name = 'abcdefghij', timer=timer))
+      @assertEqual(formatSeconds(1*time,3,2), getField(column, name = 'abcdefghij', timer=timer))
    end subroutine test_getFieldMinimumTime
 
+@Test
    subroutine test_getHeaderAverageTime()
       type (ReportColumn_type) :: column
       integer :: fieldWidth
       fieldWidth = 12
       column = newColumn(AVERAGE_TIME_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, len(getHeader(column)))
-      call assertEqual('  Average   ', getHeader(column))
+      @assertEqual(fieldWidth, len(getHeader(column)))
+      @assertEqual('  Average   ', getHeader(column))
    end subroutine test_getHeaderAverageTime
 
+@Test
    subroutine test_getFieldAverageTime()
       type (ReportColumn_type) :: column
       type (Timer_type) :: timer
       integer :: fieldWidth
-      real(kind=r64) :: time
+      real(kind=dp) :: time
 
       call resetGlobal()
       fieldWidth = 6
       column = newColumn(AVERAGE_TIME_COLUMN, fieldWidth)
-      call assertEqual(fieldWidth, len(getField(column, name = 'abcdefghij', timer=timer)))
+      @assertEqual(fieldWidth, len(getField(column, name = 'abcdefghij', timer=timer)))
 
       time = 12.34
-      call start(timer, 0._r64)
+      call start(timer, 0._dp)
       call stop(timer, time)
       call start(timer, time)
       call stop(timer, 3*time)
 
-      call assertEqual(formatSeconds(1.5*time,3,2), getField(column, name = 'abcdefghij', timer=timer))
+      @assertEqual(formatSeconds(1.5*time,3,2), getField(column, name = 'abcdefghij', timer=timer))
    end subroutine test_getFieldAverageTime
 
+@Test
    subroutine test_setScale()
       type (ReportColumn_type) :: column
       type (Timer_type) :: timer
       type (Timer_type) :: otherTimer
-      real(kind=r64) :: time, scale
+      real(kind=dp) :: time, scale
 
       time = 12.34
-      call start(timer, 0._r64)
+      call start(timer, 0._dp)
       call stop(timer, time)
 
       column = newColumn(INCLUSIVE_TIME_COLUMN, 6)
-      scale = 0.1_r64
+      scale = 0.1_dp
       call setScale(column, scale, 'units')
 
-      call assertEqual('units', getUnits(column))
-      call assertEqual(formatSeconds(time*scale,3,2), getField(column, name = 'abcdefghij', timer=timer))
+      @assertEqual('units', getUnits(column))
+      @assertEqual(formatSeconds(time*scale,3,2), getField(column, name = 'abcdefghij', timer=timer))
 
    end subroutine test_setScale
 
+@Test
    subroutine test_setPrecision()
       type (ReportColumn_type) :: column
       type (Timer_type) :: timer
       type (Timer_type) :: otherTimer
-      real(kind=r64) :: time, scale
+      real(kind=dp) :: time, scale
 
       time = 12.34
-      call start(timer, 0._r64)
+      call start(timer, 0._dp)
       call stop(timer, time)
 
       column = newColumn(INCLUSIVE_TIME_COLUMN, 8)
       call setPrecision(column, 4)
-      call assertEqual(formatSeconds(time,3,4), getField(column, name = 'abcdefghij', timer=timer))
+      @assertEqual(formatSeconds(time,3,4), getField(column, name = 'abcdefghij', timer=timer))
    end subroutine test_setPrecision
 
+@Test
    subroutine test_getUnits()
       type (ReportColumn_type) :: column
-      real(kind=r64) :: scale
+      real(kind=dp) :: scale
 
-      call assertEqual('', getUnits(newColumn(NAME_COLUMN, 1)))
-      call assertEqual('', getUnits(newColumn(TRIP_COUNTS_COLUMN, 1)))
-      call assertEqual('seconds ', getUnits(newColumn(INCLUSIVE_TIME_COLUMN, 8)))
-      call assertEqual('seconds ', getUnits(newColumn(EXCLUSIVE_TIME_COLUMN, 8)))
-      call assertEqual('seconds ', getUnits(newColumn(MAXIMUM_TIME_COLUMN, 8)))
-      call assertEqual('seconds ', getUnits(newColumn(MINIMUM_TIME_COLUMN, 8)))
-      call assertEqual('seconds ', getUnits(newColumn(AVERAGE_TIME_COLUMN, 8)))
+      @assertEqual('', getUnits(newColumn(NAME_COLUMN, 1)))
+      @assertEqual('', getUnits(newColumn(TRIP_COUNTS_COLUMN, 1)))
+      @assertEqual('seconds ', getUnits(newColumn(INCLUSIVE_TIME_COLUMN, 8)))
+      @assertEqual('seconds ', getUnits(newColumn(EXCLUSIVE_TIME_COLUMN, 8)))
+      @assertEqual('seconds ', getUnits(newColumn(MAXIMUM_TIME_COLUMN, 8)))
+      @assertEqual('seconds ', getUnits(newColumn(MINIMUM_TIME_COLUMN, 8)))
+      @assertEqual('seconds ', getUnits(newColumn(AVERAGE_TIME_COLUMN, 8)))
 
       scale = 1.
       column = newColumn(INCLUSIVE_TIME_COLUMN, 4)
       call setScale(column, scale, 'units')
-      call assertEqual('unit', getUnits(column))
+      @assertEqual('unit', getUnits(column))
 
    end subroutine test_getUnits
 

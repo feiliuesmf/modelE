@@ -1,5 +1,5 @@
- module testDictionary_mod
-  use pfunit
+ module Test_Dictionary_mod
+  use pfunit_mod
   use Dictionary_mod
   use KeyValuePair_mod
   use GenericType_mod
@@ -43,8 +43,11 @@
   public :: testMergeInteger
   public :: testMergeDictionary
 
+  integer, parameter :: dp = selected_real_kind(14)
+
 contains
 
+@Test
   subroutine testSetInteger()
     integer :: expected
     integer :: found
@@ -53,22 +56,24 @@ contains
     expected = 1
     call set_param('testParam_Int', expected)
     call get_param('testParam_Int', found)
-    call assertEqual(expected, found)
+    @assertEqual(expected, found)
 
   end subroutine testSetInteger
 
+@Test
   subroutine testSetReal()
-    real(kind=r64) :: expected
-    real(kind=r64) :: found
+    real(kind=dp) :: expected
+    real(kind=dp) :: found
 
     call reset()
     expected = 1.234
     call set_param('testParam_Real', expected)
     call get_param('testParam_Real', found)
-    call assertEqual(expected, found)
+    @assertEqual(expected, found)
     
   end subroutine testSetReal
 
+@Test
   subroutine testSetString()
     character(len=20) :: expected
     character(len=20) :: found
@@ -77,10 +82,11 @@ contains
     expected = 'testValue'
     call set_param('testParam_String', expected)
     call get_param('testParam_String', found)
-    call assertEqual(expected, found)
+    @assertEqual(expected, found)
     
   end subroutine testSetString
 
+@Test
   subroutine testSetIntegerList()
     integer, parameter :: NUM_ELEMENTS = 2
     integer :: expected(NUM_ELEMENTS)
@@ -90,22 +96,24 @@ contains
     expected = [1,2]
     call set_param('testParam_IntList', expected, NUM_ELEMENTS)
     call get_param('testParam_IntList', found, NUM_ELEMENTS)
-    call assertEqual(expected, found)
+    @assertEqual(expected, found)
 
   end subroutine testSetIntegerList
 
+@Test
   subroutine testSetRealList()
     integer, parameter :: NUM_ELEMENTS = 2
-    real(kind=r64) :: expected(NUM_ELEMENTS)
-    real(kind=r64) :: found(NUM_ELEMENTS)
+    real(kind=dp) :: expected(NUM_ELEMENTS)
+    real(kind=dp) :: found(NUM_ELEMENTS)
 
     expected = [1.1, 2.2]
     call set_param('testParam_RealList', expected, NUM_ELEMENTS)
     call get_param('testParam_RealList', found, NUM_ELEMENTS)
-    call assertEqual(expected, found)
+    @assertEqual(expected, found)
 
   end subroutine testSetRealList
 
+@Test
   subroutine testSetStringList()
     integer, parameter :: NUM_ELEMENTS = 2
     character*(128) :: expected(NUM_ELEMENTS)
@@ -117,11 +125,12 @@ contains
     call set_param('testParam_StringList', expected, NUM_ELEMENTS)
     call get_param('testParam_StringList', found, NUM_ELEMENTS)
     do i = 1, NUM_ELEMENTS
-      call assertEqual(expected(i), found(i))
+      @assertEqual(expected(i), found(i))
     end  do
 
   end subroutine testSetStringList
 
+@Test
   subroutine testQuery()
     integer, parameter :: NUM_ELEMENTS = 2
     integer :: values(NUM_ELEMENTS)
@@ -137,15 +146,16 @@ contains
     call set_param(expectedName, values, NUM_ELEMENTS)
     call query_param(1, foundName, dim, ptype)
 
-    call assertEqual(expectedName, foundName, 'check order that tests are run')
-    call assertEqual(NUM_ELEMENTS, dim)
-    call assertEqual('i', ptype)
+    @assertEqual(expectedName, foundName, 'check order that tests are run')
+    @assertEqual(NUM_ELEMENTS, dim)
+    @assertEqual('i', ptype)
 
   end subroutine testQuery
 
+@Test
   subroutine testReadWrite()
     use FileManager
-    integer :: unit
+    integer :: iounit
     character(len=20) :: foundName
     integer :: dim
     character(len=1) :: pType
@@ -154,30 +164,31 @@ contains
     call set_param('testReadWriteA', 2)
     call set_param('testReadWriteB', [3,4], 2)
 
-    call openUnit('dictionary.dat',unit,qold=.false.,qbin=.true.)
-    call write_param(unit)
-    close(unit)
+    call openUnit('dictionary.dat',iounit,qold=.false.,qbin=.true.)
+    call write_param(iounit)
+    close(iounit)
 
     call reset()
     ! start with one parameter just to make sure things were cleared
     ! before reading
     call set_param('testReadWriteC', 'aString')
 
-    call openUnit('dictionary.dat',unit,qold=.true.,qbin=.true.)
-    call read_param(unit, ovrwrt = .false.)
+    call openUnit('dictionary.dat',iounit,qold=.true.,qbin=.true.)
+    call read_param(iounit, ovrwrt = .false.)
     call query_param(3, foundName, dim, pType)
-    close(unit)
+    close(iounit)
 
-    call assertEqual('testreadwriteb', foundname)
-    call assertEqual(2, dim)
-    call assertEqual('i', pType)
-    call deleteFile('dictionary.dat')
+    @assertEqual('testreadwriteb', foundname)
+    @assertEqual(2, dim)
+    @assertEqual('i', pType)
+    close(iounit, status='delete')
 
   end subroutine testReadWrite
 
+@Test
   subroutine testReadWriteUnformatted()
     use FileManager
-    integer :: unit
+    integer :: iounit
     type (Dictionary) :: dictionaryA
     type (Dictionary) :: dictionaryB
 
@@ -187,17 +198,18 @@ contains
     call dictionaryA%insert('key3', [1.2d+0,2.d+0])
     call dictionaryA%insert('key4', 'string')
     
-    call openUnit('dictionary.dat',unit,qold=.false.,qbin=.true.)
-    call dictionaryA%writeUnformatted(unit)
+    call openUnit('dictionary.dat',iounit,qold=.false.,qbin=.true.)
+    call dictionaryA%writeUnformatted(iounit)
 
-    rewind(unit)
-    call readUnformatted(dictionaryB, unit)
+    rewind(iounit)
+    call readUnformatted(dictionaryB, iounit)
 
-    call assertTrue(dictionaryA == dictionaryB)
-    close(unit, status='delete')
+    @assertTrue(dictionaryA == dictionaryB)
+    close(iounit, status='delete')
     
   end subroutine testReadWriteUnformatted
 
+@Test
   subroutine testKeyNotFound()
     type (Dictionary) :: aDictionary
     integer :: i
@@ -205,13 +217,14 @@ contains
 #ifdef PFUNIT
     aDictionary = Dictionary()
     i = aDictionary%lookup('alpha')
-    call assertFailedAssert('GenericType_mod: nonconforming shapes.')
-    call assertFailedAssert('Key not found: <alpha>.', &
+    @assertFailedAssert('GenericType_mod: nonconforming shapes.')
+    @assertFailedAssert('Key not found: <alpha>.', &
          & 'Failed to detect missing key.')
 #endif
 
   end subroutine testKeyNotFound
 
+@Test
   subroutine testGetValueA()
     type (Dictionary) :: aDictionary
     integer :: expected, found
@@ -220,12 +233,13 @@ contains
     aDictionary = Dictionary()
     call aDictionary%insert('key', expected)
     found = aDictionary%lookup('key')
-    call assertEqual(expected, found)
+    @assertEqual(expected, found)
 
     call clean(aDictionary)
 
   end subroutine testGetValueA
 
+@Test
   subroutine testGetValueB()
     type (Dictionary) :: aDictionary
     integer :: expectedA, foundA
@@ -238,64 +252,68 @@ contains
     call aDictionary%insert('keyB', expectedB)
 
     foundB = aDictionary%lookup('keyB')
-    call assertEqual(expectedB, foundB)
+    @assertEqual(expectedB, foundB)
 
     foundA = aDictionary%lookup('keyA')
-    call assertEqual(expectedA, foundA)
+    @assertEqual(expectedA, foundA)
 
     call clean(aDictionary)
 
   end subroutine testGetValueB
 
+@Test
   subroutine testGetValueReal64()
     type (Dictionary) :: aDictionary
-    real(kind=r64) :: expected, found
+    real(kind=dp) :: expected, found
 
     expected = 1
     aDictionary = Dictionary()
     call aDictionary%insert('key', expected)
     found = aDictionary%lookup('key')
-    call assertEqual(expected, found)
+    @assertEqual(expected, found)
 
     call clean(aDictionary)
 
   end subroutine testGetValueReal64
 
+@Test
   subroutine testGetNumEntries()
     type (Dictionary) :: aDictionary
-    real(kind=r64) :: expected, found
+    real(kind=dp) :: expected, found
 
     expected = 1
     aDictionary = Dictionary()
 
-    call assertEqual(0, aDictionary%getNumEntries())
+    @assertEqual(0, aDictionary%getNumEntries())
 
     call aDictionary%insert('key1', expected)
-    call assertEqual(1, aDictionary%getNumEntries())
+    @assertEqual(1, aDictionary%getNumEntries())
 
     call aDictionary%insert('key2', expected)
-    call assertEqual(2, aDictionary%getNumEntries())
+    @assertEqual(2, aDictionary%getNumEntries())
 
   end subroutine testGetNumEntries
 
+@Test
   subroutine testHasKey()
     type (Dictionary) :: aDictionary
 
     aDictionary = Dictionary()
-    call assertFalse(aDictionary%hasKey('a'))
+    @assertFalse(aDictionary%hasKey('a'))
 
     call aDictionary%insert('a', 1)
-    call assertTrue(aDictionary%hasKey('a'))
-    call assertFalse(aDictionary%hasKey('b'))
+    @assertTrue(aDictionary%hasKey('a'))
+    @assertFalse(aDictionary%hasKey('b'))
 
     call aDictionary%insert('b', 1)
-    call assertTrue(aDictionary%hasKey('a'))
-    call assertTrue(aDictionary%hasKey('b'))
+    @assertTrue(aDictionary%hasKey('a'))
+    @assertTrue(aDictionary%hasKey('b'))
 
     call clean(aDictionary)
 
   end subroutine testHasKey
 
+@Test
   subroutine testGetKeys()
     type (Dictionary) :: aDictionary
     character(len=MAX_LEN_KEY), pointer :: keys(:)
@@ -305,35 +323,38 @@ contains
     call aDictionary%insert('b', 1)
 
     keys => aDictionary%getKeys()
-    call assertEqual(2, size(keys))
-    call assertTrue(any(keys == 'b'))
-    call assertTrue(any(keys == 'a'))
+    @assertEqual(2, size(keys))
+    @assertTrue(any(keys == 'b'))
+    @assertTrue(any(keys == 'a'))
 
     call clean(aDictionary)
   end subroutine testGetKeys
 
+@Test
   subroutine testFailDuplicateKey()
     type (Dictionary) :: aDictionary
 #ifdef USE_PFUNIT
     aDictionary = Dictionary()
     call aDictionary%insert('a', 1)
     call aDictionary%insert('a', 2)
-    call assertFailedAssert('Dictionary: duplicate key - <a>.', &
+    @assertFailedAssert('Dictionary: duplicate key - <a>.', &
          & 'Failed to diagnose duplicate key.')
     call clean(aDictionary)
 #endif
   end subroutine testFailDuplicateKey
 
+@Test
   subroutine testEqualsA()
     type (Dictionary) :: a
     type (Dictionary) :: b
     
     a = Dictionary()
     b = Dictionary()
-    call assertTrue(a == b)
+    @assertTrue(a == b)
 
   end subroutine testEqualsA
 
+@Test
   subroutine testEqualsB()
     type (Dictionary) :: a
     type (Dictionary) :: b
@@ -341,10 +362,11 @@ contains
     a = Dictionary()
     b = Dictionary()
     call a%insert('key1', 1)
-    call assertFalse(a == b)
+    @assertFalse(a == b)
 
   end subroutine testEqualsB
 
+@Test
   subroutine testEqualsC()
     type (Dictionary) :: a
     type (Dictionary) :: b
@@ -353,10 +375,11 @@ contains
     b = Dictionary()
     call a%insert('key1', 1)
     call b%insert('key1', 1)
-    call assertTrue(a == b)
+    @assertTrue(a == b)
 
   end subroutine testEqualsC
 
+@Test
   subroutine testEqualsD()
     type (Dictionary) :: a
     type (Dictionary) :: b
@@ -365,10 +388,11 @@ contains
     b = Dictionary()
     call a%insert('key1', 1)
     call b%insert('key2', 1)
-    call assertFalse(a == b)
+    @assertFalse(a == b)
 
   end subroutine testEqualsD
 
+@Test
   subroutine testEqualsE()
     type (Dictionary) :: a
     type (Dictionary) :: b
@@ -377,10 +401,11 @@ contains
     b = Dictionary()
     call a%insert('key1', 1)
     call b%insert('key1', 2)
-    call assertFalse(a == b)
+    @assertFalse(a == b)
 
   end subroutine testEqualsE
 
+@Test
   subroutine testEqualsF()
     type (Dictionary) :: a
     type (Dictionary) :: b
@@ -389,10 +414,11 @@ contains
     b = Dictionary()
     call a%insert('key1', [1,2])
     call b%insert('key1', [2])
-    call assertFalse(a == b)
+    @assertFalse(a == b)
 
   end subroutine testEqualsF
 
+@Test
   subroutine testEqualsG()
     type (Dictionary) :: a
     type (Dictionary) :: b
@@ -401,10 +427,11 @@ contains
     b = Dictionary()
     call a%insert('key1', [1,2])
     call b%insert('key1', [1,2])
-    call assertTrue(a == b)
+    @assertTrue(a == b)
 
   end subroutine testEqualsG
 
+@Test
   subroutine testEqualsH()
     type (Dictionary) :: a
     type (Dictionary) :: b
@@ -419,13 +446,14 @@ contains
     call b%insert('key2', .true.)
     call b%insert('key1', [1,2])
 
-    call assertTrue(a == b)
+    @assertTrue(a == b)
 
     call clean(a)
     call clean(b)
 
   end subroutine testEqualsH
 
+@Test
   subroutine testMergeInteger()
     type (Dictionary) :: aDictionary
     integer :: probe
@@ -437,24 +465,25 @@ contains
     ! 
     probe = 2
     call aDictionary%merge('a', probe)
-    call assertEqual(1, probe)
-    call assertTrue(all(1 == aDictionary%lookup('a')))
+    @assertEqual(1, probe)
+    @assertTrue(all(1 == aDictionary%lookup('a')))
 
     two = 2
     call aDictionary%merge('b', two)
-    call assertEqual(2, two)
-    call assertTrue(all(2 == aDictionary%lookup('b')))
+    @assertEqual(2, two)
+    @assertTrue(all(2 == aDictionary%lookup('b')))
 
     call clean(aDictionary)
   end subroutine testMergeInteger
 
+@Test
   subroutine testMergeDictionary()
     use GenericType_mod
     type (Dictionary) :: aDictionary
     type (Dictionary) :: otherDictionary
 
     integer :: expectedA
-    real(kind=r64) :: expectedB
+    real(kind=dp) :: expectedB
     logical :: expectedC
 
     aDictionary = Dictionary()
@@ -473,12 +502,12 @@ contains
     expectedB = 2.34d+0
     expectedC = .true.
 
-    call assertTrue(all(expectedA == aDictionary%lookup('a')))
-    call assertTrue(all(expectedB == aDictionary%lookup('b')))
-    call assertTrue(all(expectedC == aDictionary%lookup('c')))
+    @assertTrue(all(expectedA == aDictionary%lookup('a')))
+    @assertTrue(all(expectedB == aDictionary%lookup('b')))
+    @assertTrue(all(expectedC == aDictionary%lookup('c')))
 
     call clean(otherDictionary)
     call clean(aDictionary)
   end subroutine testMergeDictionary
 
-end module testDictionary_mod
+end module Test_Dictionary_mod

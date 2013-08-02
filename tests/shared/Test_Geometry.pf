@@ -1,9 +1,9 @@
-module testGeometry_mod
+module Test_Geometry_mod
 !@sum testGeometry_mod contains tests for the various convenience
 !@+   parameters and arrays that are associated with the lat-lon grid.
 !@+   Essentially these are test routines for GEOM_B.f
 !@auth Tom Clune <thomas.l.clune@nasa.gov>
-  use pFUnit
+  use pFUnit_mod
   use Geometry_mod
   implicit none
   private
@@ -14,6 +14,7 @@ module testGeometry_mod
 
 contains
 
+@Test
   subroutine testGetIndicesFromLatLon()
 !@sum Is the correct latitude index determined from latitude (in degrees)
     
@@ -65,12 +66,12 @@ contains
       type (Geometry_type), intent(in) :: geometry
       type (Case_type), intent(in) :: case
 
-      call assertEqual(case%expectedIndices, &
-           & getIndicesFromLatLon(geometry, case%degreesLongitude, case%degreesLatitude))
+      @assertEqual(case%expectedIndices, getIndicesFromLatLon(geometry, case%degreesLongitude, case%degreesLatitude))
     end subroutine checkCase
     
   end subroutine testGetIndicesFromLatLon
 
+@Test
   subroutine testGetIndices4x5()
 !@sum Ensure that box at poles on modelE 4x5 grid is half size of others.
     integer, parameter :: IM = 72
@@ -92,12 +93,13 @@ contains
       degreesLat = southPoleBoxCenter + (j - 1)*latSpacing
       do i = 1, IM
         degreesLon = -180. + (i - 0.5)*lonSpacing
-        call assertEqual([i,j], getIndicesFromLatLon(geometry, degreesLon, degreesLat))
+        @assertEqual([i,j], getIndicesFromLatLon(geometry, degreesLon, degreesLat))
       end do
     end do
 
   end subroutine testGetIndices4x5
 
+@Test
   subroutine testGetIndices8x10()
 !@sum Ensure that box at poles on modelE 8x10 grid is quarter size of others.
     integer, parameter :: IM = 36
@@ -119,10 +121,10 @@ contains
       degreesLat = southPoleBoxCenter + (j - 1)*latSpacing
       do i = 1, IM
         degreesLon = -180. + (i - 0.5)*lonSpacing
-        call assertEqual([i,j], getIndicesFromLatLon(geometry, degreesLon, degreesLat))
+        @assertEqual([i,j], getIndicesFromLatLon(geometry, degreesLon, degreesLat))
       end do
     end do
 
   end subroutine testGetIndices8x10
   
-end module testGeometry_mod
+end module Test_Geometry_mod

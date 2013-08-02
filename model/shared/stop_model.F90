@@ -61,13 +61,13 @@ subroutine throwException(message, retcode)
 !@+ stop_model() for run-time testing.
 !@auth T. Clune
 #ifdef USE_PFUNIT
-  use pFUnit
+  use pFUnit_mod
 #endif
   character(len=*), intent(in) :: message
   integer, intent(in) :: retcode
 
 #ifdef USE_PFUNIT
-  call throw(Exception(message))
+  call throw(message)
 #else
   call stop_model(message, retcode)
 #endif

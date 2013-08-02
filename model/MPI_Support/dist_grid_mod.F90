@@ -336,7 +336,6 @@ MODULE dist_grid_mod
      if(distGrid%npes_used<distGrid%npes_world) &
        jms(distGrid%npes_used:distGrid%npes_world-1) = 0
      ims(0) = im
-     if(rank==0) print *,__FILE__,im,jms
 #ifndef USE_ESMF
      AIbounds = MPIgridBounds(distGrid)
 #endif

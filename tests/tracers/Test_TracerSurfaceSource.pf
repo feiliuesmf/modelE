@@ -1,7 +1,11 @@
-module TestTracerSurfaceSource_mod
-  use pfunit
+module Test_TracerSurfaceSource_mod
+  use pfunit_mod
   use TracerSurfaceSource_mod
   implicit none
+  private
+
+  public testBracketDay
+  public testTransientBracketDecadeAndMonth
 
   ! scratch pad for legacy procedure
   ! bad practice, but the point here is to minimize
@@ -9,10 +13,9 @@ module TestTracerSurfaceSource_mod
   real*8 :: alpha, frac
   integer :: record(2,2)
 
-
 contains
 
-
+@Test
   subroutine testBracketDay()
 
     call check(  1, 12, 01, 15./31)
@@ -31,9 +34,9 @@ contains
       real*8 :: frac_found
 
       call bracketDay(day, monthA_found, monthB_found, frac_found)
-      call assertEqual(monthA, monthA_found, 'monthA')
-      call assertEqual(monthB, monthB_found, 'monthB')
-      call assertEqual(frac, frac_found, 'frac')
+      @assertEqual(monthA, monthA_found, 'monthA')
+      @assertEqual(monthB, monthB_found, 'monthB')
+      @assertEqual(frac, frac_found, 'frac')
     end subroutine check
 
   end subroutine testBracketDay
@@ -41,6 +44,8 @@ contains
   ! Legacy implementation of read_mon_src_2() was heavily refactored.
   ! This tests ensures that the correct interpolation is still used, by
   ! preserving (almost) the original logic of the legacy implementation.
+
+@Test
   subroutine testTransientBracketDecadeAndMonth()
     use JulianCalendar_mod, only: JDmidOfM, JDendOfM
     integer :: ty_start, ty_end, delTyr
@@ -92,16 +97,16 @@ contains
       call bracketDay(dayOfYear, monthA, monthB, frac_found)
 
       ! new implementation reads record (1 + month + offset) (+1 is from header)
-      call assertEqual(alpha, alpha_found,'alpha' // msg)
-      call assertEqual(frac, frac_found,'frac' //  msg)
+      @assertEqual(alpha, alpha_found,'alpha' // msg)
+      @assertEqual(frac, frac_found,'frac' //  msg)
 
       if (alpha /= 1.) then
-        call assertEqual(record(1,1), 1+monthA+offset1, 'record(1,1) monthA:yearA' // msg)
-        call assertEqual(record(2,1), 1+monthB+offset1, 'record(2,1) monthB:yearA' // msg)
+        @assertEqual(record(1,1), 1+monthA+offset1, 'record(1,1) monthA:yearA' // msg)
+        @assertEqual(record(2,1), 1+monthB+offset1, 'record(2,1) monthB:yearA' // msg)
       end if
       if (alpha /= 0.) then
-        call assertEqual(record(1,2), 1+monthA+offset2, 'record(1,2) monthA:yearB' // msg)
-        call assertEqual(record(2,2), 1+monthB+offset2, 'record(2,2) monthB:yearB' // msg)
+        @assertEqual(record(1,2), 1+monthA+offset2, 'record(1,2) monthA:yearB' // msg)
+        @assertEqual(record(2,2), 1+monthB+offset2, 'record(2,2) monthB:yearB' // msg)
       end if
 
 
@@ -220,4 +225,4 @@ contains
 
   end subroutine legacyImplementation
 
-end module TestTracerSurfaceSource_mod
+end module Test_TracerSurfaceSource_mod

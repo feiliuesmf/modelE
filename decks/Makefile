@@ -121,7 +121,7 @@ ifeq ($(PFUNIT),)
 	@echo '--- Need to set PFUNIT environment variable.    ---'
 	@echo '--- Then build gcm and finally build/run tests. ---'
 else
-	$(MAKE) -C $(TESTS_DIR) tests RUN=$(RUN)
+	$(MAKE) -C $(TESTS_DIR) all RUN=$(RUN)
 endif
 
 setup_nocomp:

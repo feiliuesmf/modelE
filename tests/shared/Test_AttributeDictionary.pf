@@ -1,43 +1,74 @@
-module TestAttributeDictionary_mod
-  use pfunit
+module Test_AttributeDictionary_mod
+  use pfunit_mod
   use AttributeDictionary_mod
   use Attributes_mod
 
   implicit none
 
-  type Fixture
+   public :: setUp
+   public :: tearDown
+
+   public :: Test_AttributeDictionary
+   interface Test_AttributeDictionary
+     module procedure newTest_AttributeDictionary
+   end interface Test_AttributeDictionary
+
+@TestCase
+   type, extends(TestCase) :: Test_AttributeDictionary
     type (AttributeDictionary) :: dictionary
-  end type Fixture
+      procedure(runMethod), pointer :: userMethod => null()
+   contains
+      procedure :: setUp     ! overides generic
+      procedure :: tearDown  ! overrides generic
+      procedure :: runMethod ! runs userMethod
+  end type Test_AttributeDictionary
 
 contains
 
+   function newTest_AttributeDictionary(name, userMethod) result(test)
+     type (Test_AttributeDictionary) :: test
+     character(len=*), intent(in) :: name
+     procedure(runMethod) :: userMethod
+
+     call test%setName(name)
+     test%userMethod => userMethod
+
+   end function newTest_AttributeDictionary
+
+   subroutine runMethod(this)
+     class (Test_AttributeDictionary), intent(inout) :: this
+     call this%userMethod()
+   end subroutine runMethod
+
   subroutine setUp(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_AttributeDictionary), intent(inout) :: this
     this%dictionary = newAttributeDictionary()
   end subroutine setUp
 
   subroutine tearDown(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_AttributeDictionary), intent(inout) :: this
     call clean(this%dictionary)
   end subroutine tearDown
 
   ! Test that class can insert intrinsic integer and cast to an integer pointer.
+@Test  
   subroutine testInsertIntegerAttribute(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_AttributeDictionary), intent(inout) :: this
     
     integer, pointer :: pInteger
 
     call this%dictionary%insert('A', 1)
 
     pInteger = this%dictionary%getReference('A')
-    call assertEqual(1, pInteger)
+    @assertEqual(1, pInteger)
 
   end subroutine testInsertIntegerAttribute
 
+@Test  
   subroutine testAssignAttributeReference(this)
     use AttributeReference_mod
     use IntegerAttribute_mod, only: assignment(=)
-    type (Fixture), intent(inout) :: this
+    class (Test_AttributeDictionary), intent(inout) :: this
     
     type (AttributeReference) :: scalar
     integer, pointer :: i => null()
@@ -49,13 +80,14 @@ contains
     call scalar%set(iattr)
 
     i = scalar
-    call assertEqual(1, i)
+    @assertEqual(1, i)
 
   end subroutine testAssignAttributeReference
 
+@Test  
   subroutine testAssignAttributeReferenceMulti(this)
     use AttributeReference_mod
-    type (Fixture), intent(inout) :: this
+    class (Test_AttributeDictionary), intent(inout) :: this
     
     type (AttributeReference), target :: vector(3)
     integer, pointer :: i(:)
@@ -73,64 +105,69 @@ contains
 
     i = vector
 
-    call assertEqual([1,2,5], i)
+    @assertEqual([1,2,5], i)
 
   end subroutine testAssignAttributeReferenceMulti
   
   ! Test that class can insert/cast intrinsic 1D integer arrays
+@Test  
   subroutine testInsertInteger1DAttribute(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_AttributeDictionary), intent(inout) :: this
     
     integer, pointer :: pInteger(:)
     call this%dictionary%insert('A', [1,2])
 
     pInteger = this%dictionary%getReference('A')
-    call assertEqual([1,2], pInteger)
+    @assertEqual([1,2], pInteger)
 
   end subroutine testInsertInteger1DAttribute
 
   ! Test that class can insert intrinsic double and cast to an double pointer.
+@Test  
   subroutine testInsertRealDPAttribute(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_AttributeDictionary), intent(inout) :: this
     
     real*8, pointer :: pRealDP
     real*8, parameter :: VALUE = 1.23d0
     call this%dictionary%insert('A', VALUE)
 
     pRealDP = this%dictionary%getReference('A')
-    call assertEqual(VALUE, pRealDP)
+    @assertEqual(VALUE, pRealDP)
 
   end subroutine testInsertRealDPAttribute
 
   ! Test that class can insert/cast intrinsic 1D integer arrays
+@Test  
   subroutine testInsertRealDP1DAttribute(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_AttributeDictionary), intent(inout) :: this
     
     real*8, pointer :: pRealDP(:)
     real*8, parameter :: VALUES(3) = [1.2,3.4,5.6]
     call this%dictionary%insert('A', VALUES)
 
     pRealDP = this%dictionary%getReference('A')
-    call assertEqual(VALUES, pRealDP)
+    @assertEqual(VALUES, pRealDP)
 
   end subroutine testInsertRealDP1DAttribute
 
   ! Test that class can insert intrinsic integer and cast to an integer pointer.
+@Test  
   subroutine testInsertStringAttribute(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_AttributeDictionary), intent(inout) :: this
     
     character(len=MAX_LEN_ATTRIBUTE_STRING), pointer :: pString
 
     call this%dictionary%insert('A', 'foo')
 
     pString = this%dictionary%getReference('A')
-    call assertEqual('foo', pString)
+    @assertEqual('foo', pString)
 
   end subroutine testInsertStringAttribute
 
   ! Test that class can insert intrinsic logical and cast to a logical pointer.
+@Test  
   subroutine testInsertLogicalAttribute(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_AttributeDictionary), intent(inout) :: this
     
     logical, pointer :: pLogical
     logical, parameter :: TRUE = .true.
@@ -140,41 +177,42 @@ contains
     call this%dictionary%insert('B', FALSE)
 
     pLogical = this%dictionary%getReference('A')
-    call assertTrue(pLogical)
+    @assertTrue(pLogical)
  
     pLogical = this%dictionary%getReference('B')
-    call assertFalse(pLogical)
+    @assertFalse(pLogical)
 
   end subroutine testInsertLogicalAttribute
 
+@Test  
   subroutine testComplexCase(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_AttributeDictionary), intent(inout) :: this
     integer, pointer :: betaValue
-    real(kind=r64), pointer :: gammaValue
+    real(kind=dp), pointer :: gammaValue
     logical, pointer :: deltaValues(:)
 
     call this%dictionary%insert('beta', 2)
     call this%dictionary%insert('gamma', 3.d0)
     call this%dictionary%insert('delta', [.true., .false., .true., .true.])
 
-    call assertEqual(3, this%dictionary%size())
-    call assertFalse(this%dictionary%has('alpha'), 'There should not be an "alpha".')
-    call assertTrue(this%dictionary%has('beta'), 'There should be a "beta".')
-    call assertTrue(this%dictionary%has('gamma'), 'There should be a "gamma".')
-    call assertTrue(this%dictionary%has('delta'), 'There should be a "delta".')
+    @assertEqual(3, this%dictionary%size())
+    @assertFalse(this%dictionary%has('alpha'), 'There should not be an "alpha".')
+    @assertTrue(this%dictionary%has('beta'), 'There should be a "beta".')
+    @assertTrue(this%dictionary%has('gamma'), 'There should be a "gamma".')
+    @assertTrue(this%dictionary%has('delta'), 'There should be a "delta".')
 
     betaValue = this%dictionary%getReference('beta')
-    call assertEqual(2, betaValue, 'Wrong value for "beta".')
+    @assertEqual(2, betaValue, 'Wrong value for "beta".')
 
     gammaValue = this%dictionary%getReference('gamma')
-    call assertEqual(3.d+0, gammaValue, 'Wrong value for "gamma".')
+    @assertEqual(3.d+0, gammaValue, 'Wrong value for "gamma".')
 
     gammaValue = this%dictionary%getReference('Gamma')
-    call assertEqual(3.d+0, gammaValue, 'Wrong value for "Gamma".')
+    @assertEqual(3.d+0, gammaValue, 'Wrong value for "Gamma".')
 
     deltaValues = this%dictionary%getReference('delta')
-    call assertTrue(all([.true.,.false.,.true.,.true.] .eqv. deltaValues), 'Wrong value for "delta".')
+    @assertTrue(all([.true.,.false.,.true.,.true.] .eqv. deltaValues), 'Wrong value for "delta".')
 
   end subroutine testComplexCase
   
-end module TestAttributeDictionary_mod
+end module Test_AttributeDictionary_mod

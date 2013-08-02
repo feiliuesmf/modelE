@@ -1,27 +1,51 @@
-module TestTracerBundle_mod
-  use pFUnit
+module Test_TracerBundle_mod
+  use pFUnit_mod
   use Tracer_mod
   use TracerBundle_mod
 
   implicit none
 
-  public :: setUp
-  public :: tearDown
-  public :: fixture
+   public :: setUp
+   public :: tearDown
+   public :: Test_TracerBundle
+   interface Test_TracerBundle
+     module procedure newTest_TracerBundle
+   end interface Test_TracerBundle
 
-  type fixture
-    type (Tracer), pointer :: speciesA
-    type (Tracer), pointer :: speciesB
-    type (TracerBundle) :: bundle
-    integer :: numTracers
-  end type fixture
+@TestCase
+   type, extends(TestCase) :: Test_TracerBundle
+     type (Tracer), pointer :: speciesA
+     type (Tracer), pointer :: speciesB
+     type (TracerBundle) :: bundle
+     integer :: numTracers
+      procedure(runMethod), pointer :: userMethod => null()
+   contains
+      procedure :: setUp     ! overides generic
+      procedure :: tearDown  ! overrides generic
+      procedure :: runMethod ! runs userMethod
+   end type Test_TracerBundle
+
+   integer, parameter :: dp = selected_real_kind(14)
 
 contains
+
+   function newTest_TracerBundle(name, userMethod) result(test)
+     type (Test_TracerBundle) :: test
+     character(len=*), intent(in) :: name
+     procedure(runMethod) :: userMethod
+     call test%setName(name)
+     test%userMethod => userMethod
+   end function newTest_TracerBundle
+
+   subroutine runMethod(this)
+     class (Test_TracerBundle), intent(inout) :: this
+     call this%userMethod()
+   end subroutine runMethod
 
   subroutine setUp(this)
     use FileManager
     use GenericType_mod
-    type (fixture) :: this
+    class (Test_TracerBundle), intent(inout) :: this
 
     type (Tracer), pointer :: speciesA, speciesB
     character(len=100) :: name
@@ -46,100 +70,60 @@ contains
   end subroutine setUp
 
   subroutine tearDown(this)
-    type (fixture) :: this
-
-!!$    call clean(this%speciesA)
-!!$    call clean(this%speciesB)
-!!$    deallocate(this%speciesA)
-!!$    deallocate(this%speciesB)
-
-!!$    call clean(this%bundle)
+    class (Test_TracerBundle), intent(inout) :: this
 
   end subroutine tearDown
 
+@Test
   subroutine testGetAttribute(this)
     use GenericType_mod
-    type (fixture) :: this
+    class (Test_TracerBundle), intent(inout) :: this
 
-    real(kind=r64) :: expected
-    real(kind=r64), pointer :: found
+    real(kind=dp) :: expected
+    real(kind=dp), pointer :: found
 
     expected = 1.2d+0
     found = this%bundle%getAttribute('speciesA', 'molecularMass')
-    call assertEqual(expected, found)
+    @assertEqual(expected, found)
 
   end subroutine testGetAttribute
 
+@Test
   subroutine testHasAttribute(this)
     use GenericType_mod
-    type (fixture) :: this
+    class (Test_TracerBundle), intent(inout) :: this
 
-    real(kind=r64) :: expected
+    real(kind=dp) :: expected
 
-    call assertTrue(all(this%bundle%hasAttribute('molecularMass')),'molecularMass')
-    call assertTrue(all([.true.,.false.] .eqv. this%bundle%hasAttribute('optionA')),'optionA')
+    @assertTrue(all(this%bundle%hasAttribute('molecularMass')),'molecularMass')
+    @assertTrue(all([.true.,.false.] .eqv. this%bundle%hasAttribute('optionA')),'optionA')
 
   end subroutine testHasAttribute
 
-!!$  subroutine testGetSubsetA(this)
-!!$    use GenericType_mod
-!!$    use KeyValuePair_mod
-!!$    type (fixture) :: this
-!!$
-!!$    type (TracerBundle) :: subset
-!!$    class (Tracer), pointer :: t
-!!$
-!!$    print*,__LINE__,__FILE__
-!!$    subset = this%bundle%makeSubset(withAttribute='optionA')
-!!$    print*,__LINE__,__FILE__
-!!$    call assertEqual(1, subset%size())
-!!$    print*,__LINE__,__FILE__
-!!$    t => subset%getReference('speciesA')
-!!$    print*,__LINE__,__FILE__
-!!$    call assertTrue(associated(t))
-!!$    print*,__LINE__,__FILE__
-!!$    call clean(subset)
-!!$    print*,__LINE__,__FILE__
-!!$
-!!$  end subroutine testGetSubsetA
-!!$
-!!$  subroutine testGetSubsetB(this)
-!!$    use GenericType_mod
-!!$    type (fixture) :: this
-!!$
-!!$    type (TracerBundle) :: subset
-!!$
-!!$    subset = this%bundle%makeSubset(withAttribute='optionD')
-!!$    call assertEqual(2, subset%size())
-!!$    call clean(subset)
-!!$
-!!$  end subroutine testGetSubsetB
-
+@Test
   subroutine testAddMandatoryA(this)
-    type (fixture) :: this
+    class (Test_TracerBundle), intent(inout) :: this
 
     call this%bundle%addMandatoryAttribute('molecularMass')
     call this%bundle%insert('otherTracer', newTracer('otherTracer'))
-    call assertFailedAssert( &
-         & "TracerBundle_mod - species 'otherTracer' is missing mandatory attribute 'molecularMass'.", &
-         & "Failed to detect missing mandatory option.")
+    call assertExceptionRaised("TracerBundle_mod - species otherTracer is missing mandatory attribute molecularMass and it failed to detect missing mandatory option.")
 
   end subroutine testAddMandatoryA
 
+@Test
   subroutine testAddMandatoryB(this)
-    type (fixture) :: this
+    class (Test_TracerBundle), intent(inout) :: this
 
     call this%bundle%addMandatoryAttribute('newAttribute')
 
-    call assertFailedAssert( &
-         & "TracerBundle_mod - species 'speciesA' is missing mandatory attribute 'newAttribute'.", &
-         & "Failed to detect missing mandatory option.")
+    call assertExceptionRaised( "TracerBundle_mod - species speciesA is missing mandatory attribute newAttribute and it failed to detect missing mandatory option.")
 
   end subroutine testAddMandatoryB
 
+@Test
   subroutine testDefaultValues(this)
     use GenericType_mod
-    type (fixture) :: this
+    class (Test_TracerBundle), intent(inout) :: this
     logical :: expectedOptionC
     logical, pointer :: foundOptionC
     integer :: expectedOptionD
@@ -150,22 +134,23 @@ contains
 
     foundOptionC = this%bundle%getAttribute('speciesA', 'optionC')
     expectedOptionC = .false.
-    call assertTrue(expectedOptionC .eqv. foundOptionC, 'first')
+    @assertTrue(expectedOptionC .eqv. foundOptionC, 'first')
 
     foundOptionC = this%bundle%getAttribute('speciesB', 'optionC')
     expectedOptionC = .true.
-    call assertTrue(expectedOptionC .eqv. foundOptionC, 'second')
+    @assertTrue(expectedOptionC .eqv. foundOptionC, 'second')
 
     foundOptionD = this%bundle%getAttribute('speciesA', 'optionD')
     expectedOptionD = 1
-    call assertTrue(expectedOptionD == foundOptionD, 'third')
+    @assertTrue(expectedOptionD == foundOptionD, 'third')
     
   end subroutine testDefaultValues
 
 ! Check that a new tracers have defaults applied
+@Test
   subroutine testDefaultAddNewTracer(this)
     use GenericType_mod
-    type (fixture) :: this
+    class (Test_TracerBundle), intent(inout) :: this
     
     integer, parameter :: EXPECTED_VALUE = 1
     integer, parameter :: OTHER_VALUE = 2
@@ -190,10 +175,10 @@ contains
     call aBundle%insert(NAME_2, aTracer)
 
     foundValue = aBundle%getAttribute(NAME_1, ATTRIBUTE)
-    call assertEqual(EXPECTED_VALUE, foundValue, 'default should be applied')
+    @assertEqual(EXPECTED_VALUE, foundValue, 'default should be applied')
 
     foundValue = aBundle%getAttribute(NAME_2, ATTRIBUTE)
-    call assertEqual(OTHER_VALUE, foundValue, 'default value should not override') 
+    @assertEqual(OTHER_VALUE, foundValue, 'default value should not override') 
 
     call clean(aTracer)
     call clean(aBundle)
@@ -201,9 +186,10 @@ contains
   end subroutine testDefaultAddNewTracer
 
 ! Check that a new default value is applied to existing tracers.
+@Test
   subroutine testDefaultApplyOld(this)
     use GenericType_mod
-    type (fixture) :: this
+    class (Test_TracerBundle), intent(inout) :: this
     
     integer, parameter :: EXPECTED_VALUE = 1
     integer, parameter :: OTHER_VALUE = 2
@@ -228,36 +214,21 @@ contains
     call aBundle%addDefault(ATTRIBUTE, EXPECTED_VALUE)
 
     foundValue = aBundle%getAttribute(NAME_1, ATTRIBUTE)
-    call assertEqual(EXPECTED_VALUE, foundValue, 'should obtain default')
+    @assertEqual(EXPECTED_VALUE, foundValue, 'should obtain default')
 
     foundValue = aBundle%getAttribute(NAME_2, ATTRIBUTE)
-    call assertEqual(OTHER_VALUE, foundValue, 'should not override existing value')
+    @assertEqual(OTHER_VALUE, foundValue, 'should not override existing value')
 
     call clean(aTracer)
     call clean(aBundle)
 
   end subroutine testDefaultApplyOld
 
-!!$  subroutine testLockSubset(this)
-!!$    type (Fixture) :: this
-!!$
-!!$    type (TracerBundle) :: subset
-!!$    class (Tracer), pointer :: t
-!!$    character(len=*), parameter :: NAME_1 = 'Tracer_1'
-!!$
-!!$    subset = this%bundle%makeSubset(withAttribute='optionA')
-!!$    call subset%insert(NAME_1, newTracer(NAME_1))
-!!$
-!!$    call assertFailedAssert( &
-!!$         & "TracerBundle_mod - cannot insert new tracer into subset. "// &
-!!$         & "Subsets are locked from modification.")
-!!$
-!!$  end subroutine testLockSubset
-
+@Test
   subroutine testGetAttributeVector(this)
     use AttributeReference_mod
     use Attributes_mod
-    type (fixture) :: this
+    class (Test_TracerBundle), intent(inout) :: this
 
     type (AttributeReference), pointer :: molecularMass(:)
     real*8, pointer :: mm1, mm2
@@ -266,24 +237,25 @@ contains
     molecularMass => null()
     molecularMass => this%bundle%getAttributeVector('molecularMass')
     molecularMass => this%bundle%getAttributeVector('molecularMass')
-    call assertTrue(associated(molecularMass))
+    @assertTrue(associated(molecularMass))
 
-    call assertEqual(2, size(molecularMass))
+    @assertEqual(2, size(molecularMass))
     mm1 = this%bundle%findAttribute('speciesA', 'molecularMass')
     mm1Found = molecularMass(1)
 
     mm2 = this%bundle%findAttribute('speciesB', 'molecularMass')
     mm2Found = molecularMass(2)
     
-    call assertEqual(mm1, mm1Found)
-    call assertEqual(mm2, mm2Found)
+    @assertEqual(mm1, mm1Found)
+    @assertEqual(mm2, mm2Found)
 
   end subroutine testGetAttributeVector
 
   ! The following test demonstrated a latent bug Intel's move_alloc used in AssociativeArray.
+@Test
   subroutine test_modelErepdroducer(this)
     use Attributes_mod
-    type (fixture) :: this
+    class (Test_TracerBundle), intent(inout) :: this
 
     class(Tracer), pointer :: t
     type (TracerBundle) :: bundle
@@ -325,4 +297,4 @@ contains
 
   end subroutine test_modelErepdroducer
 
-end module TestTracerBundle_mod
+end module Test_TracerBundle_mod

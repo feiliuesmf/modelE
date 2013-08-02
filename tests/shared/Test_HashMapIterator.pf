@@ -1,17 +1,46 @@
-module TestHashMapIterator_mod
-  use pfunit
+module Test_HashMapIterator_mod
+  use pfunit_mod
   use Foo_mod
   use FooHashMap_mod
   implicit none
 
-  type Fixture
+  public :: setUp
+  public :: tearDown
+
+  public :: Test_HashMapIterator
+  interface Test_HashMapIterator
+    module procedure newTest_HashMapIterator
+  end interface Test_HashMapIterator
+
+@TestCase
+  type, extends(TestCase) :: Test_HashMapIterator
     type (FooHashMap), pointer :: dictionary
-  end type Fixture
+     procedure(runMethod), pointer :: userMethod => null()
+  contains
+     procedure :: setUp     ! overides generic
+     procedure :: tearDown  ! overrides generic
+     procedure :: runMethod ! runs userMethod
+ end type Test_HashMapIterator
 
 contains
 
+   function newTest_HashMapIterator(name, userMethod) result(test)
+     type (Test_HashMapIterator) :: test
+     character(len=*), intent(in) :: name
+     procedure(runMethod) :: userMethod
+
+     call test%setName(name)
+     test%userMethod => userMethod
+
+   end function newTest_HashMapIterator
+
+   subroutine runMethod(this)
+     class (Test_HashMapIterator), intent(inout) :: this
+     call this%userMethod()
+   end subroutine runMethod
+
   subroutine setUp(this)
-    type (Fixture) :: this
+    class (Test_HashMapIterator), intent(inout) :: this
     this%dictionary => newFooHashMap()
     call this%dictionary%insert('A', Foo(1))
     call this%dictionary%insert('B', Foo(2))
@@ -19,21 +48,22 @@ contains
   end subroutine setUp
 
   subroutine tearDown(this)
-    type (Fixture) :: this
+    class (Test_HashMapIterator), intent(inout) :: this
     call clean(this%dictionary)
     deallocate(this%dictionary)
   end subroutine tearDown
   
   ! hasNext() returns false for empty associative array
+@Test  
   subroutine testIteratorHasNext_empty(this)
-    type (Fixture) :: this
+    class (Test_HashMapIterator), intent(inout) :: this
     type (FooHashMap), pointer :: emptyDictionary
     type (FooHashMapIterator) :: iterator
 
     emptyDictionary => newFooHashMap()
     iterator = emptyDictionary%begin()
 
-    call assertFalse(iterator%hasNext())
+    @assertFalse(iterator%hasNext())
 
     call clean(iterator)
     call clean(emptyDictionary)
@@ -41,15 +71,16 @@ contains
   end subroutine testIteratorHasNext_empty
 
   ! iter /= end() returns false for empty array
+@Test  
   subroutine testIteratorNotEqual_empty(this)
-    type (Fixture) :: this
+    class (Test_HashMapIterator), intent(inout) :: this
     type (FooHashMap), pointer :: emptyDictionary
     type (FooHashMapIterator) :: iterator
 
     emptyDictionary => newFooHashMap()
     iterator = emptyDictionary%begin()
 
-    call assertFalse(iterator /= emptyDictionary%last())
+    @assertFalse(iterator /= emptyDictionary%last())
 
     call clean(iterator)
     call clean(emptyDictionary)
@@ -57,12 +88,13 @@ contains
   end subroutine testIteratorNotEqual_empty
 
   ! hasNext() returns true for non-empty associative array
+@Test  
   subroutine testIteratorHasNext(this)
-    type (Fixture) :: this
+    class (Test_HashMapIterator), intent(inout) :: this
     type (FooHashMapIterator) :: iterator
 
     iterator = this%dictionary%begin()
-    call assertTrue(iterator%hasNext())
+    @assertTrue(iterator%hasNext())
 
     call clean(iterator)
     
@@ -70,23 +102,25 @@ contains
 
   ! hasNext() returns false for non-empty associative array after
   ! multiple calls to next()
+@Test  
   subroutine testIteratorHasNext_multi(this)
-    type (Fixture) :: this
+    class (Test_HashMapIterator), intent(inout) :: this
     type (FooHashMapIterator) :: iterator
 
     iterator = this%dictionary%begin()
     call iterator%next() ! 2nd element of 3
-    call assertTrue(iterator%hasNext())
+    @assertTrue(iterator%hasNext())
     call iterator%next() ! 3rd element of 3
-    call assertFalse(iterator%hasNext())
+    @assertFalse(iterator%hasNext())
 
     call clean(iterator)
     
   end subroutine testIteratorHasNext_multi
 
   ! Use iterator in a loop context.
+@Test  
   subroutine testLoop(this)
-    type (Fixture) :: this
+    class (Test_HashMapIterator), intent(inout) :: this
     type (FooHashMapIterator) :: iterator
     type (FooHashMapIterator) :: iterEnd
 
@@ -100,14 +134,15 @@ contains
       counter = counter + 1
     end do
 
-    call assertEqual(this%dictionary%size(), counter)
+    @assertEqual(this%dictionary%size(), counter)
 
     call clean(iterator)
     
   end subroutine testLoop
 
+@Test  
   subroutine testKeyValue(this)
-    type (Fixture) :: this
+    class (Test_HashMapIterator), intent(inout) :: this
     type (FooHashMapIterator) :: iterator
     
     logical :: foundA
@@ -139,8 +174,8 @@ contains
       call iterator%next()
     end do
 
-    call assertTrue( all([ foundA, foundB, foundC ]) )
-    call assertEqual([1,2,3], [ valueA%value,valueB%value,valueC%value ])
+    @assertTrue( all([ foundA, foundB, foundC ]) )
+    @assertEqual([1,2,3], [ valueA%value,valueB%value,valueC%value ])
 
     call clean(iterator)
     nullify(valueA)
@@ -149,4 +184,4 @@ contains
 
   end subroutine testKeyValue
 
-end module TestHashMapIterator_mod
+end module Test_HashMapIterator_mod

@@ -1,95 +1,130 @@
-module TestHashMap_mod
-  use pFUnit
+module Test_HashMap_mod
+  use pFUnit_mod
   use Foo_mod
   use FooHashMap_mod
   implicit none
 
-  ! using a fixture to help enforce cleanup
-  type Fixture
+  public :: setUp
+  public :: tearDown
+
+  public :: Test_HashMap
+  interface Test_HashMap
+    module procedure newTest_HashMap
+  end interface Test_HashMap
+
+@TestCase
+   type, extends(TestCase) :: Test_HashMap
     type (FooHashMap), pointer :: dictionary
-  end type Fixture
+      procedure(runMethod), pointer :: userMethod => null()
+   contains
+      procedure :: setUp     ! overides generic
+      procedure :: tearDown  ! overrides generic
+      procedure :: runMethod ! runs userMethod
+  end type Test_HashMap
 
 contains
 
+   function newTest_HashMap(name, userMethod) result(test)
+     type (Test_HashMap) :: test
+     character(len=*), intent(in) :: name
+     procedure(runMethod) :: userMethod
+
+     call test%setName(name)
+     test%userMethod => userMethod
+
+   end function newTest_HashMap
+
+   subroutine runMethod(this)
+     class (Test_HashMap), intent(inout) :: this
+     call this%userMethod()
+   end subroutine runMethod
+
   subroutine setUp(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_HashMap), intent(inout) :: this
     this%dictionary => newFooHashMap(100)
   end subroutine setUp
 
   subroutine tearDown(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_HashMap), intent(inout) :: this
     call clean(this%dictionary)
     deallocate(this%dictionary)
   end subroutine tearDown
 
   ! An empty dictionary has 0 size
+@Test  
   subroutine testSize_empty(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_HashMap), intent(inout) :: this
 
-    call assertEqual(0, this%dictionary%size())
+    @assertEqual(0, this%dictionary%size())
 
   end subroutine testSize_empty
 
   ! Each insert() should increase the size by 1
+@Test  
   subroutine testSizeAfterInsert(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_HashMap), intent(inout) :: this
 
     call this%dictionary%insert('A', Foo(2))
-    call assertEqual(1, this%dictionary%size())
+    @assertEqual(1, this%dictionary%size())
 
     call this%dictionary%insert('B', Foo(3))
-    call assertEqual(2, this%dictionary%size())
+    @assertEqual(2, this%dictionary%size())
 
   end subroutine testSizeAfterInsert
 
   ! has() should return FALSE if key has not been used.
+@Test  
   subroutine testHas_missing(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_HashMap), intent(inout) :: this
 
-    call assertFalse(this%dictionary%has('A'))
+    @assertFalse(this%dictionary%has('A'))
 
   end subroutine testHas_missing
 
   ! has() should return true only for keys that have been used.
+@Test  
   subroutine testHas(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_HashMap), intent(inout) :: this
 
     call this%dictionary%insert('A', Foo(1))
 
-    call assertTrue(this%dictionary%has('A'))  ! A is in dictionary
-    call assertFalse(this%dictionary%has('B')) ! B is not
+    @assertTrue(this%dictionary%has('A')) 
+    @assertFalse(this%dictionary%has('B'))
 
   end subroutine testHas
 
   ! getReference() returns nonassociated pointer for keys that have not been used.
+@Test  
   subroutine testGetReference_notFound(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_HashMap), intent(inout) :: this
     class (Foo), pointer :: p
 
     call this%dictionary%insert('A', Foo(1))
     p => this%dictionary%getReference('B')
-    call assertTrue(.not. associated(p))
+    @assertTrue(.not. associated(p))
 
   end subroutine testGetReference_notFound
 
   ! getReference() returns pointer to entry.
+@Test  
   subroutine testGetReference(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_HashMap), intent(inout) :: this
     class (Foo), pointer :: p
 
     call this%dictionary%insert('A', Foo(2))
 
     p => this%dictionary%getReference('A')
     if (.not. catch(preserve=.true.)) then
-      call assertEqual(2, p%value)
+      @assertEqual(2, p%value)
     end if
 
   end subroutine testGetReference
 
   ! This test ensures that the correct entry is selected when there
   ! are multiple entries.
+@Test  
   subroutine testGetReferenceB(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_HashMap), intent(inout) :: this
     class (Foo), pointer :: p
 
     call this%dictionary%insert('A', Foo(1))
@@ -98,7 +133,7 @@ contains
 
     p => this%dictionary%getReference('B')
     if (.not. catch(preserve=.true.)) then
-      call assertEqual(2, p%value)
+      @assertEqual(2, p%value)
     end if
 
     p => this%dictionary%getReference('A')
@@ -106,22 +141,24 @@ contains
 
   end subroutine testGetReferenceB
 
+@Test  
   subroutine testMerge(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_HashMap), intent(inout) :: this
     type (FooHashMap), pointer :: otherDictionary
 
     call this%dictionary%insert('A', Foo(1))
     otherDictionary => newFooHashMap(100)
     call otherDictionary%insert('B', Foo(2))
     call otherDictionary%merge(this%dictionary)
-    call assertTrue(otherDictionary%has('A'))
+    @assertTrue(otherDictionary%has('A'))
 
     call clean(otherDictionary)
 
   end subroutine testMerge
 
+@Test  
   subroutine testStress(this)
-    type (Fixture), intent(inout) :: this
+    class (Test_HashMap), intent(inout) :: this
 
     integer :: i, j
     integer, parameter :: NUM_ENTRIES = 1000
@@ -145,7 +182,7 @@ contains
       call this%dictionary%insert(key, Foo(i))
       f => this%dictionary%getReference(key)
 
-      call assertEqual(i, f%value)
+      @assertEqual(i, f%value)
 
     end do
     call system_clock(c1)
@@ -153,4 +190,4 @@ contains
 
   end subroutine testStress
 
-end module TestHashMap_mod
+end module Test_HashMap_mod
