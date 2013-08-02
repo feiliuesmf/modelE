@@ -149,7 +149,7 @@
       Use RESOLUTION, Only: LM, MTOP
       Use ATM_COM,    Only: PEDN,PMID,PDSIG,PK
       Use DOMAIN_DECOMP_ATM, Only: GRID
-      Use DOMAIN_DECOMP_1D,  Only: GetDomainBounds
+      Use DOMAIN_DECOMP_1D,  Only: GetDomainBounds, HALO_UPDATE_COLUMN, SOUTH
       Implicit  None
       Real*8,Intent(In) :: MA(LM, GRID%I_STRT_HALO:GRID%I_STOP_HALO, GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       Real*8  :: M
@@ -166,6 +166,11 @@
            PDSIG(L,I,J) = kg2mb * MA(L,I,J)
               PK(L,I,J) = PMID(L,I,J)**KAPA
             M = M + MA(L,I,J)  ;  EndDo  ;  EndDo  ;  EndDo
+
+      Call HALO_UPDATE_COLUMN (GRID, PEDN , From=SOUTH)
+      Call HALO_UPDATE_COLUMN (GRID, PMID , From=SOUTH)
+      Call HALO_UPDATE_COLUMN (GRID, PDSIG, From=SOUTH)
+      Call HALO_UPDATE_COLUMN (GRID, PK   , From=SOUTH)
       Return
       EndSubroutine MAtoP
 
