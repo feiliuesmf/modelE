@@ -1,79 +1,92 @@
+.PHONY: clean tests all createTestSuites
+
 EXTERNAL_CPP = NO
 CONFIG_DIR = ../config
 SOURCE_DIR = ../model
 DECKS_DIR = ../decks
+USE_MPI = NO
+ifeq ($(MPI),YES)
+  USE_MPI = YES
+endif
 
-# List of all testable modelE components
 INCS := $(foreach ITEM, $(COMPONENTS), $(SOURCE_DIR)/$(ITEM))
 COMPLIBS = $(shell perl -e 'print reverse <>;' < $(SOURCE_DIR)/.liblist)
-#LIBS := $(foreach ITEM, $(COMPONENTS), $(SOURCE_DIR)/$(ITEM)/lib$(ITEM).a)
 LIBS := $(foreach ITEM, $(COMPLIBS), $(SOURCE_DIR)/$(ITEM))
 
-# Determine modelE components to be tested based on library availability
+# Determine modelE components to be tested based on availability
 
-LIBSAVAIL := $(wildcard $(LIBS))
-PFUNIT_LFLAGS += $(foreach ITEM, $(LIBSAVAIL), $(ITEM))
-PFUNIT_LFLAGS += -L$(PNETCDFHOME)/lib -lpnetcdf
-PFUNIT_LFLAGS += -L$(NETCDFHOME)/lib -lnetcdf
-PFUNIT_TEST_DIRECTORIES := $(foreach ITEM, $(COMPONENTS), ./$(ITEM))
+TESTDIRS := $(foreach ITEM, $(COMPONENTS), $(wildcard $(ITEM)))
+ifeq ($(USE_MPI),NO)
+  TESTDIRS := $(filter-out MPI_Support,$(TESTDIRS))
+endif
 
-INCSAVAIL := $(wildcard $(INCS))
-EXTRA_FFLAGS += $(foreach ITEM, $(INCSAVAIL), -I$(ITEM)) -I$(SOURCE_DIR)/include
+TESTLIBS := $(foreach ITEM, $(TESTDIRS), $(ITEM)/lib$(ITEM).a)
+# The inclue paths are different when compiling tests and executable
+TESTINCS := $(foreach ITEM, $(TESTDIRS), -I../$(SOURCE_DIR)/$(ITEM))
+EXEINCS := $(foreach ITEM, $(TESTDIRS), -I$(ITEM))
+
+PFLIB = -L$(PFUNIT)/lib -lpfunit
+IOLIB += -L$(NETCDFHOME)/lib -lnetcdf 
 
 # Defaults
 
-USE_MPI = NO
-PFUNIT_USE_MPI = NO
-
-ifeq ($(COMPILER),intel)
-  FC = ifort
-  EXTRA_FFLAGS += -g -O0 -traceback -fpp -O2 -check bounds
-else
-  FC = gfortran
-  EXTRA_FFLAGS += -g -O0 
+ifeq ($(COMPILER), intel)
+  PFUNITMK := Intel.mk
+endif
+ifeq ($(COMPILER), gfortran)
+  PFUNITMK := GNU.mk
+endif
+ifeq ($(COMPILER), nag)
+  PFUNITMK := NAG.mk
+  F90FLAGS += -fpp
 endif
 
-EXTRA_FFLAGS += $(CPPFLAGS)
+# Sets F90 and additional F90FLAGS
+include $(PFUNIT)/include/$(PFUNITMK)
+F90FLAGS += $(CPPFLAGS) -I$(PFUNIT)/mod -I$(PFUNIT)/include -I.
+EXEFLAGS += $(CPPFLAGS) -I$(PFUNIT)/mod -I$(PFUNIT)/include 
+F90FLAGS += $(TESTINCS)
+EXEFLAGS += $(EXEINCS)
 
-ifeq ($(MPI),YES)
-  USE_MPI = YES
-  MPI_FC := mpif90
-  MPIRUN := mpirun
-  PFUNIT_NPES := 10
-  PFUNIT_USE_MPI := YES
-  PFUNIT_MPI_HOSTFILE=--hostfile my-hostfile
-  export PFUNIT_MPI_HOSTFILE
+ifeq ($(USE_MPI),YES)
+  F90 := mpif90
+  EXEFLAGS += -DUSE_MPI -DUSE_PFUNIT
+  IOLIB += -L$(PNETCDFHOME)/lib -lpnetcdf
 endif
+
+export F90FLAGS
+export F90
+export USE_MPI
 
 # Targets:
 
-clean: 
-	$(RM) *.o *_wrap.F90 *.mod suite_list 
+createTestSuites:
+	rm -f testSuites.inc
+	@for f in ${TESTDIRS}; do \
+	echo \#include \"$${f}/testSuites.inc\" >> testSuites.inc; \
+	done;
+
+EXE = tests.x
+
+$(EXE): createTestSuites testSuites.inc tests
+	$(F90) -o $@ $(EXEFLAGS) $(PFUNIT)/include/driver.F90 $(TESTLIBS) $(LIBS) $(PFLIB) $(IOLIB)
+
+clean:
+	@for dir in $(TESTDIRS); do \
+	make -C $$dir clean; done
 
 distclean:
 	make clean
-	$(RM) *.a *.x $(DECKS_DIR)/components
+	$(RM) *.o *.mod *.x
 
-$(PFUNIT_TEST_EXECUTABLE) : $(LIBSAVAIL)
+tests:
+	@for dir in $(TESTDIRS); do \
+	make -C $$dir all; done
 
-PFUNIT_TEST_PATTERNS = test% Test%
+all: $(EXE)
 ifeq ($(MPI),YES)
-  PFUNIT_TEST_PATTERNS += mpiTest% 
+	mpirun -np 12 ./$(EXE)
+else
+	./$(EXE)
 endif
-
-ifdef PFUNIT
-  include $(PFUNIT)/include/pFUnit.makefile
-endif
-
-# Rules
-FooAssociativeArray.o: ../model/include/AssociativeArrayTemplate.h
-FooHashMap.o: ../model/include/HashMapTemplate.h
-TestAssociativeArray.o : FooAssociativeArray.o
-TestHashMap.o : FooHashMap.o FooAssociativeArray.o
-TestAssociativeArrayIterator.o : FooAssociativeArray.o
-PFUNIT_APP_OBJECTS=FooAssociativeArray.o
-PFUNIT_APP_OBJECTS+=FooHashMap.o
-
-%.o : %.F90
-	$(FC) -c $(EXTRA_FFLAGS) $($(PFUNIT_FFLAGS_VARIABLE)) $<
 

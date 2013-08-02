@@ -1,0 +1,48 @@
+module Test_Tracer_mod
+  use pFUnit_mod
+  use Tracer_mod
+  use Dictionary_mod, only: Dictionary
+  implicit none
+  private
+
+  public :: testHasProperty
+  public :: testSetProperty
+
+  integer, parameter :: dp = selected_real_kind(14)
+
+contains
+
+@Test
+  subroutine testSetProperty()
+    use GenericType_mod
+    use Dictionary_mod
+
+    real(kind=dp) :: expected
+    real(kind=dp), pointer :: found
+    type (Dictionary), pointer :: properties
+    type (Tracer), pointer :: aTracer
+
+    aTracer => newTracer('speciesA')
+    expected = 1.0
+    call aTracer%insert('otherProperty', expected)
+    allocate(found)
+    found = aTracer%getReference('otherProperty')
+    @assertEqual(expected, found)
+    call clean(aTracer)
+
+  end subroutine testSetProperty
+
+@Test
+  subroutine testHasProperty()
+    use GenericType_mod
+
+    real(kind=dp) :: expected, found
+    type (Tracer), pointer :: aTracer
+
+    aTracer => newTracer('speciesA')
+    call aTracer%insert('optionA', 'description')
+    @assertFalse(aTracer%has('optionB'))
+
+  end subroutine testHasProperty
+
+end module Test_Tracer_mod

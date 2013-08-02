@@ -1,0 +1,4 @@
+ADD_TEST_SUITE(Test_Tracer_mod_suite)
+ADD_TEST_SUITE(Test_TracerBundle_mod_suite)
+ADD_TEST_SUITE(Test_TracerIO_mod_suite)
+ADD_TEST_SUITE(Test_TracerSurfaceSource_mod_suite)

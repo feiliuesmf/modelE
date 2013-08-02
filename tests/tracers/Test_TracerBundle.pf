@@ -1,0 +1,300 @@
+module Test_TracerBundle_mod
+  use pFUnit_mod
+  use Tracer_mod
+  use TracerBundle_mod
+
+  implicit none
+
+   public :: setUp
+   public :: tearDown
+   public :: Test_TracerBundle
+   interface Test_TracerBundle
+     module procedure newTest_TracerBundle
+   end interface Test_TracerBundle
+
+@TestCase
+   type, extends(TestCase) :: Test_TracerBundle
+     type (Tracer), pointer :: speciesA
+     type (Tracer), pointer :: speciesB
+     type (TracerBundle) :: bundle
+     integer :: numTracers
+      procedure(runMethod), pointer :: userMethod => null()
+   contains
+      procedure :: setUp     ! overides generic
+      procedure :: tearDown  ! overrides generic
+      procedure :: runMethod ! runs userMethod
+   end type Test_TracerBundle
+
+   integer, parameter :: dp = selected_real_kind(14)
+
+contains
+
+   function newTest_TracerBundle(name, userMethod) result(test)
+     type (Test_TracerBundle) :: test
+     character(len=*), intent(in) :: name
+     procedure(runMethod) :: userMethod
+     call test%setName(name)
+     test%userMethod => userMethod
+   end function newTest_TracerBundle
+
+   subroutine runMethod(this)
+     class (Test_TracerBundle), intent(inout) :: this
+     call this%userMethod()
+   end subroutine runMethod
+
+  subroutine setUp(this)
+    use FileManager
+    use GenericType_mod
+    class (Test_TracerBundle), intent(inout) :: this
+
+    type (Tracer), pointer :: speciesA, speciesB
+    character(len=100) :: name
+
+    this%speciesA => newTracer('speciesA')
+    call this%speciesA%insert('molecularMass', 1.2d+0)
+    call this%speciesA%insert('optionA', .true.)
+    call this%speciesA%insert('optionC', .false.)
+    call this%speciesA%insert('optionD', 1)
+
+    this%speciesB => newTracer('speciesB')
+    call this%speciesB%insert('molecularMass', 2.3d+0)
+    call this%speciesB%insert('optionB', .false.)
+    call this%speciesB%insert('optionD', 2)
+
+    this%bundle = newTracerBundle()
+    name = getName(this%speciesA)
+    call this%bundle%insert(getName(this%speciesA), this%speciesA)
+    call this%bundle%insert(getName(this%speciesB), this%speciesB)
+    this%numTracers = 2
+
+  end subroutine setUp
+
+  subroutine tearDown(this)
+    class (Test_TracerBundle), intent(inout) :: this
+
+  end subroutine tearDown
+
+@Test
+  subroutine testGetAttribute(this)
+    use GenericType_mod
+    class (Test_TracerBundle), intent(inout) :: this
+
+    real(kind=dp) :: expected
+    real(kind=dp), pointer :: found
+
+    expected = 1.2d+0
+    found = this%bundle%getAttribute('speciesA', 'molecularMass')
+    @assertEqual(expected, found)
+
+  end subroutine testGetAttribute
+
+@Test
+  subroutine testHasAttribute(this)
+    use GenericType_mod
+    class (Test_TracerBundle), intent(inout) :: this
+
+    real(kind=dp) :: expected
+
+    @assertTrue(all(this%bundle%hasAttribute('molecularMass')),'molecularMass')
+    @assertTrue(all([.true.,.false.] .eqv. this%bundle%hasAttribute('optionA')),'optionA')
+
+  end subroutine testHasAttribute
+
+@Test
+  subroutine testAddMandatoryA(this)
+    class (Test_TracerBundle), intent(inout) :: this
+
+    call this%bundle%addMandatoryAttribute('molecularMass')
+    call this%bundle%insert('otherTracer', newTracer('otherTracer'))
+    call assertExceptionRaised("TracerBundle_mod - species otherTracer is missing mandatory attribute molecularMass and it failed to detect missing mandatory option.")
+
+  end subroutine testAddMandatoryA
+
+@Test
+  subroutine testAddMandatoryB(this)
+    class (Test_TracerBundle), intent(inout) :: this
+
+    call this%bundle%addMandatoryAttribute('newAttribute')
+
+    call assertExceptionRaised( "TracerBundle_mod - species speciesA is missing mandatory attribute newAttribute and it failed to detect missing mandatory option.")
+
+  end subroutine testAddMandatoryB
+
+@Test
+  subroutine testDefaultValues(this)
+    use GenericType_mod
+    class (Test_TracerBundle), intent(inout) :: this
+    logical :: expectedOptionC
+    logical, pointer :: foundOptionC
+    integer :: expectedOptionD
+    integer, pointer :: foundOptionD
+
+    call this%bundle%addDefault('optionC', .true.)
+    call this%bundle%addDefault('optionD',  1)
+
+    foundOptionC = this%bundle%getAttribute('speciesA', 'optionC')
+    expectedOptionC = .false.
+    @assertTrue(expectedOptionC .eqv. foundOptionC, 'first')
+
+    foundOptionC = this%bundle%getAttribute('speciesB', 'optionC')
+    expectedOptionC = .true.
+    @assertTrue(expectedOptionC .eqv. foundOptionC, 'second')
+
+    foundOptionD = this%bundle%getAttribute('speciesA', 'optionD')
+    expectedOptionD = 1
+    @assertTrue(expectedOptionD == foundOptionD, 'third')
+    
+  end subroutine testDefaultValues
+
+! Check that a new tracers have defaults applied
+@Test
+  subroutine testDefaultAddNewTracer(this)
+    use GenericType_mod
+    class (Test_TracerBundle), intent(inout) :: this
+    
+    integer, parameter :: EXPECTED_VALUE = 1
+    integer, parameter :: OTHER_VALUE = 2
+    character(len=*), parameter :: NAME_1 = 'Tracer_1'
+    character(len=*), parameter :: NAME_2 = 'Tracer_2'
+    character(len=*), parameter :: ATTRIBUTE = 'newAttribute'
+    integer, pointer :: foundValue
+
+    type (Tracer), pointer :: aTracer
+    type (TracerBundle) :: aBundle
+
+!TODO - this is only needed because of unbalanced setUp/tearDown
+    this%bundle = newTracerBundle()
+
+    aBundle = newTracerBundle()
+    call aBundle%addDefault(ATTRIBUTE, EXPECTED_VALUE)
+
+    call aBundle%insert(NAME_1, newTracer(NAME_1))
+
+    aTracer => newTracer(NAME_2)
+    call aTracer%insert(ATTRIBUTE, OTHER_VALUE)
+    call aBundle%insert(NAME_2, aTracer)
+
+    foundValue = aBundle%getAttribute(NAME_1, ATTRIBUTE)
+    @assertEqual(EXPECTED_VALUE, foundValue, 'default should be applied')
+
+    foundValue = aBundle%getAttribute(NAME_2, ATTRIBUTE)
+    @assertEqual(OTHER_VALUE, foundValue, 'default value should not override') 
+
+    call clean(aTracer)
+    call clean(aBundle)
+
+  end subroutine testDefaultAddNewTracer
+
+! Check that a new default value is applied to existing tracers.
+@Test
+  subroutine testDefaultApplyOld(this)
+    use GenericType_mod
+    class (Test_TracerBundle), intent(inout) :: this
+    
+    integer, parameter :: EXPECTED_VALUE = 1
+    integer, parameter :: OTHER_VALUE = 2
+    character(len=*), parameter :: NAME_1 = 'Tracer_1'
+    character(len=*), parameter :: NAME_2 = 'Tracer_2'
+    character(len=*), parameter :: ATTRIBUTE = 'newAttribute'
+    integer, pointer :: foundValue
+
+    type (Tracer), pointer :: aTracer
+    type (TracerBundle) :: aBundle
+
+!TODO - this is only needed because of unbalanced setUp/tearDown
+    this%bundle = newTracerBundle()
+
+    aBundle = newTracerBundle()
+    call aBundle%insert(NAME_1, newTracer(NAME_1))
+
+    aTracer => newTracer(NAME_2)
+    call aTracer%insert(ATTRIBUTE, OTHER_VALUE)
+    call aBundle%insert(NAME_2, aTracer)
+
+    call aBundle%addDefault(ATTRIBUTE, EXPECTED_VALUE)
+
+    foundValue = aBundle%getAttribute(NAME_1, ATTRIBUTE)
+    @assertEqual(EXPECTED_VALUE, foundValue, 'should obtain default')
+
+    foundValue = aBundle%getAttribute(NAME_2, ATTRIBUTE)
+    @assertEqual(OTHER_VALUE, foundValue, 'should not override existing value')
+
+    call clean(aTracer)
+    call clean(aBundle)
+
+  end subroutine testDefaultApplyOld
+
+@Test
+  subroutine testGetAttributeVector(this)
+    use AttributeReference_mod
+    use Attributes_mod
+    class (Test_TracerBundle), intent(inout) :: this
+
+    type (AttributeReference), pointer :: molecularMass(:)
+    real*8, pointer :: mm1, mm2
+    real*8, pointer :: mm1Found, mm2Found
+
+    molecularMass => null()
+    molecularMass => this%bundle%getAttributeVector('molecularMass')
+    molecularMass => this%bundle%getAttributeVector('molecularMass')
+    @assertTrue(associated(molecularMass))
+
+    @assertEqual(2, size(molecularMass))
+    mm1 = this%bundle%findAttribute('speciesA', 'molecularMass')
+    mm1Found = molecularMass(1)
+
+    mm2 = this%bundle%findAttribute('speciesB', 'molecularMass')
+    mm2Found = molecularMass(2)
+    
+    @assertEqual(mm1, mm1Found)
+    @assertEqual(mm2, mm2Found)
+
+  end subroutine testGetAttributeVector
+
+  ! The following test demonstrated a latent bug Intel's move_alloc used in AssociativeArray.
+@Test
+  subroutine test_modelErepdroducer(this)
+    use Attributes_mod
+    class (Test_TracerBundle), intent(inout) :: this
+
+    class(Tracer), pointer :: t
+    type (TracerBundle) :: bundle
+
+    bundle = newTracerBundle()
+    
+    t=> newTracer('Ox')
+    call bundle%insert(t)
+    t => bundle%getReference('Ox')
+    call t%insert('index', 1)
+
+    t=> newTracer('NOx')
+    call bundle%insert(t)
+    t => bundle%getReference('NOx')
+    call t%insert('index', 2)
+
+    t=> newTracer('ClOx')
+    call bundle%insert(t)
+    t => bundle%getReference('ClOx')
+    call t%insert('index', 3)
+
+    t=> newTracer('BrOx')
+    call bundle%insert(t)
+
+    t => bundle%getReference('BrOx')
+    call t%insert('index', 4)
+
+    t=> newTracer('N2O5')
+    call bundle%insert(t)
+
+    t=> newTracer('DMS')
+    call bundle%insert(t)
+    t => bundle%getReference('DMS')
+    call t%insert('index', 6)
+
+    call bundle%setAttribute('N2O5', "ntm_power", newAttribute(-12))
+    call bundle%setAttribute('N2O5', "tr_mm", newAttribute(108.02d0))
+    call bundle%setAttribute('N2O5', "mass2vol", newAttribute(1.234d0))
+
+  end subroutine test_modelErepdroducer
+
+end module Test_TracerBundle_mod
