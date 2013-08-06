@@ -657,9 +657,10 @@ C**** box and a model grid box weighted by 1/EK; wave_length=sqrt(area)
 
 #ifndef CUBED_SPHERE /* ends with io_strat */
 
-      SUBROUTINE VDIFF (P,U,V,UT,VT,T,DT1)
+      Subroutine VDIFF (DT1, UT,VT, U,V,T)
 !@sum VDIFF Vertical Diffusion in stratosphere
 !@auth Bob Suozzo/Jean Lerner
+!**** If GWDRAG is disabled then VDIFF needs halo PEDN,PMID
 C****
 C**** Vertical diffusion coefficient depends on wind shear.
 C**** Uses TRIDIAG for implicit scheme (MU=1) as in diffuse53.
@@ -668,7 +669,7 @@ C****
       USE CONSTANT, only : rgas,grav,twopi,kapa,sha
       USE RESOLUTION, only : ptop,ls1
       USE RESOLUTION, only : im,jm,lm
-      Use ATM_COM,    Only: PMID,PK
+      Use ATM_COM,    Only: PEDN,PMID,PK
       USE DYNAMICS, only : mrch
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE, NORTH, SOUTH
@@ -686,7 +687,7 @@ C****
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                             RHO, DUT, DVT, DKE
       REAL*8, DIMENSION(0:LDIFM+1) :: UL,VL,TL,PL,RHOL
-      REAL*8, DIMENSION(LDIFM) :: AIRM,AM,AL,AU,B,DU,DV,P00,AML
+      Real*8 :: DP(LM),AM(LM),AL(LM),AU(LM),B(LM),DU(LM),DV(LM)
       REAL*8, DIMENSION(LDIFM+1) :: PLE,RHOE,DPE,DFLX,KMEDGE,KHEDGE
       REAL*8, PARAMETER :: MU=1.
       REAL*8, INTENT(INOUT),
@@ -695,8 +696,6 @@ C****
       REAL*8, INTENT(IN),
      *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                                        UT,VT
-      REAL*8, INTENT(INOUT),
-     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: P
       REAL*8, INTENT(IN) :: DT1
       REAL*8 G2DT,PIJ,TPHYS,ANGM,DPT,DUANG
       INTEGER I,J,L,IP1,NDT,N,LMAX
@@ -762,7 +761,6 @@ C**** Fill in T,RHO at poles (again shouldn't this be done already?)
 C**** Get Vertical Diffusion Coefficient for this timestep
       CALL GETVK (U,V,VKEDDY,LDIFM)
 
-      CALL HALO_UPDATE(GRID, P     , from=SOUTH)
       CALL HALO_UPDATE(GRID, USURF , from=SOUTH)
       CALL HALO_UPDATE(GRID, VSURF , from=SOUTH)
       CALL HALO_UPDATE(GRID, TSURF , from=SOUTH)
@@ -778,11 +776,8 @@ C****
       DO 300 IP1=1,IM
 C**** Surface values are used for F(0)
 C**** Note area weighting for four point means
-      PIJ=(P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)+(P(I,J)+P(IP1,J))*RAPVS(J)
-
-      CALL CALC_VERT_AMP(PIJ,LM,P00,AML,AIRM,PLE,PL(1))
-
-      PL(0)=(PIJ+PTOP)
+      PL(0) = (PEDN(1,I,J-1) + PEDN(1,Ip1,J-1))*RAPVN(J-1) +
+     +        (PEDN(1,I,J  ) + PEDN(1,Ip1,J  ))*RAPVS(J)
       UL(0)=(USURF(I  ,J-1) + USURF(IP1,J-1))*RAPVN(J-1) +
      *      (USURF(I  ,J)   + USURF(IP1,J  ))*RAPVS(J)
       VL(0)=(VSURF(I  ,J-1) + VSURF(IP1,J-1))*RAPVN(J-1) +
@@ -796,10 +791,16 @@ C**** Note area weighting for four point means
         VL(L)=V(I,J,L)
         RHOL(L)=(RHO(I,J-1,L)+RHO(IP1,J-1,L))*RAPVN(J-1)+
      *          (RHO(I,J  ,L)+RHO(IP1,J  ,L))*RAPVS(J)
+        PLE(L) = (PEDN(L,I,J-1) + PEDN(L,Ip1,J-1))*RAPVN(J-1) +
+     +           (PEDN(L,I,J  ) + PEDN(L,Ip1,J  ))*RAPVS(J)
+         PL(L) = (PMID(L,I,J-1) + PMID(L,Ip1,J-1))*RAPVN(J-1) +
+     +           (PMID(L,I,J  ) + PMID(L,Ip1,J  ))*RAPVS(J)
       END DO
 C**** Edge values at LM+1 don't matter since diffusiv flx=F(L)-F(L-1)=0
       L = LM+1   !!!! A lot relies on LDIFM=LM !!!
-        PL(L) = PLE(L)
+        PLE(LM+1) = (PEDN(LM+1,I,J-1) + PEDN(LM+1,Ip1,J-1))*RAPVN(J-1)+
+     +              (PEDN(LM+1,I,J  ) + PEDN(LM+1,Ip1,J  ))*RAPVS(J)
+         PL(LM+1) = PLE(LM+1)
         UL(L)   =UL(L-1)
         VL(L)   =VL(L-1)
         RHOL(L) =RHOL(L-1)
@@ -808,6 +809,7 @@ C**** Edge values at LM+1 don't matter since diffusiv flx=F(L)-F(L-1)=0
         KHEDGE(L)=VKEDDY(I,J,L)
         DPE(L)   =PL(L-1)-PL(L)
       END DO
+      DP(:) = PLE(1:LM) - PLE(2:LM+1)
 C**** RHOE is obtained from average of T (=P/RHO)
       DO L=1,LDIFM+1
         RHOE(L)=2.*PLE(L)*RHOL(L-1)*RHOL(L)/
@@ -821,16 +823,16 @@ C**** Calculate diffusive flux and number of timesteps NDT
 
       DO N=1,NDT
 C**** dq/dt by diffusion as tridiagonal matrix
-        CALL DFUSEQ(AIRM,DFLX,UL(0),MU,AM,AL,AU,B,LDIFM)
+         Call DFUSEQ (DP,DFLX,UL(0),MU,AM,AL,AU,B,LDIFM)
         CALL TRIDIAG(Al,Am,AU,B,DU,LDIFM)
-        CALL DFUSEQ(AIRM,DFLX,VL(0),MU,AM,AL,AU,B,LDIFM)
+         Call DFUSEQ (DP,DFLX,VL(0),MU,AM,AL,AU,B,LDIFM)
         CALL TRIDIAG(Al,Am,AU,B,DV,LDIFM)
 C**** Update model winds
         IF (MRCH.GT.0) THEN
           DO L=1,LM
             AJL(J,L,JL_DUDTVDIF) = AJL(J,L,JL_DUDTVDIF) + DU(L)*BYIM
-            DUT(I,J,L) = DUT(I,J,L) + DU(L)*AIRM(L)*DXYV(J)
-            DVT(I,J,L) = DVT(I,J,L) + DV(L)*AIRM(L)*DXYV(J)
+            DUT(I,J,L) = DUT(I,J,L) + DU(L)*DP(L)*DXYV(J)
+            DVT(I,J,L) = DVT(I,J,L) + DV(L)*DP(L)*DXYV(J)
             DKE(I,J,L) = DU(L)*(U(I,J,L)+0.5*DU(L))+
      *                   DV(L)*(V(I,J,L)+0.5*DV(L))
           END DO
@@ -838,7 +840,7 @@ C**** Update model winds
 C**** Save AM change and update U,V
         ANGM = 0.
         DO L=1,LM
-          ANGM = ANGM - DU(L)*AIRM(L)
+          ANGM = ANGM - DU(L)*DP(L)
           U(I,J,L) = U(I,J,L) + DU(L)
           V(I,J,L) = V(I,J,L) + DV(L)
         END DO
@@ -846,15 +848,11 @@ C**** Save AM change and update U,V
         if (ang_gwd.gt.0) then  ! add in ang mom
           lmax=ls1-1            ! below ptop
           if (ang_gwd.gt.1) lmax=lm ! over whole column
-          DPT=0
-          DO L=1,LMAX
-            DPT=DPT+AIRM(L)
-          END DO
-          DUANG = ANGM/DPT
+          DUANG = ANGM / (PLE(1) - PLE(LMAX+1))
           IF (MRCH.GT.0) THEN
             DO L=1,LMAX
               DKE(I,J,L) = DKE(I,J,L) + DUANG*(U(I,J,L)+0.5*DUANG)
-              DUT(I,J,L) = DUT(I,J,L) + DUANG*AIRM(L)*DXYV(J)
+              DUT(I,J,L) = DUT(I,J,L) + DUANG*DP(L)*DXYV(J)
               AJL(J,L,JL_DUDTVDIF) = AJL(J,L,JL_DUDTVDIF) + DUANG*BYIM
             END DO
           END IF
@@ -962,9 +960,10 @@ C****
       END SUBROUTINE GETVK
 
 
-      Subroutine GWDRAG (DT1,CALC_DEFORM, UT,VT, MA, U,V,T,SZ)
+      Subroutine GWDRAG (DT1, UT,VT, U,V,MA, T,SZ, CALC_DEFORM)
 !@sum  GWDRAG puts a momentum drag in the stratosphere
 !@auth Bob Suozzo/Jean Lerner
+!**** If GWDRAG is disabled then VDIFF needs halo PEDN,PMID
 C****
 C**** GWDRAG is called from DYNAM with arguments:
 !**** Input: DT1 = timestep (s)
@@ -1077,10 +1076,6 @@ C****
          END DO
       ENDIF
 C
-      Call HALO_UPDATE_COLUMN (GRID, PEDN , From=SOUTH)
-      Call HALO_UPDATE_COLUMN (GRID, PMID , From=SOUTH)
-      Call HALO_UPDATE_COLUMN (GRID, PDSIG, From=SOUTH)
-      Call HALO_UPDATE_COLUMN (GRID, PK   , From=SOUTH)
       CALL HALO_UPDATE(GRID, SZ    , from=SOUTH)
       CALL HALO_UPDATE(GRID, T     , from=SOUTH)
       CALL HALO_UPDATE(GRID, AIRX  , from=SOUTH)
@@ -1319,7 +1314,7 @@ C****
       USE RESOLUTION, only : im,jm,lm
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, only : getDomainBounds, HALO_UPDATE,
-     *                          NORTH, SOUTH, HALO_UPDATE_COLUMN,
+     *                             NORTH, SOUTH,
      *     haveLatitude
       Use DYNAMICS,   Only: MU,MV
       USE GEOM, only : bydxyv,dxyv,dxv,dyp
@@ -1359,7 +1354,6 @@ C****
 
       CALL HALO_UPDATE(GRID, U  , from=NORTH)
       CALL HALO_UPDATE(GRID, V  , from=NORTH)
-      Call HALO_UPDATE (GRID, MV, From=NORTH)
 
       L=LDEF
 C**** U-terms
@@ -1427,7 +1421,6 @@ C**** Convert to UV-grid
       DUMS1(I)=DUMN1(I)
       DUMS2(I)=DUMN2(I)
   110 CONTINUE
-      Call HALO_UPDATE_COLUMN (GRID, MA, From=SOUTH)
 
       DO 120 J=J_0STG,J_1STG
       I=IM

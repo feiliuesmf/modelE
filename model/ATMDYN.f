@@ -110,12 +110,12 @@ c     endif
 
       SUBROUTINE DYNAM
 !@sum  DYNAM Integrate dynamic terms
-!@vers 2013/07/30
+!@vers 2013/08/06
 !@auth Original development team
       Use CONSTANT,   Only: by3,SHA,kg2mb,mb2kg,RGAS,byGRAV
       Use RESOLUTION, Only: IM,JM,LM,LS1, MFIXs
       USE MODEL_COM, only : DTsrc
-      Use ATM_COM,    Only: MA,U,V,T,Q,WM,MSUM, MUs,MVs,MWs, PHI,MB,
+      Use ATM_COM,    Only: MA,U,V,T,Q,WM,MASUM, MUs,MVs,MWs, PHI,MB,
      *                      P, PTOLD, PS,PK,PMID,PEDN
       USE GEOM, only : dyv,dxv,dxyp,areag,bydxyp
       USE SOMTQ_COM, only : tmom,mz
@@ -123,8 +123,8 @@ c     endif
      &    ,cos_limit,nidyn,dt,mrch,nstep,quvfilter,USE_UNR_DRAG
       Use DIAG_COM,   Only: MODD5K,NDA5K,NDAA
       USE DOMAIN_DECOMP_ATM, only: grid
-      Use DOMAIN_DECOMP_1D,  Only: GetDomainBounds,GLOBALSUM,AM_I_ROOT,
-     &                             NORTH,SOUTH, haveLatitude
+      Use DOMAIN_DECOMP_1D,  Only: GetDomainBounds, GLOBALSUM, SOUTH,
+     *                             HALO_UPDATE, HALO_UPDATE_COLUMN
       USE MOMENTS, only : advecv
       IMPLICIT NONE
 
@@ -161,49 +161,52 @@ c**** Extract domain decomposition info
 C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
   300 CONTINUE
       Do J=J_0,J_1  ;  Do I=1,IM
-         MSUM(I,J) = Sum (MA(:,I,J))  ;  EndDo  ;  EndDo
+         MASUM(I,J) = Sum (MA(:,I,J))  ;  EndDo  ;  EndDo
+      Call HALO_UPDATE_COLUMN (GRID, MA,    From=SOUTH)
+      Call HALO_UPDATE        (GRID, MASUM, From=SOUTH)
       UX(:,:,:) = U(:,:,:)  ;  UT(:,:,:) = U(:,:,:)
       VX(:,:,:) = V(:,:,:)  ;  VT(:,:,:) = V(:,:,:)
       TZ(:,:,:) = TMOM(MZ,:,:,:)
+
+!**** Initial forward step:  MODD3 = MA + .667*DT*F(U,V,MA)
+!**** If GWDRAG is disabled then VDIFF needs halo PEDN,PMID
+      MRCH=0
 #          ifdef NUDGE_ON
            Call NUDGE_PREP
-#          endif
-
-!**** Initial forward step:  MODD3 = MA + .667*DT*F(MA,U,V))
-      MRCH=0
-      Call AFLUX  (NS,MA,MSUM,U,V, MA,MSUM)
-      Call ADVECM (DTFS, MA,MODD3,MSUMODD)
-#          ifdef NUDGE_ON
            Call NUDGE (UX,VX,DTFS)
 #          endif
-      Call MAtoP  (MODD3)
-      Call GWDRAG (DTFS,.True., U,V, MODD3, UX,VX,T,TZ)
+      Call AFLUX  (NS,   U,V,MA,MASUM,    MA   ,MASUM)
+      Call ADVECM (DTFS,         MA,      MODD3,MSUMODD)
+      Call GWDRAG (DTFS, U,V,       UX,VX,MODD3, T,TZ, .True.)
+      Call VDIFF  (DTFS, U,V,       UX,VX,       T)
+!     Call ADVECV (DTFS, U,V,MA, MA,UX,VX,MODD3)
+!     Call PGF    (DTFS, U,V,MA,    UX,VX,MODD3, T,TZ)
        CALL CALC_PIJL (LM,P,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
        PB(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
-      CALL VDIFF (PB,UX,VX,U,V,T,DTFS)       ! strat
       CALL ADVECV (P,UX,VX,PB,U,V,Pijl,DTFS)  !P->pijl
       CALL PGF (UX,VX,PB,U,V,T,TZ,Pijl,DTFS)
 c      if (QUVfilter) CALL FLTRUV(UX,VX,U,V)
       call isotropuv(ux,vx,COS_LIMIT)
 
-!**** Initial backward step:  MODD1 = MA + DT*F(MEVEN,UX,VX))
+!**** Initial backward step:  MODD1 = MA + DT*F(UX,VX,MODD3)
       MRCH=-1
-      Call AFLUX  (NS,MODD3,MSUMODD,UX,VX, MA,MSUM)
-      Call ADVECM (DT, MA,MODD1,MSUMODD)
 #          ifdef NUDGE_ON
            Call NUDGE (UT,VT,DT)
 #          endif
-      Call MAtoP  (MODD1)
-      Call GWDRAG (DT,.False., UX,VX, MODD1, UT,VT,T,TZ)
+      Call AFLUX  (NS, UX,VX,MODD3,MSUMODD,  MA,   MASUM)
+      Call ADVECM (DT,              MA,      MODD1,MSUMODD)
+      Call GWDRAG (DT, UX,VX,          UT,VT,MODD1, T,TZ, .False.)
+      Call VDIFF  (DT, UX,VX,          UT,VT,       T)
+!     Call ADVECV (DT, UX,VX,MODD3, MA,UT,VT,MODD1)
+!     Call PGF    (DT, UX,VX,MODD3,    UT,VT,MODD1, T,TZ)
        CALL CALC_PIJL (LS1-1,PB,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
        PA(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
-      CALL VDIFF (PA,UT,VT,UX,VX,T,DT)       ! strat
       CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
       CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
 
@@ -211,21 +214,22 @@ c      if (QUVfilter) CALL FLTRUV(UT,VT,UX,VX)
       call isotropuv(ut,vt,COS_LIMIT)
       GO TO 360
 
-!**** Odd leap frog step:  MODD3 = MODD1 + 2*DT*F(MA,U,V)
+!**** Odd leap frog step:  MODD3 = MODD1 + 2*DT*F(U,V,MA)
   340 MRCH=-2
-      Call AFLUX  (NS,MA,MSUM,U,V, MODD1,MSUMODD)
-      Call ADVECM (DTLF, MODD1,MODD3,MSUMODD)
 #          ifdef NUDGE_ON
            Call NUDGE (UT,VT,DTLF)
 #          endif
-      Call MAtoP  (MODD3)
-      Call GWDRAG (DTLF,.False., U,V, MODD3, UT,VT,T,TZ)
+      Call AFLUX  (NS,   U,V,MA,MASUM,       MODD1,MSUMODD)
+      Call ADVECM (DTLF,         MODD1,      MODD3,MSUMODD)
+      Call GWDRAG (DTLF, U,V,          UT,VT,MODD3, T,TZ, .False.)
+      Call VDIFF  (DTLF, U,V,          UT,VT,       T)
+!     Call ADVECV (DTLF, U,V,MA, MODD1,UT,VT,MODD3)
+!     Call PGF    (DTLF, U,V,MA,       UT,VT,MODD3, T,TZ)
        CALL CALC_PIJL (LS1-1,P,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
        PB(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
-      CALL VDIFF (PB,UT,VT,U,V,T,DTLF)       ! strat
       CALL ADVECV (PA,UT,VT,PB,U,V,Pijl,DTLF)   !P->pijl
       CALL PGF (UT,VT,PB,U,V,T,TZ,Pijl,DTLF)
 c      if (QUVfilter) CALL FLTRUV(UT,VT,U,V)
@@ -234,24 +238,24 @@ c      if (QUVfilter) CALL FLTRUV(UT,VT,U,V)
       MODD1(:,:,:) = MODD3(:,:,:)
       NS = NS - 1
 
-!**** Even leap frog step:  MEVEN = MA + 2*DT*F(MODD1,UT,VT)
+!**** Even leap frog step:  MA = MEVEN + 2*DT*F(UT,VT,MODD1)
   360      MODD5K = Mod (NSTEP+4-NS + NDA5K*NIDYN, NDA5K*NIDYN+2)
       MRCH=2
       MEVEN(:,:,:) = MA(:,:,:)
        PC(:,:) = P(:,:)      ! LOAD P TO PC
-      Call AFLUX  (NS,MODD1,MSUMODD,UT,VT, MA,MSUM)
-      Call ADVECM (DTLF, MEVEN,MA,MSUM)
 #          ifdef NUDGE_ON
            Call NUDGE (U,V,DTLF)
 #          endif
-      Call MAtoP  (MA)
-      Call GWDRAG (DTLF,.False., UT,VT, MA, U,V,T,TZ)
+      Call AFLUX  (NS,   UT,VT,MODD1,MSUMODD,   MEVEN,MASUM)
+      Call ADVECM (DTLF,              MEVEN,    MA,MASUM)
+      Call GWDRAG (DTLF, UT,VT,             U,V,MA, T,TZ, .False.)
+      Call VDIFF  (DTLF, UT,VT,             U,V,    T)
+!     Call ADVECV (DTLF, UT,VT,MODD1, MEVEN,U,V,MA)
        CALL CALC_PIJL (LS1-1,PA,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
-        P(:,:)   = (MSUM(:,:) - MFIXs)*kg2mb
-      CALL VDIFF (P,U,V,UT,VT,T,DTLF)          ! strat
+        P(:,:)   = (MASUM(:,:) - MFIXs)*kg2mb
       CALL ADVECV (PC,U,V,P,UT,VT,Pijl,DTLF)     !PA->pijl
             MODDA = Mod (NSTEP+4-NS + NDAA*NIDYN, NDAA*NIDYN+2)  ! strat
          IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
@@ -272,6 +276,7 @@ C**** ADVECT Q AND T
 
       CALL CALC_PIJL(LS1-1,PC,PIJL)
 c      CALL CALC_PIJL(LS1-1,PA,PIJL) ! true leapfrog
+!     Call PGF    (DTLF, UT,VT,MODD1,       U,V,MA, T,TZ)
       CALL PGF (U,V,P,UT,VT,TT,TZT,Pijl,DTLF)    !PC->pijl
 
       call compute_mass_flux_diags(PHI, PU, PV, dt)
@@ -407,11 +412,11 @@ c apply north-south filter to U and V once per physics timestep
       end subroutine COMPUTE_DYNAM_AIJ_DIAGNOSTICS
 
 
-      Subroutine AFLUX (NS,MA,MSUM,U,V, ME,MSUME)
+      Subroutine AFLUX (NS, U,V,MA,MASUM, ME,MESUM)
 !@sum  AFLUX Calculates horizontal/vertical air mass fluxes
 !@+    Input:  NS = decrementing leap-frog time step counter
-!@+            MA,MSUM (kg/m^2), U,V (m/s) = step center values
-!@+            ME,MSUME (kg/m^2) = mass at beginning of time step
+!@+            MA,MASUM (kg/m^2), U,V (m/s) = step center values
+!@+            ME,MESUM (kg/m^2) = mass at beginning of time step
 !@+    Output: MU,MV (kg/s) = horizontal mass fluxes
 !@+            MW (kg/s) = MW(L-1) + (CONV-CONVs + MM-MMs)*MFRAC/MFRACs
 !@+            CONV (kg/s) =  horizontal mass convergence
@@ -423,15 +428,15 @@ c apply north-south filter to U and V once per physics timestep
       Use DYNAMICS,   Only: DT, MU,MV,MW,CONV, SPA,DO_POLEFIX
       Use DOMAIN_DECOMP_ATM, Only: GRID
       Use DOMAIN_DECOMP_1D,  Only: GetDomainBounds, SOUTH,NORTH,
-     &                             HALO_UPDATE,HALO_UPDATE_COLUMN
+     &                             HALO_UPDATE
       IMPLICIT NONE
       Integer,Intent(In) :: NS
       Real*8,Intent(InOut):: U(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *                       V(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *                   MA(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     *                    MSUM(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+     *                   MASUM(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       Real*8,Intent(In)::ME(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     *                   MSUME(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+     *                   MESUM(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 
 !**** Local variables
       Real*8,Parameter :: TWOby3 = 2/3d0
@@ -481,8 +486,6 @@ C**** Compute MU (kg/s) = eastward mass flux at non-polar points
  2165 I=IP1
  2166 CONTINUE
 C**** Compute MV (kg/s) = northward mass flux
-      Call HALO_UPDATE_COLUMN (GRID, MA, From=SOUTH)
-      Call HALO_UPDATE (GRID, MSUM, From=SOUTH)
       Do 2172 L=1,LM
       IM1=IM
       DO 2172 J=J1V,JNV
@@ -539,18 +542,18 @@ c in ADVECV.
       Do 310 Ip1=1,IM
       If (ZATMO(I,J) == ZATMO(Ip1,J))  GoTo 310
       If (ZATMO(I,J) <  ZATMO(Ip1,J))
-     *   Then  ;  M = MSUM(I,J)
+     *   Then  ;  M = MASUM(I,J)
                   Do L=1,LS1-1
                      If (MU(I,J,L) <= 0)  GoTo 310
                      M = M - MA(L,I,J)
-                     If (M <= MSUM(Ip1,J))  GoTo 310
+                     If (M <= MASUM(Ip1,J))  GoTo 310
                      MU(I,J,L+1) = MU(I,J,L+1) + MU(I,J,L)
                      MU(I,J,L) = 0  ;  EndDo
-         Else  ;  M = MSUM(Ip1,J)
+         Else  ;  M = MASUM(Ip1,J)
                   Do L=1,LS1-1
                      If (MU(I,J,L) >= 0)  GoTo 310
                      M = M - MA(L,Ip1,J)
-                     If (M <= MSUM(I,J))  GoTo 310
+                     If (M <= MASUM(I,J))  GoTo 310
                      MU(I,J,L+1) = MU(I,J,L+1) + MU(I,J,L)
                      MU(I,J,L) = 0  ;  EndDo  ;  EndIf
   310 I = Ip1
@@ -561,18 +564,18 @@ c in ADVECV.
       Do 320 I=1,IM
       If (ZATMO(I,J-1) == ZATMO(I,J))  GoTo 320
       If (ZATMO(I,J-1) <  ZATMO(I,J))      
-     *   Then  ;  M = MSUM(I,J-1)
+     *   Then  ;  M = MASUM(I,J-1)
                   Do L=1,LS1-1
                      If (MV(I,J,L) <= 0)  GoTo 320
                      M = M - MA(L,I,J-1)
-                     If (M <= MSUM(I,J))  GoTo 320
+                     If (M <= MASUM(I,J))  GoTo 320
                      MV(I,J,L+1) = MV(I,J,L+1) + MV(I,J,L)
                      MV(I,J,L) = 0  ;  EndDo
-         Else  ;  M = MSUM(I,J)
+         Else  ;  M = MASUM(I,J)
                   Do L=1,LS1-1
                      If (MV(I,J,L) >= 0)  GoTo 320
                      M = M - MA(L,I,J)
-                     If (M <= MSUM(I,J-1))  GoTo 320
+                     If (M <= MASUM(I,J-1))  GoTo 320
                      MV(I,J,L+1) = MV(I,J,L+1) + MV(I,J,L)
                      MV(I,J,L) = 0  ;  EndDo  ;  EndIf
   320 Continue
@@ -596,7 +599,7 @@ C**** Compute MW (kg/s) = downward vertical mass flux
       DO 2435 J=J1,JN
       Do 2435 I=1,IMAXJ(J)
          CONVs = Sum(CONV(I,J,:))
-         MVARs = MSUME(I,J) - MFIXs
+         MVARs = MESUM(I,J) - MFIXs
          MW(I,J,LM-1) = CONV(I,J,LM) - CONVs*MFRAC(LM) +
      +      (ME(LM,I,J) - MFIX(LM) - MVARs*MFRAC(LM))*DXYP(J)*zNSxDT
          Do 2430 L=LM-2,1,-1
@@ -620,9 +623,8 @@ C**** Compute MW (kg/s) = downward vertical mass flux
       Use DYNAMICS,   Only: MRCH,MW,CONV
       use dynamics, only : mincolmass,maxcolmass
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : getDomainBounds
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GLOBALMAX
-      USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
+      Use DOMAIN_DECOMP_1D,  Only: GetDomainBounds, HALO_UPDATE_COLUMN,
+     *                             HALO_UPDATE, GLOBALMAX, NORTH,SOUTH
       IMPLICIT NONE
       Real*8,Intent(In) :: DT1,
      *                   MOLD(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
@@ -639,7 +641,7 @@ C**** Compute MW (kg/s) = downward vertical mass flux
      &   J_STRT = J1, J_STOP = JN, !  primary row limits
      &   HAVE_SOUTH_POLE = QSP, HAVE_NORTH_POLE = QNP)
 
-C**** COMPUTE PA, THE NEW SURFACE PRESSURE
+!**** Compute MNEW and MSUM, the new atmospheric mass distribution
       ! 1st pass count warning/termination events
       ! This avoids the need for 2 halo fills during normal
       ! execution.
@@ -697,6 +699,9 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
             MNEW(:,I,JM) = MNEW(:,1,JM)
             MSUM(I,JM)   = MSUM(1,JM)  ;  EndDo  ;  EndIf
 
+      Call HALO_UPDATE_COLUMN (GRID, MNEW, From=SOUTH)
+      Call HALO_UPDATE        (GRID, MSUM, From=SOUTH)
+      Call MAtoP (MNEW)
       Return
   990 Format (/'0PRESSURE DIAGNOSTIC     I,J,MRCH=',3I4,2F10.2/
      *  '     ZATMO=',F10.3,' DT=',F6.1/
@@ -723,7 +728,7 @@ c      USE DIAG, only : diagcd
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, Only : getDomainBounds
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
-      USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
+      Use DOMAIN_DECOMP_1D,  Only: SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
       IMPLICIT NONE
 
@@ -1300,8 +1305,6 @@ C**** THE SMALLEST SCALES.
 C**********************************************************************
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, HALO_UPDATE_COLUMN
-      USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM),
      *     INTENT(INOUT) :: U,V
@@ -1378,8 +1381,6 @@ c         call isotropuv(u,v,COS_LIMIT)
 c      endif
 
 C**** Conserve angular momentum along latitudes
-c***  The following halo is not needed because PDSIG halo is up to date
-c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
       DO L=1,LM
         DO J=J_0STG,J_1STG
           ANGM=0.
@@ -1604,8 +1605,6 @@ c**** Extract domain decomposition info
 c      USE DIAG, only : diagcd
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, HALO_UPDATE_COLUMN
-      USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       IMPLICIT NONE
 
 !@var DT1 time step (s)
@@ -1663,8 +1662,6 @@ c        call inc_ajl(i,j,l,jl_dudtsdrg,-u(i,j,l)*x) ! for a-grid only
       else ! default method
 
       wmaxp = wmax*3.d0/4.d0
-c***  The following halo is not needed because PDSIG halo is up to date
-c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
       DO L=LS1,LM
       DO J=J_0STG, J_1STG
       cd_lin=.false.
@@ -1754,7 +1751,6 @@ C**** (technically we should use U,V from before but this is ok)
       use atm_com, only : p
       use geom, only : cosv,dxyn,dxys,fim
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
-      use domain_decomp_1d, only : south, halo_update
       use domain_decomp_1d, only : globalsum
       implicit none
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm) :: u
@@ -1771,7 +1767,6 @@ C**** (technically we should use U,V from before but this is ok)
      &               have_south_pole=have_south_pole,
      &               have_north_pole=have_north_pole)
 
-c      call halo_update(grid, p, from=south) ! already done
       do j=j_0stg-1,j_1
         psumj(j) = sum(p(:,j))+fim*pstrat
       enddo
@@ -1952,8 +1947,6 @@ C****
       USE ATM_COM, only : u,v
 c      USE GEOM, only : ravps,ravpn
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
-      USE DOMAIN_DECOMP_1D, only : NORTH
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: KEA
@@ -1980,7 +1973,7 @@ c      USE GEOM, only : ravps,ravpn
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : u,v,ua=>ualij,va=>valij
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
-      USE DOMAIN_DECOMP_1D, only : NORTH, HALO_UPDATE_COLUMN
+      Use DOMAIN_DECOMP_1D,  Only: NORTH
       USE DOMAIN_DECOMP_1D, only : halo_update
       USE GEOM, only : imaxj,idij,idjj,kmaxj,rapj,cosiv,siniv
       implicit none
@@ -2175,7 +2168,6 @@ C****
       subroutine get_uv_of_n(n,uv)
       use resolution, only : im,lm
       use atm_com, only : u,v
-      use domain_decomp_1d, only : am_i_root
       implicit none
       integer :: n
       real*8, dimension(lm) :: uv
@@ -2459,7 +2451,7 @@ c      contains
       USE DIAG_COM, only : consrv=>consrv_loc
       Use DYNAMICS,   Only: CONV
       USE DOMAIN_DECOMP_1D, only : CHECKSUM, HALO_UPDATE, DIST_GRID
-      USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH, getDomainBounds
+      Use DOMAIN_DECOMP_1D,  Only: GetDomainBounds, SOUTH
       USE GETTIME_MOD
       IMPLICIT NONE
 C****
@@ -2904,8 +2896,7 @@ c Switch the sign convention back to "positive downward".
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, Only : getDomainBounds
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
-      USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
-      USE DOMAIN_DECOMP_1D, only : haveLatitude
+      Use DOMAIN_DECOMP_1D,  Only: SOUTH
 
       implicit none
       real(r8), dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::

@@ -144,7 +144,7 @@
 
 
       Subroutine MAtoP (MA)                                        
-!@sum MAtoP calculates pressure arrays PEDN, PMID, PDSIG and PK from air mass MA
+!@sum MAtoP calculates haloed pressure arrays PEDN, PMID, PDSIG and PK from haloed air mass MA
       Use CONSTANT,   Only: kg2mb,KAPA
       Use RESOLUTION, Only: LM, MTOP
       Use ATM_COM,    Only: PEDN,PMID,PDSIG,PK
@@ -155,8 +155,15 @@
       Real*8  :: M
       Integer :: I,J,L, I1,IN,J1,JN
 
-      Call GetDomainBounds (GRID, I_STRT = I1, I_STOP = IN, &  !  primary column limits
-                                  J_STRT = J1, J_STOP = JN)    !  primary row limits
+#ifndef CUBED_SPHERE                                   !  Lat-Lon Grid
+      I1 = GRID%I_STRT_HALO  ;  IN = GRID%I_STOP_HALO  !  1:IM
+      J1 = GRID%J_STRT_HALO  ;  JN = GRID%J_STOP       !  primary row limits used by velocity
+#endif
+
+#ifdef CUBED_SPHERE                                    !  Cube-Sphere grid
+      I1 = GRID%I_STRT_HALO  ;  IN = GRID%I_STOP_HALO  !  haloed primary column limits
+      J1 = GRID%J_STRT_HALO  ;  JN = GRID%J_STOP_HALO  !  haloed primary row limits
+#endif
 
       Do J=J1,JN  ;  Do I=I1,IN
          M = MTOP
@@ -167,10 +174,6 @@
               PK(L,I,J) = PMID(L,I,J)**KAPA
             M = M + MA(L,I,J)  ;  EndDo  ;  EndDo  ;  EndDo
 
-      Call HALO_UPDATE_COLUMN (GRID, PEDN , From=SOUTH)
-      Call HALO_UPDATE_COLUMN (GRID, PMID , From=SOUTH)
-      Call HALO_UPDATE_COLUMN (GRID, PDSIG, From=SOUTH)
-      Call HALO_UPDATE_COLUMN (GRID, PK   , From=SOUTH)
       Return
       EndSubroutine MAtoP
 

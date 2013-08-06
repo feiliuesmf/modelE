@@ -59,9 +59,9 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: WMICE
 #endif
 
-!@var MSUM (kg/m^2) = [column mass per unit area] - MTOP
+!@var MASUM (kg/m^2) = [column mass per unit area] - MTOP
 !@var P surface pressure (hecto-Pascals - PTOP)
-      Real*8,Allocatable,Dimension(:,:) :: MSUM
+      Real*8,Allocatable,Dimension(:,:) :: MASUM
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: P
 
       real*8, parameter :: temperature_istart1=250. ! not used
@@ -146,7 +146,7 @@ C**** module should own dynam variables used by other routines
      &     PEDN,PEK,SD_CLOUDS,GZ,PHI,
      &     MUs,MVs,MWs,MB,MMA,DKE,KEA,
      &     UALIJ,VALIJ,WSAVE,
-     &     SQRTP,MSUM,PTROPO,LTROPO,PS,PTOLD,
+     &     SQRTP,MASUM,PTROPO,LTROPO,PS,PTOLD,
 #ifdef etc_subdd
      &     TTROPO,
 #endif
@@ -261,7 +261,7 @@ C**** Check polar uniformity
 
       ! I-J arrays
       ALLOCATE(  SQRTP(I_0H:I_1H,J_0H:J_1H), 
-     $            MSUM(I_0H:I_1H,J_0H:J_1H),
+     $           MASUM(I_0H:I_1H,J_0H:J_1H),
      $          PTROPO(I_0H:I_1H,J_0H:J_1H),
      $          LTROPO(I_0H:I_1H,J_0H:J_1H),  
 #ifdef etc_subdd
