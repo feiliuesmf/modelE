@@ -155,7 +155,7 @@ sub runInBatch
 
   my $script = <<EOF;
 #!/bin/bash
-#PBS -l select=$nodes:ncpus=12
+#PBS -l select=$nodes:mpiprocs=12
 #PBS -l walltime=$walltime
 #PBS -W group_list=s1001
 #PBS -N $validPBSname
@@ -203,7 +203,7 @@ EOF
     elsif ($compiler eq "gfortran")  
     {
       $script .= <<EOF;
-module load other/comp/gcc-4.8-20130224 other/mpi/openmpi/1.6.4-gcc-4.8-20130224
+module load other/comp/gcc-4.8.1 other/mpi/openmpi/1.7.2-gcc-4.8.1-shared
 EOF
     }  
     elsif ($compiler eq "nag")  
@@ -291,7 +291,7 @@ sub setModuleEnvironment
       }
       elsif ($compiler eq "gfortran")
       {
-        module (load, "other/comp/gcc-4.8-20130224", "other/mpi/openmpi/1.6.4-gcc-4.8-20130224");
+        module (load, "other/comp/gcc-4.8.1", "other/mpi/openmpi/1.7.2-gcc-4.8.1-shared");
       }
       elsif ($compiler eq "nag") 
       {

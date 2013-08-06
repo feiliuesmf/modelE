@@ -31,7 +31,7 @@ endif
 # try to work around memory leak
 CPPFLAGS += -DMPITYPE_LOOKUP_HACK
 
-LIBS += -lmpi_f77 -lmpi -lmpi_cxx -lstdc++
+LIBS += -lmpi_usempi -lmpi_mpifh -lmpi -lstdc++
 ifneq ($(shell uname),Darwin)
   LIBS += -lrt
 endif
