@@ -31,7 +31,15 @@ endif
 # try to work around memory leak
 CPPFLAGS += -DMPITYPE_LOOKUP_HACK
 
+VER := $(subst ., ,$(word 4,$(shell mpirun --version)))
+VER_MAJOR := $(word 1,$(VER))
+VER_MINOR := $(word 2,$(VER))
+ifeq ($(VER_MINOR), 7)
 LIBS += -lmpi_usempi -lmpi_mpifh -lmpi -lstdc++
+else
+LIBS += -lmpi_f77 -lmpi -lmpi_cxx -lstdc++
+endif
+
 ifneq ($(shell uname),Darwin)
   LIBS += -lrt
 endif
