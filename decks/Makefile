@@ -42,6 +42,7 @@ export MPI
 export COMPONENTS
 export PNETCDFHOME
 export NETCDFHOME
+export USE_ESMF_LIB
 
 V =
 

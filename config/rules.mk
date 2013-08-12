@@ -115,6 +115,14 @@ ifeq ($(ESMF),YES)
   include $(CONFIG_DIR)/ESMF.default.mk
 endif
 
+# FEI:
+# had to do this because somehow FVCUBED core and ESMF settings cannot be both set
+# See decks/Makefile line 339
+ifeq ($(USE_ESMF_LIB),YES)
+  MPI = YES
+  include $(CONFIG_DIR)/USE_ESMF_LIB.default.mk
+endif
+
 
 ifdef PFUNIT
   include $(CONFIG_DIR)/pFUnit.default.mk

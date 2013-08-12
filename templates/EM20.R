@@ -14,6 +14,7 @@ RES_M20AT DIAG_RES_M          ! horiz/vert resolution, 4x5deg, 20 layers -> 0.1m
 FFT72                              ! Fast Fourier Transform
 
 IO_DRV                             ! new i/o
+modele_driver                      ! temporary NUOPC driver component
 
      ! GISS dynamics w/o gravity wave drag
 ATMDYN MOMEN2ND                     ! atmospheric dynamics

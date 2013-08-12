@@ -87,7 +87,7 @@ main.o: main.F90
 
 do_main $(RUN).bin: main.o  $(OBJS) #  $(COMPONENTS:=_dir)
 	@echo "===> linking"
-	$(F90) main.o $(LFLAGS) $(EXTRA_LFLAGS) $(OBJS) $(F90OBJS) $(ESMF_OBJS) \
+	$(F90) main.o -L$(NETCDFHOME)/lib -lnetcdf $(LFLAGS) $(EXTRA_LFLAGS) $(OBJS) $(F90OBJS) $(ESMF_OBJS) \
 	  $(COMPLIBS) $(LIBS) -o $(RUN).bin  $(LINK_OUTPUT)
 	@echo "===> linking ok"
 	@echo
