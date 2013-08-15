@@ -116,7 +116,7 @@ ifeq ($(ESMF),YES)
 endif
 
 # FEI:
-# had to do this because somehow FVCUBED core and ESMF settings cannot be both set
+# had to do this because in decks/Makefile FVCUBED core and ESMF settings cannot be both set
 # See decks/Makefile line 339
 ifeq ($(USE_ESMF_LIB),YES)
   MPI = YES
