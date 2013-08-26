@@ -14,6 +14,7 @@ RES_M20AT DIAG_RES_M          ! horiz/vert resolution, 4x5deg, 20 layers -> 0.1m
 FFT72                              ! Fast Fourier Transform
 
 IO_DRV                             ! new i/o
+main_nuopc                         ! NUOPC version of the main program
 modele_driver                      ! temporary NUOPC driver component
 
      ! GISS dynamics w/o gravity wave drag

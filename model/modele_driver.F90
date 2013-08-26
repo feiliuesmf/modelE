@@ -18,6 +18,7 @@ module modele_driver
     driver_label_IS               => label_InternalState, &
     driver_label_SetModelCount    => label_SetModelCount, &
     driver_label_SetModelServices => label_SetModelServices
+
   
   use MODELE, only: modelSS => SetServices
   
@@ -127,7 +128,7 @@ module modele_driver
       file=__FILE__, &
       rcToReturn=rc)) &
       return  ! bail out
-    call ESMF_GridCompSet(is%wrap%modelComp(1), name="MODEL", rc=rc)
+    call ESMF_GridCompSet(is%wrap%modelComp(1), name="MODELE", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
