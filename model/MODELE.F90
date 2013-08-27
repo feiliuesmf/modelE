@@ -1,5 +1,50 @@
-#ifdef USE_ESMF_LIB
 module MODELE
+
+!@sum  MAIN GISS modelE main time-stepping routine
+!@auth Original Development Team
+!@ver  2009/05/11 (Based originally on B399)
+!
+! ----------------------------------------------------------
+! Restructured modele component
+! Common use statements are moved to the begining of the code.
+! These modules are used by both NUOPC and non-NUOPC version of the
+! modelE code
+!
+! Fei Liu, 8/26/2013
+! ----------------------------------------------------------
+!
+  USE FILEMANAGER, only : openunit,closeunit
+  USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
+  USE Dictionary_mod
+  Use Parser_mod
+  USE MODEL_COM, only: modelEclock, ItimeI, Itime, Ndisk, &
+  Jyear0, JMON0, Iyear1, ItimeE, Itime0, &
+  NIPRNT, XLABEL, LRUNID, MELSE, Nssw, stop_on, &
+  iowrite_single, isBeginningAccumPeriod, &
+  KCOPY, NMONAV, IRAND, iowrite_mon, MDIAG, NDAY, &
+  rsf_file_name, iowrite, KDISK, dtSRC, MSURF, &
+  JDendOfM
+  USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast,sumxpe
+  USE RANDOM
+  USE GETTIME_MOD
+  USE MDIAG_COM, only : monacc,acc_period
+#ifdef USE_MPP
+  USE fms_mod,         only : fms_init, fms_end
+#endif
+#ifdef USE_FVCORE
+  USE FV_INTERFACE_MOD, only: fvstate
+  USE FV_INTERFACE_MOD, only: Checkpoint,Compute_Tendencies
+#endif
+  use TimeConstants_mod, only: SECONDS_PER_MINUTE, &
+                               INT_MONTHS_PER_YEAR
+  use TimerPackage_mod, only: startTimer => start
+  use TimerPackage_mod, only: stopTimer => stop
+  use SystemTimers_mod
+  use seaice_com, only : si_ocn,iceocn ! temporary until precip_si,
+  use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
+  use Month_mod, only: LEN_MONTH_ABBREVIATION
+
+#ifdef USE_ESMF_LIB
   !-----------------------------------------------------------------------------
   ! MODEL Component.
   !-----------------------------------------------------------------------------
@@ -11,9 +56,7 @@ module MODELE
     model_label_Advance => label_Advance
   
   implicit none
-  
   private
-  
   public SetServices
   
   !-----------------------------------------------------------------------------
@@ -58,7 +101,7 @@ module MODELE
 
     ! -> optional Finalize overwrite
     call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_FINALIZE, &
-      userRoutine=Finalize, rc=rc)
+      userRoutine=NFinalize, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -69,12 +112,98 @@ module MODELE
   !-----------------------------------------------------------------------------
 
   subroutine InitializeP1(gcomp, importState, exportState, clock, rc)
-    type(ESMF_GridComp)  :: gcomp
-    type(ESMF_State)     :: importState, exportState
-    type(ESMF_Clock)     :: clock
-    integer, intent(out) :: rc
-    
-    rc = ESMF_SUCCESS
+      implicit none
+ 
+      ! Input Arguments
+      type(ESMF_GridComp)  :: gcomp
+      type(ESMF_State)     :: importState, exportState
+      type(ESMF_Clock)     :: clock
+      integer, intent(out) :: rc
+      
+      ! Local Arguments
+      logical :: qcRestart=.false.
+      logical :: coldRestart=.false.
+      integer, parameter :: MAX_LEN_IFILE = 32
+      character(len=MAX_LEN_IFILE) :: iFile
+      !logical, intent(in) :: qcRestart
+      !logical, intent(in) :: coldRestart
+      !character(len=*), intent(in) :: iFile
+
+      INTEGER K,M,MSTART,MNOW,months,ioerr,Ldate,istart
+      INTEGER :: MDUM = 0
+
+      character(len=80) :: filenm
+
+      REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
+      REAL*8, DIMENSION(0:NTIMEMAX) ::TIMING_glob
+      REAL*8 start,now, DTIME,TOTALT
+
+      CHARACTER aDATE*14
+      CHARACTER*8 :: flg_go='___GO___'      ! green light
+      integer :: iflag=1
+      external sig_stop_model
+      logical :: start9
+
+      integer :: iu_IFILE
+      real*8 :: tloopbegin, tloopend
+      integer :: hour, month, day, date, year
+      character(len=LEN_MONTH_ABBREVIATION) :: amon
+
+      rc = ESMF_SUCCESS
+
+      call read_options(qcRestart, coldRestart, iFile )
+
+#ifdef USE_SYSUSAGE
+      do i_su=0,max_su
+        call sysusage(i_su,0)
+      enddo
+#endif
+
+!****
+!**** Reading rundeck (I-file) options
+!****
+      call openunit(trim(ifile),iu_IFILE,.false.,.true.)
+      call parse_params(iu_IFILE)
+      call closeunit(iu_IFILE)
+
+      call initializeModelE
+
+!****
+!**** INITIALIZATIONS
+!****
+         CALL TIMER (NOW,MDUM)
+
+!**** Read input/ic files
+      CALL INPUT (istart,ifile,coldRestart)
+
+!**** Set run_status to "run in progress"
+      call write_run_status("Run in progress...",1)
+
+      IF (AM_I_ROOT()) Then
+         open(3,file='flagGoStop',form='FORMATTED',status='REPLACE')
+         write (3,'(A8)') flg_go
+         close (3)
+      END IF
+      ! FEI: Not sure why a system signal is raised, comment out for now
+      ! because the external requirement on sig_stop_model causes compilation
+      ! problems.
+      !call sys_signal( 15, sig_stop_model )  ! works only on single CPU
+      START=NOW
+      DO M=1,NTIMEACC
+        START= START-TIMING(M)
+      END DO
+
+      call modelEclock%getDate(hour=hour, date=date, year=year,amn=amon)
+
+      if (AM_I_ROOT()) &
+        WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)') &
+        '0NASA/GISS Climate Model (re)started', &
+        'Year', year, aMon, date, ', Hr', hour, &
+        'Internal clock: DTsrc-steps since 1/1/',Iyear1,ITIME
+
+         CALL TIMER (NOW,MELSE)
+
+      call sys_flush(6)
     
   end subroutine
   
@@ -99,6 +228,34 @@ module MODELE
     ! local variables
     type(ESMF_Clock)              :: clock
     type(ESMF_State)              :: importState, exportState
+
+    logical :: qcRestart=.false.
+    logical :: coldRestart=.false.
+    integer, parameter :: MAX_LEN_IFILE = 32
+    character(len=MAX_LEN_IFILE) :: iFile
+    !logical, intent(in) :: qcRestart
+    !logical, intent(in) :: coldRestart
+    !character(len=*), intent(in) :: iFile
+
+    INTEGER K,M,MSTART,MNOW,months,ioerr,Ldate,istart
+    INTEGER :: MDUM = 0
+
+    character(len=80) :: filenm
+
+    REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
+    REAL*8, DIMENSION(0:NTIMEMAX) ::TIMING_glob
+    REAL*8 start,now, DTIME,TOTALT
+
+    CHARACTER aDATE*14
+    CHARACTER*8 :: flg_go='___GO___'      ! green light
+    integer :: iflag=1
+    external sig_stop_model
+    logical :: start9
+
+    integer :: iu_IFILE
+    real*8 :: tloopbegin, tloopend
+    integer :: hour, month, day, date, year
+    character(len=LEN_MONTH_ABBREVIATION) :: amon
 
     rc = ESMF_SUCCESS
     
@@ -131,22 +288,238 @@ module MODELE
       file=__FILE__)) &
       return  ! bail out
 
+!****
+!**** MAIN LOOP
+!****
+      call gettime(tloopbegin)
+      start9 = (istart == 9)
+
+! Start Main Loop:
+      call startTimer('Main Loop')
+
+      if (Ndisk > 0) then
+        if (mod(Itime-ItimeI,Ndisk).eq.0 .or. start9) then
+         start9 = .false.
+         call checkpointModelE()
+         call timer(NOW,MELSE)
+        END IF
+      end if
+
+      if (modelEclock%isBeginningOfDay()) then
+        call startNewDay()
+      end if
+
+      call atm_phase1
+
+!****
+!**** SURFACE INTERACTION AND GROUND CALCULATION
+!****
+!**** NOTE THAT FLUXES ARE APPLIED IN TOP-DOWN ORDER SO THAT THE
+!**** FLUXES FROM ONE MODULE CAN BE SUBSEQUENTLY APPLIED TO THAT BELOW
+!****
+!**** APPLY PRECIPITATION TO SEA/LAKE/LAND ICE
+      call startTimer('Surface')
+      CALL PRECIP_SI(si_ocn,iceocn,atmice)  ! move to ocean_driver
+      CALL PRECIP_OC(atmocn,iceocn)         ! move to ocean_driver
+
+!**** CALCULATE SURFACE FLUXES (and, for now, this procedure
+!**** also drives "surface" components that are on the atm grid)
+      CALL SURFACE
+      call stopTimer('Surface')
+         CALL TIMER (NOW,MSURF)
+
+      call ocean_driver
+
+! phase 2 changes surf pressure which affects the ocean
+      call atm_phase2
+!****
+!**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
+!****
+      call modelEclock%nextTick()
+      call modelEclock%getDate(year, month, day, date, hour, amon)
+      Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
+
+      if (modelEclock%isBeginningOfDay()) THEN ! NEW DAY
+        months=(year-Jyear0)*INT_MONTHS_PER_YEAR + month - JMON0
+        call startTimer('Daily')
+        call dailyUpdates
+        call TIMER (NOW,MELSE)
+        call stopTimer('Daily')
+      end if                                  !  NEW DAY
+       
+#ifdef USE_FVCORE
+! Since dailyUpdates currently adjusts surf pressure,
+! moving this call to the atm driver will change results.
+! todo 2: fold this into the fv run procedure.
+       Call Compute_Tendencies(fvstate)
+#endif
+
+!****
+!**** CALL DIAGNOSTIC ROUTINES
+!****
+        call startTimer('Diagnostics')
+
+!**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
+      IF (NIPRNT.GT.0) THEN
+        acc_period='PARTIAL      '
+#ifdef NEW_IO
+        filenm='PARTIAL.acc'//XLABEL(1:LRUNID)
+        call io_rsf (filenm,Itime,iowrite_single,ioerr)
+#endif
+        call print_diags(1)
+        NIPRNT=NIPRNT-1
+        call set_param( "NIPRNT", NIPRNT, 'o' )
+      END IF
+
+!**** THINGS TO DO BEFORE ZEROING OUT THE ACCUMULATING ARRAYS
+!**** (after the end of a diagn. accumulation period)
+      if (isBeginningAccumPeriod(modelEClock)) then
+
+!**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
+        call aPERIOD (JMON0,JYEAR0,months,1,0, aDATE(1:12),Ldate)
+        acc_period=aDATE(1:12)
+        WRITE (aDATE(8:14),'(A3,I4.4)') aMON(1:3),year
+        call print_diags(0)
+!**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
+        IF (KCOPY.GT.0) THEN
+!**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
+          monacc = 0
+          do k=JMON0,JMON0+NMONAV-1
+            m = k
+            if(m.gt.INT_MONTHS_PER_YEAR) m = m - INT_MONTHS_PER_YEAR
+            monacc(m) = 1
+          end do
+          filenm=aDATE(1:7)//'.acc'//XLABEL(1:LRUNID)
+          call io_rsf (filenm,Itime,iowrite_single,ioerr)
+!**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
+          IF (KCOPY.GT.1) THEN
+            CALL RFINAL (IRAND)
+            call set_param( "IRAND", IRAND, 'o' )
+            filenm='1'//aDATE(8:14)//'.rsf'//XLABEL(1:LRUNID)
+            call io_rsf(filenm,Itime,iowrite_mon,ioerr)
+#if defined( USE_FVCORE )
+            call Checkpoint(fvstate, filenm)
+#endif
+          END IF
+        END IF
+
+!**** PRINT AND ZERO OUT THE TIMING NUMBERS
+        CALL TIMER (NOW,MDIAG)
+        CALL SUMXPE(TIMING, TIMING_glob, increment=.true.)
+        if (am_i_root()) then
+          TOTALT=SUM(TIMING_glob(1:NTIMEACC)) ! over all processors
+          DO M=1,NTIMEACC
+            PERCENT(M) = 100d0*TIMING_glob(M)/(TOTALT+.00001)
+          END DO
+          TOTALT=SUM(TIMING(1:NTIMEACC)) ! on the root processor
+          TOTALT=TOTALT/SECONDS_PER_MINUTE     ! seconds -> minutes
+          DTIME = NDAY*TOTALT/(Itime-Itime0) ! minutes/day
+          WRITE (6,'(/A,F7.2,A,/(8(A13,F5.1/))//)'), &
+              '0TIME',DTIME,'(MINUTES) ', &
+              (TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
+        end if
+        TIMING = 0
+        START= NOW
+        
+      END IF  ! beginning of accumulation period
+
+!**** CPU TIME FOR CALLING DIAGNOSTICS
+      call stopTimer('Diagnostics')
+      CALL TIMER (NOW,MDIAG)
+
+!**** TEST FOR TERMINATION OF RUN
+      IF (MOD(Itime,Nssw).eq.0) then
+       IF (AM_I_ROOT()) then
+        flg_go = '__STOP__'     ! stop if flagGoStop if missing
+        iflag=0
+        open(3,file='flagGoStop',form='FORMATTED',status='OLD',err=210)
+        read (3,'(A8)',end=210) flg_go
+        close (3)
+ 210    continue
+        IF (flg_go .eq. '___GO___') iflag=1
+        call broadcast(iflag)
+       else
+        call broadcast(iflag)
+        if (iflag .eq. 1) flg_go = '___GO___'
+        if (iflag .eq. 0) flg_go = '__STOP__'
+       end if
+      endif
+      IF (flg_go.ne.'___GO___' .or. stop_on) THEN
+!**** Flag to continue run has been turned off
+         WRITE (6,'("0Flag to continue run has been turned off.")')
+         ! FEI:
+         ! Somehow needs to stop model advancing if this condition is true
+      END IF
+
+      call stopTimer('Main Loop')
+!****
+!**** END OF MAIN LOOP
+!****
+
   end subroutine
 
   !-----------------------------------------------------------------------------
 
-  subroutine Finalize(gcomp, importState, exportState, clock, rc)
+  subroutine NFinalize(gcomp, importState, exportState, clock, rc)
     type(ESMF_GridComp)  :: gcomp
     type(ESMF_State)     :: importState, exportState
     type(ESMF_Clock)     :: clock
     integer, intent(out) :: rc
+
+    integer :: iu_IFILE
+    real*8 :: tloopbegin, tloopend
+    integer :: hour, month, day, date, year, ioerr
+    character(len=LEN_MONTH_ABBREVIATION) :: amon
     
     rc = ESMF_SUCCESS
+
+    call gettime(tloopend)
+    if (AM_I_ROOT()) &
+         write(*,*) "Time spent in the main loop in seconds:", &
+         tloopend-tloopbegin
+
+!**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
+    CALL RFINAL (IRAND)
+    call set_param( "IRAND", IRAND, 'o' )
+    call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
+
+    call finalize_atm
+
+    if (AM_I_ROOT()) then
+    WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)') &
+      '0Restart file written on fort.',KDISK,'Year',year, &
+         aMON, date,', Hr',hour,'  Internal clock time:',ITIME
+    end if
+
+!**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
+
+    call printSysTimers()
+
+    IF (AM_I_ROOT()) &
+       WRITE (6,'(/////4(1X,33("****")/)//,A,I8 &
+                 ///4(1X,33("****")/))') &
+      ' PROGRAM TERMINATED NORMALLY - Internal clock time:',ITIME
+
+    IF (Itime.ge.ItimeE) then
+       call reportProfile((itimee-itimei)*dtSRC)
+       if (AM_I_ROOT()) call print_unused_param(6)
+       CALL stop_model ('Terminated normally (reached maximum time)',13)
+    END IF
+
+    CALL stop_model ('Run stopped with sswE',12)  ! voluntary stop
+#ifdef USE_MPP
+    call fms_end( )
+#endif
     
   end subroutine
 
-end module
 #else
+
+  implicit none
+  private
+  public modelE_mainDriver
+
+  contains
 
 #include "rundeck_opts.h"
       subroutine modelE_mainDriver()
@@ -164,46 +537,6 @@ end module
 
       contains
 
-      subroutine read_options(qcRestart, coldRestart, iFile )
-!@sum Reads options from the command line
-!@auth I. Aleinov
-      implicit none
-!@var qcRestart true if "-r" is present
-!@var iFile is name of the file containing run configuration data
-      logical, intent(inout) :: qcRestart
-      logical, intent(inout) :: coldRestart
-      character(*),intent(out)  :: ifile
-      integer, parameter :: MAX_LEN_ARG = 80
-      character(len=MAX_LEN_ARG) :: arg, value
-
-      iFile = "";
-      do
-        call nextarg( arg, 1 )
-        if ( arg == "" ) exit          ! end of args
-        select case (arg)
-        case ("-r")
-          qcRestart = .true.
-        case ("-cold-restart")
-          coldRestart = .true.
-        case ("-i")
-          call nextarg( value, 0 )
-          iFile=value
-        ! new options can be included here
-        case default
-          print *,'Unknown option specified: ', arg
-          print *,'Aborting...'
-          call stop_model("Unknown option on a command line",255)
-        end select
-      enddo
-
-      if (iFile == "") then
-        print*, 'No configuration file specified on command line: '
-        print*, 'Aborting ...'
-        call stop_model("No configuration file on command line.",255)
-      end if
-
-      return
-      end subroutine read_options
 
       end subroutine modelE_mainDriver
 
@@ -211,36 +544,6 @@ end module
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
 !@ver  2009/05/11 (Based originally on B399)
-      USE FILEMANAGER, only : openunit,closeunit
-      USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
-      USE Dictionary_mod
-      Use Parser_mod
-      USE MODEL_COM, only: modelEclock, ItimeI, Itime, Ndisk, &
-      Jyear0, JMON0, Iyear1, ItimeE, Itime0, &
-      NIPRNT, XLABEL, LRUNID, MELSE, Nssw, stop_on, &
-      iowrite_single, isBeginningAccumPeriod, &
-      KCOPY, NMONAV, IRAND, iowrite_mon, MDIAG, NDAY, &
-      rsf_file_name, iowrite, KDISK, dtSRC, MSURF, &
-      JDendOfM
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast,sumxpe
-      USE RANDOM
-      USE GETTIME_MOD
-      USE MDIAG_COM, only : monacc,acc_period
-#ifdef USE_MPP
-      USE fms_mod,         only : fms_init, fms_end
-#endif
-#ifdef USE_FVCORE
-      USE FV_INTERFACE_MOD, only: fvstate
-      USE FV_INTERFACE_MOD, only: Checkpoint,Compute_Tendencies
-#endif
-      use TimeConstants_mod, only: SECONDS_PER_MINUTE, &
-                                   INT_MONTHS_PER_YEAR
-      use TimerPackage_mod, only: startTimer => start
-      use TimerPackage_mod, only: stopTimer => stop
-      use SystemTimers_mod
-      use seaice_com, only : si_ocn,iceocn ! temporary until precip_si,
-      use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
-      use Month_mod, only: LEN_MONTH_ABBREVIATION
       implicit none
 !**** Command line options
       logical, intent(in) :: qcRestart
@@ -523,16 +826,81 @@ end module
 #endif
 
       contains
+      
+      end subroutine GISS_modelE
+
+! USE_ESMF_LIB macro endif
+#endif
+
+!-----------------------------------------------------------------------------
+!
+!  COMMON subroutines used by both vanilla and NUOPC version of MODELE
+!
+!-----------------------------------------------------------------------------
+
+      subroutine read_options(qcRestart, coldRestart, iFile )
+!@sum Reads options from the command line
+!@auth I. Aleinov
+      implicit none
+!@var qcRestart true if "-r" is present
+!@var iFile is name of the file containing run configuration data
+      logical, intent(inout) :: qcRestart
+      logical, intent(inout) :: coldRestart
+      character(*),intent(out)  :: ifile
+      integer, parameter :: MAX_LEN_ARG = 80
+      character(len=MAX_LEN_ARG) :: arg, value
+
+      iFile = "";
+      do
+        call nextarg( arg, 1 )
+        if ( arg == "" ) exit          ! end of args
+        select case (arg)
+        case ("-r")
+          qcRestart = .true.
+        case ("-cold-restart")
+          coldRestart = .true.
+        case ("-i")
+          call nextarg( value, 0 )
+          iFile=value
+        ! new options can be included here
+        case default
+          print *,'Unknown option specified: ', arg
+          print *,'Aborting...'
+          call stop_model("Unknown option on a command line",255)
+        end select
+      enddo
+
+      if (iFile == "") then
+        print*, 'No configuration file specified on command line: '
+        print*, 'Aborting ...'
+        call stop_model("No configuration file on command line.",255)
+      end if
+
+      return
+      end subroutine read_options
 
       subroutine initializeModelE
-      USE DOMAIN_DECOMP_1D, ONLY : init_app
+      USE DOMAIN_DECOMP_1D, ONLY : init_app, setCommunicator
+#ifdef USE_ESMF_LIB
+      type(ESMF_VM)              :: vm
+      integer                    :: mpicom, rc
+#endif
 
       call initializeSysTimers()
 
 #ifdef USE_MPP
       call fms_init( )
 #endif
+#ifdef USE_ESMF_LIB
+#define VERIFY_(rc) If (rc /= ESMF_SUCCESS) Call abort(__LINE__,rc)
+      call ESMF_VMGetCurrent(vm, rc=rc)
+      VERIFY_(rc)
+      call ESMF_VMGet(vm, mpicommunicator=mpicom, rc=rc)
+      VERIFY_(rc)
+      call setCommunicator(mpicom)
+#else
       call init_app()
+#endif
       call initializeDefaultTimers()
 
       call alloc_drv_atm()
@@ -569,7 +937,7 @@ end module
       USE FV_INTERFACE_MOD, only: Checkpoint,fvstate
 #endif
       
-      integer :: hour, date
+      integer :: hour, date, year, ioerr
       character(len=LEN_MONTH_ABBREVIATION) :: amon
 
       call modelEclock%getDate(hour=hour, date=date, amn=amon)
@@ -683,8 +1051,6 @@ end module
       call delete(report)
 
       end subroutine reportProfile
-      
-      end subroutine GISS_modelE
 
       subroutine dailyUpdates
       use fluxes, only : atmocn
@@ -1238,4 +1604,4 @@ end module
       return
       end subroutine print_and_check_PPopts
 
-#endif
+end module
