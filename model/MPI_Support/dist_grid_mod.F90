@@ -265,12 +265,8 @@ MODULE dist_grid_mod
 
      rank = 0        ! default rank = root PE for serial run
      NPES_WORLD = 1  ! default NPES = 1 for serial run
-#ifdef USE_ESMF || USE_ESMF_LIB
 #ifdef USE_ESMF
    call ESMF_Initialize(vm=modelE_vm, logkindflag=ESMF_LOGKIND_NONE, rc=rc)
-#else
-   call ESMF_VMGetCurrent(vm=modelE_vm, rc=rc)
-#endif
    VERIFY_(rc)
    call ESMF_VMGet(modelE_vm, localPET=rank, petCount=NPES_WORLD, &
     &     mpiCommunicator=comm, rc=rc)
