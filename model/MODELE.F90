@@ -513,6 +513,9 @@ module MODELE
     
   end subroutine
 
+!-----------------------------------------------------------------------------
+! Here comes the original version of MODELE code
+!-----------------------------------------------------------------------------
 #else
 
   implicit none
@@ -534,9 +537,6 @@ module MODELE
 
       call read_options(qcRestart, coldRestart, iFile )
       call GISS_modelE(qcRestart, coldRestart, iFile)
-
-      contains
-
 
       end subroutine modelE_mainDriver
 
@@ -825,16 +825,17 @@ module MODELE
       call fms_end( )
 #endif
 
-      contains
-      
       end subroutine GISS_modelE
 
 ! USE_ESMF_LIB macro endif
 #endif
+!-----------------------------------------------------------------------------
+! End of NUOPC and non-NUOPC specific code
+!-----------------------------------------------------------------------------
 
 !-----------------------------------------------------------------------------
 !
-!  COMMON subroutines used by both vanilla and NUOPC version of MODELE
+! COMMON subroutines used by both NUOPC and non-NUOPC version of MODELE
 !
 !-----------------------------------------------------------------------------
 
