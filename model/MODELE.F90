@@ -567,7 +567,7 @@ module MODELE
 
       integer :: iu_IFILE
       real*8 :: tloopbegin, tloopend
-      integer :: hour, month, day, date, year
+      integer :: hour, month, day, date, year, nstep
       character(len=LEN_MONTH_ABBREVIATION) :: amon
 
 #ifdef USE_SYSUSAGE
@@ -601,7 +601,10 @@ module MODELE
          write (3,'(A8)') flg_go
          close (3)
       END IF
-      call sys_signal( 15, sig_stop_model )  ! works only on single CPU
+      ! FEI: Not sure why a system signal is raised, comment out for now
+      ! because the external requirement on sig_stop_model causes compilation
+      ! problems.
+      !call sys_signal( 15, sig_stop_model )  ! works only on single CPU
       START=NOW
       DO M=1,NTIMEACC
         START= START-TIMING(M)
@@ -624,9 +627,11 @@ module MODELE
 !****
       call gettime(tloopbegin)
       start9 = (istart == 9)
+      nstep = 0
 
       main_loop: DO WHILE (Itime.lt.ItimeE)
         call startTimer('Main Loop')
+        nstep = nstep + 1
 
       if (Ndisk > 0) then
         if (mod(Itime-ItimeI,Ndisk).eq.0 .or. start9) then
@@ -791,6 +796,9 @@ module MODELE
       if (AM_I_ROOT()) &
            write(*,*) "Time spent in the main loop in seconds:", &
            tloopend-tloopbegin
+      if (AM_I_ROOT()) &
+           write(*,*) "Total number of time steps:", &
+           nstep
 
 !**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       CALL RFINAL (IRAND)
@@ -876,6 +884,8 @@ module MODELE
         print*, 'Aborting ...'
         call stop_model("No configuration file on command line.",255)
       end if
+
+      print *, 'Configuration file name: ', iFile
 
       return
       end subroutine read_options

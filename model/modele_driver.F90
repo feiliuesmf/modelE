@@ -28,7 +28,7 @@ module modele_driver
 
   ! private module data --> ONLY PARAMETERS
   ! dummy time keeping, the modele model handles time keeping internally
-  integer, parameter            :: stepCount = 12
+  integer, parameter            :: stepCount = 2
   real(ESMF_KIND_R8), parameter :: stepTime  = 1.D0   ! step time [s]
                                                       ! should be parent step
   public SetServices
