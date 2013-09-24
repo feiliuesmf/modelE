@@ -151,7 +151,23 @@ module MODELE
 
       rc = ESMF_SUCCESS
 
-      call read_options(qcRestart, coldRestart, iFile )
+      call ESMF_AttributeGet(gcomp, name="iFile", value=iFile, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, &
+        file=__FILE__)) &
+        return  ! bail out
+
+      call ESMF_AttributeGet(gcomp, name="coldRestart", value=coldRestart, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, &
+        file=__FILE__)) &
+        return  ! bail out
+
+      call ESMF_AttributeGet(gcomp, name="qcRestart", value=qcRestart, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, &
+        file=__FILE__)) &
+        return  ! bail out
 
 #ifdef USE_SYSUSAGE
       do i_su=0,max_su
@@ -1477,6 +1493,8 @@ module MODELE
          call print_param( 6 )
          WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
       end if
+
+      if(AM_I_Root()) write(6, *) itimei, itimee, itime, dtsrc
 
 !****
       RETURN
