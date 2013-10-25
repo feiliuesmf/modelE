@@ -31,6 +31,7 @@ C****
      *     ,sha,tf,rhow,shv,shi,stbo,bygrav,by6
      *     ,deltx,teeny,rhows,grav
       USE ATM_COM, only : t,q
+      USE ATM_DRV, only : atm_exports_phasesrf, checkt
       USE MODEL_COM, only : modelEclock
       USE MODEL_COM, only : dtsrc,idacc,nday,itime,qcheck
       use TimeConstants_mod, only: INT_HOURS_PER_DAY

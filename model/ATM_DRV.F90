@@ -1,4 +1,146 @@
 #include "rundeck_opts.h"
+module ATM_DRV
+#ifdef USE_ESMF_LIB
+
+  use ESMF
+  use NUOPC
+  use NUOPC_Model, only: &
+    model_routine_SS    => routine_SetServices, &
+    model_label_Advance => label_Advance
+  
+  implicit none
+  private
+  !public SetServices
+
+  public atm_phase1
+  public atm_phase2
+  public daily_atm
+  public finalize_atm
+  public input_atm
+  public alloc_drv_atm
+  public checkt
+  public atm_exports_phasesrf
+  public def_rsf_atmvars
+  public new_io_atmvars
+  
+  !-----------------------------------------------------------------------------
+  contains
+  !-----------------------------------------------------------------------------
+  
+  subroutine SetServices(gcomp, rc)
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+    
+    rc = ESMF_SUCCESS
+    
+    ! the NUOPC model component will register the generic methods
+    call model_routine_SS(gcomp, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    
+    ! set entry point for methods that require specific implementation
+    call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE, &
+      userRoutine=InitializeP1, phase=1, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE, &
+      userRoutine=InitializeP2, phase=2, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    
+    ! attach specializing method(s)
+    call ESMF_MethodAdd(gcomp, label=model_label_Advance, &
+      index=1, userRoutine=nuopc_atm_run_phase1, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! attach specializing method(s)
+    call ESMF_MethodAdd(gcomp, label=model_label_Advance, &
+      index=2, userRoutine=nuopc_atm_run_phase2, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    
+  end subroutine
+  
+  !-----------------------------------------------------------------------------
+
+  subroutine InitializeP1(gcomp, importState, exportState, clock, rc)
+    implicit none
+
+    ! Input Arguments
+    type(ESMF_GridComp)  :: gcomp
+    type(ESMF_State)     :: importState, exportState
+    type(ESMF_Clock)     :: clock
+    integer, intent(out) :: rc
+    
+    rc = ESMF_SUCCESS
+
+  end subroutine
+  
+  !-----------------------------------------------------------------------------
+
+  subroutine InitializeP2(gcomp, importState, exportState, clock, rc)
+    type(ESMF_GridComp)  :: gcomp
+    type(ESMF_State)     :: importState, exportState
+    type(ESMF_Clock)     :: clock
+    integer, intent(out) :: rc
+    
+    rc = ESMF_SUCCESS
+    
+  end subroutine
+
+  subroutine nuopc_atm_run_phase1(gcomp, rc)
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+
+    rc = ESMF_SUCCESS
+    call atm_phase1
+
+  end subroutine
+
+  subroutine nuopc_atm_run_phase2(gcomp, rc)
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+
+    rc = ESMF_SUCCESS
+    call atm_phase2
+
+  end subroutine
+
+!-----------------------------------------------------------------------------
+! Here comes the original version of ATM_DRV code
+!-----------------------------------------------------------------------------
+#else
+  implicit none
+  private
+
+  public atm_phase1
+  public atm_phase2
+  public daily_atm
+  public finalize_atm
+  public input_atm
+  public alloc_drv_atm
+  public checkt
+  public atm_exports_phasesrf
+  public def_rsf_atmvars
+  public new_io_atmvars
+  
+  !-----------------------------------------------------------------------------
+  contains
+  !-----------------------------------------------------------------------------
+
+#endif
 
       subroutine atm_phase1
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
@@ -18,24 +160,24 @@
       USE TRACER_COM, only: mtradv
 #endif
 #endif
-      USE DIAG_COM, only : ia_src,ia_d5s,ia_d5d,ia_filt
-     &     ,oa,koa
-     &     ,MODD5S,NDAa, NDA5d,NDA5s
+      USE DIAG_COM, only : ia_src,ia_d5s,ia_d5d,ia_filt &
+           ,oa,koa &
+           ,MODD5S,NDAa, NDA5d,NDA5s
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: Run,fvstate
 #endif
 #ifndef CUBED_SPHERE
-      USE ATMDYN, only : DYNAM,SDRAG
-     &     ,FILTER, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
+      USE ATMDYN, only : DYNAM,SDRAG &
+           ,FILTER, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
 #endif
 #ifdef SCM
       USE ATM_COM, only : t,p,q
-      USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,
-     &    iu_scm_prt,iu_scm_diag,I_TARG,J_TARG,nstepscm
+      USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q, &
+          iu_scm_prt,iu_scm_diag,I_TARG,J_TARG,nstepscm
 #endif
 #ifdef TRACERS_TOMAS
-      USE TRACER_COM, only : NBINS, IDTNUMD,IDTSO4,IDTECIL, IDTECOB,
-     &     IDTOCIL, IDTOCOB,IDTDUST,IDTH2O,IDTNA
+      USE TRACER_COM, only : NBINS, IDTNUMD,IDTSO4,IDTECIL, IDTECOB, &
+           IDTOCIL, IDTOCOB,IDTDUST,IDTH2O,IDTNA
 #endif
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
@@ -62,12 +204,12 @@
 
       Call CALC_AMPK (LM)  !  delete when MA replaces P on restart file
 
-C**** INITIALIZE TIME PARAMETERS
+!**** INITIALIZE TIME PARAMETERS
       NSTEP=(Itime-ItimeI)*NIdyn
 
-C****
-C**** INTEGRATE DYNAMIC TERMS (DIAGA AND DIAGB ARE CALLED FROM DYNAM)
-C****
+!****
+!**** INTEGRATE DYNAMIC TERMS (DIAGA AND DIAGB ARE CALLED FROM DYNAM)
+!****
       CALL CHECKT ('DYNAM0')
          MODD5D=MOD(Itime-ItimeI,NDA5D)
 
@@ -76,10 +218,10 @@ C****
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
 
       PTOLD = P ! save for clouds
-C**** Initialize pressure for mass fluxes used by tracers and Q
+!**** Initialize pressure for mass fluxes used by tracers and Q
       PS (:,:)   = P(:,:)
 
-C**** Initialise total energy (J/m^2)
+!**** Initialise total energy (J/m^2)
       initialTotalEnergy = getTotalEnergy()
 
 #ifdef SCM
@@ -89,13 +231,13 @@ C**** Initialise total energy (J/m^2)
          SCM_SAVE_T(L) = T(I_TARG,J_TARG,L)
          SCM_SAVE_Q(L) = Q(I_TARG,J_TARG,L)
       enddo
-c     do L=1,LM
-c        write(iu_scm_prt,'(a13,i3,4(f9.3))')
-c    &              'before dynam ',
-c    &               L,T(I_TARG,J_TARG,L)*PK(L,I_TARG,J_TARG),
-c    &               Q(I_TARG,J_TARG,L)*1000.0,
-c    &               U(I_TARG,J_TARG,L),V(I_TARG,J_TARG,L)
-c     enddo
+!     do L=1,LM
+!        write(iu_scm_prt,'(a13,i3,4(f9.3))')
+!    &              'before dynam ',
+!    &               L,T(I_TARG,J_TARG,L)*PK(L,I_TARG,J_TARG),
+!    &               Q(I_TARG,J_TARG,L)*1000.0,
+!    &               U(I_TARG,J_TARG,L),V(I_TARG,J_TARG,L)
+!     enddo
 #endif
 
       call startTimer('Atm. Dynamics')
@@ -121,8 +263,8 @@ c     enddo
         endif
 #endif /* USE_FVCORE */
 
-C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
-C**** Currently energy is put in uniformly weighted by mass
+!**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
+!**** Currently energy is put in uniformly weighted by mass
       finalTotalEnergy = getTotalEnergy()
       call addEnergyAsDiffuseHeat(finalTotalEnergy - initialTotalEnergy)
 #ifndef CUBED_SPHERE
@@ -134,7 +276,7 @@ C**** Currently energy is put in uniformly weighted by mass
 #endif
 
       call COMPUTE_WSAVE
-C**** Scale WM mixing ratios to conserve liquid water
+!**** Scale WM mixing ratios to conserve liquid water
       DO L=1,LS1-1
       DO J=J_0,J_1
       DO I=I_0,I_1
@@ -170,15 +312,15 @@ C**** Scale WM mixing ratios to conserve liquid water
 
       call stopTimer('Atm. Dynamics')
 
-C****
-C**** Calculate tropopause level and pressure
-C****
+!****
+!**** Calculate tropopause level and pressure
+!****
       CALL CALC_TROP
-C**** calculate some dynamic variables for the PBL
+!**** calculate some dynamic variables for the PBL
 #ifndef SCM
       CALL PGRAD_PBL
 #endif
-C**** calculate zenith angle for current time step
+!**** calculate zenith angle for current time step
       CALL CALC_ZENITH_ANGLE
 
          CALL CHECKT ('DYNAM ')
@@ -186,16 +328,16 @@ C**** calculate zenith angle for current time step
          IF (MODD5D.EQ.0) CALL DIAG5A (7,NIdyn)
          IF (MODD5D.EQ.0) CALL DIAGCA (2)
          IF (MOD(Itime,NDAY/2).eq.0) CALL DIAG7A
-C****
-C**** INTEGRATE SOURCE TERMS
-C****
+!****
+!**** INTEGRATE SOURCE TERMS
+!****
 
-c calculate KE before atmospheric column physics
+! calculate KE before atmospheric column physics
          call calc_kea_3d(kea)
 
 #ifdef CUBED_SPHERE
-c GWDRAG, SDRAG considered as column physics so that their KE
-c dissipation gets included in the KE->PE adjustment
+! GWDRAG, SDRAG considered as column physics so that their KE
+! dissipation gets included in the KE->PE adjustment
       CALL GWDRAG
       CALL SDRAG (DTsrc)
 #endif
@@ -207,8 +349,8 @@ c dissipation gets included in the KE->PE adjustment
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAG5A (1,0)
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAGCA (1)
 
-C**** FIRST CALL MELT_SI SO THAT TOO SMALL ICE FRACTIONS ARE REMOVED
-C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
+!**** FIRST CALL MELT_SI SO THAT TOO SMALL ICE FRACTIONS ARE REMOVED
+!**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
 ! todo: move melt_si(ocean) to the end of the ocean driver, and
 ! possibly unite melt_si(lakes) with the rest of the lakes calls
       CALL MELT_SI(si_ocn,iceocn,atmocn,atmice)
@@ -216,14 +358,14 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       call seaice_to_atmgrid(atmice)
          CALL UPDTYPE
          CALL TIMER (NOW,MSURF)
-C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
+!**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
       CALL CONDSE
          CALL CHECKT ('CONDSE')
          CALL TIMER (NOW,MCNDS)
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)
          IF (MODD5S.EQ.0) CALL DIAGCA (3)
 
-C**** RADIATION, SOLAR AND THERMAL
+!**** RADIATION, SOLAR AND THERMAL
       MODRD=MOD(Itime-ItimeI,NRAD)
       CALL RADIA
          CALL CHECKT ('RADIA ')
@@ -232,13 +374,13 @@ C**** RADIATION, SOLAR AND THERMAL
          IF (MODD5S.EQ.0) CALL DIAGCA (4)
 
 #ifdef TRACERS_ON
-C**** Calculate non-interactive tracer surface sources and sinks
+!**** Calculate non-interactive tracer surface sources and sinks
          call set_tracer_2Dsource
          CALL TIMER (NOW,MTRACE)
 
-C****
-C**** Add up the non-interactive tracer surface sources.
-C****
+!****
+!**** Add up the non-interactive tracer surface sources.
+!****
       call sum_prescribed_tracer_2Dsources(dtsrc)
 #endif
 
@@ -337,8 +479,8 @@ C****
       end subroutine atm_exports_phasesrf
 
       subroutine get_atm_layer1
-C**** Copies first-layer atm. conditions into the 2D arrays
-C**** in the atm-surf. coupling data structure.
+!**** Copies first-layer atm. conditions into the 2D arrays
+!**** in the atm-surf. coupling data structure.
       use fluxes, only : atmsrf
       use domain_decomp_atm, only : grid, getDomainBounds
       use atm_com, only : t,q,ualij,valij
@@ -348,10 +490,10 @@ C**** in the atm-surf. coupling data structure.
 #endif
       implicit none
       integer :: n,i,j,i_0,i_1,j_0,j_1
-c
-      call getDomainBounds(grid, i_strt=i_0,i_stop=i_1,
-     &  j_strt=j_0,j_stop=j_1)
-c
+!
+      call getDomainBounds(grid, i_strt=i_0,i_stop=i_1, &
+        j_strt=j_0,j_stop=j_1)
+!
       do j=j_0,j_1
       do i=i_0,imaxj(j)
         atmsrf%temp1(i,j) = t(i,j,1)
@@ -380,8 +522,8 @@ c
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM, only: mtrace
 #endif
-      USE DIAG_COM, only : kvflxo,oa,koa,ia_filt
-     &     ,MODD5S,NDAa, NDA5d,NDA5s,NDA4
+      USE DIAG_COM, only : kvflxo,oa,koa,ia_filt &
+           ,MODD5S,NDAa, NDA5d,NDA5s,NDA4
       USE SUBDAILY, only : nsubdd,get_subdd,accSubdd
 #ifndef CUBED_SPHERE
       USE ATMDYN, only : FILTER
@@ -389,8 +531,8 @@ c
       USE RESOLUTION, only : PTOP
 #endif
 #ifdef SCM
-      USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,
-     &    iu_scm_prt,iu_scm_diag
+      USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q, &
+          iu_scm_prt,iu_scm_diag
 #endif
       USE FLUXES, only : atmocn,atmice
       use TimerPackage_mod, only: startTimer => start
@@ -402,20 +544,20 @@ c
 
       call seaice_to_atmgrid(atmice)
       CALL ADVSI_DIAG(atmocn,atmice) ! needed to update qflux model, dummy otherwise
-C**** SAVE some noon GMT ice quantities
-      IF (MOD(Itime+1,NDAY).ne.0 .and. MOD(Itime+1,NDAY/2).eq.0)
-     &        call vflx_OCEAN
+!**** SAVE some noon GMT ice quantities
+      IF (MOD(Itime+1,NDAY).ne.0 .and. MOD(Itime+1,NDAY/2).eq.0) &
+              call vflx_OCEAN
 
-C**** IF ATURB is used in rundeck then this is a dummy call
-C**** CALCULATE DRY CONVECTION ABOVE PBL
+!**** IF ATURB is used in rundeck then this is a dummy call
+!**** CALCULATE DRY CONVECTION ABOVE PBL
       CALL ATM_DIFFUS (2,LM-1,dtsrc)
          CALL CHECKT ('DRYCNV')
          CALL TIMER (NOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAGCA (9)
 
-C**** UPDATE DIAGNOSTIC TYPES
+!**** UPDATE DIAGNOSTIC TYPES
          CALL UPDTYPE
-C**** ADD DISSIPATED KE FROM COLUMN PHYSICS CALCULATION BACK AS LOCAL HEAT
+!**** ADD DISSIPATED KE FROM COLUMN PHYSICS CALCULATION BACK AS LOCAL HEAT
       CALL DISSIP ! uses kea calculated before column physics
          CALL CHECKT ('DISSIP')
          CALL TIMER (NOW,MSURF)
@@ -425,7 +567,7 @@ C**** ADD DISSIPATED KE FROM COLUMN PHYSICS CALCULATION BACK AS LOCAL HEAT
 #ifdef CUBED_SPHERE
       IDACC(ia_filt)=IDACC(ia_filt)+1 ! prevent /0
 #else
-C**** SEA LEVEL PRESSURE FILTER
+!**** SEA LEVEL PRESSURE FILTER
       IF (MFILTR.GT.0.AND.MOD(Itime-ItimeI,NFILTR).EQ.0) THEN
            IDACC(ia_filt)=IDACC(ia_filt)+1
            IF (MODD5S.NE.0) CALL DIAG5A (1,0)
@@ -443,22 +585,22 @@ C**** SEA LEVEL PRESSURE FILTER
 ! DIAGTCA is called every timestep for 3D sources)
       CALL DIAGCA (1) ! was not called w/ SLP filter
 #endif
-C**** 3D Tracer sources and sinks
-C**** Tracer gravitational settling for aerosols
+!**** 3D Tracer sources and sinks
+!**** Tracer gravitational settling for aerosols
       CALL TRGRAV
-C**** Tracer radioactive decay (and possible source)
+!**** Tracer radioactive decay (and possible source)
       CALL TDECAY
-C**** Calculate 3D tracers sources and sinks
+!**** Calculate 3D tracers sources and sinks
 
       call tracer_3Dsource
-C**** Accumulate tracer distribution diagnostics
+!**** Accumulate tracer distribution diagnostics
       CALL TRACEA
          CALL TIMER (NOW,MTRACE)
          CALL CHECKT ('T3DSRC')
 #endif
-C****
-C**** WRITE SUB-DAILY DIAGNOSTICS EVERY NSUBDD hours
-C****
+!****
+!**** WRITE SUB-DAILY DIAGNOSTICS EVERY NSUBDD hours
+!****
       if (Nsubdd.ne.0) then
         call accSubdd
         if (mod(Itime+1,Nsubdd).eq.0) call get_subdd
@@ -468,7 +610,7 @@ C****
 #endif
 
 #ifdef SCM
-c*****call scm diagnostics every time step
+!*****call scm diagnostics every time step
       call scm_diag
 #endif
 
@@ -479,21 +621,21 @@ c*****call scm diagnostics every time step
       return
       end subroutine atm_phase2
 
-      SUBROUTINE INPUT_atm (istart,istart_fixup,do_IC_fixups,
-     &     is_coldstart,KDISK_restart,IRANDI)
+      SUBROUTINE INPUT_atm (istart,istart_fixup,do_IC_fixups, &
+           is_coldstart,KDISK_restart,IRANDI)
 
-C****
-C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
-C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
-C****
+!****
+!**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
+!**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
+!****
       USE Dictionary_mod
       USE CONSTANT, only : grav
       USE FLUXES, only : nisurf,atmocn,atmice
       USE RESOLUTION, only : ls1,plbot
       USE RESOLUTION, only : im,jm,lm
-      USE MODEL_COM, only :
-     *      irand,idacc ,nday,dtsrc ,iyear1,itime,itimei,itimee
-     *     ,mdyn,mcnds,mrad,msurf,mdiag
+      USE MODEL_COM, only : &
+            irand,idacc ,nday,dtsrc ,iyear1,itime,itimei,itimee &
+           ,mdyn,mcnds,mrad,msurf,mdiag
       USE DIAG_ZONAL, only : imlon
       USE RANDOM
       USE DYNAMICS, only : USE_UNR_DRAG
@@ -501,9 +643,11 @@ C****
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE SOMTQ_COM, only : mz,tmom
       USE ATM_COM, only : p,t
-      USE TRACER_COM,only: MTRACE,daily_z
+      USE TRACER_COM,only: MTRACE,daily_z &
 #ifdef TRACERS_SPECIAL_Shindell
-     *     ,mchem
+          ,mchem
+#else
+
 #endif
 #ifdef TRAC_ADV_CPU
       USE TRACER_COM,only: MTRADV
@@ -535,8 +679,8 @@ C****
 !@nlparam HOURI,DATEI,MONTHI,YEARI        start of model run
 !@nlparam TIMEE,HOURE,DATEE,MONTHE,YEARE,IHOURE   end of model run
 !@var  IHRI,IHOURE start and end of run in hours (from 1/1/IYEAR1 hr 0)
-c      INTEGER ::   HOURI=0 , DATEI=1, MONTHI=1, YEARI=-1, IHRI=-1,
-c     *    TIMEE=-1,HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1
+!      INTEGER ::   HOURI=0 , DATEI=1, MONTHI=1, YEARI=-1, IHRI=-1,
+!     *    TIMEE=-1,HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1
 
       LOGICAL :: redoGH, iniPBL, inilake, iniSNOW
       INTEGER :: J_0, J_1
@@ -564,9 +708,9 @@ c     *    TIMEE=-1,HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1
 
       call sync_param( "ij_debug",ij_debug , 2)
 
-C****
-C**** Set some documentary parameters in the database
-C****
+!****
+!**** Set some documentary parameters in the database
+!****
       call set_param("IM",IM,'o')
       call set_param("JM",JM,'o')
       call set_param("LM",LM,'o')
@@ -579,14 +723,14 @@ C****
       call init_esmf_clock_for_modelE( int(dtsrc), atmclock )
 #endif
 
-C****
-C**** IRANDI seed for random perturbation of current state (if/=0)
-C****        tropospheric temperatures are changed by at most 1 degree C
+!****
+!**** IRANDI seed for random perturbation of current state (if/=0)
+!****        tropospheric temperatures are changed by at most 1 degree C
       IF (ISTART.LT.10 .AND. IRANDI.NE.0) THEN
         CALL RINIT (IRANDI)
         CALL PERTURB_TEMPS
-        IF (AM_I_ROOT())
-     *       WRITE(6,*) 'Initial conditions were perturbed !!',IRANDI
+        IF (AM_I_ROOT()) &
+             WRITE(6,*) 'Initial conditions were perturbed !!',IRANDI
       END IF
 
       CALL CALC_AMPK(LM)
@@ -598,23 +742,23 @@ C****        tropospheric temperatures are changed by at most 1 degree C
       endif
 #endif
 
-C****
+!****
       CALL RINIT (IRAND)
-c Note on FFT initialization: IMLON is defined by the diag_zonal module,
-c not by the resolution module.  IMLON==IM for a latlon grid.
+! Note on FFT initialization: IMLON is defined by the diag_zonal module,
+! not by the resolution module.  IMLON==IM for a latlon grid.
       CALL FFT0 (IMLON)  ! CALL FFT0(IM)
       CALL init_QUS(grid,im,jm,lm)
 #ifndef CUBED_SPHERE
       CALL init_ATMDYN
 #endif
       call init_sdrag
-C**** Initialize nudging
+!**** Initialize nudging
 #ifdef NUDGE_ON
       CALL NUDGE_INIT
 #endif
-C****
-C**** Initialize the gravity wave drag scheme
-C****
+!****
+!**** Initialize the gravity wave drag scheme
+!****
       CALL init_GWDRAG
       call sync_param( "USE_UNR_DRAG", USE_UNR_DRAG )
 #ifndef SCM
@@ -637,19 +781,19 @@ C****
 
       call atm_phase1_exports
 
-C**** Initialize lake variables (including river directions)
+!**** Initialize lake variables (including river directions)
       if(istart.eq.2) call read_agrice_ic
       iniLAKE = is_coldstart
       CALL init_lakeice(inilake,do_IC_fixups)
-c      call stop_model('set_noice_defaults prob that fwater==flake'//
-c     &     ' not initialized yet?',255)
+!      call stop_model('set_noice_defaults prob that fwater==flake'//
+!     &     ' not initialized yet?',255)
       call seaice_to_atmgrid(atmice) ! set gtemp etc.
       CALL init_LAKES(inilake,istart_fixup)
 
-C****
-C**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)
-C**** Recompute Ground hydrology data if redoGH (new soils data)
-C****
+!****
+!**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)
+!**** Recompute Ground hydrology data if redoGH (new soils data)
+!****
       if(istart.eq.2) call read_landsurf_ic
       iniSNOW = is_coldstart       ! extract snow data from first soil layer
       redoGH = .false.
@@ -663,11 +807,11 @@ C****
       CALL init_flammability
 #endif
 
-C**** Initialize land ice (must come after oceans)
+!**** Initialize land ice (must come after oceans)
       if(istart.eq.2) call read_landice_ic
       CALL init_LI(istart_fixup)
 
-C**** Initialize pbl (and read in file containing roughness length data)
+!**** Initialize pbl (and read in file containing roughness length data)
       iniPBL = is_coldstart
 #ifndef CUBED_SPHERE /* until a better solution is found */
       if (iniPBL) call recalc_agrid_uv   ! PBL needs A-grid winds
@@ -684,12 +828,12 @@ C**** Initialize pbl (and read in file containing roughness length data)
 ! moving it before init of other atm components will change results
       CALL DAILY_atmdyn(.false.)           ! not end_of_day
 #ifdef USE_FVCORE
-C****
-C**** Initialize FV dynamical core (ESMF component) if requested
-C**** For restarts/continuations, FV state and import files are
-C**** copied to the appropriate names by this procedure, and for
-C**** cold starts the required IC files are generated.
-C****
+!****
+!**** Initialize FV dynamical core (ESMF component) if requested
+!**** For restarts/continuations, FV state and import files are
+!**** copied to the appropriate names by this procedure, and for
+!**** cold starts the required IC files are generated.
+!****
       Call Initialize(fvstate, istart, kdisk_restart)
 #endif
 
@@ -722,8 +866,8 @@ C****
       USE SCMCOM, only : I_TARG,J_TARG
       use Dictionary_mod, only : sync_param
 #endif
-c Driver to allocate arrays that become dynamic as a result of
-c set-up for MPI implementation
+! Driver to allocate arrays that become dynamic as a result of
+! set-up for MPI implementation
       USE DOMAIN_DECOMP_ATM, ONLY : grid,init_grid
 #ifdef GLINT2
       USE DOMAIN_DECOMP_ATM, ONLY : glint2
@@ -748,8 +892,8 @@ c set-up for MPI implementation
       call sync_param( "J_TARG", J_TARG )
       call init_grid(grid, im, jm, lm, j_scm=j_targ)
 #else
-c initialize the atmospheric domain decomposition
-c for now, CREATE_CAP is only relevant to the cubed sphere grid
+! initialize the atmospheric domain decomposition
+! for now, CREATE_CAP is only relevant to the cubed sphere grid
       call init_grid(grid, im, jm, lm, CREATE_CAP=.true.)
 #endif
 
@@ -759,13 +903,13 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
 #endif
 
 #ifdef GLINT2
-      glint2 = glint2_modele_new('GLINT2', 6, 'm', 1,
-     &    im, jm,
-     &    grid%i_strt_halo, grid%i_stop_halo,
-     &    grid%j_strt_halo, grid%j_stop_halo,
-     &    grid%i_strt, grid%i_stop, grid%j_strt, grid%j_stop,
-     &    grid%j_strt_skp, grid%j_stop_skp,
-     &    MPI_COMM_WORLD, ROOT_PROCESS)
+      glint2 = glint2_modele_new('GLINT2', 6, 'm', 1,          & 
+          im, jm,                                              &
+          grid%i_strt_halo, grid%i_stop_halo,                  &
+          grid%j_strt_halo, grid%j_stop_halo,                  &
+          grid%i_strt, grid%i_stop, grid%j_strt, grid%j_stop,  &
+          grid%j_strt_skp, grid%j_stop_skp,                    &
+          MPI_COMM_WORLD, ROOT_PROCESS)
 #endif  ! GLINT2
 
       call alloc_dynamics(grid)
@@ -943,12 +1087,12 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call sys_flush(6)
       call UPDTYPE
 
-C****
-C**** WRITE INFORMATION FOR OHT CALCULATION EVERY 24 HOURS
-C****
+!****
+!**** WRITE INFORMATION FOR OHT CALCULATION EVERY 24 HOURS
+!****
       IF (Kvflxo.NE.0.) THEN
         call writei8_parallel(grid,iu_vflxo,nameunit(iu_vflxo),oa,Itime)
-C**** ZERO OUT INTEGRATED QUANTITIES
+!**** ZERO OUT INTEGRATED QUANTITIES
         OA(:,:,4:KOA)=0.
       END IF
 
@@ -971,7 +1115,7 @@ C**** ZERO OUT INTEGRATED QUANTITIES
          call Finalize(fvstate, kdisk)
 #endif
 
-C**** CLOSE SUBDAILY OUTPUT FILES
+!**** CLOSE SUBDAILY OUTPUT FILES
       CALL CLOSE_SUBDD
 
 #ifdef SCM
@@ -985,9 +1129,9 @@ C**** CLOSE SUBDAILY OUTPUT FILES
 !@sum  CHECKT Checks arrays for NaN/INF and reasonablness
 !@auth Original Development Team
 
-C**** CHECKT IS TURNED ON BY SETTING QCHECK=.TRUE. IN NAMELIST
-C**** REMEMBER TO SET QCHECK BACK TO .FALSE. AFTER THE ERRORS ARE
-C**** CORRECTED.
+!**** CHECKT IS TURNED ON BY SETTING QCHECK=.TRUE. IN NAMELIST
+!**** REMEMBER TO SET QCHECK BACK TO .FALSE. AFTER THE ERRORS ARE
+!**** CORRECTED.
       USE CONSTANT, only : tf
       USE RESOLUTION, only : ls1
       USE RESOLUTION, only : im,jm,lm
@@ -1002,17 +1146,17 @@ C**** CORRECTED.
       INTEGER I,J,L
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
-c**** Extract domain decomposition info
+!**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0H, J_1H, I_0,I_1, I_0H,I_1H, njpol
       INTEGER :: I_0STG,I_1STG,J_0STG,J_1STG
-      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
-     *     J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,           &
+           J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
-c      I_0STG = grid%I_STRT_STGR
-c      I_1STG = grid%I_STOP_STGR
+!      I_0STG = grid%I_STRT_STGR
+!      I_1STG = grid%I_STOP_STGR
       I_0STG = I_0
       I_1STG = I_1
       J_0STG = grid%J_STRT_STGR
@@ -1020,29 +1164,29 @@ c      I_1STG = grid%I_STOP_STGR
       njpol = grid%J_STRT_SKP-grid%J_STRT
 
       IF (QCHECK) THEN
-C**** Check all prog. arrays for Non-numbers
-        CALL CHECK3B(U(I_0STG:I_1STG,J_0STG:J_1STG,:),
-     &       I_0STG,I_1STG,J_0STG,J_1STG,0,LM,SUBR,'u     ')
-        CALL CHECK3B(V(I_0STG:I_1STG,J_0STG:J_1STG,:),
-     &       I_0STG,I_1STG,J_0STG,J_1STG,0,LM,SUBR,'v     ')
-        CALL CHECK3B(T(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,
-     &       SUBR,'t     ')
-        CALL CHECK3B(Q(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,
-     &       SUBR,'q     ')
-        CALL CHECK3B(P(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &       SUBR,'p     ')
-        CALL CHECK3B(WM(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,
-     &       SUBR,'wm    ')
+!**** Check all prog. arrays for Non-numbers
+        CALL CHECK3B(U(I_0STG:I_1STG,J_0STG:J_1STG,:),                 &
+             I_0STG,I_1STG,J_0STG,J_1STG,0,LM,SUBR,'u     ')
+        CALL CHECK3B(V(I_0STG:I_1STG,J_0STG:J_1STG,:),                 &
+             I_0STG,I_1STG,J_0STG,J_1STG,0,LM,SUBR,'v     ')
+        CALL CHECK3B(T(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,    &
+             SUBR,'t     ')
+        CALL CHECK3B(Q(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,    &
+             SUBR,'q     ')
+        CALL CHECK3B(P(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,       &
+             SUBR,'p     ')
+        CALL CHECK3B(WM(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,   &
+             SUBR,'wm    ')
 #ifdef BLK_2MOM
-        CALL CHECK3B(WMICE(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,
-     &       SUBR,'wmice    ')
+        CALL CHECK3B(WMICE(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,&
+             SUBR,'wmice    ')
 #endif
 
         DO J=J_0,J_1
         DO I=I_0,I_1
           IF (Q(I,J,1).gt.1d-1)print*,SUBR," Q BIG ",i,j,Q(I,J,1:LS1)
-          IF (T(I,J,1)*PK(1,I,J)-TF.gt.50.) print*,SUBR," T BIG ",i,j
-     *         ,T(I,J,1:LS1)*PK(1:LS1,I,J)-TF
+          IF (T(I,J,1)*PK(1,I,J)-TF.gt.50.) print*,SUBR," T BIG ",i,j  &
+               ,T(I,J,1:LS1)*PK(1:LS1,I,J)-TF
         END DO
         END DO
         DO L=1,LM
@@ -1065,23 +1209,25 @@ C**** Check all prog. arrays for Non-numbers
         END DO
         END DO
         END DO
-C**** Check PBL arrays
+!**** Check PBL arrays
         CALL CHECKPBL(SUBR)
-C**** Check Ocean arrays
+!**** Check Ocean arrays
         CALL CHECKO(SUBR)
-C**** Check Ice arrays
+!**** Check Ice arrays
         CALL CHECKI(SUBR)
-C**** Check Lake arrays
+!**** Check Lake arrays
         CALL CHECKL(SUBR)
-C**** Check Earth arrays
+!**** Check Earth arrays
         CALL CHECKE(SUBR)
-C**** Check Land Ice arrays
+!**** Check Land Ice arrays
         CALL CHECKLI(SUBR)
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-C**** check tracers
+!**** check tracers
         CALL CHECKTR(SUBR)
 #endif
       END IF
 
       RETURN
       END SUBROUTINE CHECKT
+
+end module ATM_DRV

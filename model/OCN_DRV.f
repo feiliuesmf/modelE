@@ -10,6 +10,7 @@
 #endif
       use fluxes, only : atmocn,atmice
       use icedyn_com, only : igice
+      use ATM_DRV
       implicit none
       call startTimer('OCEANS')
 C**** CALCULATE ICE DYNAMICS

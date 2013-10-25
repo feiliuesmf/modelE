@@ -43,6 +43,7 @@ module MODELE
   use seaice_com, only : si_ocn,iceocn ! temporary until precip_si,
   use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
   use Month_mod, only: LEN_MONTH_ABBREVIATION
+  use ATM_DRV
 
 #ifdef USE_ESMF_LIB
   !-----------------------------------------------------------------------------

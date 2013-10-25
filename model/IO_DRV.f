@@ -11,6 +11,7 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
      *                      ioread,iowrite,iowrite_mon
      &     ,itimei,rsf_file_name,kcopy
       use pario, only : par_open,par_close,par_enddef
+      use ATM_DRV, only : def_rsf_atmvars, new_io_atmvars
       IMPLICIT NONE
 !@var fname name of file to be read or written
       character(len=*) :: fname
@@ -150,6 +151,7 @@ c
 !@sum  def_rsf_prog defines prognostic array structure in restart files
 !@auth M. Kelley
 !@ver  beta
+      use ATM_DRV, only : def_rsf_atmvars
       implicit none
       integer :: fid
       call def_rsf_atmvars(fid)
