@@ -43,7 +43,8 @@ module MODELE
   use seaice_com, only : si_ocn,iceocn ! temporary until precip_si,
   use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
   use Month_mod, only: LEN_MONTH_ABBREVIATION
-  use ATM_DRV
+  use ATM_DRV, only: atm_phase1, atm_phase2, daily_atm, &
+                     finalize_atm, input_atm, alloc_drv_atm
 
 #ifdef USE_ESMF_LIB
   !-----------------------------------------------------------------------------
@@ -94,7 +95,19 @@ module MODELE
     
     ! attach specializing method(s)
     call ESMF_MethodAdd(gcomp, label=model_label_Advance, &
-      userRoutine=ModelAdvance, rc=rc)
+      index=1, userRoutine=ModelAdvanceP1, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call ESMF_MethodAdd(gcomp, label=model_label_Advance, &
+      index=2, userRoutine=ModelAdvanceP2, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call ESMF_MethodAdd(gcomp, label=model_label_Advance, &
+      index=3, userRoutine=ModelAdvanceP3, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -238,7 +251,7 @@ module MODELE
   
   !-----------------------------------------------------------------------------
 
-  subroutine ModelAdvance(gcomp, rc)
+  subroutine ModelAdvanceP1(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
     
@@ -292,7 +305,7 @@ module MODELE
     ! for this call of the ModelAdvance() routine.
     
     call NUOPC_ClockPrintCurrTime(clock, &
-      "------>Advancing MODEL from: ", rc=rc)
+      "------>Advancing MODELE P1 from: ", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -326,7 +339,76 @@ module MODELE
         call startNewDay()
       end if
 
-      call atm_phase1
+  end subroutine ModelAdvanceP1
+
+  !-----------------------------------------------------------------------------
+
+  subroutine ModelAdvanceP2(gcomp, rc)
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+    
+    ! local variables
+    type(ESMF_Clock)              :: clock
+    type(ESMF_State)              :: importState, exportState
+
+    logical :: qcRestart=.false.
+    logical :: coldRestart=.false.
+    integer, parameter :: MAX_LEN_IFILE = 32
+    character(len=MAX_LEN_IFILE) :: iFile
+    !logical, intent(in) :: qcRestart
+    !logical, intent(in) :: coldRestart
+    !character(len=*), intent(in) :: iFile
+
+    INTEGER K,M,MSTART,MNOW,months,ioerr,Ldate,istart
+    INTEGER :: MDUM = 0
+
+    character(len=80) :: filenm
+
+    REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
+    REAL*8, DIMENSION(0:NTIMEMAX) ::TIMING_glob
+    REAL*8 start,now, DTIME,TOTALT
+
+    CHARACTER aDATE*14
+    CHARACTER*8 :: flg_go='___GO___'      ! green light
+    integer :: iflag=1
+    external sig_stop_model
+    logical :: start9
+
+    integer :: iu_IFILE
+    real*8 :: tloopbegin, tloopend
+    integer :: hour, month, day, date, year
+    character(len=LEN_MONTH_ABBREVIATION) :: amon
+
+    rc = ESMF_SUCCESS
+    
+    ! query the Component for its clock, importState and exportState
+    call ESMF_GridCompGet(gcomp, clock=clock, importState=importState, &
+      exportState=exportState, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! HERE THE MODEL ADVANCES: currTime -> currTime + timeStep
+    
+    ! Because of the way that the internal Clock was set by default,
+    ! its timeStep is equal to the parent timeStep. As a consequence the
+    ! currTime + timeStep is equal to the stopTime of the internal Clock
+    ! for this call of the ModelAdvance() routine.
+    
+    call NUOPC_ClockPrintCurrTime(clock, &
+      "------>Advancing MODELE P2 from: ", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    
+    call NUOPC_ClockPrintStopTime(clock, &
+      "--------------------------------> to: ", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
 
 !****
 !**** SURFACE INTERACTION AND GROUND CALCULATION
@@ -347,8 +429,76 @@ module MODELE
 
       call ocean_driver
 
-! phase 2 changes surf pressure which affects the ocean
-      call atm_phase2
+  end subroutine ModelAdvanceP2
+
+  !-----------------------------------------------------------------------------
+
+  subroutine ModelAdvanceP3(gcomp, rc)
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
+    
+    ! local variables
+    type(ESMF_Clock)              :: clock
+    type(ESMF_State)              :: importState, exportState
+
+    logical :: qcRestart=.false.
+    logical :: coldRestart=.false.
+    integer, parameter :: MAX_LEN_IFILE = 32
+    character(len=MAX_LEN_IFILE) :: iFile
+    !logical, intent(in) :: qcRestart
+    !logical, intent(in) :: coldRestart
+    !character(len=*), intent(in) :: iFile
+
+    INTEGER K,M,MSTART,MNOW,months,ioerr,Ldate,istart
+    INTEGER :: MDUM = 0
+
+    character(len=80) :: filenm
+
+    REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
+    REAL*8, DIMENSION(0:NTIMEMAX) ::TIMING_glob
+    REAL*8 start,now, DTIME,TOTALT
+
+    CHARACTER aDATE*14
+    CHARACTER*8 :: flg_go='___GO___'      ! green light
+    integer :: iflag=1
+    external sig_stop_model
+    logical :: start9
+
+    integer :: iu_IFILE
+    real*8 :: tloopbegin, tloopend
+    integer :: hour, month, day, date, year
+    character(len=LEN_MONTH_ABBREVIATION) :: amon
+
+    rc = ESMF_SUCCESS
+    
+    ! query the Component for its clock, importState and exportState
+    call ESMF_GridCompGet(gcomp, clock=clock, importState=importState, &
+      exportState=exportState, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! HERE THE MODEL ADVANCES: currTime -> currTime + timeStep
+    
+    ! Because of the way that the internal Clock was set by default,
+    ! its timeStep is equal to the parent timeStep. As a consequence the
+    ! currTime + timeStep is equal to the stopTime of the internal Clock
+    ! for this call of the ModelAdvance() routine.
+    
+    call NUOPC_ClockPrintCurrTime(clock, &
+      "------>Advancing MODELE P3 from: ", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    
+    call NUOPC_ClockPrintStopTime(clock, &
+      "--------------------------------> to: ", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
 !****
 !**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 !****
@@ -473,7 +623,7 @@ module MODELE
 !**** END OF MAIN LOOP
 !****
 
-  end subroutine
+  end subroutine ModelAdvanceP3
 
   !-----------------------------------------------------------------------------
 

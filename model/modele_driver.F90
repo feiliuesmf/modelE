@@ -22,6 +22,7 @@ module modele_driver
   
   use modele_utils, only: initialize_modele_clock
   use MODELE, only: modelSS => SetServices
+  use ATM_DRV, only: atmSS => SetServices
   
   implicit none
   
@@ -81,8 +82,8 @@ module modele_driver
       file=__FILE__)) &
       return  ! bail out
      
-    ! set the modelCount for 1 child: MODEL
-    is%wrap%modelCount = 1
+    ! set the modelCount for 2 children: MODELE + ATM
+    is%wrap%modelCount = 2
     
   end subroutine
   
@@ -112,7 +113,7 @@ module modele_driver
       file=__FILE__)) &
       return  ! bail out
       
-    ! SetServices for the MODEL as modelComp(1)
+    ! SetServices for the MODELE as modelComp(1)
     call ESMF_GridCompSetServices(is%wrap%modelComp(1), modelSS, &
       userRc=localrc, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -136,8 +137,34 @@ module modele_driver
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
+
+    ! SetServices for the ATM as modelComp(2)
+    call ESMF_GridCompSetServices(is%wrap%modelComp(2), atmSS, &
+      userRc=localrc, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__, &
+      rcToReturn=rc)) &
+      return  ! bail out
+    call ESMF_GridCompSet(is%wrap%modelComp(2), name="ATM", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call ESMF_AttributeSet(is%wrap%modelComp(2), &
+      name="Verbosity", value="high", &
+      convention="NUOPC", purpose="General", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
             
     ! set the driver clock
+    ! Retrieve information to construct driver clock
     call initialize_modele_clock(is%wrap%modelComp(1), &
       startTime, stopTime, timeStep, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -153,6 +180,60 @@ module modele_driver
       return
       
     call ESMF_GridCompSet(gcomp, clock=internalClock, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! Replace default NUOPC run sequence
+    ! replace default run sequence for two timescales
+    call NUOPC_RunSequenceDeallocate(is%wrap%runSeq, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    ! add one run sequence elements
+    call NUOPC_RunSequenceAdd(is%wrap%runSeq, 1, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    ! Run sequence: MODELE(1), ATM(2)
+    ! MODELE p1
+    ! ATM    p1
+    ! MODELE p2
+    ! ATM    P2
+    ! MODELE p3
+    call NUOPC_RunElementAdd(is%wrap%runSeq(1), i=1, j=-1, phase=1, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    ! atm_phase1
+    call NUOPC_RunElementAdd(is%wrap%runSeq(1), i=2, j=-1, phase=1, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call NUOPC_RunElementAdd(is%wrap%runSeq(1), i=1, j=-1, phase=2, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    ! update atmosphere pressure that affects surface processes
+    ! atm_phase2
+    call NUOPC_RunElementAdd(is%wrap%runSeq(1), i=2, j=-1, phase=2, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call NUOPC_RunElementAdd(is%wrap%runSeq(1), i=1, j=-1, phase=3, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    call NUOPC_RunSequencePrint(is%wrap%runSeq(1), rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &

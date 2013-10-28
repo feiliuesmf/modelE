@@ -10,7 +10,7 @@ module ATM_DRV
   
   implicit none
   private
-  !public SetServices
+  public SetServices
 
   public atm_phase1
   public atm_phase2
@@ -70,6 +70,14 @@ module ATM_DRV
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
+
+    ! -> optional Finalize overwrite
+    call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_FINALIZE, &
+      userRoutine=nuopc_atm_finalize, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
     
   end subroutine
   
@@ -100,6 +108,8 @@ module ATM_DRV
     
   end subroutine
 
+  !-----------------------------------------------------------------------------
+
   subroutine nuopc_atm_run_phase1(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
@@ -109,12 +119,27 @@ module ATM_DRV
 
   end subroutine
 
+  !-----------------------------------------------------------------------------
+
   subroutine nuopc_atm_run_phase2(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
 
     rc = ESMF_SUCCESS
     call atm_phase2
+
+  end subroutine
+
+  !-----------------------------------------------------------------------------
+
+  subroutine nuopc_atm_finalize(gcomp, importState, exportState, clock, rc)
+    type(ESMF_GridComp)  :: gcomp
+    type(ESMF_State)     :: importState, exportState
+    type(ESMF_Clock)     :: clock
+    integer, intent(out) :: rc
+
+    rc = ESMF_SUCCESS
+    call finalize_atm
 
   end subroutine
 
