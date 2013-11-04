@@ -1,169 +1,200 @@
 #include "rundeck_opts.h"
-module ATM_DRV
+      module ATM_DRV
 #ifdef USE_ESMF_LIB
 
-  use ESMF
-  use NUOPC
-  use NUOPC_Model, only: &
-    model_routine_SS    => routine_SetServices, &
-    model_label_Advance => label_Advance
-  
-  implicit none
-  private
-  public SetServices
-
-  public atm_phase1
-  public atm_phase2
-  public daily_atm
-  public finalize_atm
-  public input_atm
-  public alloc_drv_atm
-  public checkt
-  public atm_exports_phasesrf
-  public def_rsf_atmvars
-  public new_io_atmvars
-  
-  !-----------------------------------------------------------------------------
-  contains
-  !-----------------------------------------------------------------------------
-  
-  subroutine SetServices(gcomp, rc)
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
+      use ESMF
+      use NUOPC
+      use NUOPC_Model, only: 
+     & model_routine_SS    => routine_SetServices,       
+     & model_label_Advance => label_Advance,             
+     & model_label_SetRunClock=> label_SetRunClock,      
+     & model_routine_Run   => routine_Run
+ 
+      implicit none
+      private
+      public SetServices
     
-    rc = ESMF_SUCCESS
+      public daily_atm
+      public finalize_atm
+      public input_atm
+      public alloc_drv_atm
+      public checkt
+      public atm_exports_phasesrf
+      public def_rsf_atmvars
+      public new_io_atmvars
+      
+      !-----------------------------------------------------------------------------
+      contains
+      !-----------------------------------------------------------------------------
+      
+      subroutine SetServices(gcomp, rc)
+        type(ESMF_GridComp)  :: gcomp
+        integer, intent(out) :: rc
+        
+        rc = ESMF_SUCCESS
+        
+        ! the NUOPC model component will register the generic methods
+        call model_routine_SS(gcomp, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+        
+        ! set entry point for methods that require specific implementation
+        call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE, 
+     &   userRoutine=InitializeP1, phase=1, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
     
-    ! the NUOPC model component will register the generic methods
-    call model_routine_SS(gcomp, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+        call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE, 
+     &   userRoutine=InitializeP2, phase=2, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
     
-    ! set entry point for methods that require specific implementation
-    call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE, &
-      userRoutine=InitializeP1, phase=1, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+        ! Register additional run routines through NUOPC
+        call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_RUN, 
+     &   userRoutine=model_routine_Run, phase=2, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+        
+        ! attach specializing method(s)
+        call ESMF_MethodAdd(gcomp, label=model_label_Advance, 
+     &   index=1, userRoutine=nuopc_atm_run_phase1, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
 
-    call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE, &
-      userRoutine=InitializeP2, phase=2, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+        call ESMF_MethodAdd(gcomp, label=model_label_SetRunClock, 
+     &   index=1, userRoutine=SetRunClock, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
     
-    ! attach specializing method(s)
-    call ESMF_MethodAdd(gcomp, label=model_label_Advance, &
-      index=1, userRoutine=nuopc_atm_run_phase1, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+        ! attach specializing method(s)
+        call ESMF_MethodAdd(gcomp, label=model_label_Advance, 
+     &   index=2, userRoutine=nuopc_atm_run_phase2, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
 
-    ! attach specializing method(s)
-    call ESMF_MethodAdd(gcomp, label=model_label_Advance, &
-      index=2, userRoutine=nuopc_atm_run_phase2, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! -> optional Finalize overwrite
-    call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_FINALIZE, &
-      userRoutine=nuopc_atm_finalize, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+        call ESMF_MethodAdd(gcomp, label=model_label_SetRunClock, 
+     &   index=2, userRoutine=SetRunClock, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
     
-  end subroutine
-  
-  !-----------------------------------------------------------------------------
-
-  subroutine InitializeP1(gcomp, importState, exportState, clock, rc)
-    implicit none
-
-    ! Input Arguments
-    type(ESMF_GridComp)  :: gcomp
-    type(ESMF_State)     :: importState, exportState
-    type(ESMF_Clock)     :: clock
-    integer, intent(out) :: rc
+        ! -> optional Finalize overwrite
+        call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_FINALIZE, 
+     &   userRoutine=nuopc_atm_finalize, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+        
+      end subroutine
+      
+      !-----------------------------------------------------------------------------
     
-    rc = ESMF_SUCCESS
-
-  end subroutine
-  
-  !-----------------------------------------------------------------------------
-
-  subroutine InitializeP2(gcomp, importState, exportState, clock, rc)
-    type(ESMF_GridComp)  :: gcomp
-    type(ESMF_State)     :: importState, exportState
-    type(ESMF_Clock)     :: clock
-    integer, intent(out) :: rc
+      subroutine InitializeP1(gcomp, importState, exportState, clock,rc)
+        implicit none
     
-    rc = ESMF_SUCCESS
+        ! Input Arguments
+        type(ESMF_GridComp)  :: gcomp
+        type(ESMF_State)     :: importState, exportState
+        type(ESMF_Clock)     :: clock
+        integer, intent(out) :: rc
+        
+        rc = ESMF_SUCCESS
     
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-  subroutine nuopc_atm_run_phase1(gcomp, rc)
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-
-    rc = ESMF_SUCCESS
-    call atm_phase1
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-  subroutine nuopc_atm_run_phase2(gcomp, rc)
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-
-    rc = ESMF_SUCCESS
-    call atm_phase2
-
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-  subroutine nuopc_atm_finalize(gcomp, importState, exportState, clock, rc)
-    type(ESMF_GridComp)  :: gcomp
-    type(ESMF_State)     :: importState, exportState
-    type(ESMF_Clock)     :: clock
-    integer, intent(out) :: rc
-
-    rc = ESMF_SUCCESS
-    call finalize_atm
-
-  end subroutine
-
+      end subroutine
+      
+      !-----------------------------------------------------------------------------
+    
+      subroutine InitializeP2(gcomp, importState, exportState, clock,rc)
+        type(ESMF_GridComp)  :: gcomp
+        type(ESMF_State)     :: importState, exportState
+        type(ESMF_Clock)     :: clock
+        integer, intent(out) :: rc
+        
+        rc = ESMF_SUCCESS
+        
+      end subroutine
+    
+      !-----------------------------------------------------------------------------
+    
+      subroutine nuopc_atm_run_phase1(gcomp, rc)
+        type(ESMF_GridComp)  :: gcomp
+        integer, intent(out) :: rc
+    
+        rc = ESMF_SUCCESS
+        call atm_phase1
+    
+      end subroutine
+    
+      !-----------------------------------------------------------------------------
+    
+      subroutine nuopc_atm_run_phase2(gcomp, rc)
+        type(ESMF_GridComp)  :: gcomp
+        integer, intent(out) :: rc
+    
+        rc = ESMF_SUCCESS
+        call atm_phase2
+    
+      end subroutine
+    
+      !-----------------------------------------------------------------------------
+    
+      subroutine nuopc_atm_finalize(gcomp, importState, 
+     & exportState, clock, rc)
+        type(ESMF_GridComp)  :: gcomp
+        type(ESMF_State)     :: importState, exportState
+        type(ESMF_Clock)     :: clock
+        integer, intent(out) :: rc
+    
+        rc = ESMF_SUCCESS
+        call finalize_atm
+    
+      end subroutine
+    
+      subroutine SetRunClock(gcomp, rc)
+        type(ESMF_GridComp)   :: gcomp
+        integer, intent(out)  :: rc
+       
+        rc = ESMF_SUCCESS
+      end subroutine
+     
+     
 !-----------------------------------------------------------------------------
 ! Here comes the original version of ATM_DRV code
 !-----------------------------------------------------------------------------
 #else
-  implicit none
-  private
-
-  public atm_phase1
-  public atm_phase2
-  public daily_atm
-  public finalize_atm
-  public input_atm
-  public alloc_drv_atm
-  public checkt
-  public atm_exports_phasesrf
-  public def_rsf_atmvars
-  public new_io_atmvars
-  
-  !-----------------------------------------------------------------------------
-  contains
-  !-----------------------------------------------------------------------------
+      implicit none
+      private
+     
+      public atm_phase1
+      public atm_phase2
+      public daily_atm
+      public finalize_atm
+      public input_atm
+      public alloc_drv_atm
+      public checkt
+      public atm_exports_phasesrf
+      public def_rsf_atmvars
+      public new_io_atmvars
+      
+      !-----------------------------------------------------------------------------
+      contains
+      !-----------------------------------------------------------------------------
 
 #endif
 
@@ -185,24 +216,24 @@ module ATM_DRV
       USE TRACER_COM, only: mtradv
 #endif
 #endif
-      USE DIAG_COM, only : ia_src,ia_d5s,ia_d5d,ia_filt &
-           ,oa,koa &
-           ,MODD5S,NDAa, NDA5d,NDA5s
+      USE DIAG_COM, only : ia_src,ia_d5s,ia_d5d,ia_filt 
+     &      ,oa,koa 
+     &      ,MODD5S,NDAa, NDA5d,NDA5s
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: Run,fvstate
 #endif
 #ifndef CUBED_SPHERE
-      USE ATMDYN, only : DYNAM,SDRAG &
-           ,FILTER, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
+      USE ATMDYN, only : DYNAM,SDRAG 
+     &      ,FILTER, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
 #endif
 #ifdef SCM
       USE ATM_COM, only : t,p,q
-      USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q, &
-          iu_scm_prt,iu_scm_diag,I_TARG,J_TARG,nstepscm
+      USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q, 
+     &     iu_scm_prt,iu_scm_diag,I_TARG,J_TARG,nstepscm
 #endif
 #ifdef TRACERS_TOMAS
-      USE TRACER_COM, only : NBINS, IDTNUMD,IDTSO4,IDTECIL, IDTECOB, &
-           IDTOCIL, IDTOCOB,IDTDUST,IDTH2O,IDTNA
+      USE TRACER_COM, only : NBINS, IDTNUMD,IDTSO4,IDTECIL, IDTECOB, 
+     &      IDTOCIL, IDTOCOB,IDTDUST,IDTH2O,IDTNA
 #endif
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
@@ -516,8 +547,8 @@ module ATM_DRV
       implicit none
       integer :: n,i,j,i_0,i_1,j_0,j_1
 !
-      call getDomainBounds(grid, i_strt=i_0,i_stop=i_1, &
-        j_strt=j_0,j_stop=j_1)
+      call getDomainBounds(grid, i_strt=i_0,i_stop=i_1, 
+     &   j_strt=j_0,j_stop=j_1)
 !
       do j=j_0,j_1
       do i=i_0,imaxj(j)
@@ -547,8 +578,8 @@ module ATM_DRV
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM, only: mtrace
 #endif
-      USE DIAG_COM, only : kvflxo,oa,koa,ia_filt &
-           ,MODD5S,NDAa, NDA5d,NDA5s,NDA4
+      USE DIAG_COM, only : kvflxo,oa,koa,ia_filt 
+     &      ,MODD5S,NDAa, NDA5d,NDA5s,NDA4
       USE SUBDAILY, only : nsubdd,get_subdd,accSubdd
 #ifndef CUBED_SPHERE
       USE ATMDYN, only : FILTER
@@ -556,8 +587,8 @@ module ATM_DRV
       USE RESOLUTION, only : PTOP
 #endif
 #ifdef SCM
-      USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q, &
-          iu_scm_prt,iu_scm_diag
+      USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q, 
+     &     iu_scm_prt,iu_scm_diag
 #endif
       USE FLUXES, only : atmocn,atmice
       use TimerPackage_mod, only: startTimer => start
@@ -570,8 +601,8 @@ module ATM_DRV
       call seaice_to_atmgrid(atmice)
       CALL ADVSI_DIAG(atmocn,atmice) ! needed to update qflux model, dummy otherwise
 !**** SAVE some noon GMT ice quantities
-      IF (MOD(Itime+1,NDAY).ne.0 .and. MOD(Itime+1,NDAY/2).eq.0) &
-              call vflx_OCEAN
+      IF (MOD(Itime+1,NDAY).ne.0 .and. MOD(Itime+1,NDAY/2).eq.0) 
+     &         call vflx_OCEAN
 
 !**** IF ATURB is used in rundeck then this is a dummy call
 !**** CALCULATE DRY CONVECTION ABOVE PBL
@@ -646,8 +677,8 @@ module ATM_DRV
       return
       end subroutine atm_phase2
 
-      SUBROUTINE INPUT_atm (istart,istart_fixup,do_IC_fixups, &
-           is_coldstart,KDISK_restart,IRANDI)
+      SUBROUTINE INPUT_atm (istart,istart_fixup,do_IC_fixups, 
+     &      is_coldstart,KDISK_restart,IRANDI)
 
 !****
 !**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
@@ -658,9 +689,9 @@ module ATM_DRV
       USE FLUXES, only : nisurf,atmocn,atmice
       USE RESOLUTION, only : ls1,plbot
       USE RESOLUTION, only : im,jm,lm
-      USE MODEL_COM, only : &
-            irand,idacc ,nday,dtsrc ,iyear1,itime,itimei,itimee &
-           ,mdyn,mcnds,mrad,msurf,mdiag
+      USE MODEL_COM, only : 
+     &       irand,idacc ,nday,dtsrc ,iyear1,itime,itimei,itimee 
+     &      ,mdyn,mcnds,mrad,msurf,mdiag
       USE DIAG_ZONAL, only : imlon
       USE RANDOM
       USE DYNAMICS, only : USE_UNR_DRAG
@@ -668,11 +699,9 @@ module ATM_DRV
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE SOMTQ_COM, only : mz,tmom
       USE ATM_COM, only : p,t
-      USE TRACER_COM,only: MTRACE,daily_z &
+      USE TRACER_COM,only: MTRACE,daily_z 
 #ifdef TRACERS_SPECIAL_Shindell
-          ,mchem
-#else
-
+     &     ,mchem
 #endif
 #ifdef TRAC_ADV_CPU
       USE TRACER_COM,only: MTRADV
@@ -754,8 +783,8 @@ module ATM_DRV
       IF (ISTART.LT.10 .AND. IRANDI.NE.0) THEN
         CALL RINIT (IRANDI)
         CALL PERTURB_TEMPS
-        IF (AM_I_ROOT()) &
-             WRITE(6,*) 'Initial conditions were perturbed !!',IRANDI
+        IF (AM_I_ROOT()) 
+     &        WRITE(6,*) 'Initial conditions were perturbed !!',IRANDI
       END IF
 
       CALL CALC_AMPK(LM)
@@ -928,13 +957,13 @@ module ATM_DRV
 #endif
 
 #ifdef GLINT2
-      glint2 = glint2_modele_new('GLINT2', 6, 'm', 1,          & 
-          im, jm,                                              &
-          grid%i_strt_halo, grid%i_stop_halo,                  &
-          grid%j_strt_halo, grid%j_stop_halo,                  &
-          grid%i_strt, grid%i_stop, grid%j_strt, grid%j_stop,  &
-          grid%j_strt_skp, grid%j_stop_skp,                    &
-          MPI_COMM_WORLD, ROOT_PROCESS)
+      glint2 = glint2_modele_new('GLINT2', 6, 'm', 1, 
+     &     im, jm, 
+     &     grid%i_strt_halo, grid%i_stop_halo, 
+     &     grid%j_strt_halo, grid%j_stop_halo, 
+     &     grid%i_strt, grid%i_stop, grid%j_strt, grid%j_stop, 
+     &     grid%j_strt_skp, grid%j_stop_skp,
+     &     MPI_COMM_WORLD, ROOT_PROCESS)
 #endif  ! GLINT2
 
       call alloc_dynamics(grid)
@@ -1174,8 +1203,8 @@ module ATM_DRV
 !**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0H, J_1H, I_0,I_1, I_0H,I_1H, njpol
       INTEGER :: I_0STG,I_1STG,J_0STG,J_1STG
-      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,           &
-           J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1, 
+     &      J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
       I_0H = grid%I_STRT_HALO
@@ -1190,28 +1219,28 @@ module ATM_DRV
 
       IF (QCHECK) THEN
 !**** Check all prog. arrays for Non-numbers
-        CALL CHECK3B(U(I_0STG:I_1STG,J_0STG:J_1STG,:),                 &
-             I_0STG,I_1STG,J_0STG,J_1STG,0,LM,SUBR,'u     ')
-        CALL CHECK3B(V(I_0STG:I_1STG,J_0STG:J_1STG,:),                 &
-             I_0STG,I_1STG,J_0STG,J_1STG,0,LM,SUBR,'v     ')
-        CALL CHECK3B(T(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,    &
-             SUBR,'t     ')
-        CALL CHECK3B(Q(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,    &
-             SUBR,'q     ')
-        CALL CHECK3B(P(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,       &
-             SUBR,'p     ')
-        CALL CHECK3B(WM(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,   &
-             SUBR,'wm    ')
+        CALL CHECK3B(U(I_0STG:I_1STG,J_0STG:J_1STG,:),                 
+     &        I_0STG,I_1STG,J_0STG,J_1STG,0,LM,SUBR,'u     ')
+        CALL CHECK3B(V(I_0STG:I_1STG,J_0STG:J_1STG,:),                 
+     &        I_0STG,I_1STG,J_0STG,J_1STG,0,LM,SUBR,'v     ')
+        CALL CHECK3B(T(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,    
+     &        SUBR,'t     ')
+        CALL CHECK3B(Q(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,    
+     &        SUBR,'q     ')
+        CALL CHECK3B(P(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,       
+     &        SUBR,'p     ')
+        CALL CHECK3B(WM(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,   
+     &        SUBR,'wm    ')
 #ifdef BLK_2MOM
-        CALL CHECK3B(WMICE(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,&
+        CALL CHECK3B(WMICE(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,
              SUBR,'wmice    ')
 #endif
 
         DO J=J_0,J_1
         DO I=I_0,I_1
           IF (Q(I,J,1).gt.1d-1)print*,SUBR," Q BIG ",i,j,Q(I,J,1:LS1)
-          IF (T(I,J,1)*PK(1,I,J)-TF.gt.50.) print*,SUBR," T BIG ",i,j  &
-               ,T(I,J,1:LS1)*PK(1:LS1,I,J)-TF
+          IF (T(I,J,1)*PK(1,I,J)-TF.gt.50.) print*,SUBR," T BIG ",i,j  
+     &         ,T(I,J,1:LS1)*PK(1:LS1,I,J)-TF
         END DO
         END DO
         DO L=1,LM
@@ -1255,4 +1284,4 @@ module ATM_DRV
       RETURN
       END SUBROUTINE CHECKT
 
-end module ATM_DRV
+      end module ATM_DRV

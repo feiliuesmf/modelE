@@ -43,8 +43,7 @@ module MODELE
   use seaice_com, only : si_ocn,iceocn ! temporary until precip_si,
   use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
   use Month_mod, only: LEN_MONTH_ABBREVIATION
-  use ATM_DRV, only: atm_phase1, atm_phase2, daily_atm, &
-                     finalize_atm, input_atm, alloc_drv_atm
+  use ATM_DRV, only: daily_atm, finalize_atm, input_atm, alloc_drv_atm
 
 #ifdef USE_ESMF_LIB
   !-----------------------------------------------------------------------------
@@ -54,8 +53,10 @@ module MODELE
   use ESMF
   use NUOPC
   use NUOPC_Model, only: &
-    model_routine_SS    => routine_SetServices, &
-    model_label_Advance => label_Advance
+    model_routine_SS    => routine_SetServices,   &
+    model_label_Advance => label_Advance,         &
+    model_label_SetRunClock => label_SetRunClock, &
+    model_routine_Run   => routine_Run
   
   implicit none
   private
@@ -92,10 +93,30 @@ module MODELE
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
+
+    ! Register additional run routines through NUOPC
+    call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+      userRoutine=model_routine_Run, phase=2, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
+      userRoutine=model_routine_Run, phase=3, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
     
     ! attach specializing method(s)
     call ESMF_MethodAdd(gcomp, label=model_label_Advance, &
       index=1, userRoutine=ModelAdvanceP1, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call ESMF_MethodAdd(gcomp, label=model_label_SetRunClock, &
+      index=1, userRoutine=SetRunClock, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -106,8 +127,20 @@ module MODELE
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
+    call ESMF_MethodAdd(gcomp, label=model_label_SetRunClock, &
+      index=2, userRoutine=SetRunClock, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
     call ESMF_MethodAdd(gcomp, label=model_label_Advance, &
       index=3, userRoutine=ModelAdvanceP3, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call ESMF_MethodAdd(gcomp, label=model_label_SetRunClock, &
+      index=3, userRoutine=SetRunClock, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -121,6 +154,13 @@ module MODELE
       file=__FILE__)) &
       return  ! bail out
     
+  end subroutine
+
+  subroutine SetRunClock(gcomp, rc)
+    type(ESMF_GridComp)   :: gcomp
+    integer, intent(out)  :: rc
+   
+    rc = ESMF_SUCCESS
   end subroutine
   
   !-----------------------------------------------------------------------------
@@ -687,6 +727,9 @@ module MODELE
 
   implicit none
   private
+
+  use ATM_DRV, only: atm_phase1, atm_phase2
+
   public modelE_mainDriver
 
   contains
