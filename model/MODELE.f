@@ -1,7 +1,7 @@
-module MODELE
-
-!@sum  MAIN GISS modelE main time-stepping routine
-!@auth Original Development Team
+      module MODELE
+     
+c@sum  MAIN GISS modelE main time-stepping routine
+c@auth Original Development Team
 !@ver  2009/05/11 (Based originally on B399)
 !
 ! ----------------------------------------------------------
@@ -13,159 +13,161 @@ module MODELE
 ! Fei Liu, 8/26/2013
 ! ----------------------------------------------------------
 !
-  USE FILEMANAGER, only : openunit,closeunit
-  USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
-  USE Dictionary_mod
-  Use Parser_mod
-  USE MODEL_COM, only: modelEclock, ItimeI, Itime, Ndisk, &
-  Jyear0, JMON0, Iyear1, ItimeE, Itime0, &
-  NIPRNT, XLABEL, LRUNID, MELSE, Nssw, stop_on, &
-  iowrite_single, isBeginningAccumPeriod, &
-  KCOPY, NMONAV, IRAND, iowrite_mon, MDIAG, NDAY, &
-  rsf_file_name, iowrite, KDISK, dtSRC, MSURF, &
-  JDendOfM
-  USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast,sumxpe
-  USE RANDOM
-  USE GETTIME_MOD
-  USE MDIAG_COM, only : monacc,acc_period
+       USE FILEMANAGER, only : openunit,closeunit
+       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
+       USE Dictionary_mod
+       Use Parser_mod
+       USE MODEL_COM, only: modelEclock, ItimeI, Itime, Ndisk, 
+     &  Jyear0, JMON0, Iyear1, ItimeE, Itime0, 
+     &  NIPRNT, XLABEL, LRUNID, MELSE, Nssw, stop_on, 
+     &  iowrite_single, isBeginningAccumPeriod, 
+     &  KCOPY, NMONAV, IRAND, iowrite_mon, MDIAG, NDAY, 
+     &  rsf_file_name, iowrite, KDISK, dtSRC, MSURF, 
+     &  JDendOfM
+       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast,sumxpe
+       USE RANDOM
+       USE GETTIME_MOD
+       USE MDIAG_COM, only : monacc,acc_period
 #ifdef USE_MPP
-  USE fms_mod,         only : fms_init, fms_end
+       USE fms_mod,         only : fms_init, fms_end
 #endif
 #ifdef USE_FVCORE
-  USE FV_INTERFACE_MOD, only: fvstate
-  USE FV_INTERFACE_MOD, only: Checkpoint,Compute_Tendencies
+       USE FV_INTERFACE_MOD, only: fvstate
+       USE FV_INTERFACE_MOD, only: Checkpoint,Compute_Tendencies
 #endif
-  use TimeConstants_mod, only: SECONDS_PER_MINUTE, &
-                               INT_MONTHS_PER_YEAR
-  use TimerPackage_mod, only: startTimer => start
-  use TimerPackage_mod, only: stopTimer => stop
-  use SystemTimers_mod
-  use seaice_com, only : si_ocn,iceocn ! temporary until precip_si,
-  use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
-  use Month_mod, only: LEN_MONTH_ABBREVIATION
-  use ATM_DRV, only: daily_atm, finalize_atm, input_atm, alloc_drv_atm
-
+       use TimeConstants_mod, only: SECONDS_PER_MINUTE, 
+     &                              INT_MONTHS_PER_YEAR
+       use TimerPackage_mod, only: startTimer => start
+       use TimerPackage_mod, only: stopTimer => stop
+       use SystemTimers_mod
+       use seaice_com, only : si_ocn,iceocn ! temporary until precip_si,
+       use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
+       use Month_mod, only: LEN_MONTH_ABBREVIATION
+       use ATM_DRV, only: daily_atm, finalize_atm, 
+     &                    input_atm, alloc_drv_atm
+     
 #ifdef USE_ESMF_LIB
-  !-----------------------------------------------------------------------------
-  ! MODEL Component.
-  !-----------------------------------------------------------------------------
-
-  use ESMF
-  use NUOPC
-  use NUOPC_Model, only: &
-    model_routine_SS    => routine_SetServices,   &
-    model_label_Advance => label_Advance,         &
-    model_label_SetRunClock => label_SetRunClock, &
-    model_routine_Run   => routine_Run
-  
-  implicit none
-  private
-  public SetServices
-  
-  !-----------------------------------------------------------------------------
-  contains
-  !-----------------------------------------------------------------------------
-  
-  subroutine SetServices(gcomp, rc)
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-    
-    rc = ESMF_SUCCESS
-    
-    ! the NUOPC model component will register the generic methods
-    call model_routine_SS(gcomp, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-    
-    ! set entry point for methods that require specific implementation
-    call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE, &
-      userRoutine=InitializeP1, phase=1, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE, &
-      userRoutine=InitializeP2, phase=2, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! Register additional run routines through NUOPC
-    call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-      userRoutine=model_routine_Run, phase=2, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-    call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_RUN, &
-      userRoutine=model_routine_Run, phase=3, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-    
-    ! attach specializing method(s)
-    call ESMF_MethodAdd(gcomp, label=model_label_Advance, &
-      index=1, userRoutine=ModelAdvanceP1, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-    call ESMF_MethodAdd(gcomp, label=model_label_SetRunClock, &
-      index=1, userRoutine=SetRunClock, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-    call ESMF_MethodAdd(gcomp, label=model_label_Advance, &
-      index=2, userRoutine=ModelAdvanceP2, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-    call ESMF_MethodAdd(gcomp, label=model_label_SetRunClock, &
-      index=2, userRoutine=SetRunClock, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-    call ESMF_MethodAdd(gcomp, label=model_label_Advance, &
-      index=3, userRoutine=ModelAdvanceP3, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-    call ESMF_MethodAdd(gcomp, label=model_label_SetRunClock, &
-      index=3, userRoutine=SetRunClock, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! -> optional Finalize overwrite
-    call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_FINALIZE, &
-      userRoutine=NFinalize, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-    
-  end subroutine
-
-  subroutine SetRunClock(gcomp, rc)
-    type(ESMF_GridComp)   :: gcomp
-    integer, intent(out)  :: rc
-   
-    rc = ESMF_SUCCESS
-  end subroutine
-  
-  !-----------------------------------------------------------------------------
-
-  subroutine InitializeP1(gcomp, importState, exportState, clock, rc)
+       !-----------------------------------------------------------------------------
+       ! MODEL Component.
+       !-----------------------------------------------------------------------------
+     
+       use ESMF
+       use NUOPC
+       use NUOPC_Model, only: 
+     &    model_routine_SS    => routine_SetServices,   
+     &    model_label_Advance => label_Advance,         
+     &    model_label_SetRunClock => label_SetRunClock, 
+     &    model_routine_Run   => routine_Run
+       
+       implicit none
+       private
+       public SetServices
+       
+       !-----------------------------------------------------------------------------
+       contains
+       !-----------------------------------------------------------------------------
+       
+       subroutine SetServices(gcomp, rc)
+         type(ESMF_GridComp)  :: gcomp
+         integer, intent(out) :: rc
+         
+         rc = ESMF_SUCCESS
+         
+         ! the NUOPC model component will register the generic methods
+         call model_routine_SS(gcomp, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+         
+         ! set entry point for methods that require specific implementation
+         call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE, 
+     &      userRoutine=InitializeP1, phase=1, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+     
+         call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE, 
+     &      userRoutine=InitializeP2, phase=2, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+     
+         ! Register additional run routines through NUOPC
+         call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_RUN, 
+     &      userRoutine=model_routine_Run, phase=2, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+         call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_RUN, 
+     &      userRoutine=model_routine_Run, phase=3, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+         
+         ! attach specializing method(s)
+         call ESMF_MethodAdd(gcomp, label=model_label_Advance, 
+     &      index=1, userRoutine=ModelAdvanceP1, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+         call ESMF_MethodAdd(gcomp, label=model_label_SetRunClock, 
+     &      index=1, userRoutine=SetRunClock, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+         call ESMF_MethodAdd(gcomp, label=model_label_Advance, 
+     &      index=2, userRoutine=ModelAdvanceP2, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+         call ESMF_MethodAdd(gcomp, label=model_label_SetRunClock, 
+     &      index=2, userRoutine=SetRunClock, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+         call ESMF_MethodAdd(gcomp, label=model_label_Advance, 
+     &      index=3, userRoutine=ModelAdvanceP3, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+         call ESMF_MethodAdd(gcomp, label=model_label_SetRunClock, 
+     &      index=3, userRoutine=SetRunClock, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+     
+         ! -> optional Finalize overwrite
+         call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_FINALIZE, 
+     &      userRoutine=NFinalize, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+         
+       end subroutine
+     
+       subroutine SetRunClock(gcomp, rc)
+         type(ESMF_GridComp)   :: gcomp
+         integer, intent(out)  :: rc
+        
+         rc = ESMF_SUCCESS
+       end subroutine
+       
+       !-----------------------------------------------------------------------------
+     
+      subroutine InitializeP1(gcomp, importState, exportState, 
+     &                        clock, rc)
       implicit none
  
       ! Input Arguments
@@ -206,22 +208,24 @@ module MODELE
       rc = ESMF_SUCCESS
 
       call ESMF_AttributeGet(gcomp, name="iFile", value=iFile, rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__)) &
-        return  ! bail out
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
 
-      call ESMF_AttributeGet(gcomp, name="coldRestart", value=coldRestart, rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__)) &
-        return  ! bail out
+      call ESMF_AttributeGet(gcomp, name="coldRestart", 
+     &value=coldRestart, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
 
-      call ESMF_AttributeGet(gcomp, name="qcRestart", value=qcRestart, rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__)) &
-        return  ! bail out
+      call ESMF_AttributeGet(gcomp, name="qcRestart", value=qcRestart, 
+     &rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
 
 #ifdef USE_SYSUSAGE
       do i_su=0,max_su
@@ -263,100 +267,104 @@ module MODELE
         START= START-TIMING(M)
       END DO
 
-      call modelEclock%getDate(hour=hour, date=date, year=year,amn=amon)
+      call modelEclock%getDate(hour=hour, date=date, 
+     &year=year,amn=amon)
 
-      if (AM_I_ROOT()) &
-        WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)') &
-        '0NASA/GISS Climate Model (re)started', &
-        'Year', year, aMon, date, ', Hr', hour, &
-        'Internal clock: DTsrc-steps since 1/1/',Iyear1,ITIME
+      if (AM_I_ROOT()) 
+     &   WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)') 
+     &   '0NASA/GISS Climate Model (re)started', 
+     &   'Year', year, aMon, date, ', Hr', hour, 
+     &   'Internal clock: DTsrc-steps since 1/1/',Iyear1,ITIME
 
          CALL TIMER (NOW,MELSE)
 
       call sys_flush(6)
     
-  end subroutine
+      end subroutine
   
   !-----------------------------------------------------------------------------
 
-  subroutine InitializeP2(gcomp, importState, exportState, clock, rc)
-    type(ESMF_GridComp)  :: gcomp
-    type(ESMF_State)     :: importState, exportState
-    type(ESMF_Clock)     :: clock
-    integer, intent(out) :: rc
-    
-    rc = ESMF_SUCCESS
-    
-  end subroutine
+      subroutine InitializeP2(gcomp, importState, exportState, 
+     &clock, rc)
+
+        type(ESMF_GridComp)  :: gcomp
+        type(ESMF_State)     :: importState, exportState
+        type(ESMF_Clock)     :: clock
+        integer, intent(out) :: rc
+        
+        rc = ESMF_SUCCESS
+        
+      end subroutine
   
   !-----------------------------------------------------------------------------
 
-  subroutine ModelAdvanceP1(gcomp, rc)
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
+      subroutine ModelAdvanceP1(gcomp, rc)
+
+      type(ESMF_GridComp)  :: gcomp
+      integer, intent(out) :: rc
+      
+      ! local variables
+      type(ESMF_Clock)              :: clock
+      type(ESMF_State)              :: importState, exportState
     
-    ! local variables
-    type(ESMF_Clock)              :: clock
-    type(ESMF_State)              :: importState, exportState
-
-    logical :: qcRestart=.false.
-    logical :: coldRestart=.false.
-    integer, parameter :: MAX_LEN_IFILE = 32
-    character(len=MAX_LEN_IFILE) :: iFile
-    !logical, intent(in) :: qcRestart
-    !logical, intent(in) :: coldRestart
-    !character(len=*), intent(in) :: iFile
-
-    INTEGER K,M,MSTART,MNOW,months,ioerr,Ldate,istart
-    INTEGER :: MDUM = 0
-
-    character(len=80) :: filenm
-
-    REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
-    REAL*8, DIMENSION(0:NTIMEMAX) ::TIMING_glob
-    REAL*8 start,now, DTIME,TOTALT
-
-    CHARACTER aDATE*14
-    CHARACTER*8 :: flg_go='___GO___'      ! green light
-    integer :: iflag=1
-    external sig_stop_model
-    logical :: start9
-
-    integer :: iu_IFILE
-    real*8 :: tloopbegin, tloopend
-    integer :: hour, month, day, date, year
-    character(len=LEN_MONTH_ABBREVIATION) :: amon
-
-    rc = ESMF_SUCCESS
+      logical :: qcRestart=.false.
+      logical :: coldRestart=.false.
+      integer, parameter :: MAX_LEN_IFILE = 32
+      character(len=MAX_LEN_IFILE) :: iFile
+      !logical, intent(in) :: qcRestart
+      !logical, intent(in) :: coldRestart
+      !character(len=*), intent(in) :: iFile
     
-    ! query the Component for its clock, importState and exportState
-    call ESMF_GridCompGet(gcomp, clock=clock, importState=importState, &
-      exportState=exportState, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! HERE THE MODEL ADVANCES: currTime -> currTime + timeStep
+      INTEGER K,M,MSTART,MNOW,months,ioerr,Ldate,istart
+      INTEGER :: MDUM = 0
     
-    ! Because of the way that the internal Clock was set by default,
-    ! its timeStep is equal to the parent timeStep. As a consequence the
-    ! currTime + timeStep is equal to the stopTime of the internal Clock
-    ! for this call of the ModelAdvance() routine.
+      character(len=80) :: filenm
     
-    call NUOPC_ClockPrintCurrTime(clock, &
-      "------>Advancing MODELE P1 from: ", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+      REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
+      REAL*8, DIMENSION(0:NTIMEMAX) ::TIMING_glob
+      REAL*8 start,now, DTIME,TOTALT
     
-    call NUOPC_ClockPrintStopTime(clock, &
-      "--------------------------------> to: ", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+      CHARACTER aDATE*14
+      CHARACTER*8 :: flg_go='___GO___'      ! green light
+      integer :: iflag=1
+      external sig_stop_model
+      logical :: start9
+    
+      integer :: iu_IFILE
+      real*8 :: tloopbegin, tloopend
+      integer :: hour, month, day, date, year
+      character(len=LEN_MONTH_ABBREVIATION) :: amon
+    
+      rc = ESMF_SUCCESS
+      
+      ! query the Component for its clock, importState and exportState
+      call ESMF_GridCompGet(gcomp, clock=clock, importState=importState, 
+     &     exportState=exportState, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+    
+        ! HERE THE MODEL ADVANCES: currTime -> currTime + timeStep
+        
+        ! Because of the way that the internal Clock was set by default,
+        ! its timeStep is equal to the parent timeStep. As a consequence the
+        ! currTime + timeStep is equal to the stopTime of the internal Clock
+        ! for this call of the ModelAdvance() routine.
+        
+      call NUOPC_ClockPrintCurrTime(clock, 
+     &     "------>Advancing MODELE P1 from: ", rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+        
+      call NUOPC_ClockPrintStopTime(clock, 
+     &     "--------------------------------> to: ", rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
 
 !****
 !**** MAIN LOOP
@@ -379,76 +387,77 @@ module MODELE
         call startNewDay()
       end if
 
-  end subroutine ModelAdvanceP1
+      end subroutine ModelAdvanceP1
 
   !-----------------------------------------------------------------------------
 
-  subroutine ModelAdvanceP2(gcomp, rc)
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
+      subroutine ModelAdvanceP2(gcomp, rc)
+
+      type(ESMF_GridComp)  :: gcomp
+      integer, intent(out) :: rc
+      
+      ! local variables
+      type(ESMF_Clock)              :: clock
+      type(ESMF_State)              :: importState, exportState
     
-    ! local variables
-    type(ESMF_Clock)              :: clock
-    type(ESMF_State)              :: importState, exportState
-
-    logical :: qcRestart=.false.
-    logical :: coldRestart=.false.
-    integer, parameter :: MAX_LEN_IFILE = 32
-    character(len=MAX_LEN_IFILE) :: iFile
-    !logical, intent(in) :: qcRestart
-    !logical, intent(in) :: coldRestart
-    !character(len=*), intent(in) :: iFile
-
-    INTEGER K,M,MSTART,MNOW,months,ioerr,Ldate,istart
-    INTEGER :: MDUM = 0
-
-    character(len=80) :: filenm
-
-    REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
-    REAL*8, DIMENSION(0:NTIMEMAX) ::TIMING_glob
-    REAL*8 start,now, DTIME,TOTALT
-
-    CHARACTER aDATE*14
-    CHARACTER*8 :: flg_go='___GO___'      ! green light
-    integer :: iflag=1
-    external sig_stop_model
-    logical :: start9
-
-    integer :: iu_IFILE
-    real*8 :: tloopbegin, tloopend
-    integer :: hour, month, day, date, year
-    character(len=LEN_MONTH_ABBREVIATION) :: amon
-
-    rc = ESMF_SUCCESS
+      logical :: qcRestart=.false.
+      logical :: coldRestart=.false.
+      integer, parameter :: MAX_LEN_IFILE = 32
+      character(len=MAX_LEN_IFILE) :: iFile
+      !logical, intent(in) :: qcRestart
+      !logical, intent(in) :: coldRestart
+      !character(len=*), intent(in) :: iFile
     
-    ! query the Component for its clock, importState and exportState
-    call ESMF_GridCompGet(gcomp, clock=clock, importState=importState, &
-      exportState=exportState, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! HERE THE MODEL ADVANCES: currTime -> currTime + timeStep
+      INTEGER K,M,MSTART,MNOW,months,ioerr,Ldate,istart
+      INTEGER :: MDUM = 0
     
-    ! Because of the way that the internal Clock was set by default,
-    ! its timeStep is equal to the parent timeStep. As a consequence the
-    ! currTime + timeStep is equal to the stopTime of the internal Clock
-    ! for this call of the ModelAdvance() routine.
+      character(len=80) :: filenm
     
-    call NUOPC_ClockPrintCurrTime(clock, &
-      "------>Advancing MODELE P2 from: ", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+      REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
+      REAL*8, DIMENSION(0:NTIMEMAX) ::TIMING_glob
+      REAL*8 start,now, DTIME,TOTALT
     
-    call NUOPC_ClockPrintStopTime(clock, &
-      "--------------------------------> to: ", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+      CHARACTER aDATE*14
+      CHARACTER*8 :: flg_go='___GO___'      ! green light
+      integer :: iflag=1
+      external sig_stop_model
+      logical :: start9
+    
+      integer :: iu_IFILE
+      real*8 :: tloopbegin, tloopend
+      integer :: hour, month, day, date, year
+      character(len=LEN_MONTH_ABBREVIATION) :: amon
+    
+      rc = ESMF_SUCCESS
+      
+      ! query the Component for its clock, importState and exportState
+      call ESMF_GridCompGet(gcomp, clock=clock, importState=importState, 
+     &     exportState=exportState, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+    
+        ! HERE THE MODEL ADVANCES: currTime -> currTime + timeStep
+        
+        ! Because of the way that the internal Clock was set by default,
+        ! its timeStep is equal to the parent timeStep. As a consequence the
+        ! currTime + timeStep is equal to the stopTime of the internal Clock
+        ! for this call of the ModelAdvance() routine.
+        
+        call NUOPC_ClockPrintCurrTime(clock, 
+     &     "------>Advancing MODELE P2 from: ", rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+        
+        call NUOPC_ClockPrintStopTime(clock, 
+     &     "--------------------------------> to: ", rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
 
 !****
 !**** SURFACE INTERACTION AND GROUND CALCULATION
@@ -469,76 +478,76 @@ module MODELE
 
       call ocean_driver
 
-  end subroutine ModelAdvanceP2
+      end subroutine ModelAdvanceP2
 
   !-----------------------------------------------------------------------------
 
-  subroutine ModelAdvanceP3(gcomp, rc)
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
+      subroutine ModelAdvanceP3(gcomp, rc)
+      type(ESMF_GridComp)  :: gcomp
+      integer, intent(out) :: rc
+      
+      ! local variables
+      type(ESMF_Clock)              :: clock
+      type(ESMF_State)              :: importState, exportState
     
-    ! local variables
-    type(ESMF_Clock)              :: clock
-    type(ESMF_State)              :: importState, exportState
-
-    logical :: qcRestart=.false.
-    logical :: coldRestart=.false.
-    integer, parameter :: MAX_LEN_IFILE = 32
-    character(len=MAX_LEN_IFILE) :: iFile
-    !logical, intent(in) :: qcRestart
-    !logical, intent(in) :: coldRestart
-    !character(len=*), intent(in) :: iFile
-
-    INTEGER K,M,MSTART,MNOW,months,ioerr,Ldate,istart
-    INTEGER :: MDUM = 0
-
-    character(len=80) :: filenm
-
-    REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
-    REAL*8, DIMENSION(0:NTIMEMAX) ::TIMING_glob
-    REAL*8 start,now, DTIME,TOTALT
-
-    CHARACTER aDATE*14
-    CHARACTER*8 :: flg_go='___GO___'      ! green light
-    integer :: iflag=1
-    external sig_stop_model
-    logical :: start9
-
-    integer :: iu_IFILE
-    real*8 :: tloopbegin, tloopend
-    integer :: hour, month, day, date, year
-    character(len=LEN_MONTH_ABBREVIATION) :: amon
-
-    rc = ESMF_SUCCESS
+      logical :: qcRestart=.false.
+      logical :: coldRestart=.false.
+      integer, parameter :: MAX_LEN_IFILE = 32
+      character(len=MAX_LEN_IFILE) :: iFile
+      !logical, intent(in) :: qcRestart
+      !logical, intent(in) :: coldRestart
+      !character(len=*), intent(in) :: iFile
     
-    ! query the Component for its clock, importState and exportState
-    call ESMF_GridCompGet(gcomp, clock=clock, importState=importState, &
-      exportState=exportState, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! HERE THE MODEL ADVANCES: currTime -> currTime + timeStep
+      INTEGER K,M,MSTART,MNOW,months,ioerr,Ldate,istart
+      INTEGER :: MDUM = 0
     
-    ! Because of the way that the internal Clock was set by default,
-    ! its timeStep is equal to the parent timeStep. As a consequence the
-    ! currTime + timeStep is equal to the stopTime of the internal Clock
-    ! for this call of the ModelAdvance() routine.
+      character(len=80) :: filenm
     
-    call NUOPC_ClockPrintCurrTime(clock, &
-      "------>Advancing MODELE P3 from: ", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+      REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
+      REAL*8, DIMENSION(0:NTIMEMAX) ::TIMING_glob
+      REAL*8 start,now, DTIME,TOTALT
     
-    call NUOPC_ClockPrintStopTime(clock, &
-      "--------------------------------> to: ", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+      CHARACTER aDATE*14
+      CHARACTER*8 :: flg_go='___GO___'      ! green light
+      integer :: iflag=1
+      external sig_stop_model
+      logical :: start9
+    
+      integer :: iu_IFILE
+      real*8 :: tloopbegin, tloopend
+      integer :: hour, month, day, date, year
+      character(len=LEN_MONTH_ABBREVIATION) :: amon
+    
+      rc = ESMF_SUCCESS
+      
+      ! query the Component for its clock, importState and exportState
+      call ESMF_GridCompGet(gcomp, clock=clock, importState=importState, 
+     &     exportState=exportState, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+    
+        ! HERE THE MODEL ADVANCES: currTime -> currTime + timeStep
+        
+        ! Because of the way that the internal Clock was set by default,
+        ! its timeStep is equal to the parent timeStep. As a consequence the
+        ! currTime + timeStep is equal to the stopTime of the internal Clock
+        ! for this call of the ModelAdvance() routine.
+        
+      call NUOPC_ClockPrintCurrTime(clock, 
+     &     "------>Advancing MODELE P3 from: ", rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
+        
+      call NUOPC_ClockPrintStopTime(clock, 
+     &     "--------------------------------> to: ", rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, 
+     &   line=__LINE__, 
+     &   file=__FILE__)) 
+     &   return  ! bail out
 !****
 !**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 !****
@@ -621,9 +630,9 @@ module MODELE
           TOTALT=SUM(TIMING(1:NTIMEACC)) ! on the root processor
           TOTALT=TOTALT/SECONDS_PER_MINUTE     ! seconds -> minutes
           DTIME = NDAY*TOTALT/(Itime-Itime0) ! minutes/day
-          WRITE (6,'(/A,F7.2,A,/(8(A13,F5.1/))//)'), &
-              '0TIME',DTIME,'(MINUTES) ', &
-              (TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
+          WRITE (6,'(/A,F7.2,A,/(8(A13,F5.1/))//)'), 
+     &         '0TIME',DTIME,'(MINUTES) ', 
+     &         (TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
         end if
         TIMING = 0
         START= NOW
@@ -663,76 +672,77 @@ module MODELE
 !**** END OF MAIN LOOP
 !****
 
-  end subroutine ModelAdvanceP3
+      end subroutine ModelAdvanceP3
 
   !-----------------------------------------------------------------------------
 
-  subroutine NFinalize(gcomp, importState, exportState, clock, rc)
-    type(ESMF_GridComp)  :: gcomp
-    type(ESMF_State)     :: importState, exportState
-    type(ESMF_Clock)     :: clock
-    integer, intent(out) :: rc
-
-    integer :: iu_IFILE
-    real*8 :: tloopbegin, tloopend
-    integer :: hour, month, day, date, year, ioerr
-    character(len=LEN_MONTH_ABBREVIATION) :: amon
-    
-    rc = ESMF_SUCCESS
-
-    call gettime(tloopend)
-    if (AM_I_ROOT()) &
-         write(*,*) "Time spent in the main loop in seconds:", &
-         tloopend-tloopbegin
+      subroutine NFinalize(gcomp, importState, exportState, clock, rc)
+      type(ESMF_GridComp)  :: gcomp
+      type(ESMF_State)     :: importState, exportState
+      type(ESMF_Clock)     :: clock
+      integer, intent(out) :: rc
+   
+      integer :: iu_IFILE
+      real*8 :: tloopbegin, tloopend
+      integer :: hour, month, day, date, year, ioerr
+      character(len=LEN_MONTH_ABBREVIATION) :: amon
+      
+      rc = ESMF_SUCCESS
+   
+      call gettime(tloopend)
+      if (AM_I_ROOT()) 
+     &       write(*,*) "Time spent in the main loop in seconds:", 
+     &       tloopend-tloopbegin
 
 !**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
-    CALL RFINAL (IRAND)
-    call set_param( "IRAND", IRAND, 'o' )
-    call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
-
-    call finalize_atm
-
-    if (AM_I_ROOT()) then
-    WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)') &
-      '0Restart file written on fort.',KDISK,'Year',year, &
-         aMON, date,', Hr',hour,'  Internal clock time:',ITIME
-    end if
+      CALL RFINAL (IRAND)
+      call set_param( "IRAND", IRAND, 'o' )
+      call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
+   
+      call finalize_atm
+   
+      if (AM_I_ROOT()) then
+      WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)') 
+     &   '0Restart file written on fort.',KDISK,'Year',year, 
+     &      aMON, date,', Hr',hour,'  Internal clock time:',ITIME
+      end if
 
 !**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
-    call printSysTimers()
+      call printSysTimers()
+   
+      IF (AM_I_ROOT()) 
+     &    WRITE (6,'(/////4(1X,33("****")/)//,A,I8 
+     &              ///4(1X,33("****")/))') 
+     &   ' PROGRAM TERMINATED NORMALLY - Internal clock time:',ITIME
+   
+      IF (Itime.ge.ItimeE) then
+         call reportProfile((itimee-itimei)*dtSRC)
+         if (AM_I_ROOT()) call print_unused_param(6)
+         CALL stop_model ('Terminated normally (reached maximum time)',
+     &   13)
+      END IF
 
-    IF (AM_I_ROOT()) &
-       WRITE (6,'(/////4(1X,33("****")/)//,A,I8 &
-                 ///4(1X,33("****")/))') &
-      ' PROGRAM TERMINATED NORMALLY - Internal clock time:',ITIME
-
-    IF (Itime.ge.ItimeE) then
-       call reportProfile((itimee-itimei)*dtSRC)
-       if (AM_I_ROOT()) call print_unused_param(6)
-       CALL stop_model ('Terminated normally (reached maximum time)',13)
-    END IF
-
-    CALL stop_model ('Run stopped with sswE',12)  ! voluntary stop
+      CALL stop_model ('Run stopped with sswE',12)  ! voluntary stop
 #ifdef USE_MPP
-    call fms_end( )
+      call fms_end( )
 #endif
     
-  end subroutine
+      end subroutine
 
 !-----------------------------------------------------------------------------
 ! Here comes the original version of MODELE code
 !-----------------------------------------------------------------------------
 #else
 
-  implicit none
-  private
-
-  use ATM_DRV, only: atm_phase1, atm_phase2
-
-  public modelE_mainDriver
-
-  contains
+      implicit none
+      private
+    
+      use ATM_DRV, only: atm_phase1, atm_phase2
+    
+      public modelE_mainDriver
+    
+      contains
 
 #include "rundeck_opts.h"
       subroutine modelE_mainDriver()
@@ -822,11 +832,11 @@ module MODELE
 
       call modelEclock%getDate(hour=hour, date=date, year=year,amn=amon)
 
-      if (AM_I_ROOT()) &
-        WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)') &
-        '0NASA/GISS Climate Model (re)started', &
-        'Year', year, aMon, date, ', Hr', hour, &
-        'Internal clock: DTsrc-steps since 1/1/',Iyear1,ITIME
+      if (AM_I_ROOT()) 
+     &   WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)') 
+     &   '0NASA/GISS Climate Model (re)started', 
+     &   'Year', year, aMon, date, ', Hr', hour, 
+     &   'Internal clock: DTsrc-steps since 1/1/',Iyear1,ITIME
 
          CALL TIMER (NOW,MELSE)
 
@@ -960,9 +970,9 @@ module MODELE
           TOTALT=SUM(TIMING(1:NTIMEACC)) ! on the root processor
           TOTALT=TOTALT/SECONDS_PER_MINUTE     ! seconds -> minutes
           DTIME = NDAY*TOTALT/(Itime-Itime0) ! minutes/day
-          WRITE (6,'(/A,F7.2,A,/(8(A13,F5.1/))//)'), &
-              '0TIME',DTIME,'(MINUTES) ', &
-              (TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
+          WRITE (6,'(/A,F7.2,A,/(8(A13,F5.1/))//)'), 
+     &         '0TIME',DTIME,'(MINUTES) ', 
+     &         (TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
         end if
         TIMING = 0
         START= NOW
@@ -1003,12 +1013,12 @@ module MODELE
 !****
 
       call gettime(tloopend)
-      if (AM_I_ROOT()) &
-           write(*,*) "Time spent in the main loop in seconds:", &
-           tloopend-tloopbegin
-      if (AM_I_ROOT()) &
-           write(*,*) "Total number of time steps:", &
-           nstep
+      if (AM_I_ROOT()) 
+     &      write(*,*) "Time spent in the main loop in seconds:", 
+     &      tloopend-tloopbegin
+      if (AM_I_ROOT()) 
+     &      write(*,*) "Total number of time steps:", 
+     &      nstep
 
 !**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       CALL RFINAL (IRAND)
@@ -1018,19 +1028,19 @@ module MODELE
       call finalize_atm
 
       if (AM_I_ROOT()) then
-      WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)') &
-        '0Restart file written on fort.',KDISK,'Year',year, &
-           aMON, date,', Hr',hour,'  Internal clock time:',ITIME
+      WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)') 
+     &   '0Restart file written on fort.',KDISK,'Year',year, 
+     &      aMON, date,', Hr',hour,'  Internal clock time:',ITIME
       end if
 
 !**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       call printSysTimers()
 
-      IF (AM_I_ROOT()) &
-         WRITE (6,'(/////4(1X,33("****")/)//,A,I8 &
-                   ///4(1X,33("****")/))') &
-        ' PROGRAM TERMINATED NORMALLY - Internal clock time:',ITIME
+      IF (AM_I_ROOT()) 
+     &    WRITE (6,'(/////4(1X,33("****")/)//,A,I8 
+     &              ///4(1X,33("****")/))') 
+     &   ' PROGRAM TERMINATED NORMALLY - Internal clock time:',ITIME
 
       IF (Itime.ge.ItimeE) then
          call reportProfile((itimee-itimei)*dtSRC)
@@ -1169,10 +1179,10 @@ module MODELE
 #if defined( USE_FVCORE )
       call checkpoint(fvstate, rsf_file_name(KDISK))
 #endif
-      if (AM_I_ROOT()) &
-          WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)') &
-          '0Restart file written on fort.',KDISK,'Year', &
-          year,aMon,date,', Hr',hour,'  Internal clock time:',ITIME
+      if (AM_I_ROOT()) 
+     &     WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)') 
+     &     '0Restart file written on fort.',KDISK,'Year', 
+     &     year,aMon,date,', Hr',hour,'  Internal clock time:',ITIME
       kdisk=3-kdisk
 
       end subroutine checkpointModelE
@@ -1230,14 +1240,14 @@ module MODELE
 
       column = newColumn(INCLUSIVE_TIME_COLUMN, fieldWidth=11)
       call setPrecision(column, 5)
-      call setScale(column, INT_MINUTES_PER_DAY/elapsedTimeInSeconds, &
-          'min/day')
+      call setScale(column, INT_MINUTES_PER_DAY/elapsedTimeInSeconds, 
+     &     'min/day')
       call addColumn(report, column)
 
       column = newColumn(EXCLUSIVE_TIME_COLUMN, fieldWidth=11)
       call setPrecision(column, 5)
-      call setScale(column, INT_MINUTES_PER_DAY/elapsedTimeInSeconds, &
-           'min/day')
+      call setScale(column, INT_MINUTES_PER_DAY/elapsedTimeInSeconds, 
+     &      'min/day')
       call addColumn(report, column)
 
       call addColumn(report, newColumn(TRIP_COUNTS_COLUMN,fieldWidth=6))
@@ -1299,8 +1309,8 @@ module MODELE
 !@+   sync_param( "B", Y ) reads parameter B into variable Y
 !@+   if "B" is not in the database, then Y is unchanged and its
 !@+   value is saved in the database as "B" (here sync = synchronize)
-      USE MODEL_COM, only : NIPRNT,master_yr &
-          ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,IRAND,ItimeI
+      USE MODEL_COM, only : NIPRNT,master_yr 
+     &     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,IRAND,ItimeI
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       USE Dictionary_mod
       implicit none
@@ -1331,17 +1341,17 @@ module MODELE
       USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : timing,ntimeacc
       USE Dictionary_mod
-      USE MODEL_COM, only : &
-            xlabel,lrunid,nmonav,qcheck,irand &
-           ,nday,dtsrc,kdisk,jmon0,jyear0 &
-           ,iyear1,itime,itimei,itimee &
-           ,idacc,modelEclock &
-           ,aMONTH,jdendofm,aMON0 &
-           ,ioread,irerun,irsfic &
-           ,melse,Itime0,Jdate0 &
-           ,Jhour0,rsf_file_name &
-           ,HOURI,DATEI,MONTHI,YEARI ,HOURE,DATEE,MONTHE,YEARE &
-           ,iwrite_sv,jwrite_sv,itwrite_sv,kdiag_sv
+      USE MODEL_COM, only : 
+     &       xlabel,lrunid,nmonav,qcheck,irand 
+     &      ,nday,dtsrc,kdisk,jmon0,jyear0 
+     &      ,iyear1,itime,itimei,itimee 
+     &      ,idacc,modelEclock 
+     &      ,aMONTH,jdendofm,aMON0 
+     &      ,ioread,irerun,irsfic 
+     &      ,melse,Itime0,Jdate0 
+     &      ,Jhour0,rsf_file_name 
+     &      ,HOURI,DATEI,MONTHI,YEARI ,HOURE,DATEE,MONTHE,YEARE 
+     &      ,iwrite_sv,jwrite_sv,itwrite_sv,kdiag_sv
       USE RANDOM
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
 #ifndef STANDALONE_OCEAN
@@ -1350,8 +1360,8 @@ module MODELE
 #endif
 #endif
 
-      use TimeConstants_mod, only : SECONDS_PER_DAY, INT_HOURS_PER_DAY, &
-                                    INT_DAYS_PER_YEAR
+      use TimeConstants_mod, only : SECONDS_PER_DAY, INT_HOURS_PER_DAY, 
+     &                               INT_DAYS_PER_YEAR
       use ModelClock_mod, only: ModelClock, newModelClock
       use Time_mod, only: Time, newTime
       use Calendar_mod, only: Calendar
@@ -1381,16 +1391,16 @@ module MODELE
       INTEGER :: IWRITE=0,JWRITE=0,ITWRITE=23
       INTEGER, DIMENSION(13) :: KDIAG
 
-      NAMELIST/INPUTZ/ ISTART,IRANDI &
-           ,IWRITE,JWRITE,ITWRITE,QCHECK,KDIAG &
-           ,IHOURE, TIMEE,HOURE,DATEE,MONTHE,YEARE,IYEAR1 &
+      NAMELIST/INPUTZ/ ISTART,IRANDI 
+     &      ,IWRITE,JWRITE,ITWRITE,QCHECK,KDIAG 
+     &      ,IHOURE, TIMEE,HOURE,DATEE,MONTHE,YEARE,IYEAR1 
 !****    List of parameters that are disregarded at restarts
-           ,        HOURI,DATEI,MONTHI,YEARI
-      NAMELIST/INPUTZ_cold/ ISTART,IRANDI &
-           ,IWRITE,JWRITE,ITWRITE,QCHECK,KDIAG &
-           ,IHOURE, TIMEE,HOURE,DATEE,MONTHE,YEARE,IYEAR1 &
+     &      ,        HOURI,DATEI,MONTHI,YEARI
+      NAMELIST/INPUTZ_cold/ ISTART,IRANDI 
+     &      ,IWRITE,JWRITE,ITWRITE,QCHECK,KDIAG 
+     &      ,IHOURE, TIMEE,HOURE,DATEE,MONTHE,YEARE,IYEAR1 
 !****    List of parameters that are disregarded at restarts
-           ,        HOURI,DATEI,MONTHI,YEARI
+     &      ,        HOURI,DATEI,MONTHI,YEARI
       integer istart_fixup
       character*132 :: bufs
       integer, parameter :: MAXLEN_RUNID = 32
@@ -1474,20 +1484,21 @@ module MODELE
 
 !**** Get Start Time; at least YearI HAS to be specified in the rundeck
       IF (YearI.lt.0) then
-        IF (AM_I_ROOT()) &
-         WRITE(6,*) 'Please choose a proper start year yearI, not',yearI
+        IF (AM_I_ROOT()) 
+     &    WRITE(6,*) 'Please choose a proper start year yearI, not',yearI
         call stop_model('INPUT: yearI not provided',255)
       END IF
       IF (Iyear1.lt.0) Iyear1 = yearI
-      IhrI = HourI + INT_HOURS_PER_DAY*(dateI-1 + JDendofM(monthI-1) + &
-             INT_DAYS_PER_YEAR*(yearI-Iyear1))
+      IhrI = HourI + INT_HOURS_PER_DAY*(dateI-1 + JDendofM(monthI-1) + 
+     &        INT_DAYS_PER_YEAR*(yearI-Iyear1))
       ITimeI = IhrI*NDAY/INT_HOURS_PER_DAY ! internal clock counts DTsrc-steps
       Itime=ItimeI
       IF (IhrI.lt.0) then
-        IF (AM_I_ROOT()) &
-        WRITE(6,*) 'Improper start time OR Iyear1=',Iyear1,' > yearI;', &
-        ' yearI,monthI,dateI,hourI=',yearI,monthI,dateI,hourI
-        call stop_model('INPUT: Improper start date or base year Iyear1',255)
+       IF (AM_I_ROOT()) 
+     &  WRITE(6,*) 'Improper start time OR Iyear1=',Iyear1,' > yearI;', 
+     &  ' yearI,monthI,dateI,hourI=',yearI,monthI,dateI,hourI
+       call stop_model('INPUT: Improper start date or base year Iyear1',
+     & 255)
       END IF
 
       IF (ISTART.EQ.2) THEN
@@ -1507,11 +1518,11 @@ module MODELE
         call io_rsf("AIC",IhrX,irsfic,ioerr)
 
 !**** Check consistency of starting time
-        IF( (MOD(IHRI-IHRX,INT_HOURS_PER_DAY*INT_DAYS_PER_YEAR).ne.0) )  &
-        THEN
-         WRITE (6,*) ' Difference in hours between ', &
-             'Starting date and Data date:', &
-             MOD(IHRI-IHRX,INT_HOURS_PER_DAY*INT_DAYS_PER_YEAR)
+        IF( (MOD(IHRI-IHRX,INT_HOURS_PER_DAY*INT_DAYS_PER_YEAR).ne.0) )  
+     &   THEN
+         WRITE (6,*) ' Difference in hours between ', 
+     &        'Starting date and Data date:', 
+     &        MOD(IHRI-IHRX,INT_HOURS_PER_DAY*INT_DAYS_PER_YEAR)
          WRITE (6,*) 'Please change HOURI,DATEI,MONTHI'
          call stop_model('INPUT: start date inconsistent with data',255)
         ENDIF
@@ -1524,10 +1535,10 @@ module MODELE
         do_IC_fixups = 1        ! new default, not necessarily final
       ENDIF
 
-      IF (AM_I_ROOT()) &
-           WRITE(6,'(A,i3,1x,a4,i5,a3,i3,3x,a,i2/" ",a)') &
-        '0Model started on',datei,aMONTH(monthi),yeari,' Hr',houri, &
-        'ISTART =',ISTART,XLABEL(1:80)    ! report input file label
+      IF (AM_I_ROOT()) 
+     &      WRITE(6,'(A,i3,1x,a4,i5,a3,i3,3x,a,i2/" ",a)') 
+     &   '0Model started on',datei,aMONTH(monthi),yeari,' Hr',houri, 
+     &   'ISTART =',ISTART,XLABEL(1:80)    ! report input file label
       XLABEL = RLABEL                     ! switch to rundeck label
 
       else ! initial versus restart
@@ -1547,8 +1558,8 @@ module MODELE
 !****        mainly used for REPEATS and delayed EXTENSIONS
       IF(ISTART==9) THEN                     !  diag.arrays are not read in
         call io_rsf("AIC",Itime,irerun,ioerr)
-        WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=', &
-          ISTART,', TIME=',Itime,' ',XLABEL(1:80) ! sho input file label
+        WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=', 
+     &     ISTART,', TIME=',Itime,' ',XLABEL(1:80) ! sho input file label
         XLABEL = RLABEL                        ! switch to rundeck label
         TIMING = 0
       ELSE
@@ -1564,9 +1575,9 @@ module MODELE
         ENDIF
         call io_rsf(rsf_file_name(KDISK),Itime,ioread,ioerr)
         KDISK_restart = KDISK
-        if (AM_I_ROOT()) &
-            WRITE (6,'(A,I2,A,I11,A,A/)') '0RESTART DISK READ, UNIT', &
-            KDISK,', Time=',Itime,' ',XLABEL(1:80)
+        if (AM_I_ROOT()) 
+     &       WRITE (6,'(A,I2,A,I11,A,A/)') '0RESTART DISK READ, UNIT', 
+     &       KDISK,', Time=',Itime,' ',XLABEL(1:80)
 
 !**** Switch KDISK if the other file is (or may be) bad (istart>10)
 !****     so both files will be fine after the next write execution
@@ -1592,25 +1603,25 @@ module MODELE
       lid2 = INDEX(XLABEL,' ') -1
       if (lid2.lt.1) lid2=MAXLEN_RUNID+1
       LRUNID = min(lid1,lid2)
-      IF (LRUNID.gt.MAXLEN_RUNID) call stop_model &
-           ('INPUT: Rundeck name too long. Shorten to 32 char or less' &
-           ,255)
+      IF (LRUNID.gt.MAXLEN_RUNID) call stop_model 
+     &      ('INPUT: Rundeck name too long. Shorten to 32 char or less' 
+     &      ,255)
 
 !**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 !****
       if(timee.lt.0) timee=houre*nday/INT_HOURS_PER_DAY
-      IF(yearE.ge.0) ItimeE = (( (yearE-iyear1)*INT_DAYS_PER_YEAR +  &
-                    JDendofM(monthE-1) + dateE-1) * INT_HOURS_PER_DAY) * &
-                    NDAY/INT_HOURS_PER_DAY + TIMEE
+      IF(yearE.ge.0) ItimeE = (( (yearE-iyear1)*INT_DAYS_PER_YEAR +  
+     &   JDendofM(monthE-1) + dateE-1) * INT_HOURS_PER_DAY) * 
+     &   NDAY/INT_HOURS_PER_DAY + TIMEE
 !**** Alternate (old) way of specifying end time
       if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/INT_HOURS_PER_DAY
 
 !**** Check consistency of DTsrc with NDAY
-      if (is_set_param("DTsrc") .and. nint(SECONDS_PER_DAY/DTsrc) &
-          .ne. NDAY) then
+      if (is_set_param("DTsrc") .and. nint(SECONDS_PER_DAY/DTsrc) 
+     &     .ne. NDAY) then
         if (AM_I_ROOT()) then
-          write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to',  &
-                     SECONDS_PER_DAY/NDAY
+          write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to',  
+     &                SECONDS_PER_DAY/NDAY
         end if
         call stop_model('INPUT: DTsrc inappropriately set',255)
       end if
@@ -1623,8 +1634,8 @@ module MODELE
         write (6,*) 'NMONAV has to be 1,2,3,4,6 or 12, not',NMONAV
         call stop_model('INPUT: nmonav inappropriately set',255)
       end if
-      if (AM_I_ROOT()) &
-           write (6,*) 'Diag. acc. period:',NMONAV,' month(s)'
+      if (AM_I_ROOT()) 
+     &      write (6,*) 'Diag. acc. period:',NMONAV,' month(s)'
 
 !**** Updating Parameters: If any of them changed beyond this line
 !**** use set_param(.., .., 'o') to update them in the database (DB)
@@ -1665,12 +1676,12 @@ module MODELE
 ! long version: 
 !      is_coldstart = istart==2 .or. (istart==8 .and. init_topog_related == 1)
 
-      call INPUT_ocean (istart,istart_fixup, & 
-           do_IC_fixups,is_coldstart)
+      call INPUT_ocean (istart,istart_fixup, 
+     &      do_IC_fixups,is_coldstart)
 
-      call INPUT_atm(istart,istart_fixup, &
-           do_IC_fixups,is_coldstart, &
-           KDISK_restart,IRANDI)
+      call INPUT_atm(istart,istart_fixup, 
+     &      do_IC_fixups,is_coldstart, 
+     &      KDISK_restart,IRANDI)
 
       if (istart.le.9) then
         call reset_adiag(0)
@@ -1712,8 +1723,8 @@ module MODELE
 #ifdef TRACERS_WATER
       write(6,*) '...and water tracer code'
 #ifndef TRACERS_ON
-      call stop_model( &
-      ' Water tracers need TRACERS_ON as well as TRACERS_WATER',255)
+      call stop_model( 
+     & ' Water tracers need TRACERS_ON as well as TRACERS_WATER',255)
 #endif
 #endif
 #ifdef TRACERS_OCEAN
@@ -1827,4 +1838,5 @@ module MODELE
       return
       end subroutine print_and_check_PPopts
 
-end module
+
+      end module
