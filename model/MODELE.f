@@ -734,12 +734,11 @@ c@auth Original Development Team
 ! Here comes the original version of MODELE code
 !-----------------------------------------------------------------------------
 #else
+    
+      use ATM_DRV, only: atm_phase1, atm_phase2
 
       implicit none
       private
-    
-      use ATM_DRV, only: atm_phase1, atm_phase2
-    
       public modelE_mainDriver
     
       contains
@@ -1043,9 +1042,9 @@ c@auth Original Development Team
      &   ' PROGRAM TERMINATED NORMALLY - Internal clock time:',ITIME
 
       IF (Itime.ge.ItimeE) then
-         call reportProfile((itimee-itimei)*dtSRC)
-         if (AM_I_ROOT()) call print_unused_param(6)
-         CALL stop_model ('Terminated normally (reached maximum time)',13)
+       call reportProfile((itimee-itimei)*dtSRC)
+       if (AM_I_ROOT()) call print_unused_param(6)
+       CALL stop_model ('Terminated normally (reached maximum time)',13)
       END IF
 
       CALL stop_model ('Run stopped with sswE',12)  ! voluntary stop
@@ -1123,7 +1122,7 @@ c@auth Original Development Team
       call fms_init( )
 #endif
 #ifdef USE_ESMF_LIB
-#define VERIFY_(rc) If (rc /= ESMF_SUCCESS) Call abort(__LINE__,rc)
+#define VERIFY_(rc) If (rc /= ESMF_SUCCESS) Call abort
       call ESMF_VMGetCurrent(vm, rc=rc)
       VERIFY_(rc)
       call ESMF_VMGet(vm, mpicommunicator=mpicom, rc=rc)
